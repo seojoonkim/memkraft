@@ -481,39 +481,25 @@ MemKraft was originally built as a production memory system for a multi-agent te
 
 ## Installation
 
-### pipx (recommended)
+### Install
 
 ```bash
 pipx install memkraft
-memkraft brief
 ```
 
 `pipx` installs CLI tools in isolated virtualenvs — no dependency conflicts, no global pollution. One command to install, one to uninstall (`pipx uninstall memkraft`).
 
 Don't have pipx?
 ```bash
-# macOS
-brew install pipx
-pipx ensurepath
-
-# or with pip
-pip install pipx
+brew install pipx     # macOS
 pipx ensurepath
 ```
 
-### pipx run (one-shot, no install)
+### Run without installing
 
 ```bash
 pipx run memkraft brief
 ```
-
-### pip (for library usage in your own project)
-
-```bash
-pip install memkraft
-```
-
-Use this when you want to `from memkraft import core` in your own Python project.
 
 ### From source
 
