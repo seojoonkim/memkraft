@@ -1,4 +1,4 @@
-"""MemKraft unit tests — R11 hotfix + org/product/location detection"""
+"""MemKraft unit tests — R16 검수 + 고도화"""
 import json
 import os
 import tempfile
@@ -369,3 +369,313 @@ class TestR15AgenticSearch:
     def test_agentic_search_json_output(self, mk_with_data):
         results = mk_with_data.agentic_search("Hashed", json_output=True)
         assert isinstance(results, list)
+
+
+# ── R16: Entity Detection — Email, URL, Version Products ────
+class TestR16EntityDetection:
+    def test_detect_email(self, mk):
+        entities = mk._detect_regex("Contact simon@hashed.com for details.")
+        names = [e["name"] for e in entities]
+        assert "simon@hashed.com" in names
+        email_entity = [e for e in entities if e["name"] == "simon@hashed.com"][0]
+        assert email_entity["type"] == "contact"
+
+    def test_detect_url(self, mk):
+        entities = mk._detect_regex("Visit https://memkraft.dev/docs for documentation.")
+        names = [e["name"] for e in entities]
+        assert any("https://memkraft.dev" in n for n in names)
+        url_entities = [e for e in entities if e["type"] == "reference"]
+        assert len(url_entities) >= 1
+
+    def test_detect_version_product(self, mk):
+        entities = mk._detect_regex("OpenAI released GPT-5 with better reasoning.")
+        product_entities = [e for e in entities if e["type"] == "product"]
+        product_names = [e["name"] for e in product_entities]
+        assert any("GPT-5" in n for n in product_names)
+
+    def test_detect_iphone_version(self, mk):
+        entities = mk._detect_regex("The iPhone 16 Pro has a new camera system.")
+        product_entities = [e for e in entities if e["type"] == "product"]
+        product_names = [e["name"] for e in product_entities]
+        assert any("Pro" in n or "16" in n for n in product_names)
+
+    def test_detect_no_false_positive_date_as_product(self, mk):
+        entities = mk._detect_regex("The meeting is on 2024-03-15.")
+        product_names = [e["name"] for e in entities if e["type"] == "product"]
+        assert "2024" not in product_names
+
+    def test_detect_korean_tech_org(self, mk):
+        entities = mk._detect_regex("카카오벤처스에서 투자를 받았다.")
+        org_entities = [e for e in entities if e["type"] == "organization"]
+        assert len(org_entities) >= 1
+
+    def test_detect_multiple_emails(self, mk):
+        entities = mk._detect_regex("Send to alice@test.com and bob@test.com")
+        contact_entities = [e for e in entities if e["type"] == "contact"]
+        assert len(contact_entities) >= 2
+
+    def test_blocklist_expansion(self, mk):
+        """Expanded common word blocklist should filter false positives."""
+        entities = mk._detect_regex("Also Would Could Should be ignored.")
+        person_names = [e["name"] for e in entities if e["type"] == "person"]
+        assert "Also Would" not in person_names
+        assert "Could Should" not in person_names
+
+
+# ── R16: Search Quality — Phrase Matching + Date-Aware ──────
+class TestR16SearchQuality:
+    def test_phrase_match_higher_than_scattered_tokens(self, mk):
+        """Multi-word exact phrase should score higher than scattered tokens."""
+        mk.extract("Simon Kim is the CEO of Hashed in Seoul.", source="test")
+        # Create another entity with scattered words
+        mk.track("CEO Report", entity_type="person", source="test")
+        mk.update("CEO Report", info="Hashed mentioned briefly, not CEO related", source="test")
+        phrase_results = mk.search("CEO of Hashed")
+        assert len(phrase_results) > 0
+        # The first result should be the one with the exact phrase
+        assert phrase_results[0]["score"] >= 0.8
+
+    def test_heading_match_boost(self, mk):
+        """Query matching a heading should get a boost."""
+        mk.track("Test Heading", entity_type="person", source="test")
+        results = mk.search("Test Heading")
+        assert len(results) > 0
+        # Heading match should contribute to high score
+        assert results[0]["score"] > 0
+
+    def test_search_empty_string_returns_empty(self, mk):
+        results = mk.search("   ")
+        assert results == []
+
+    def test_search_special_chars_no_crash(self, mk_with_data):
+        results = mk_with_data.search("CEO (test) [bracket]")
+        assert isinstance(results, list)
+
+    def test_search_korean_query(self, mk):
+        mk.extract("김서준이 서울에서 회의를 했다.", source="test")
+        results = mk.search("서울")
+        assert len(results) > 0
+
+    def test_search_cjk_mixed(self, mk):
+        mk.extract("田中太郎 met Simon Kim in Tokyo.", source="test")
+        results = mk.search("Tokyo")
+        assert len(results) > 0
+
+
+# ── R16: Dream Cycle — Returns + Source-less + Compression ──
+class TestR16DreamCycle:
+    def test_dream_returns_dict(self, mk):
+        result = mk.dream(dry_run=True)
+        assert isinstance(result, dict)
+        assert "issues" in result
+        assert "total" in result
+
+    def test_dream_returns_structured_issues(self, mk_with_data):
+        result = mk_with_data.dream(dry_run=True)
+        issues = result["issues"]
+        assert "incomplete_sources" in issues
+        assert "sourceless_facts" in issues
+        assert "thin_entities" in issues
+        assert "bloated_pages" in issues
+        assert isinstance(result["details"], dict)
+
+    def test_dream_detects_sourceless_facts(self, mk):
+        """Facts in Key Points without [Source:] should be flagged."""
+        mk.track("Test Person", entity_type="person", source="test")
+        # Manually add a sourceless fact to Key Points
+        filepath = mk.live_notes_dir / "test-person.md"
+        content = filepath.read_text(encoding="utf-8")
+        content = content.replace(
+            "## Key Points\n(Key points are automatically summarized here)",
+            "## Key Points\n- This fact has no source attribution\n- Another unsourced fact"
+        )
+        filepath.write_text(content, encoding="utf-8")
+        result = mk.dream(dry_run=True)
+        assert result["issues"]["sourceless_facts"] >= 2
+
+    def test_dream_bloated_page_compression_suggestion(self, mk):
+        """Bloated pages should get actionable compression suggestions."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        big_file = mk.entities_dir / "bloated-entity.md"
+        content = "# Bloated Entity\n\n**Tier: core**\n\n## Key Points\n"
+        for i in range(100):
+            content += f"- Fact number {i} with some details [Source: test]\n"
+        content += "\n## Timeline\n\n"
+        for i in range(50):
+            content += f"- **2024-01-{(i % 28) + 1:02d}** | Event {i} [Source: test]\n"
+        big_file.write_text(content, encoding="utf-8")
+        result = mk.dream(dry_run=True)
+        assert result["issues"]["bloated_pages"] >= 1
+        # Check that details contain compression suggestion
+        assert any("condense" in d or "merge" in d or "split" in d for d in result["details"]["bloated_pages"])
+
+    def test_dream_live_returns_dict(self, mk):
+        mk.track("Test Person", entity_type="person", source="test")
+        result = mk.dream()
+        assert isinstance(result, dict)
+
+
+# ── R16: Duplicate Entities ─────────────────────────────────
+class TestR16DuplicateEntities:
+    def test_track_duplicate_returns_none(self, mk):
+        mk.track("Test Person", entity_type="person", source="test")
+        result = mk.track("Test Person", entity_type="person", source="test2")
+        assert result is None
+
+    def test_extract_duplicate_no_duplication(self, mk):
+        mk.extract("Simon Kim is the CEO of Hashed.", source="test")
+        mk.extract("Simon Kim is the CEO of Hashed.", source="test2")
+        entity_files = list(mk.entities_dir.glob("simon-kim.md"))
+        assert len(entity_files) == 1
+
+    def test_dream_catches_slug_duplicates(self, mk):
+        """Entities with same normalized slug should be flagged."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        (mk.entities_dir / "simon-kim.md").write_text("# Simon Kim\n\n## Timeline\n\n", encoding="utf-8")
+        (mk.entities_dir / "simonkim.md").write_text("# SimonKim\n\n## Timeline\n\n", encoding="utf-8")
+        result = mk.dream(dry_run=True)
+        assert result["issues"]["duplicate_entities"] >= 1
+
+
+# ── R16: Circular References ────────────────────────────────
+class TestR16CircularReferences:
+    def test_agentic_search_circular_links_no_infinite_loop(self, mk):
+        """Circular wiki-links should not cause infinite loop in agentic search."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        (mk.entities_dir / "alice.md").write_text(
+            "# Alice\n\nWorks with [[bob]]\n\n## Timeline\n\n- **2024-01-01** | Created [Source: test]\n",
+            encoding="utf-8"
+        )
+        (mk.entities_dir / "bob.md").write_text(
+            "# Bob\n\nWorks with [[alice]]\n\n## Timeline\n\n- **2024-01-01** | Created [Source: test]\n",
+            encoding="utf-8"
+        )
+        # Should not hang — visited set prevents revisiting
+        results = mk.agentic_search("Alice", max_hops=5)
+        assert isinstance(results, list)
+
+    def test_links_self_reference_no_crash(self, mk):
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        (mk.entities_dir / "self-ref.md").write_text(
+            "# Self Ref\n\nSee also [[self-ref]]\n",
+            encoding="utf-8"
+        )
+        mk.links("Self Ref")  # Should not crash
+
+
+# ── R16: Very Large Files ───────────────────────────────────
+class TestR16LargeFiles:
+    def test_search_large_file_no_crash(self, mk):
+        """Search should handle very large files without crash or timeout."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        big_content = "# Big Entity\n\n" + ("This is a line of content. " * 100 + "\n") * 200
+        (mk.entities_dir / "big-entity.md").write_text(big_content, encoding="utf-8")
+        results = mk.search("Big Entity")
+        assert len(results) > 0
+
+    def test_extract_very_long_text_no_crash(self, mk):
+        long_text = "Simon Kim met Jack Ma at a conference. " * 5000
+        result = mk.extract(long_text, source="test")
+        assert isinstance(result, list)
+
+    def test_dream_with_many_files(self, mk):
+        """Dream should handle many entity files."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        for i in range(50):
+            (mk.entities_dir / f"entity-{i}.md").write_text(
+                f"# Entity {i}\n\n## Timeline\n\n- **2024-01-01** | Created [Source: test]\n",
+                encoding="utf-8"
+            )
+        result = mk.dream(dry_run=True)
+        assert isinstance(result, dict)
+        assert result["issues"]["thin_entities"] >= 40  # Most are small
+
+    def test_dedup_large_dataset(self, mk):
+        """Dedup should handle many facts without crashing."""
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        for i in range(20):
+            content = f"# Entity {i}\n\n## Key Points\n"
+            for j in range(10):
+                content += f"- Fact about topic {j} with details [Source: test]\n"
+            (mk.entities_dir / f"entity-{i}.md").write_text(content, encoding="utf-8")
+        results = mk.dedup(dry_run=True)
+        assert isinstance(results, list)
+
+
+# ── R16: Edge Cases ─────────────────────────────────────────
+class TestR16EdgeCases:
+    def test_slugify_unicode_safe(self, mk):
+        slug = mk._slugify("김서준 (Seoul Office)")
+        assert len(slug) > 0
+        assert " " not in slug
+
+    def test_slugify_empty_string(self, mk):
+        slug = mk._slugify("")
+        assert slug == ""
+
+    def test_slugify_very_long_name(self, mk):
+        slug = mk._slugify("A" * 200)
+        assert len(slug) <= 80
+
+    def test_track_empty_name(self, mk):
+        result = mk.track("", entity_type="person", source="test")
+        assert result is None
+
+    def test_track_whitespace_name(self, mk):
+        result = mk.track("   ", entity_type="person", source="test")
+        assert result is None
+
+    def test_update_nonexistent_returns_none(self, mk):
+        result = mk.update("Nobody", info="test", source="test")
+        assert result is None
+
+    def test_promote_invalid_tier(self, mk):
+        mk.track("Test Person", entity_type="person", source="test")
+        mk.promote("Test Person", tier="invalid")
+        # Should not crash, entity should still be in original tier
+
+    def test_cognify_empty_inbox(self, mk):
+        mk.cognify(dry_run=True)  # Should not crash
+
+    def test_distill_decisions_empty(self, mk):
+        mk.distill_decisions()  # Should not crash
+
+    def test_open_loops_empty(self, mk):
+        mk.open_loops(dry_run=True)  # Should not crash
+
+    def test_build_index_empty(self, mk):
+        mk.build_index()  # Should not crash
+
+    def test_suggest_links_empty(self, mk):
+        mk.suggest_links()  # Should not crash
+
+    def test_lookup_empty(self, mk):
+        mk.lookup("nonexistent")  # Should not crash
+
+    def test_lookup_json_output(self, mk_with_data):
+        mk_with_data.lookup("Hashed", json_output=True)
+
+    def test_query_all_levels(self, mk_with_data):
+        for level in [1, 2, 3]:
+            mk_with_data.query("Hashed", level=level)
+
+    def test_log_event_and_read(self, mk):
+        mk.log_event("test event", tags="test,debug", importance="high")
+        mk.log_read()
+
+    def test_retro_empty(self, mk):
+        mk.retro(dry_run=True)  # Should not crash
+
+    def test_extract_facts_registry_empty(self, mk):
+        mk.extract_facts_registry("")  # Should scan files, not crash
+
+    def test_safe_read_nonexistent(self, mk):
+        result = mk._safe_read(Path("/nonexistent/file.md"))
+        assert result == ""
+
+    def test_detect_mixed_cjk_entities(self, mk):
+        """Mixed CJK + English text should detect entities from both."""
+        entities = mk._detect_regex("Simon Kim met 田中太郎 and 김서준 at a conference in Tokyo.")
+        types = set(e["type"] for e in entities)
+        assert "person" in types
+        assert "location" in types

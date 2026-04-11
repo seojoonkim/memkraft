@@ -1,19 +1,33 @@
 #!/usr/bin/env python3
-"""MemKraft Core — Memory operations and management"""
+"""MemKraft Core — Memory operations and management.
+
+Zero-dependency compound knowledge system for AI agents.
+Supports entity tracking, fact extraction, dream-cycle maintenance,
+hybrid search (exact + IDF-weighted + fuzzy), and agentic multi-hop search.
+"""
+
+from __future__ import annotations
 
 import json
 import os
 import re
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class MemKraft:
-    """The compound knowledge system for AI agents"""
+    """The compound knowledge system for AI agents.
 
-    def __init__(self, base_dir: str = None):
+    All data is stored as plain Markdown files under ``base_dir``.
+    No external dependencies required — search, NER, and maintenance
+    are implemented with stdlib only.
+    """
+
+    def __init__(self, base_dir: Optional[str] = None) -> None:
         if base_dir:
             self.base_dir = Path(base_dir)
         else:
@@ -27,7 +41,7 @@ class MemKraft:
         self.meetings_dir = self.base_dir / "meetings"
 
     # ── Init ──────────────────────────────────────────────────
-    def init(self, path: str = ""):
+    def init(self, path: str = "") -> None:
         if path:
             target = Path(path) / "memory"
         else:
@@ -51,7 +65,7 @@ class MemKraft:
         print("   Files: RESOLVER.md, TEMPLATES.md")
 
     # ── Track ─────────────────────────────────────────────────
-    def track(self, name: str, entity_type: str = "person", source: str = ""):
+    def track(self, name: str, entity_type: str = "person", source: str = "") -> Optional[Path]:
         name = name.strip()
         if not name:
             print("Error: Entity name cannot be empty.")
@@ -106,10 +120,9 @@ class MemKraft:
         except OSError as e:
             print(f"❌ Error creating tracking file: {e}")
             return None
-            return None
 
     # ── Update ────────────────────────────────────────────────
-    def update(self, name: str, info: str, source: str = "manual"):
+    def update(self, name: str, info: str, source: str = "manual") -> None:
         if not info or not info.strip():
             return  # Skip empty updates
 
@@ -166,7 +179,7 @@ class MemKraft:
             return None
 
     # ── List ──────────────────────────────────────────────────
-    def list_entities(self):
+    def list_entities(self) -> None:
         found = False
 
         # List live notes
@@ -201,7 +214,7 @@ class MemKraft:
             print("No entities found. Use 'memkraft track' or 'memkraft detect' to start.")
 
     # ── Brief ─────────────────────────────────────────────────
-    def brief(self, name: str, save: bool = False):
+    def brief(self, name: str, save: bool = False) -> None:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         slug = self._slugify(name)
         brief_parts = [f"# 📋 Meeting Brief: {name}", f"Generated: {now}", ""]
@@ -300,7 +313,7 @@ class MemKraft:
             print(f"\n💾 Saved: {save_path}")
 
     # ── Detect ────────────────────────────────────────────────
-    def detect(self, text: str, source: str = "", dry_run: bool = False):
+    def detect(self, text: str, source: str = "", dry_run: bool = False) -> None:
         entities = self._detect_regex(text)
         for e in entities:
             e["source"] = source
@@ -314,18 +327,33 @@ class MemKraft:
         print(json.dumps(entities, indent=2, ensure_ascii=False))
 
     # ── Dream ─────────────────────────────────────────────────
-    def dream(self, date: str = None, dry_run: bool = False):
+    def dream(self, date: str = None, dry_run: bool = False) -> Dict[str, Any]:
+        """Run the Dream Cycle — nightly maintenance for memory health.
+
+        Performs 7 health checks:
+        1. Incomplete source attributions in timelines
+        2. Thin entity pages (<300 bytes)
+        3. Duplicate entities (normalized slug comparison)
+        4. Overdue inbox items (>48 hours)
+        5. Bloated pages (>4KB — context window waste)
+        6. Source-less facts in Key Points (no ``[Source: ...]``)
+        7. Bloated page compression suggestions
+
+        Returns a dict of ``{check_name: count}`` for programmatic use.
+        """
         target_date = date or datetime.now().strftime("%Y-%m-%d")
         print(f"🌙 Dream Cycle — {target_date}")
         print(f"   Mode: {'dry-run' if dry_run else 'live'}")
 
-        issues = {
+        issues: Dict[str, int] = {
             "incomplete_sources": 0,
             "thin_entities": 0,
             "duplicate_entities": 0,
             "inbox_overdue": 0,
             "bloated_pages": 0,
+            "sourceless_facts": 0,
         }
+        details: Dict[str, List[str]] = {k: [] for k in issues}
 
         # Ensure daily note exists before running (skip in dry-run to keep read-only)
         if not dry_run:
@@ -340,6 +368,26 @@ class MemKraft:
                 for line in section.split("\n"):
                     if line.strip().startswith("- **") and "[Source:" not in line and "{" not in line:
                         issues["incomplete_sources"] += 1
+                        rel = str(md.relative_to(self.base_dir))
+                        details["incomplete_sources"].append(f"{rel}: {line.strip()[:80]}")
+
+        # Check for source-less facts in Key Points
+        print("   🔍 Scanning for source-less facts in Key Points...")
+        for md in self._all_md_files():
+            content = self._safe_read(md)
+            for marker in ["## Key Points\n", "## 키 포인트\n", "## 핵심 포인트\n"]:
+                if marker in content:
+                    section = content.split(marker)[1].split("\n## ")[0]
+                    for line in section.split("\n"):
+                        stripped = line.strip()
+                        if stripped.startswith("- ") and len(stripped) > 10 and "[Source:" not in stripped:
+                            # Skip placeholder lines
+                            if stripped.startswith("(") or "enrichment needed" in stripped.lower():
+                                continue
+                            issues["sourceless_facts"] += 1
+                            rel = str(md.relative_to(self.base_dir))
+                            details["sourceless_facts"].append(f"{rel}: {stripped[:80]}")
+                    break
 
         # Check for thin entity pages
         print("   🔍 Scanning for thin entity pages...")
@@ -347,11 +395,12 @@ class MemKraft:
             for md in self.entities_dir.glob("*.md"):
                 if md.stat().st_size < 300:
                     issues["thin_entities"] += 1
+                    details["thin_entities"].append(str(md.relative_to(self.base_dir)))
 
         # Check for duplicate entities
         print("   🔍 Scanning for duplicate entities...")
         if self.entities_dir.exists():
-            seen_normalized = {}
+            seen_normalized: Dict[str, str] = {}
             for md in self.entities_dir.glob("*.md"):
                 # Normalize slug: lowercase, strip common suffixes
                 norm = md.stem.lower().replace("-", "")
@@ -360,7 +409,9 @@ class MemKraft:
                 for n in [norm, norm_kr]:
                     if n in seen_normalized and seen_normalized[n] != md.stem:
                         issues["duplicate_entities"] += 1
-                        print(f"      ⚠️ Possible duplicate: {md.stem} ↔ {seen_normalized[n]}")
+                        msg = f"{md.stem} ↔ {seen_normalized[n]}"
+                        details["duplicate_entities"].append(msg)
+                        print(f"      ⚠️ Possible duplicate: {msg}")
                     else:
                         seen_normalized[n] = md.stem
 
@@ -374,6 +425,7 @@ class MemKraft:
                 age_hours = (now_ts - md.stat().st_mtime) / 3600
                 if age_hours > 48:
                     issues["inbox_overdue"] += 1
+                    details["inbox_overdue"].append(f"{md.name} ({age_hours:.0f}h)")
 
         # Check for bloated entity pages (auto-compact)
         # Inspired by Recursive Language Models (arXiv:2512.24601):
@@ -383,13 +435,16 @@ class MemKraft:
             size = md.stat().st_size
             if size > 4000:  # >4KB suggests Compiled Truth needs condensing
                 issues["bloated_pages"] += 1
+                rel = md.relative_to(self.base_dir)
+                suggestion = self._compression_suggestion(md, size)
+                details["bloated_pages"].append(f"{rel} ({size}B) — {suggestion}")
                 if issues["bloated_pages"] <= 5:
-                    rel = md.relative_to(self.base_dir)
-                    print(f"      ⚠️ {rel} ({size}B) — consider condensing Compiled Truth")
+                    print(f"      ⚠️ {rel} ({size}B) — {suggestion}")
 
         total = sum(issues.values())
         print(f"\n🌙 Dream Cycle complete: {total} total issues found")
         print(f"   Incomplete sources: {issues['incomplete_sources']}")
+        print(f"   Source-less facts: {issues['sourceless_facts']}")
         print(f"   Thin entities: {issues['thin_entities']}")
         print(f"   Duplicate entities: {issues['duplicate_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
@@ -400,12 +455,37 @@ class MemKraft:
             meta_dir.mkdir(parents=True, exist_ok=True)
             (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()), encoding="utf-8")
 
+        return {"issues": issues, "details": details, "total": total}
+
+    def _compression_suggestion(self, md: Path, size: int) -> str:
+        """Generate an actionable compression suggestion for a bloated page."""
+        content = self._safe_read(md)
+        timeline_lines = 0
+        key_points = 0
+        for line in content.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("- **") and "**" in stripped[4:]:
+                timeline_lines += 1
+            if stripped.startswith("- ") and "[Source:" in stripped:
+                key_points += 1
+
+        suggestions = []
+        if timeline_lines > 20:
+            suggestions.append(f"condense timeline ({timeline_lines} entries → keep latest 10)")
+        if key_points > 10:
+            suggestions.append(f"merge similar key points ({key_points} items)")
+        if size > 8000:
+            suggestions.append("split into sub-pages or promote to archival tier")
+        if not suggestions:
+            suggestions.append("consider condensing Compiled Truth")
+        return "; ".join(suggestions)
+
     # ── Extract ──────────────────────────────────────────────
-    def extract(self, text: str, source: str = "", dry_run: bool = False):
+    def extract(self, text: str, source: str = "", dry_run: bool = False) -> List[Dict[str, Any]]:
         """Auto-extract entities and facts from text, write to memory."""
         return self.extract_conversations(text, source=source, dry_run=dry_run)
 
-    def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False):
+    def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False) -> List[Dict[str, Any]]:
         """Auto-extract entities/facts from markdown text, file path, or stdin."""
         text, resolved_source = self._resolve_extract_input(input_text)
         if source:
@@ -455,7 +535,7 @@ class MemKraft:
         print(json.dumps(results, indent=2, ensure_ascii=False))
         return results
 
-    def _extract_facts(self, text: str) -> list:
+    def _extract_facts(self, text: str) -> List[Dict[str, str]]:
         """Extract key facts from text using regex patterns."""
         facts = []
         # Pattern: "X is Y", "X was Y", "X serves as Y", "X joined Y"
@@ -471,7 +551,7 @@ class MemKraft:
                     facts.append({"entity": entity_name, "fact": fact_text, "type": "fact"})
         return facts
 
-    def _resolve_extract_input(self, input_text: str) -> tuple:
+    def _resolve_extract_input(self, input_text: str) -> Tuple[str, str]:
         """Resolve extract input from a file path, literal text, or stdin."""
         if input_text:
             # Skip path check for very long inputs (clearly not a file path)
@@ -492,7 +572,7 @@ class MemKraft:
 
         return "", ""
 
-    def _extract_registry_facts(self, text: str) -> list:
+    def _extract_registry_facts(self, text: str) -> List[str]:
         """Extract numeric/date facts for the cross-domain fact registry."""
         facts = []
         patterns = [
@@ -513,7 +593,7 @@ class MemKraft:
 
         return list(dict.fromkeys(facts))
 
-    def _write_fact_registry(self, facts: list, source: str = "") -> list:
+    def _write_fact_registry(self, facts: list, source: str = "") -> List[str]:
         """Append de-duplicated facts to fact-registry.md."""
         clean_facts = [f.strip() for f in facts if f and f.strip()]
         if not clean_facts:
@@ -535,7 +615,7 @@ class MemKraft:
         registry.write_text(existing, encoding="utf-8")
         return new_facts
 
-    def _apply_state_changes(self, content: str, info: str) -> tuple:
+    def _apply_state_changes(self, content: str, info: str) -> Tuple[str, List[str]]:
         """Update Current State lines and return human-readable transitions."""
         candidates = self._extract_state_candidates(info)
         if not candidates:
@@ -570,7 +650,7 @@ class MemKraft:
 
         return content[:section_start] + section + content[section_end:], transitions
 
-    def _extract_state_candidates(self, info: str) -> dict:
+    def _extract_state_candidates(self, info: str) -> Dict[str, str]:
         """Extract simple state fields from update text."""
         fields = {
             "Role": [
@@ -633,7 +713,7 @@ class MemKraft:
                 return
 
     # ── Cognify ────────────────────────────────────────────────
-    def cognify(self, dry_run: bool = False, apply: bool = False):
+    def cognify(self, dry_run: bool = False, apply: bool = False) -> None:
         """Process inbox items — recommendation-only by default. Use --apply to auto-move."""
         if not self.inbox_dir.exists():
             print("No inbox directory found. Run 'memkraft init' first.")
@@ -673,7 +753,7 @@ class MemKraft:
             else:
                 print(f"   → {name}: {route} (use --apply to move)")
 
-    def _classify_content(self, content: str) -> str:
+    def _classify_content(self, content: str) -> str:  # noqa: PLR0911
         """Classify content based on heuristics."""
         lower = content.lower()
         # Decision markers
@@ -694,7 +774,7 @@ class MemKraft:
         return mapping.get(route)
 
     # ── Promote (Memory Tiers) ────────────────────────────────
-    def promote(self, name: str, tier: str = "core"):
+    def promote(self, name: str, tier: str = "core") -> None:
         """Change memory tier for an entity."""
         if tier not in ("core", "recall", "archival"):
             print(f"Invalid tier '{tier}'. Use: core, recall, archival")
@@ -722,7 +802,7 @@ class MemKraft:
         print(f"⚠️ Entity '{name}' not found")
 
     # ── Diff ──────────────────────────────────────────────────
-    def diff(self):
+    def diff(self) -> None:
         """Show changes since last Dream Cycle."""
         meta_dir = self.base_dir / ".memkraft"
         ts_file = meta_dir / "last-dream-timestamp"
@@ -757,12 +837,10 @@ class MemKraft:
                 print(f"  {icon} {ctype}: {path} ({mtime})")
 
     # ── Search (Fuzzy) ────────────────────────────────────────
-    def search(self, query: str, fuzzy: bool = False):
+    def search(self, query: str, fuzzy: bool = False) -> List[Dict[str, Any]]:
         """Search memory with hybrid exact/token matching and optional fuzzy matching."""
         if not query or not query.strip():
             return []
-
-        from difflib import SequenceMatcher
 
         results = []
         query_lower = query.lower()
@@ -795,6 +873,9 @@ class MemKraft:
             exact_score = 0.0
             token_score = 0.0
             fuzzy_score = 0.0
+            phrase_bonus = 0.0
+            heading_bonus = 0.0
+            recency_bonus = 0.0
             best_snippet = ""
 
             if query_lower in content_lower:
@@ -826,6 +907,36 @@ class MemKraft:
                 if token_score and not best_snippet:
                     best_snippet = self._best_token_snippet(query_tokens, lines, lines_orig)
 
+                # Phrase matching: consecutive bigrams get a bonus
+                if len(query_tokens) >= 2:
+                    bigram_hits = 0
+                    bigram_total = len(query_tokens) - 1
+                    for i in range(bigram_total):
+                        bigram = f"{query_tokens[i]} {query_tokens[i+1]}"
+                        if bigram in content_lower:
+                            bigram_hits += 1
+                    if bigram_total > 0:
+                        phrase_bonus = 0.15 * (bigram_hits / bigram_total)
+
+                # Heading match bonus: query in # heading lines
+                for line in lines:
+                    if line.startswith("#") and query_lower in line:
+                        heading_bonus = 0.1
+                        break
+
+            # Date-aware recency bonus
+            dates = re.findall(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', content)
+            if dates:
+                try:
+                    latest = max(dates)
+                    days_old = (datetime.now() - datetime.strptime(latest, "%Y-%m-%d")).days
+                    if days_old < 7:
+                        recency_bonus = 0.05
+                    elif days_old < 30:
+                        recency_bonus = 0.02
+                except ValueError:
+                    pass
+
             if fuzzy:
                 best_fuzzy_snippet = ""
                 for idx, line in enumerate(lines):
@@ -842,11 +953,12 @@ class MemKraft:
                 if fuzzy_score >= 0.3 and not best_snippet:
                     best_snippet = best_fuzzy_snippet
 
-            # If exact match found, score should reflect it strongly
+            # Composite scoring with phrase, heading, and recency bonuses
             if exact_score:
                 final_score = max(exact_score, min(1.0, (exact_score * 0.65) + (token_score * 0.3)))
             else:
                 final_score = min(1.0, (token_score * 0.6) + (fuzzy_score * 0.4))
+            final_score = min(1.0, final_score + phrase_bonus + heading_bonus + recency_bonus)
             if exact_score or token_score or (fuzzy and fuzzy_score >= 0.3):
                 results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
@@ -861,7 +973,7 @@ class MemKraft:
         return results
 
     # ── Links (Backlinks) ─────────────────────────────────────
-    def links(self, name: str):
+    def links(self, name: str) -> None:
         """Show all backlinks to an entity."""
         slug = self._slugify(name)
         targets = [f"[[{name}]]", f"[[{slug}]]"]
@@ -1304,9 +1416,8 @@ class MemKraft:
             print("\n✅ No new facts to add (all already in registry)")
 
     # ── Memory Decay ────────────────────────────────────────────
-    def decay(self, days: int = 90, dry_run: bool = False):
+    def decay(self, days: int = 90, dry_run: bool = False) -> List[Dict[str, Any]]:
         """Downgrade stale facts older than N days. Reduces noise in search results."""
-        from datetime import timedelta
         threshold = datetime.now() - timedelta(days=days)
         results = []
 
@@ -1345,9 +1456,8 @@ class MemKraft:
         return results
 
     # ── Fact Dedup ──────────────────────────────────────────────
-    def dedup(self, dry_run: bool = False):
+    def dedup(self, dry_run: bool = False) -> List[Dict[str, Any]]:
         """Merge duplicate/similar facts across entity pages."""
-        from difflib import SequenceMatcher
         all_facts = []  # [(entity, fact_text, file_path)]
 
         for md in self._all_md_files():
@@ -1389,7 +1499,7 @@ class MemKraft:
         return duplicates
 
     # ── Auto-Summarize ──────────────────────────────────────────
-    def summarize(self, name: str = None, max_length: int = 500):
+    def summarize(self, name: str = None, max_length: int = 500) -> List[Dict[str, str]]:
         """Generate a compact summary of an entity's current state."""
         if name:
             targets = [name]
@@ -1454,7 +1564,7 @@ class MemKraft:
         return results
 
     # ── Agentic Search ──────────────────────────────────────────
-    def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False):
+    def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False) -> List[Dict[str, Any]]:
         """Multi-step search: decompose query → search → traverse links → re-rank → check sufficiency."""
         # Step 1: Query Decomposition
         sub_queries = self._decompose_query(query)
@@ -1557,7 +1667,7 @@ class MemKraft:
             return merged
         return merged
 
-    def _decompose_query(self, query: str) -> list:
+    def _decompose_query(self, query: str) -> List[str]:
         """Decompose a complex query into sub-queries."""
         # Korean question patterns
         kr_patterns = [r'(.+?)이/가 누구', r'(.+?)의 (.+?)', r'(.+?)은/는 어디', r'(.+?)에 대해']
@@ -1638,9 +1748,14 @@ class MemKraft:
         text = re.sub(r'\s+', '-', text)
         return text[:80]
 
-    def _detect_regex(self, text: str) -> list:
-        entities = []
-        common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With', 'Please', 'Contact', 'However', 'While', 'These', 'Those', 'Each', 'Some', 'Many', 'Other', 'Such', 'Most', 'Last', 'New', 'Old', 'Next', 'Here', 'After', 'Before', 'Between', 'Under', 'Over', 'Every', 'About'}
+    def _detect_regex(self, text: str) -> List[Dict[str, str]]:
+        """Multi-language entity detection via regex (zero ML dependencies).
+
+        Detects: persons (EN/KR/CN/JP), @handles, emails, URLs,
+        organizations, products (incl. version numbers), and locations.
+        """
+        entities: List[Dict[str, str]] = []
+        common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With', 'Please', 'Contact', 'However', 'While', 'These', 'Those', 'Each', 'Some', 'Many', 'Other', 'Such', 'Most', 'Last', 'New', 'Old', 'Next', 'Here', 'After', 'Before', 'Between', 'Under', 'Over', 'Every', 'About', 'Also', 'Just', 'When', 'Where', 'Why', 'How', 'What', 'Who', 'Which', 'More', 'Much', 'Very', 'Well', 'Still', 'Even', 'Back', 'Down', 'Only', 'Then', 'Than', 'Both', 'Into', 'Like', 'Made', 'Come', 'Could', 'Would', 'Should', 'Will', 'May', 'Can', 'Did', 'Does'}
 
         names_2 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b', text)
         names_3 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+)\b', text)
@@ -1711,6 +1826,16 @@ class MemKraft:
         for handle in set(handles):
             entities.append({"name": handle, "type": "person", "context": "mentioned via @handle"})
 
+        # ── Email detection ───────────────────────────────────
+        emails = re.findall(r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', text)
+        for email in set(emails):
+            entities.append({"name": email, "type": "contact", "context": "auto-detected (email)"})
+
+        # ── URL detection ─────────────────────────────────────
+        urls = re.findall(r'https?://[^\s)<>\]]+', text)
+        for url in set(urls):
+            entities.append({"name": url, "type": "reference", "context": "auto-detected (URL)"})
+
         # ── Organization detection ─────────────────────────────
         # Known tech companies (extendable)
         known_orgs = {'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Tesla', 'Netflix', 'Nvidia', 'OpenAI', 'Anthropic', 'Samsung', 'Hashed', 'Tencent', 'Alibaba', 'ByteDance', 'Baidu', 'Sony', 'Toyota', 'Hyundai', 'LG', 'Kakao', 'Naver', 'Coupang', 'Toss', 'Stripe', 'SpaceX', 'Palantir', 'Uber', 'Airbnb', 'Coinbase', 'Binance', 'Riot', 'Epic', 'Valve', 'Blizzard'}
@@ -1727,7 +1852,7 @@ class MemKraft:
                     entities.append({"name": org, "type": "organization", "context": "auto-detected (known)"})
 
         # Korean organizations: 한자+기관/회사/은행/그룹 etc.
-        kr_orgs = re.findall(r'([가-힣]{2,6}(?:기관|회사|은행|그룹|재단|연구소|대학|대학교|병원|센터|연합|협회|위원회|청|부|처|실|국|원|전자|자동차|물산|중공업|건설|해운|항공|통신|제약|화학|철강|에너지|인터넷|소프트웨어))', text)
+        kr_orgs = re.findall(r'([가-힣]{2,8}(?:기관|회사|은행|그룹|재단|연구소|대학|대학교|병원|센터|연합|협회|위원회|청|부|처|실|국|원|전자|자동차|물산|중공업|건설|해운|항공|통신|제약|화학|철강|에너지|인터넷|소프트웨어|테크|랩스|벤처스|캐피탈|파트너스|네트워크|시스템|솔루션|미디어|엔터|엔터테인먼트|게임즈|스튜디오|플랫폼))', text)
         for org in kr_orgs:
             if org not in korean_stopwords:
                 entities.append({"name": org, "type": "organization", "context": "auto-detected (Korean org)"})
@@ -1736,9 +1861,20 @@ class MemKraft:
         # "X Pro", "X Max", "X Ultra", "X Plus", "X Mini", "X Air"
         product_pattern = re.findall(r'\b([A-Za-z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+(?:Pro|Max|Ultra|Plus|Mini|Air|Lite|SE|Studio|Suite|Cloud|Engine|Platform|OS|OSX))\b', text)
         for prod in product_pattern:
-            # Avoid capturing person names like "Simon Pro"
             if not any(e["name"] == prod for e in entities):
                 entities.append({"name": prod, "type": "product", "context": "auto-detected (suffix)"})
+
+        # Version-number products: "GPT-5", "iPhone 16", "Claude-3.5"
+        # CamelCase or uppercase start + digit (allows iPhone, MacBook, GPT, etc.)
+        version_products = re.findall(r'\b([a-zA-Z]*[A-Z][A-Za-z]*[\s-]\d+(?:\.\d+)?(?:\s+(?:Pro|Max|Ultra|Plus|Mini|Air))?)\b', text)
+        # Hyphenated: GPT-5, Claude-3
+        version_products += re.findall(r'\b([A-Z][A-Za-z]+-\d+(?:\.\d+)?)\b', text)
+        for vp in set(version_products):
+            vp = vp.strip()
+            if len(vp) >= 3 and not any(e["name"] == vp for e in entities):
+                if re.fullmatch(r'\d{4}', vp):
+                    continue
+                entities.append({"name": vp, "type": "product", "context": "auto-detected (version)"})
 
         # ── Location detection ─────────────────────────────────
         known_locations = {'Seoul', 'Tokyo', 'Beijing', 'Shanghai', 'Singapore', 'London', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Dubai', 'Hong Kong', 'Taipei', 'Bangkok', 'Sydney', 'Toronto', 'Vancouver', 'Busan', 'Jeju', 'Osaka', 'Mumbai', 'Delhi', 'Jakarta', 'Manila', 'Kuala Lumpur'}
