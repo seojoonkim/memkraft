@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="docs/hero.jpg" alt="MemKraft — A cosmic brain forged from luminous data streams, neural networks glowing in gold and teal" width="100%">
+<img src="docs/hero.jpg" alt="MemKraft — A cosmic forge where raw data is hammered into compound knowledge" width="100%">
 
-# 🧠⚒️ MemKraft
+# ⚒️ MemKraft
 
-**The ultimate compound knowledge system for AI agents.**
+**The compound knowledge engine for AI agents.**
 
-From first conversation to compounding expertise — MemKraft gives your agent<br>
-a memory that grows, self-maintains, and gets smarter over time.
+Raw conversations in. Compound expertise out. MemKraft forges your agent's memory<br>
+from scattered fragments into an ever-growing, self-maintaining knowledge base.
 
 [![PyPI](https://img.shields.io/pypi/v/memkraft?color=blue)](https://pypi.org/project/memkraft/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -24,31 +24,33 @@ pip install memkraft
 
 ## The problem
 
-AI agents start every conversation from scratch.
+AI agents start every conversation from zero.
 
 They search transcripts, re-read files, and reconstruct context on demand. Six months of conversations later, the agent still doesn't *know* anything — it just searches faster.
 
 Every conversation is a dead end. No compound returns. Context windows fill up. Important facts get lost. And when an agent *does* recall something, you can't tell where it came from — was it from a reliable source, or a hallucination from three chats ago?
 
+**Agents without compound memory don't learn. They search.**
+
 ## The solution
 
-MemKraft gives your agent **long-lived, compound knowledge** — structured, traceable, and self-maintaining.
+MemKraft forges **long-lived, compound knowledge** — structured, traceable, and self-maintaining.
 
 ```
-  Conversation ──▶ Extract ──▶ Classify ──▶ Track ──▶ Compound
-       ▲                                                  │
-       └──────────── Brain-first lookup ◄─────────────────┘
+  Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compound Knowledge
+       ▲                                                │
+       └─────────── Brain-first recall ◄─────────────────┘
                           maintained by Dream Cycle ◀── nightly
 ```
 
-Every fact has a source. Every entity has a timeline. Every night, Dream Cycle keeps it all healthy. Your next conversation starts smarter than the last one.
+Every fact has a source. Every entity has a timeline. Every night, Dream Cycle hammers out the dross. Your next conversation starts sharper than the last one.
 
 ---
 
 ## 60-second demo
 
 ```bash
-# Initialize memory structure
+# Initialize the forge
 $ memkraft init
 ✅ MemKraft initialized at memory
 
@@ -84,7 +86,7 @@ Generated: 2026-04-11
    CEO of Hashed. VC based in Seoul.
 
 🔄 Live Note
-   Current State: CEO of Hashed, building MemKraft, the compound knowledge system
+   Current State: CEO of Hashed, building MemKraft, the compound knowledge engine
    Recent Activity:
    - 2026-04-10 | Open-sourced MemKraft [Source: X/@simonkim_nft]
 
@@ -112,7 +114,9 @@ $ memkraft cognify --dry-run
 # Fuzzy search — find even when you don't remember the exact words
 $ memkraft search "venture capital Seoul" --fuzzy
   [0.72] entities/simon-kim.md
+     Simon Kim | CEO of Hashed. VC based in Seoul.
   [0.58] entities/hashed.md
+     Hashed | VC firm in Seoul, blockchain-focused
 
 # Backlinks — see who references whom
 $ memkraft links "Simon Kim"
@@ -136,7 +140,8 @@ $ memkraft dream --dry-run
    🔍 Scanning for incomplete source attributions...
       ⚠️ entities/hashed.md: timeline entry missing [Source: ...]
    🔍 Scanning for thin entity pages...
-   🔍 Scanning inbox for overdue items...
+   🔍 Scanning for inbox overdue items...
+   🔍 Scanning for bloated pages (auto-compact)...
 🌙 Dream Cycle complete: 2 issues found
 
 # Capture raw text verbatim — no paraphrasing, no interpretation loss
@@ -164,9 +169,9 @@ Why? Because memory should be **portable and permanent**. A Markdown file from 2
 
 ### Compiled Truth + Timeline (dual-layer entity model)
 
-Every entity page is split into two halves:
+Every entity page is forged in two layers:
 
-- **Compiled Truth** — the current state. Mutable, always rewritable. This is what an LLM reads first: role, affiliation, key context. When facts change, you update this section.
+- **Compiled Truth** — the current state. Mutable, always rewritable. This is what an LLM reads first: role, affiliation, key context. When facts change, you re-forge this section.
 - **Timeline** — an append-only log of every event, each tagged with `[Source: who, when, how]`. Never edited, only appended.
 
 Why dual-layer? Because a single "current state" page silently overwrites history. Six months later, you can't answer "when did their role change?" or "who told us that?". The timeline is an audit trail — it makes every claim traceable. Compiled Truth makes it actionable. Together, they give you both *what we know now* and *how we got here*.
@@ -224,7 +229,7 @@ After running, Dream Cycle writes a timestamp to `.memkraft/last-dream-timestamp
 
 ### Fuzzy search: difflib-based relevance ranking
 
-`memkraft search --fuzzy` uses Python's built-in `difflib.SequenceMatcher` — no vector embeddings, no embedding model, no API calls. It compares the query against every line in every memory file and the filename itself, keeping matches above a 0.3 similarity threshold, sorted by relevance score.
+`memkraft search --fuzzy` uses Python's built-in `difflib.SequenceMatcher` — no vector embeddings, no embedding model, no API calls. It compares the query against every line in every memory file and the filename itself, keeping matches above a 0.3 similarity threshold, sorted by relevance score. Matched lines return ±3 lines of context as a snippet for efficient scanning.
 
 Why not semantic search? Semantic search requires an embedding model, which means a dependency, an API key, and a running service. MemKraft's fuzzy search works offline, in CI, on a plane, with zero setup. For most "I know I wrote something about..." queries, it's good enough. When it isn't, you can always fall back to `grep`.
 
@@ -250,6 +255,7 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                        MemKraft                          │
+│                The Compound Knowledge Engine              │
 │                                                          │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
 │  │  Extract  │─▶│ RESOLVER │─▶│ Classify │              │
@@ -257,7 +263,7 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 │  └──────────┘  │  tree)   │  └────┬─────┘              │
 │  ┌──────────┐  └──────────┘       │                     │
 │  │  Inbox    │──────▶ Cognify ────┘                     │
-│  │ (capture) │        (process)                          │
+│  │ (capture) │        (forge)                            │
 │  └──────────┘                                           │
 │                                     ▼                    │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
@@ -268,7 +274,7 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 │        └─────────────┼─────────────┘                     │
 │                      ▼                                   │
 │              ┌──────────────┐                            │
-│              │  Dream Cycle │ ◀── nightly maintenance    │
+│              │  Dream Cycle │ ◀── nightly forge-cleaning  │
 │              │  (auto-heal) │                            │
 │              └──────────────┘                            │
 │                      │                                   │
@@ -315,9 +321,9 @@ memory/
 | **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex + LLM) | 533 stopwords, 120 CN surnames, 80 JP surnames, Korean particle/suffix stripping |
 | **Source attribution** | Every fact tagged with `[Source: who, when, how]` | Enforced by Dream Cycle scans — facts without sources are flagged as trust debts |
 | **Memory tiers** | Core / Recall / Archival — explicit context window priority | Labels on every page, `promote`/`demote` commands to reclassify as priorities shift |
-| **Dream Cycle** | Nightly auto-maintenance | 3 checks: incomplete sources, thin pages (<300B), overdue inbox (>48h). Saves timestamp for `diff` |
+| **Dream Cycle** | Nightly auto-maintenance | 4 checks: incomplete sources, thin pages, overdue inbox, bloated pages. Saves timestamp for `diff` |
 | **Diff tracking** | See what changed since last Dream Cycle | Compares file mtimes against `.memkraft/last-dream-timestamp`, reports created/modified |
-| **Fuzzy search** | Find even when you don't remember the exact name | `difflib.SequenceMatcher` with 0.3 threshold, zero dependencies, works offline |
+| **Fuzzy search** | Find even when you don't remember the exact name | `difflib.SequenceMatcher` with 0.3 threshold + ±3 line snippets, zero dependencies, works offline |
 | **Backlinks** | See every page that references an entity | Scans all `.md` files for `[[entity-name]]` patterns, returns file + context excerpt |
 | **RESOLVER.md** | MECE classification tree — prevents duplicates and misfiling | Decision tree that makes every routing decision unambiguous |
 | **Originals/** | Capture ideas verbatim. No paraphrasing, no interpretation loss | Raw capture before any processing — the source of truth for interpretation |
@@ -343,6 +349,7 @@ memory/
 | Backlinks | ✅ | — | — | — | — |
 | Memory resolver | ✅ | — | — | — | — |
 | Originals capture | ✅ | — | — | — | — |
+| Auto-compact | ✅ | — | — | — | — |
 | Self-editing memory | — | — | ✅ | — | — |
 | Graph memory | — | ✅ | — | — | — |
 | Virtual context mgmt | — | — | ✅ | — | — |
@@ -360,7 +367,7 @@ memory/
 - **GBrain** — the compiled-truth + timeline model was a direct inspiration. Best for Claude-specific workflows where the AI directly maintains knowledge pages. MemKraft generalizes it to be framework-agnostic and adds Dream Cycle, auto-extraction, and cognify.
 - **Rowboat** — persistent live-tracking and meeting briefs are essential ideas. Best as an Obsidian desktop app for human-in-the-loop workflows. MemKraft incorporates them into a CLI-first, programmable workflow that agents can call directly.
 
-MemKraft was built as a production memory system for a multi-agent team, then refined by incorporating ideas from each of these projects. The result: **a complete, transparent, self-maintaining compound knowledge system** — tested in production, not just designed in theory.
+MemKraft was originally built as a production memory system for a multi-agent team, then sharpened by incorporating ideas from each of these projects. The result: **a complete, transparent, self-maintaining compound knowledge engine** — tested in production, not just designed in theory.
 
 ---
 
@@ -385,7 +392,7 @@ pip install -e .
 ## Quick Start
 
 ```bash
-# 1. Initialize
+# 1. Initialize the forge
 memkraft init
 
 # 2. Auto-extract from any text
@@ -437,9 +444,9 @@ export MEMKRAFT_DIR=/path/to/your/memory
 ## Design philosophy
 
 > An agent without compound memory answers from stale context every time.<br>
-> An agent with it gets smarter with every conversation.
+> An agent with MemKraft gets sharper with every conversation.
 
-### Five principles
+### Six principles
 
 1. **Memory compounds** — each conversation builds on all prior ones, not just the last window. The hundredth conversation should be the best-informed one.
 2. **Structure enforces quality** — RESOLVER prevents duplication, Source Attribution enforces trustworthiness, Tiers prioritize what matters. Good structure makes bad data visible.
@@ -448,7 +455,7 @@ export MEMKRAFT_DIR=/path/to/your/memory
 5. **Provenance is non-negotiable** — every fact traces back to a source. Facts without sources are trust debts, and Dream Cycle makes sure you see them.
 6. **Context is finite** — LLM context windows have hard limits. Memory tiers ensure the right information fills that space, and bloated pages get flagged for compaction. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601), which demonstrates that decomposing and selectively retrieving context dramatically outperforms brute-force long-context approaches.
 
-The goal: a system where **knowledge begets knowledge** — where the marginal cost of each new insight decreases because the foundation keeps growing. MemKraft is the engine that makes that happen.
+The goal: a system where **knowledge begets knowledge** — where the marginal cost of each new insight decreases because the foundation keeps growing. MemKraft is the engine that forges that compound loop.
 
 ---
 
