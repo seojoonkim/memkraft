@@ -156,7 +156,7 @@ $ memkraft open-loops
 
 # Build memory index for progressive disclosure
 $ memkraft index
-📇 Index built: 15 files → memory/.memkraft/index.json
+📇 Index built: 15 files → .memkraft/index.json
 
 # Suggest missing wiki-links
 $ memkraft suggest-links

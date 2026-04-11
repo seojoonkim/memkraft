@@ -665,16 +665,24 @@ class MemKraft:
         """Progressive disclosure query — 3 levels of token efficiency."""
         files = self._gather_memory_files(recent=recent, tag=tag, date=date)
 
-        if query:
-            files = [f for f in files if query.lower() in f.read_text(encoding="utf-8", errors="replace").lower() or query.lower() in f.name.lower()]
+        # Pre-read and filter in single pass to avoid double I/O
+        file_contents = {}
+        for f in files:
+            try:
+                c = f.read_text(encoding="utf-8", errors="replace")
+                file_contents[f] = c
+            except Exception:
+                continue
 
-        if not files:
+        if query:
+            file_contents = {f: c for f, c in file_contents.items() if query.lower() in c.lower() or query.lower() in f.name.lower()}
+
+        if not file_contents:
             print("No matching files found.")
             return
 
-        for md in files:
+        for md, content in file_contents.items():
             rel = md.relative_to(self.base_dir)
-            content = md.read_text(encoding="utf-8", errors="replace")
 
             if level == 1:
                 # Level 1: Index — date, first-line summary, tags (~50-100 tokens)
@@ -801,10 +809,10 @@ class MemKraft:
                 entities_touched.add(e["entity"])
             if e.get("decision"):
                 decisions_made.append(e["decision"])
-            if e.get("tags") and "todo" in e.get("tags", []):
-                next_actions.append(e["event"])
-            elif "fail" in e["event"].lower() or "error" in e["event"].lower():
+            if "fail" in e["event"].lower() or "error" in e["event"].lower():
                 bad.append(e["event"])
+            elif e.get("tags") and "todo" in e.get("tags", []):
+                next_actions.append(e["event"])
             else:
                 well.append(e["event"])
 
@@ -1128,7 +1136,7 @@ class MemKraft:
         korean_names_cleaned = []
         for name in korean_names:
             # 동사 어미 제거: 했다, 한다, 해요, 함, 됨, 됐다, etc.
-            stripped = re.sub(r'(했|할|해|되|됐|받|만|지|보|주|가|오|알|인|있|없|갈|될|할|만들|사용|개발|적용|설정|확인|업데이트|추가|수정|삭제|생성|실행|테스트|분석|검색|연결|설치|시작|완료|진행|보고|논의|발표|참여|준비|요청|제안|검토|승인|거절|검증|배포|구축|도입|운영|관리|모니터링|추적|감지|정리|보강|업그레이드|마이그레이션|이|이다|입니다|였다|였음)(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서|의)?$', '', name)
+            stripped = re.sub(r'(했|할|해|되|됐|받|만|지|보|주|가|오|알|인|있|없|갈|될|만들|사용|개발|적용|설정|확인|업데이트|추가|수정|삭제|생성|실행|테스트|분석|검색|연결|설치|시작|완료|진행|보고|논의|발표|참여|준비|요청|제안|검토|승인|거절|검증|배포|구축|도입|운영|관리|모니터링|추적|감지|정리|보강|업그레이드|마이그레이션|이|이다|입니다|였다|였음)(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서|의)?$', '', name)
             if len(stripped) >= 2:
                 korean_names_cleaned.append(stripped)
         korean_names = korean_names_cleaned
@@ -1138,7 +1146,6 @@ class MemKraft:
         chinese_stopwords = set(stopwords.get("chinese", []))
         japanese_stopwords = set(stopwords.get("japanese", []))
 
-        names_3_full = set(names_3)
         names_3_word_sets = [set(n.split()) for n in names_3]
         for name in set(names_3):
             if name not in common:
