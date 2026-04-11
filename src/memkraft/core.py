@@ -29,7 +29,7 @@ class MemKraft:
     def init(self, path: str = "."):
         target = Path(path) / "memory"
         target.mkdir(parents=True, exist_ok=True)
-        for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings"]:
+        for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions"]:
             (target / subdir).mkdir(exist_ok=True)
 
         # RESOLVER.md
@@ -43,7 +43,7 @@ class MemKraft:
             shutil.copy2(Path(__file__).parent / "templates" / "TEMPLATES.md", templates_path)
 
         print(f"✅ MemKraft initialized at {target}")
-        print("   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/")
+        print("   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/, sessions/")
         print("   Files: RESOLVER.md, TEMPLATES.md")
 
     # ── Track ─────────────────────────────────────────────────
@@ -273,6 +273,7 @@ class MemKraft:
             "thin_entities": 0,
             "duplicate_entities": 0,
             "inbox_overdue": 0,
+            "bloated_pages": 0,
         }
 
         # Ensure daily note exists before running
@@ -818,8 +819,11 @@ class MemKraft:
                     if any(kw in event_text.lower() for kw in decision_kw_en) or any(kw in event_text for kw in decision_kw_kr):
                         candidates.append({"source": f"sessions/{jsonl.name}", "event": event_text, "importance": entry.get("importance", "normal")})
 
-        # Scan daily notes
+        # Scan daily notes (exclude template/system files)
+        excluded = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
         for md in self.base_dir.glob("*.md"):
+            if md.name in excluded:
+                continue
             content = md.read_text()
             for line in content.split("\n"):
                 line_lower = line.lower()
@@ -1234,7 +1238,7 @@ class MemKraft:
         return ""
 
     def _load_stopwords(self) -> dict:
-        """불용어를 JSON 파일에서 로드 (캐시)"""
+        """Load stopwords from JSON file (cached)"""
         if not hasattr(self, '_stopwords_cache'):
             sw_path = Path(__file__).parent / "stopwords.json"
             if sw_path.exists():
