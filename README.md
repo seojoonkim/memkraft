@@ -128,13 +128,26 @@ Changes since last Dream Cycle (4):
   🆕 created: entities/simon-kim.md (2026-04-11 16:00)
   ✏️ modified: entities/hashed.md (2026-04-11 15:30)
 
-# Dream Cycle — nightly auto-maintenance
+# Dream Cycle — nightly auto-maintenance, catches facts without sources
 $ memcraft dream --dry-run
 🌙 Dream Cycle — 2026-04-11
    🔍 Scanning for incomplete source attributions...
+      ⚠️ entities/hashed.md: timeline entry missing [Source: ...]
    🔍 Scanning for thin entity pages...
    🔍 Scanning inbox for overdue items...
 🌙 Dream Cycle complete: 2 issues found
+
+# Capture raw text verbatim — no paraphrasing, no interpretation loss
+$ echo "Simon: 'We're building the memory layer that agents actually need.'" \
+    > memory/originals/simon-2026-04-11.md
+
+# RESOLVER.md — where does new content go? The decision tree answers.
+$ cat memory/RESOLVER.md
+# RESOLVER — Classification Decision Tree
+## Is it a person, company, or concept? → entities/
+## Is it a decision with rationale? → decisions/
+## Is it raw capture before processing? → inbox/ then cognify
+## Is it verbatim text to preserve? → originals/
 ```
 
 ---
