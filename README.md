@@ -6,7 +6,8 @@
 
 # MemKraft
 
-### Agents don't learn. They search. Until now.
+### 🔴 Without MemKraft: Session 100 = Session 1
+### 🟢 With MemKraft: Every conversation makes the next one smarter
 
 Zero-dependency compound memory that turns raw conversations<br>into an ever-growing, self-maintaining knowledge base.
 
