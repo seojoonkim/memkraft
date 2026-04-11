@@ -329,6 +329,13 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 
 ## Architecture
 
+<p align="center">
+  <img src="assets/memkraft-architecture.svg" alt="MemKraft Architecture" width="100%">
+</p>
+
+<details>
+<summary>Text version</summary>
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                        MemKraft                          │
@@ -378,6 +385,7 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 │  └──────────────────────────────────────────────┘       │
 └──────────────────────────────────────────────────────────┘
 ```
+</details>
 
 ### Memory structure
 
