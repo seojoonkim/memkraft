@@ -55,7 +55,7 @@ def main():
     lookup_parser.add_argument("query", help="Search query")
     lookup_parser.add_argument("--json", action="store_true", help="JSON output")
     lookup_parser.add_argument("--brain-first", action="store_true", help="Stop after high-relevance results")
-    lookup_parser.add_argument("--full", action="store_true", help="Search all directories")
+    lookup_parser.add_argument("--full", action="store_true", help="Disable brain-first early stopping")
 
     # extract
     extract_parser = subparsers.add_parser("extract", help="Auto-extract entities and facts from text")

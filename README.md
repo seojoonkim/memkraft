@@ -462,7 +462,6 @@ memory/
 | Self-editing memory | — | — | ✅ | — | — |
 | Graph memory | — | ✅ | — | — | — |
 | Virtual context mgmt | — | — | ✅ | — | — |
-| Semantic search | — | ✅ | — | — | — |
 | Offline / git-friendly | ✅ | — | — | ✅ | ✅ |
 | Zero dependencies | ✅ | — | — | ✅ | — |
 | Framework | Framework-agnostic | API-first (Python/JS) | Agent framework | Claude-specific | Desktop app |

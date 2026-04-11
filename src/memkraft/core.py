@@ -567,6 +567,7 @@ class MemKraft:
                 best_score = 0.0
                 best_snippet = ""
                 lines = content_lower.split("\n")
+                lines_orig = content.split("\n")
                 for idx, line in enumerate(lines):
                     score = SequenceMatcher(None, query_lower, line.strip()).ratio()
                     if score > best_score:
@@ -574,7 +575,7 @@ class MemKraft:
                         # Capture ±3 lines as snippet (RLM-inspired snippet retrieval)
                         start = max(0, idx - 3)
                         end = min(len(lines), idx + 4)
-                        snippet = " | ".join(l.strip() for l in lines[start:end] if l.strip())
+                        snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())
                         best_snippet = snippet[:200]  # cap at 200 chars
                 # Also check against filename
                 name_score = SequenceMatcher(None, query_lower, md.stem).ratio()
@@ -588,11 +589,12 @@ class MemKraft:
                     # Find best matching line as snippet
                     best_snippet = ""
                     lines = content_lower.split("\n")
+                    lines_orig = content.split("\n")
                     for idx, line in enumerate(lines):
-                        if query_lower in line.lower():
+                        if query_lower in line:
                             start = max(0, idx - 3)
                             end = min(len(lines), idx + 4)
-                            best_snippet = " | ".join(l.strip() for l in lines[start:end] if l.strip())
+                            best_snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())
                             break
                     best_snippet = best_snippet[:200]
                     results.append({"file": str(rel_path), "score": 1.0, "match": md.stem, "snippet": best_snippet})
@@ -770,13 +772,12 @@ class MemKraft:
                 entities_touched.add(e["entity"])
             if e.get("decision"):
                 decisions_made.append(e["decision"])
-            if e.get("importance") == "high":
-                if "fail" in e["event"].lower() or "error" in e["event"].lower():
-                    bad.append(e["event"])
-                else:
-                    well.append(e["event"])
             if e.get("tags") and "todo" in e.get("tags", []):
                 next_actions.append(e["event"])
+            elif "fail" in e["event"].lower() or "error" in e["event"].lower():
+                bad.append(e["event"])
+            else:
+                well.append(e["event"])
 
         # Inbox overdue = bad
         if inbox_items:
@@ -945,6 +946,8 @@ class MemKraft:
             content = md.read_text()
             rel = str(md.relative_to(self.base_dir))
             for slug in entity_slugs:
+                if md.stem == slug:
+                    continue  # Don't suggest self-links
                 # Check if slug appears in text but not as [[slug]]
                 pattern = r'\b' + re.escape(slug.replace("-", " ")) + r'\b'
                 # Also check hyphenated form
