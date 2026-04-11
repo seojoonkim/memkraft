@@ -250,7 +250,7 @@ class MemKraft:
             print(f"\n💾 Saved: {save_path}")
 
     # ── Detect ────────────────────────────────────────────────
-    def detect(self, text: str, source: str = "", no_llm: bool = False, dry_run: bool = False):
+    def detect(self, text: str, source: str = "", dry_run: bool = False):
         entities = self._detect_regex(text)
         for e in entities:
             e["source"] = source
@@ -713,8 +713,9 @@ class MemKraft:
         today = datetime.now().strftime("%Y-%m-%d")
         print(f"🔄 Daily Retrospective — {today}")
 
-        # Ensure daily note exists
-        self.ensure_daily_note()
+        # Ensure daily note exists (skip in dry-run to keep read-only)
+        if not dry_run:
+            self.ensure_daily_note()
 
         # Collect session events
         events = []
@@ -900,8 +901,11 @@ class MemKraft:
                 "size": md.stat().st_size,
             }
 
-        # Also index daily notes
+        # Also index daily notes (exclude system files)
+        _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
         for md in self.base_dir.glob("*.md"):
+            if md.name in _system_files:
+                continue
             rel = md.name
             content = md.read_text()
             summary = self._first_meaningful_line(content)
@@ -1100,7 +1104,7 @@ class MemKraft:
         for name in set(korean_names):
             if len(name) >= 2 and name not in korean_stopwords:
                 # 한국어 조사 제거: 이, 을, 를, 은, 는, 에, 에서, 로, 으로, 와, 과, 도, 만, 이라, 이라서
-                stripped = re.sub(r'([가-힣]+?)([이을를은는에로으와과도만이라서의는]+)$', r'\1', name)
+                stripped = re.sub(r'([가-힣]+?)([이을를은는에로으와과도만이라서의]+)$', r'\1', name)
                 if stripped != name and len(stripped) >= 2 and stripped not in korean_stopwords:
                     name = stripped
                 if name not in korean_stopwords and len(name) >= 2:
@@ -1118,7 +1122,7 @@ class MemKraft:
                     for length in [3, 2]:  # 3글자 이름 먼저
                         if i + length <= len(run):
                             candidate = run[i:i+length]
-                            if candidate not in chinese_stopwords and candidate not in seen_chinese:
+                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords and candidate not in seen_chinese:
                                 seen_chinese.add(candidate)
                                 entities.append({"name": candidate, "type": "person", "context": "auto-detected (Chinese)"})
                                 break  # 가장 긴 매치 사용
@@ -1132,7 +1136,7 @@ class MemKraft:
                     for name_len in [len(js)+2, len(js)+1]:  # 긴 것부터
                         if idx + name_len <= len(run):
                             candidate = run[idx:idx+name_len]
-                            if candidate not in chinese_stopwords:
+                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords:
                                 entities.append({"name": candidate, "type": "person", "context": "auto-detected (Japanese)"})
                                 break
 

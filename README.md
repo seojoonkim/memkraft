@@ -58,8 +58,7 @@ $ memkraft init
 $ memkraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." \
     --source "X/@simonkim_nft"
 [
-  {"name": "Simon Kim", "type": "person", "action": "created"},
-  {"name": "Hashed", "type": "person", "action": "created"},
+  {"name": "Simon Kim", "type": "person", "context": "auto-detected", "source": "X/@simonkim_nft", "action": "created", "path": "entities/simon-kim.md"},
   {"entity": "Simon Kim", "fact": "the CEO of Hashed", "action": "appended"}
 ]
 
@@ -290,11 +289,11 @@ Every page has a tier label: **Core**, **Recall**, or **Archival**.
 - **Recall** — searchable, include when explicitly relevant. Entity default. Background context that matters sometimes.
 - **Archival** — historical, rarely accessed. Old decisions, former roles, completed projects.
 
-Why tiers? Because LLM context windows are finite. Without explicit priority, you're either cramming everything in (expensive, noisy) or guessing what matters (lossy). Tiers give your agent a clear rule: load core, search recall, skip archival. `memkraft promote` let you reclassify as priorities shift.
+Why tiers? Because LLM context windows are finite. Without explicit priority, you're either cramming everything in (expensive, noisy) or guessing what matters (lossy). Tiers give your agent a clear rule: load core, search recall, skip archival. `memkraft promote` lets you reclassify as priorities shift.
 
 ### Dream Cycle: automated memory maintenance
 
-Run `memkraft dream` (or schedule it nightly). It performs five health checks:
+Run `memkraft dream` (or schedule it nightly). It performs six health checks:
 
 1. **Daily note fallback** — auto-creates `memory/YYYY-MM-DD.md` if missing, ensuring there's always a daily note to write to.
 2. **Incomplete source attributions** — scans every Timeline entry for missing `[Source: ...]` tags. Flags each one so you can add provenance.
