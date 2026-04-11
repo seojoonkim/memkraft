@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -110,6 +111,7 @@ class MemKraft:
 
         content = filepath.read_text(encoding="utf-8", errors="replace")
         now = datetime.now().strftime("%Y-%m-%d")
+        content, state_transitions = self._apply_state_changes(content, info)
 
         # Increment update count (English + Korean) — positional replace to avoid global corruption
         count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
@@ -136,9 +138,12 @@ class MemKraft:
         # Add to Timeline (English + Korean)
         for marker in ["## Timeline (Full Record)\n\n", "## 타임라인 (전체 기록)\n\n", "## Timeline\n\n"]:
             if marker in content:
+                transition_text = ""
+                for transition in state_transitions:
+                    transition_text += f"- **{now}** | State transition: {transition} [Source: {source}]\n"
                 content = content.replace(
                     marker,
-                    f"{marker}- **{now}** | {info} [Source: {source}]\n\n"
+                    f"{marker}{transition_text}- **{now}** | {info} [Source: {source}]\n\n"
                 )
                 break
 
@@ -383,29 +388,54 @@ class MemKraft:
     # ── Extract ──────────────────────────────────────────────
     def extract(self, text: str, source: str = "", dry_run: bool = False):
         """Auto-extract entities and facts from text, write to memory."""
+        self.extract_conversations(text, source=source, dry_run=dry_run)
+
+    def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False):
+        """Auto-extract entities/facts from markdown text, file path, or stdin."""
+        text, resolved_source = self._resolve_extract_input(input_text)
+        if source:
+            resolved_source = source
+
+        if not text.strip():
+            print("No input text provided.")
+            return
+
         entities = self._detect_regex(text)
         facts = self._extract_facts(text)
+        registry_facts = self._extract_registry_facts(text)
         results = []
 
         for e in entities:
-            e["source"] = source
+            e["source"] = resolved_source
             if dry_run:
                 e["action"] = "would_create"
                 e["path"] = str(self.entities_dir / f"{self._slugify(e['name'])}.md")
             else:
-                self._create_entity(e["name"], e.get("type", "person"), source)
+                self._create_entity(e["name"], e.get("type", "person"), resolved_source)
                 e["action"] = "created"
                 e["path"] = str(self.entities_dir / f"{self._slugify(e['name'])}.md")
             results.append(e)
 
         for f in facts:
-            f["source"] = source
+            f["source"] = resolved_source
             if dry_run:
                 f["action"] = "would_append"
             else:
-                self._append_fact(f["entity"], f["fact"], source)
+                self._append_fact(f["entity"], f["fact"], resolved_source)
                 f["action"] = "appended"
             results.append(f)
+
+        registry_entries = []
+        for f in facts:
+            registry_entries.append(f"{f['entity']}: {f['fact']}")
+        registry_entries.extend(registry_facts)
+
+        if registry_entries:
+            if dry_run:
+                results.append({"type": "fact-registry", "facts": registry_entries, "action": "would_write"})
+            else:
+                written = self._write_fact_registry(registry_entries, resolved_source)
+                results.append({"type": "fact-registry", "facts": written, "action": "written", "count": len(written)})
 
         print(json.dumps(results, indent=2, ensure_ascii=False))
 
@@ -424,6 +454,136 @@ class MemKraft:
                 if len(fact_text) > 5 and len(entity_name) > 1:
                     facts.append({"entity": entity_name, "fact": fact_text, "type": "fact"})
         return facts
+
+    def _resolve_extract_input(self, input_text: str) -> tuple:
+        """Resolve extract input from a file path, literal text, or stdin."""
+        if input_text:
+            maybe_path = Path(input_text).expanduser()
+            if maybe_path.exists() and maybe_path.is_file():
+                return maybe_path.read_text(encoding="utf-8", errors="replace"), str(maybe_path)
+            return input_text, "inline"
+
+        if not sys.stdin.isatty():
+            return sys.stdin.read(), "stdin"
+
+        return "", ""
+
+    def _extract_registry_facts(self, text: str) -> list:
+        """Extract numeric/date facts for the cross-domain fact registry."""
+        facts = []
+        patterns = [
+            r'[\$₩€]\s?[\d,.]+(?:\s*(?:million|billion|trillion|만|억|조|M|B|K))?\b',
+            r'\d+(?:\.\d+)?%',
+            r'\d+(?:,\d+)*(?:\s+(?:items|users|employees|members|people|명|개|건|팀))',
+        ]
+        for pattern in patterns:
+            for m in re.finditer(pattern, text, re.IGNORECASE):
+                facts.append(m.group().strip())
+
+        for m in re.finditer(r'\d{4}-\d{2}-\d{2}', text):
+            start = max(0, m.start() - 20)
+            prefix = text[start:m.start()].lower()
+            if "source" in prefix or "update" in prefix or "started" in prefix or "**" in prefix:
+                continue
+            facts.append(m.group())
+
+        return list(dict.fromkeys(facts))
+
+    def _write_fact_registry(self, facts: list, source: str = "") -> list:
+        """Append de-duplicated facts to fact-registry.md."""
+        clean_facts = [f.strip() for f in facts if f and f.strip()]
+        if not clean_facts:
+            return []
+
+        registry = self.base_dir / "fact-registry.md"
+        registry.parent.mkdir(parents=True, exist_ok=True)
+        existing = registry.read_text(encoding="utf-8", errors="replace") if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
+        existing_facts = set(re.findall(r'^- (.+?)(?: \[Source:.*\])?$', existing, re.MULTILINE))
+        new_facts = [f for f in dict.fromkeys(clean_facts) if f not in existing_facts]
+        if not new_facts:
+            return []
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        existing += f"\n## {now}\n"
+        for fact in new_facts:
+            source_suffix = f" [Source: {source}]" if source else ""
+            existing += f"- {fact}{source_suffix}\n"
+        registry.write_text(existing, encoding="utf-8")
+        return new_facts
+
+    def _apply_state_changes(self, content: str, info: str) -> tuple:
+        """Update Current State lines and return human-readable transitions."""
+        candidates = self._extract_state_candidates(info)
+        if not candidates:
+            return content, []
+
+        section_match = re.search(r'## (?:Current State|State|현재 상태)\n', content)
+        if not section_match:
+            return content, []
+
+        section_start = section_match.end()
+        next_section = re.search(r'\n## ', content[section_start:])
+        section_end = section_start + next_section.start() if next_section else len(content)
+        section = content[section_start:section_end]
+        transitions = []
+
+        for field, new_value in candidates.items():
+            field_pattern = re.compile(rf'(^- \*\*{re.escape(field)}:\*\* )(.*)$', re.MULTILINE)
+            match = field_pattern.search(section)
+            if match:
+                old_value = match.group(2).strip()
+                if self._is_material_state_change(old_value, new_value):
+                    transitions.append(f"{field} changed from `{old_value}` to `{new_value}`")
+                section = section[:match.start(2)] + new_value + section[match.end(2):]
+                continue
+
+            placeholder_match = re.search(r'^\((?:Latest information accumulates here|enrichment needed).*\)\n?', section, re.MULTILINE)
+            insertion = f"- **{field}:** {new_value}\n"
+            if placeholder_match:
+                section = section[:placeholder_match.start()] + insertion + section[placeholder_match.end():]
+            else:
+                section = insertion + section
+
+        return content[:section_start] + section + content[section_end:], transitions
+
+    def _extract_state_candidates(self, info: str) -> dict:
+        """Extract simple state fields from update text."""
+        fields = {
+            "Role": [
+                r'(?:^|\b)(?:role|title|position)\s*(?::|is|=)\s*(.+)$',
+                r'\b(?:is|became|serves as|was named|appointed as)\s+(?:the\s+)?(.+?)(?:\.|$)',
+            ],
+            "Affiliation": [
+                r'(?:^|\b)(?:affiliation|company|organization|org)\s*(?::|is|=)\s*(.+)$',
+                r'\b(?:joined|left|moved to)\s+(.+?)(?:\.|$)',
+            ],
+            "Status": [
+                r'(?:^|\b)status\s*(?::|is|=)\s*(.+)$',
+            ],
+            "Location": [
+                r'(?:^|\b)location\s*(?::|is|=)\s*(.+)$',
+                r'\b(?:based in|located in)\s+(.+?)(?:\.|$)',
+            ],
+        }
+        candidates = {}
+        for field, patterns in fields.items():
+            for pattern in patterns:
+                match = re.search(pattern, info, re.IGNORECASE)
+                if match:
+                    value = match.group(1).strip(" .;")
+                    if value:
+                        candidates[field] = value[:200]
+                    break
+        return candidates
+
+    def _is_material_state_change(self, old_value: str, new_value: str) -> bool:
+        old_clean = old_value.strip()
+        new_clean = new_value.strip()
+        if old_clean.lower() == new_clean.lower():
+            return False
+        if not old_clean or "enrichment needed" in old_clean.lower() or "latest information" in old_clean.lower():
+            return False
+        return True
 
     def _append_fact(self, entity_name: str, fact: str, source: str = ""):
         """Append a fact to an entity's live note."""
@@ -574,53 +734,67 @@ class MemKraft:
 
     # ── Search (Fuzzy) ────────────────────────────────────────
     def search(self, query: str, fuzzy: bool = False):
-        """Search memory with optional fuzzy matching."""
+        """Search memory with hybrid exact/token matching and optional fuzzy matching."""
         from difflib import SequenceMatcher
 
         results = []
         query_lower = query.lower()
+        query_tokens = self._search_tokens(query_lower)
 
         for md in self._all_md_files():
             content = md.read_text(encoding="utf-8", errors="replace")
             content_lower = content.lower()
             rel_path = md.relative_to(self.base_dir)
+            filename_lower = md.stem.lower().replace("-", " ")
 
-            if fuzzy:
-                # Fuzzy match: compare query against each line
-                best_score = 0.0
-                best_snippet = ""
-                lines = content_lower.split("\n")
-                lines_orig = content.split("\n")
+            lines = content_lower.split("\n")
+            lines_orig = content.split("\n")
+            exact_score = 0.0
+            token_score = 0.0
+            fuzzy_score = 0.0
+            best_snippet = ""
+
+            if query_lower in content_lower:
+                exact_score = 1.0
                 for idx, line in enumerate(lines):
-                    score = SequenceMatcher(None, query_lower, line.strip()).ratio()
-                    if score > best_score:
-                        best_score = score
-                        # Capture ±3 lines as snippet (RLM-inspired snippet retrieval)
+                    if query_lower in line:
                         start = max(0, idx - 3)
                         end = min(len(lines), idx + 4)
-                        snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())
-                        best_snippet = snippet[:200]  # cap at 200 chars
-                # Also check against filename
-                name_score = SequenceMatcher(None, query_lower, md.stem).ratio()
-                if name_score > best_score:
-                    best_score = name_score
+                        best_snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())[:200]
+                        break
+
+            if query_lower in filename_lower:
+                exact_score = max(exact_score, 0.8)
+                if not best_snippet:
                     best_snippet = md.stem
-                if best_score >= 0.3:
-                    results.append({"file": str(rel_path), "score": round(best_score, 2), "match": md.stem, "snippet": best_snippet})
-            else:
-                if query_lower in content_lower:
-                    # Find best matching line as snippet
-                    best_snippet = ""
-                    lines = content_lower.split("\n")
-                    lines_orig = content.split("\n")
-                    for idx, line in enumerate(lines):
-                        if query_lower in line:
-                            start = max(0, idx - 3)
-                            end = min(len(lines), idx + 4)
-                            best_snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())
-                            break
-                    best_snippet = best_snippet[:200]
-                    results.append({"file": str(rel_path), "score": 1.0, "match": md.stem, "snippet": best_snippet})
+
+            if query_tokens:
+                content_tokens = set(self._search_tokens(content_lower))
+                filename_tokens = set(self._search_tokens(filename_lower))
+                matched_tokens = [t for t in query_tokens if t in content_tokens or t in filename_tokens]
+                token_score = len(matched_tokens) / len(query_tokens)
+                if token_score and not best_snippet:
+                    best_snippet = self._best_token_snippet(query_tokens, lines, lines_orig)
+
+            if fuzzy:
+                best_fuzzy_snippet = ""
+                for idx, line in enumerate(lines):
+                    score = SequenceMatcher(None, query_lower, line.strip()).ratio()
+                    if score > fuzzy_score:
+                        fuzzy_score = score
+                        start = max(0, idx - 3)
+                        end = min(len(lines), idx + 4)
+                        best_fuzzy_snippet = " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())[:200]
+                name_score = SequenceMatcher(None, query_lower, filename_lower).ratio()
+                if name_score > fuzzy_score:
+                    fuzzy_score = name_score
+                    best_fuzzy_snippet = md.stem
+                if fuzzy_score >= 0.3 and not best_snippet:
+                    best_snippet = best_fuzzy_snippet
+
+            final_score = min(1.0, (exact_score * 0.65) + (token_score * 0.3) + (fuzzy_score * 0.35))
+            if exact_score or token_score or (fuzzy and fuzzy_score >= 0.3):
+                results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
         results.sort(key=lambda x: x["score"], reverse=True)
 
@@ -1288,6 +1462,26 @@ class MemKraft:
         if tag:
             files = [f for f in files if tag.lower() in f.read_text(encoding="utf-8", errors="replace").lower()]
         return files
+
+    def _search_tokens(self, text: str) -> list:
+        """Tokenize search text for dependency-free hybrid matching."""
+        return [t for t in re.findall(r'[\w\uAC00-\uD7AF\u4E00-\u9FFF]+', text.lower()) if len(t) > 1]
+
+    def _best_token_snippet(self, query_tokens: list, lines: list, lines_orig: list) -> str:
+        best_idx = 0
+        best_hits = 0
+        query_set = set(query_tokens)
+        for idx, line in enumerate(lines):
+            line_tokens = set(self._search_tokens(line))
+            hits = len(query_set & line_tokens)
+            if hits > best_hits:
+                best_hits = hits
+                best_idx = idx
+        if best_hits == 0:
+            return ""
+        start = max(0, best_idx - 3)
+        end = min(len(lines), best_idx + 4)
+        return " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())[:200]
 
     def _first_meaningful_line(self, content: str) -> str:
         """Return the first non-heading, non-empty, non-boilerplate line."""

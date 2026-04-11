@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 authors = [
     {name = "Seojun Kim", email = "simonkim.nft@gmail.com"},
 ]
-keywords = ["ai", "agents", "memory", "knowledge-graph", "compound"]
+keywords = ["ai", "agents", "memory", "knowledge-graph", "compound", "cli", "pipx"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -23,6 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Environment :: Console",
+    "Topic :: Utilities",
 ]
 
 [project.scripts]

@@ -59,7 +59,7 @@ def main():
 
     # extract
     extract_parser = subparsers.add_parser("extract", help="Auto-extract entities and facts from text")
-    extract_parser.add_argument("text", help="Text to analyze")
+    extract_parser.add_argument("input", nargs="?", default="", help="Markdown file or text to analyze (default: stdin)")
     extract_parser.add_argument("--source", default="", help="Source attribution")
     extract_parser.add_argument("--dry-run", action="store_true", help="Preview without creating files")
 
@@ -153,7 +153,7 @@ def main():
     elif args.command == "lookup":
         mc.lookup(args.query, json_output=args.json, brain_first=args.brain_first, full=args.full)
     elif args.command == "extract":
-        mc.extract(args.text, source=args.source, dry_run=args.dry_run)
+        mc.extract_conversations(args.input, source=args.source, dry_run=args.dry_run)
     elif args.command == "cognify":
         mc.cognify(dry_run=args.dry_run, apply=args.apply)
     elif args.command == "promote":
