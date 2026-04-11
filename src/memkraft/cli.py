@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""MemCraft CLI — Command-line interface for the compound knowledge system"""
+"""MemKraft CLI — Command-line interface for the compound knowledge system"""
 
 import argparse
 import sys
-from .core import MemCraft
+from .core import MemKraft
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="memcraft",
-        description="MemCraft — The compound knowledge system for AI agents",
+        prog="memkraft",
+        description="MemKraft — The compound knowledge system for AI agents",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -87,7 +87,7 @@ def main():
         parser.print_help()
         return 0
 
-    mc = MemCraft()
+    mc = MemKraft()
 
     if args.command == "init":
         mc.init(args.path)

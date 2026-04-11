@@ -1,4 +1,4 @@
-# Contributing to MemCraft
+# Contributing to MemKraft
 
 Thank you for your interest in contributing!
 
@@ -13,8 +13,8 @@ Thank you for your interest in contributing!
 ## Development Setup
 
 ```bash
-git clone https://github.com/seojoonkim/memcraft.git
-cd memcraft
+git clone https://github.com/seojoonkim/memkraft.git
+cd memkraft
 pip install -e .
 ```
 
