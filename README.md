@@ -50,7 +50,7 @@ $ memcraft init
 ✅ MemCraft initialized at memory
 
 # Auto-extract entities and facts from any text
-$ memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a crypto VC in Seoul." \
+$ memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." \
     --source "X/@simonkim_nft"
 [
   {"name": "Simon Kim", "type": "person", "action": "created"},
@@ -107,7 +107,7 @@ $ memcraft cognify --dry-run
    would route: action-items.md → task
 
 # Fuzzy search across all memory
-$ memcraft search "crypto venture capital Seoul" --fuzzy
+$ memcraft search "venture capital Seoul" --fuzzy
   [0.72] entities/simon-kim.md
   [0.58] entities/hashed.md
 
@@ -297,7 +297,7 @@ pip install -e .
 memcraft init
 
 # 2. Auto-extract from any text
-memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a crypto VC in Seoul." --source "news"
+memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." --source "news"
 
 # 3. Start tracking
 memcraft track "Simon Kim" --type person --source "X/@simonkim_nft"
@@ -318,7 +318,7 @@ memcraft detect "Jack Ma and 马化腾 discussed AI" --source "news"
 memcraft cognify
 
 # 9. Search memory
-memcraft search "crypto venture capital" --fuzzy
+memcraft search "venture capital" --fuzzy
 
 # 10. Check backlinks
 memcraft links "Simon Kim"
