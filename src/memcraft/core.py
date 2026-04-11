@@ -290,11 +290,25 @@ class MemCraft:
                 if age_hours > 48:
                     issues["inbox_overdue"] += 1
 
+        # Check for bloated entity pages (auto-compact)
+        # Inspired by Recursive Language Models (arXiv:2512.24601):
+        # bloated pages waste context window — flag for compaction
+        print("   🔍 Scanning for bloated pages (auto-compact candidates)...")
+        issues["bloated_pages"] = 0
+        for md in self._all_md_files():
+            size = md.stat().st_size
+            if size > 4000:  # >4KB suggests Compiled Truth needs condensing
+                issues["bloated_pages"] += 1
+                if issues["bloated_pages"] <= 5:
+                    rel = md.relative_to(self.base_dir)
+                    print(f"      ⚠️ {rel} ({size}B) — consider condensing Compiled Truth")
+
         total = sum(issues.values())
         print(f"\n🌙 Dream Cycle complete: {total} total issues found")
         print(f"   Incomplete sources: {issues['incomplete_sources']}")
         print(f"   Thin entities: {issues['thin_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
+        print(f"   Bloated pages: {issues['bloated_pages']}")
 
         if not dry_run:
             meta_dir = self.base_dir / ".memcraft"
@@ -495,17 +509,37 @@ class MemCraft:
             if fuzzy:
                 # Fuzzy match: compare query against each line
                 best_score = 0.0
-                for line in content_lower.split("\n"):
+                best_snippet = ""
+                lines = content_lower.split("\n")
+                for idx, line in enumerate(lines):
                     score = SequenceMatcher(None, query_lower, line.strip()).ratio()
-                    best_score = max(best_score, score)
+                    if score > best_score:
+                        best_score = score
+                        # Capture ±3 lines as snippet (RLM-inspired snippet retrieval)
+                        start = max(0, idx - 3)
+                        end = min(len(lines), idx + 4)
+                        snippet = " | ".join(l.strip() for l in lines[start:end] if l.strip())
+                        best_snippet = snippet[:200]  # cap at 200 chars
                 # Also check against filename
                 name_score = SequenceMatcher(None, query_lower, md.stem).ratio()
-                best_score = max(best_score, name_score)
+                if name_score > best_score:
+                    best_score = name_score
+                    best_snippet = md.stem
                 if best_score >= 0.3:
-                    results.append({"file": str(rel_path), "score": round(best_score, 2), "match": md.stem})
+                    results.append({"file": str(rel_path), "score": round(best_score, 2), "match": md.stem, "snippet": best_snippet})
             else:
                 if query_lower in content_lower:
-                    results.append({"file": str(rel_path), "score": 1.0, "match": md.stem})
+                    # Find best matching line as snippet
+                    best_snippet = ""
+                    lines = content_lower.split("\n")
+                    for idx, line in enumerate(lines):
+                        if query_lower in line.lower():
+                            start = max(0, idx - 3)
+                            end = min(len(lines), idx + 4)
+                            best_snippet = " | ".join(l.strip() for l in lines[start:end] if l.strip())
+                            break
+                    best_snippet = best_snippet[:200]
+                    results.append({"file": str(rel_path), "score": 1.0, "match": md.stem, "snippet": best_snippet})
 
         results.sort(key=lambda x: x["score"], reverse=True)
 
@@ -513,7 +547,8 @@ class MemCraft:
             print(f"No results for '{query}'.")
         else:
             for r in results[:20]:
-                print(f"  [{r['score']:.2f}] {r['file']}")
+                snippet_display = f"\n     {r['snippet'][:100]}" if r.get('snippet') else ""
+                print(f"  [{r['score']:.2f}] {r['file']}{snippet_display}")
 
     # ── Links (Backlinks) ─────────────────────────────────────
     def links(self, name: str):

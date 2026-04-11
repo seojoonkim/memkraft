@@ -213,11 +213,12 @@ Why tiers? Because LLM context windows are finite. Without explicit priority, yo
 
 ### Dream Cycle: automated memory maintenance
 
-Run `memcraft dream` (or schedule it nightly). It performs three health checks:
+Run `memcraft dream` (or schedule it nightly). It performs four health checks:
 
 1. **Incomplete source attributions** — scans every Timeline entry for missing `[Source: ...]` tags. Flags each one so you can add provenance.
 2. **Thin entity pages** — flags any entity page under 300 bytes. These are placeholders that got created by `detect` or `extract` but never enriched.
 3. **Overdue inbox items** — flags anything in `inbox/` older than 48 hours. If it's been sitting there for two days, it either needs to be cognified or deleted.
+4. **Bloated pages (auto-compact)** — flags any page over 4KB. When Compiled Truth sections grow too long, they waste context window space. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601): selectively condensing context is more effective than expanding context windows.
 
 After running, Dream Cycle writes a timestamp to `.memcraft/last-dream-timestamp`. This enables `memcraft diff` to show exactly what changed since the last maintenance pass.
 
@@ -445,6 +446,7 @@ export MEMCRAFT_DIR=/path/to/your/memory
 3. **Maintenance is automated** — Dream Cycle keeps memory healthy without manual effort. Memory that requires constant human curation will rot.
 4. **Knowledge is portable** — plain Markdown, zero dependencies, works with any agent framework. If MemCraft disappears tomorrow, your memory is still readable.
 5. **Provenance is non-negotiable** — every fact traces back to a source. Facts without sources are trust debts, and Dream Cycle makes sure you see them.
+6. **Context is finite** — LLM context windows have hard limits. Memory tiers ensure the right information fills that space, and bloated pages get flagged for compaction. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601), which demonstrates that decomposing and selectively retrieving context dramatically outperforms brute-force long-context approaches.
 
 The goal: a system where **knowledge begets knowledge** — where the marginal cost of each new insight decreases because the foundation keeps growing. MemCraft is the engine that makes that happen.
 
