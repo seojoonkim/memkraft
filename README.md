@@ -210,7 +210,7 @@ $ memkraft dream --dry-run
       ⚠️ Possible duplicate: simon-kim ↔ 김서준
    🔍 Scanning for inbox overdue items...
    🔍 Scanning for bloated pages (auto-compact)...
-🌙 Dream Cycle complete: 3 issues found
+🌙 Dream Cycle complete: 3 total issues found
    Incomplete sources: 1
    Thin entities: 0
    Duplicate entities: 1
@@ -255,8 +255,8 @@ Why dual-layer? Because a single "current state" page silently overwrites histor
 
 1. **English names** — regex for `Title Case + Title Case` patterns (2-word and 3-word), filtered against a common-word blocklist to avoid false positives like "The Company"
 2. **Korean names** — Hangul syllable extraction with Korean particle stripping (조사 제거: 이, 을, 를, 은, 는, 에, 로...) and verb-suffix removal (했다, 한다, 해요, 됨...) to isolate proper nouns from sentence fragments
-3. **Chinese names** — surname-first detection using a built-in dictionary of 120 Chinese surnames (王李张刘陈杨赵黄周吴...). Since Chinese characters lack word boundaries, the engine scans character runs and extracts 2–3 character sequences starting with a known surname
-4. **Japanese names** — surname-matched detection against 80 Japanese surnames (田中, 佐藤, 鈴木, 高橋...), extracting surname + 1–2 character given name
+3. **Chinese names** — surname-first detection using a built-in dictionary of 100 Chinese surnames (王李张刘陈杨赵黄周吴...). Since Chinese characters lack word boundaries, the engine scans character runs and extracts 2–3 character sequences starting with a known surname
+4. **Japanese names** — surname-matched detection against 85 Japanese surnames (田中, 佐藤, 鈴木, 高橋...), extracting surname + 1–2 character given name
 5. **Fact extraction** — pattern matching for "X is/was/founded/leads Y" constructions in English and "X은/는/이/가 Y이다/다/했다" in Korean
 6. **Stopword filtering** — 533 Korean/Chinese/Japanese stopwords loaded from `stopwords.json`, cached per session to avoid redundant I/O
 
@@ -273,7 +273,7 @@ The `cognify` command processes raw captures in `inbox/` and recommends routing 
 
 **By default, cognify only recommends** — it shows where each file should go without moving anything. Add `--apply` to actually route files. This prevents silent misclassification: you review the recommendations first, then apply them explicitly.
 
-Files under 20 bytes are skipped. `--dry-run` shows where everything would go. This is a heuristic classifier, not an LLM — it runs instantly, costs nothing, and works offline.
+Files under 20 characters are skipped. `--dry-run` shows where everything would go. This is a heuristic classifier, not an LLM — it runs instantly, costs nothing, and works offline.
 
 ### Source Attribution: trust chain enforcement
 
@@ -418,7 +418,7 @@ memory/
 | **Brain-first lookup** | Search memory before the web with sufficiency threshold | Searches entities → live-notes → decisions → inbox. Stops after ≥2 high-relevance results unless `--full` |
 | **Live Notes** | Track people/companies persistently. Auto-update with new info | Dual-layer pages with auto-incrementing update count and timeline append |
 | **Meeting Brief** | One command to compile everything before a meeting | Pulls entity info, live note state, recent timeline, open threads, related decisions, and generates a pre-meeting checklist |
-| **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex-based) | 533 stopwords, 120 CN surnames, 80 JP surnames, Korean particle/suffix stripping |
+| **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex-based) | 806 stopwords (533 KR + 250 CN + 23 JP), 100 CN surnames, 85 JP surnames, Korean particle/suffix stripping |
 | **Source attribution** | Every fact tagged with `[Source: who, when, how]` | Enforced by Dream Cycle scans — facts without sources are flagged as trust debts |
 | **Memory tiers** | Core / Recall / Archival — explicit context window priority | Labels on every page, `promote` command to reclassify as priorities shift |
 | **Dream Cycle** | Nightly auto-maintenance | 6 checks: daily note fallback, incomplete sources, thin pages, duplicate entities, overdue inbox, bloated pages |

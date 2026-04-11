@@ -4,6 +4,7 @@
 import argparse
 import sys
 from .core import MemKraft
+from . import __version__
 
 
 def main():
@@ -11,6 +12,7 @@ def main():
         prog="memkraft",
         description="MemKraft — The compound knowledge system for AI agents",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # init
@@ -135,6 +137,9 @@ def main():
     if args.command == "init":
         mc.init(args.path)
     elif args.command == "track":
+        if not args.name.strip():
+            print("❌ Error: name cannot be empty")
+            sys.exit(1)
         mc.track(args.name, args.type, args.source)
     elif args.command == "update":
         mc.update(args.name, args.info, args.source)

@@ -93,7 +93,7 @@ class MemKraft:
 - **{now}** | Live note created [Source: {source or 'Manual'}]
 """
         filepath.write_text(content)
-        print(f"✅ Tracking: {filepath}")
+        print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
 
     # ── Update ────────────────────────────────────────────────
     def update(self, name: str, info: str, source: str = "manual"):
@@ -139,35 +139,42 @@ class MemKraft:
                 break
 
         filepath.write_text(content)
-        print(f"✅ Updated: {filepath}")
+        print(f"✅ Updated: {filepath.relative_to(self.base_dir.parent)}")
 
     # ── List ──────────────────────────────────────────────────
     def list_entities(self):
-        if not self.live_notes_dir.exists():
-            print("No tracked entities. Use 'memkraft track' to start.")
-            return
-
         found = False
-        for md in sorted(self.live_notes_dir.glob("*.md")):
-            if md.name == "README.md":
-                continue
-            content = md.read_text()
-            count_val = "?"
-            date_val = "?"
-            for line in content.split("\n"):
-                if "Update Count" in line or "업데이트 횟수" in line:
-                    nums = re.findall(r'\d+', line)
-                    if nums:
-                        count_val = nums[-1]
-                if "Last Update" in line or "마지막 업데이트" in line:
-                    dates = re.findall(r'\d{4}-\d{2}-\d{2}', line)
-                    if dates:
-                        date_val = dates[-1]
-            print(f"  📌 {md.stem} (updates: {count_val}, last: {date_val})")
-            found = True
+
+        # List live notes
+        if self.live_notes_dir.exists():
+            for md in sorted(self.live_notes_dir.glob("*.md")):
+                if md.name == "README.md":
+                    continue
+                content = md.read_text()
+                count_val = "?"
+                date_val = "?"
+                for line in content.split("\n"):
+                    if "Update Count" in line or "업데이트 횟수" in line:
+                        nums = re.findall(r'\d+', line)
+                        if nums:
+                            count_val = nums[-1]
+                    if "Last Update" in line or "마지막 업데이트" in line:
+                        dates = re.findall(r'\d{4}-\d{2}-\d{2}', line)
+                        if dates:
+                            date_val = dates[-1]
+                print(f"  📌 {md.stem} (updates: {count_val}, last: {date_val})")
+                found = True
+
+        # List entity pages
+        if self.entities_dir.exists():
+            for md in sorted(self.entities_dir.glob("*.md")):
+                if md.name == "README.md":
+                    continue
+                print(f"  📄 {md.stem}")
+                found = True
 
         if not found:
-            print("No tracked entities. Use 'memkraft track' to start.")
+            print("No entities found. Use 'memkraft track' or 'memkraft detect' to start.")
 
     # ── Brief ─────────────────────────────────────────────────
     def brief(self, name: str, save: bool = False):
@@ -177,6 +184,7 @@ class MemKraft:
 
         # Entity page
         entity_path = self.entities_dir / f"{slug}.md"
+        live_path_check = self.live_notes_dir / f"{slug}.md"
         if entity_path.exists():
             content = entity_path.read_text()
             brief_parts.append("## 👤 Entity Info")
@@ -201,8 +209,9 @@ class MemKraft:
                     brief_parts.append(f"- [ ] {item}")
             brief_parts.append("")
         else:
-            brief_parts.append(f"## ⚠️ Entity '{name}' not found")
-            brief_parts.append("   → Use `memkraft track` or `memkraft detect` to create")
+            if not live_path_check.exists():
+                brief_parts.append(f"## ⚠️ '{name}' not found")
+                brief_parts.append("   → Use `memkraft track` or `memkraft detect` to create")
             brief_parts.append("")
 
         # Live note
@@ -997,15 +1006,21 @@ class MemKraft:
         for f in facts[:30]:
             print(f"  • {f}")
 
-        # Write to fact-registry.md
+        # Write to fact-registry.md (deduplicate against existing)
         registry = self.base_dir / "fact-registry.md"
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         existing = registry.read_text() if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
-        existing += f"\n## {now}\n"
-        for f in facts:
-            existing += f"- {f}\n"
-        registry.write_text(existing)
-        print(f"\n💾 Updated: {registry}")
+        # Skip facts that already exist in the registry
+        existing_facts = set(re.findall(r'^- (.+)$', existing, re.MULTILINE))
+        new_facts = [f for f in facts if f not in existing_facts]
+        if new_facts:
+            existing += f"\n## {now}\n"
+            for f in new_facts:
+                existing += f"- {f}\n"
+            registry.write_text(existing)
+            print(f"\n💾 Updated: {registry.relative_to(self.base_dir.parent)} ({len(new_facts)} new facts)")
+        else:
+            print("\n✅ No new facts to add (all already in registry)")
 
     # ── Brain-first Lookup ───────────────────────────────────────
     def lookup(self, query: str, json_output: bool = False,
@@ -1099,7 +1114,7 @@ class MemKraft:
             if name not in common:
                 entities.append({"name": name, "type": "person", "context": "auto-detected"})
         for name in set(names_2):
-            if name not in common and name.split()[0] not in names_3_words and name.split()[1] not in names_3_words:
+            if name not in common and name.split()[0] not in common and name.split()[1] not in common and name.split()[0] not in names_3_words and name.split()[1] not in names_3_words:
                 entities.append({"name": name, "type": "person", "context": "auto-detected"})
         for name in set(korean_names):
             if len(name) >= 2 and name not in korean_stopwords:
@@ -1208,6 +1223,12 @@ class MemKraft:
         for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
             if subdir.exists():
                 yield from subdir.glob("*.md")
+        # Include daily notes and base-dir markdown files (exclude system files)
+        _system_files = {"RESOLVER.md", "TEMPLATES.md"}
+        if self.base_dir.exists():
+            for md in self.base_dir.glob("*.md"):
+                if md.name not in _system_files:
+                    yield md
 
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""
