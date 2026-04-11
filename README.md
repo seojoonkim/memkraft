@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/hero.jpg" alt="MemCraft — A cosmic brain forged from luminous data streams, neural networks glowing in gold and teal" width="100%">
+
 # 🧠⚒️ MemCraft
 
 **The ultimate compound knowledge system for AI agents.**
