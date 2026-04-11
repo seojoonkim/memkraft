@@ -50,43 +50,44 @@ $ memcraft init
 ✅ MemCraft initialized at memory
 
 # Auto-extract entities and facts from any text
-$ memcraft extract "Simon Kim is the CEO of Hashed. Garry Tan founded YC." \
+$ memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a crypto VC in Seoul." \
     --source "X/@simonkim_nft"
 [
   {"name": "Simon Kim", "type": "person", "action": "created"},
+  {"name": "Hashed", "type": "person", "action": "created"},
   {"entity": "Simon Kim", "fact": "the CEO of Hashed", "action": "appended"}
 ]
 
 # Start tracking someone
-$ memcraft track "Garry Tan" --type person --source "X/@garrytan"
-✅ Tracking: memory/live-notes/garry-tan.md
+$ memcraft track "Simon Kim" --type person --source "X/@simonkim_nft"
+✅ Tracking: memory/live-notes/simon-kim.md
 
 # Update with new info
-$ memcraft update "Garry Tan" --info "Open-sourced GBrain under MIT" \
-    --source "X/@garrytan, 2026-04-10"
-✅ Updated: memory/live-notes/garry-tan.md
+$ memcraft update "Simon Kim" --info "Launched VibeKai, a vibe coding education platform" \
+    --source "X/@simonkim_nft, 2026-04-10"
+✅ Updated: memory/live-notes/simon-kim.md
 
 # Promote to core memory (always in context)
-$ memcraft promote "Garry Tan" --tier core
-✅ Promoted 'Garry Tan' → core
+$ memcraft promote "Simon Kim" --tier core
+✅ Promoted 'Simon Kim' → core
 
 # Get a meeting brief
-$ memcraft brief "Garry Tan"
+$ memcraft brief "Simon Kim"
 
-📋 Meeting Brief: Garry Tan
+📋 Meeting Brief: Simon Kim
 Generated: 2026-04-11
 
 👤 Entity Info
-   YC CEO. Open-sourced GBrain, a knowledge graph system.
+   CEO of Hashed. Crypto VC based in Seoul.
 
 🔄 Live Note
-   Current State: CEO of Y Combinator, advocates compound knowledge systems
+   Current State: CEO of Hashed, building VibeKai and MemCraft
    Recent Activity:
-   - 2026-04-10 | Open-sourced GBrain under MIT [Source: X/@garrytan]
+   - 2026-04-10 | Launched VibeKai [Source: X/@simonkim_nft]
 
 📅 Timeline
-   - 2026-04-11 | Entity first detected [Source: Simon, Telegram]
-   - 2026-04-10 | GBrain MIT license release [Source: X/@garrytan]
+   - 2026-04-11 | Entity first detected [Source: Telegram]
+   - 2026-04-10 | VibeKai launch [Source: X/@simonkim_nft]
 
 🔓 Open Threads
    - [ ] Initial entity — enrichment needed
@@ -106,25 +107,25 @@ $ memcraft cognify --dry-run
    would route: action-items.md → task
 
 # Fuzzy search across all memory
-$ memcraft search "hiring at startups" --fuzzy
-  [0.72] entities/garry-tan.md
-  [0.58] live-notes/simon-kim.md
+$ memcraft search "crypto venture capital Seoul" --fuzzy
+  [0.72] entities/simon-kim.md
+  [0.58] entities/hashed.md
 
 # Show backlinks to an entity
-$ memcraft links "Garry Tan"
-Backlinks to 'Garry Tan' (3):
-  📎 entities/y-combinator.md
-     ...founded by [[garry-tan]] in 2005...
-  📎 decisions/funding-round.md
-     ...introduced by [[garry-tan]]...
-  📎 live-notes/startup-ecosystem.md
-     ...[[garry-tan]] mentioned that...
+$ memcraft links "Simon Kim"
+Backlinks to 'Simon Kim' (3):
+  📎 entities/hashed.md
+     ...CEO [[simon-kim]] founded Hashed in 2018...
+  📎 decisions/seed-round.md
+     ...introduced by [[simon-kim]]...
+  📎 live-notes/vibekai.md
+     ...[[simon-kim]] launched VibeKai...
 
 # See what changed since last Dream Cycle
 $ memcraft diff
 Changes since last Dream Cycle (4):
-  🆕 created: entities/garry-tan.md (2026-04-11 16:00)
-  ✏️ modified: live-notes/simon-kim.md (2026-04-11 15:30)
+  🆕 created: entities/simon-kim.md (2026-04-11 16:00)
+  ✏️ modified: entities/hashed.md (2026-04-11 15:30)
 
 # Run nightly maintenance
 $ memcraft dream --dry-run
@@ -296,19 +297,19 @@ pip install -e .
 memcraft init
 
 # 2. Auto-extract from any text
-memcraft extract "Simon Kim presented at Hashed. Garry Tan open-sourced GBrain." --source "news"
+memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a crypto VC in Seoul." --source "news"
 
 # 3. Start tracking
-memcraft track "Garry Tan" --type person --source "X/@garrytan"
+memcraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 
 # 4. Update with new info
-memcraft update "Garry Tan" --info "YC CEO, GBrain creator" --source "X/@garrytan"
+memcraft update "Simon Kim" --info "CEO of Hashed, launched VibeKai" --source "X/@simonkim_nft"
 
 # 5. Promote to core memory
-memcraft promote "Garry Tan" --tier core
+memcraft promote "Simon Kim" --tier core
 
 # 6. Prep for a meeting
-memcraft brief "Garry Tan"
+memcraft brief "Simon Kim"
 
 # 7. Detect entities in text
 memcraft detect "Jack Ma and 马化腾 discussed AI" --source "news"
@@ -317,10 +318,10 @@ memcraft detect "Jack Ma and 马化腾 discussed AI" --source "news"
 memcraft cognify
 
 # 9. Search memory
-memcraft search "hiring" --fuzzy
+memcraft search "crypto venture capital" --fuzzy
 
 # 10. Check backlinks
-memcraft links "Garry Tan"
+memcraft links "Simon Kim"
 
 # 11. See changes
 memcraft diff
