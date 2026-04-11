@@ -1453,6 +1453,137 @@ class MemKraft:
             print("📝 Summarize: no entities to summarize")
         return results
 
+    # ── Agentic Search ──────────────────────────────────────────
+    def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False):
+        """Multi-step search: decompose query → search → traverse links → re-rank → check sufficiency."""
+        # Step 1: Query Decomposition
+        sub_queries = self._decompose_query(query)
+
+        # Step 2: Initial search for each sub-query
+        all_results = {}
+        for sq in sub_queries:
+            results = self.search(sq, fuzzy=True)
+            for r in results:
+                if r["file"] not in all_results or r["score"] > all_results[r["file"]]["score"]:
+                    all_results[r["file"]] = r
+
+        # Step 3: Multi-hop Traversal — follow backlinks
+        visited = set(all_results.keys())
+        hop_results = {}
+        for _ in range(max_hops):
+            new_files = []
+            for filepath in list(all_results.keys()) + list(hop_results.keys()):
+                md_path = self.base_dir / filepath
+                if md_path.exists():
+                    content = self._safe_read(md_path)
+                    # Find [[wiki-links]] in content
+                    linked = re.findall(r'\[\[([^\]]+)\]\]', content)
+                    for link in linked:
+                        link_slug = self._slugify(link)
+                        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir]:
+                            target = subdir / f"{link_slug}.md"
+                            rel = str(target.relative_to(self.base_dir)) if target.exists() else None
+                            if rel and rel not in visited:
+                                new_files.append((rel, link))
+                                visited.add(rel)
+            if not new_files:
+                break
+            for rel_path, link_name in new_files:
+                md_path = self.base_dir / rel_path
+                content = self._safe_read(md_path)
+                if content:
+                    # Score relevance to original query
+                    content_lower = content.lower()
+                    query_lower = query.lower()
+                    score = 0.0
+                    for token in query_lower.split():
+                        if token in content_lower:
+                            score += 0.3
+                    for sq in sub_queries:
+                        if sq.lower() in content_lower:
+                            score += 0.5
+                    if score > 0:
+                        hop_results[rel_path] = {"file": rel_path, "score": round(min(score, 1.0), 2), "match": Path(rel_path).stem, "snippet": content[:100].replace("\n", " "), "hop": True}
+
+        # Merge initial + hop results
+        merged = list(all_results.values()) + list(hop_results.values())
+
+        # Step 4: Contextual Re-ranking
+        for r in merged:
+            bonus = 0.0
+            md_path = self.base_dir / r["file"]
+            content = self._safe_read(md_path)
+            if content:
+                # Tier bonus
+                if "Tier: core" in content:
+                    bonus += 0.1
+                elif "Tier: archival" in content:
+                    bonus -= 0.05
+                # Recency bonus
+                dates = re.findall(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', content)
+                if dates:
+                    try:
+                        from datetime import datetime
+                        latest = max(dates)
+                        days_old = (datetime.now() - datetime.strptime(latest, "%Y-%m-%d")).days
+                        if days_old < 7:
+                            bonus += 0.05
+                    except (ValueError, ImportError):
+                        pass
+            r["score"] = round(min(1.0, r.get("score", 0) + bonus), 2)
+
+        merged.sort(key=lambda x: x["score"], reverse=True)
+
+        # Step 5: Sufficiency Check — if top result < 0.5, expand search
+        if merged and merged[0]["score"] < 0.5 and len(sub_queries) > 1:
+            # Broader search with full query
+            expanded = self.search(query, fuzzy=True)
+            for r in expanded:
+                if r["file"] not in all_results:
+                    merged.append(r)
+            merged.sort(key=lambda x: x["score"], reverse=True)
+
+        # Output
+        if not merged:
+            print(f"🔍 Agentic search: no results for '{query}'")
+        else:
+            print(f"🔍 Agentic search: {len(merged)} results for '{query}' (decomposed into {len(sub_queries)} queries, {max_hops} hops)")
+            for r in merged[:10]:
+                hop_marker = " ↳" if r.get("hop") else ""
+                snippet = f"\n     {r['snippet'][:80]}" if r.get('snippet') else ""
+                print(f"  [{r['score']:.2f}] {r['file']}{snippet}{hop_marker}")
+
+        if json_output:
+            return merged
+        return merged
+
+    def _decompose_query(self, query: str) -> list:
+        """Decompose a complex query into sub-queries."""
+        # Korean question patterns
+        kr_patterns = [r'(.+?)이/가 누구', r'(.+?)의 (.+?)', r'(.+?)은/는 어디', r'(.+?)에 대해']
+        for pat in kr_patterns:
+            m = re.search(pat, query)
+            if m:
+                return [g.strip() for g in m.groups() if g.strip()] + [query]
+
+        # English patterns: "X of Y", "who is X", "what is X"
+        en_patterns = [
+            r"who is (.+)", r"what is (.+)", r"tell me about (.+)",
+            r"(.+?) of (.+)", r"(.+?)'s (.+)"
+        ]
+        for pat in en_patterns:
+            m = re.search(pat, query, re.IGNORECASE)
+            if m:
+                return [g.strip() for g in m.groups() if g.strip()] + [query]
+
+        # Fallback: split on common delimiters
+        if len(query) > 20:
+            parts = re.split(r'[,.]|\s+(?:and|or|but|그리고|또는)\s+', query)
+            if len(parts) > 1:
+                return [p.strip() for p in parts if len(p.strip()) > 2]
+
+        return [query]
+
     # ── Brain-first Lookup ───────────────────────────────────────
     def lookup(self, query: str, json_output: bool = False,
                brain_first: bool = False, full: bool = False):

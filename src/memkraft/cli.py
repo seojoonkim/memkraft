@@ -139,6 +139,12 @@ def main():
     summarize_parser.add_argument("name", nargs="?", default=None, help="Entity name (default: all bloated pages)")
     summarize_parser.add_argument("--max-length", type=int, default=500, help="Max summary length in chars")
 
+    # agentic-search
+    agentic_parser = subparsers.add_parser("agentic-search", help="Multi-step agentic search (decompose + traverse + re-rank)")
+    agentic_parser.add_argument("query", help="Search query")
+    agentic_parser.add_argument("--max-hops", type=int, default=2, help="Max link traversal hops (default: 2)")
+    agentic_parser.add_argument("--json", action="store_true", help="JSON output")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -206,6 +212,8 @@ def main():
         mc.dedup(dry_run=args.dry_run)
     elif args.command == "summarize":
         mc.summarize(name=args.name, max_length=args.max_length)
+    elif args.command == "agentic-search":
+        mc.agentic_search(args.query, max_hops=args.max_hops, json_output=args.json)
 
     return 0
 

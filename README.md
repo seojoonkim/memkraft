@@ -424,6 +424,7 @@ memory/
 | **Dream Cycle** | Nightly auto-maintenance | 6 checks: daily note fallback, incomplete sources, thin pages, duplicate entities, overdue inbox, bloated pages |
 | **Diff tracking** | See what changed since last Dream Cycle | Compares file mtimes against `.memkraft/last-dream-timestamp`, reports created/modified |
 | **Fuzzy search** | Find even when you don't remember the exact name | `difflib.SequenceMatcher` with 0.3 threshold + ±3 line snippets, zero dependencies, works offline |
+| **Agentic search** | Multi-step search: decompose query → search → traverse links → re-rank | Decomposes complex queries, follows [[wiki-links]] across pages, re-ranks by tier/recency/type, auto-expands if insufficient results |
 | **Backlinks** | See every page that references an entity | Scans all `.md` files for `[[entity-name]]` patterns, returns file + context excerpt |
 | **RESOLVER.md** | MECE classification tree — prevents duplicates and misfiling | Decision tree that makes every routing decision unambiguous |
 | **Originals/** | Capture ideas verbatim. No paraphrasing, no interpretation loss | Raw capture before any processing — the source of truth for interpretation |
@@ -454,6 +455,7 @@ memory/
 | Memory tiers | ✅ | — | ✅ | — | — |
 | Diff tracking | ✅ | — | — | — | — |
 | Fuzzy search | ✅ | ✅ (vector) | — | — | — |
+| Agentic search | ✅ | — | — | — | — |
 | Semantic search | — | ✅ | — | — | — |
 | Backlinks | ✅ | — | — | — | — |
 | Memory resolver | ✅ | — | — | — | — |
@@ -530,6 +532,7 @@ memkraft update "Simon Kim" --info "Launched MemKraft" --source "X/@simonkim_nft
 # 3. Search & brief — find anything, prep for meetings
 memkraft search "venture capital" --fuzzy
 memkraft brief "Simon Kim"
+memkraft agentic-search "who is the CEO of Hashed"  # decompose → traverse → re-rank
 
 # 4. Ingest & classify — inbox → structured pages (safe by default)
 memkraft cognify          # recommend-only; add --apply to move files

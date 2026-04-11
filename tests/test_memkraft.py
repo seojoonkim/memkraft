@@ -342,3 +342,30 @@ class TestR14Features:
 
     def test_summarize_all(self, mk_with_data):
         mk_with_data.summarize()  # bulk summarize
+
+
+class TestR15AgenticSearch:
+    def test_agentic_search_basic(self, mk_with_data):
+        results = mk_with_data.agentic_search("Hashed")
+        assert isinstance(results, list)
+
+    def test_agentic_search_decomposition(self, mk):
+        sub = mk._decompose_query("who is CEO of Hashed")
+        assert len(sub) >= 2
+        assert any("CEO" in s or "Hashed" in s for s in sub)
+
+    def test_agentic_search_korean_decomposition(self, mk):
+        sub = mk._decompose_query("Hashed의 CEO")
+        assert len(sub) >= 2
+
+    def test_agentic_search_empty(self, mk):
+        results = mk.agentic_search("zzzznonexistent")
+        assert isinstance(results, list)
+
+    def test_agentic_search_with_hops(self, mk_with_data):
+        results = mk_with_data.agentic_search("CEO", max_hops=1)
+        assert isinstance(results, list)
+
+    def test_agentic_search_json_output(self, mk_with_data):
+        results = mk_with_data.agentic_search("Hashed", json_output=True)
+        assert isinstance(results, list)
