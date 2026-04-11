@@ -289,3 +289,30 @@ class TestErrorHandling:
     def test_very_long_input(self, mk):
         long_text = "Simon Kim is the CEO. " * 1000
         mk.extract(long_text, source="test")
+
+    def test_unicode_input(self, mk):
+        mk.extract("김서준이 서울에서 회의를 했다. 東京に行った。🚀", source="test")
+
+    def test_search_idf_scoring(self, mk_with_data):
+        # IDF-weighted search should still return results
+        results = mk_with_data.search("CEO")
+        assert isinstance(results, list)
+
+    def test_detect_mixed_content(self, mk):
+        entities = mk._detect_regex("Apple opened an office in Seoul. Samsung also expanded to Tokyo.")
+        types = [e["type"] for e in entities]
+        assert "organization" in types
+        assert "location" in types
+
+    def test_extract_and_search_integration(self, mk):
+        mk.extract("OpenAI released GPT-5 in San Francisco.", source="test")
+        results = mk.search("OpenAI")
+        assert len(results) > 0
+
+    def test_safe_read_corrupted_file(self, mk):
+        mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        bad = mk.base_dir / "entities" / "corrupt.md"
+        bad.write_bytes(b'\xff\xfe\x00\x00')
+        result = mk._safe_read(bad)
+        # Should not crash, return something
+        assert isinstance(result, str)

@@ -174,7 +174,7 @@ class MemKraft:
             for md in sorted(self.live_notes_dir.glob("*.md")):
                 if md.name == "README.md":
                     continue
-                content = md.read_text(encoding="utf-8", errors="replace")
+                content = self._safe_read(md)
                 count_val = "?"
                 date_val = "?"
                 for line in content.split("\n"):
@@ -269,7 +269,7 @@ class MemKraft:
         if self.decisions_dir.exists():
             related_decisions = []
             for md in self.decisions_dir.glob("*.md"):
-                dcontent_orig = md.read_text(encoding="utf-8", errors="replace")
+                dcontent_orig = self._safe_read(md)
                 dcontent = dcontent_orig.lower()
                 if name.lower() in dcontent or slug in dcontent or f"[[{slug}]]" in dcontent:
                     first_line = self._first_meaningful_line(dcontent_orig)
@@ -334,7 +334,7 @@ class MemKraft:
         # Check for incomplete source attributions
         print("   🔍 Scanning for incomplete source attributions...")
         for md in self._all_md_files():
-            content = md.read_text(encoding="utf-8", errors="replace")
+            content = self._safe_read(md)
             if "## Timeline" in content:
                 section = content.split("## Timeline")[1].split("\n## ")[0]
                 for line in section.split("\n"):
@@ -647,7 +647,7 @@ class MemKraft:
             if md.name.startswith("_") or md.name == "README.md":
                 continue
 
-            content = md.read_text(encoding="utf-8", errors="replace").strip()
+            content = self._safe_read(md).strip()
             if len(content) < 20:
                 results["skipped"] += 1
                 continue
@@ -768,8 +768,24 @@ class MemKraft:
         query_lower = query.lower()
         query_tokens = self._search_tokens(query_lower)
 
-        for md in self._all_md_files():
-            content = md.read_text(encoding="utf-8", errors="replace")
+        # Compute IDF (Inverse Document Frequency) for BM25-style scoring
+        all_files = list(self._all_md_files())
+        doc_count = max(len(all_files), 1)
+        token_doc_freq = {}  # How many docs contain each token
+        for md in all_files:
+            try:
+                doc_text = md.read_text(encoding="utf-8", errors="replace").lower()
+            except OSError:
+                continue
+            doc_tokens = set(self._search_tokens(doc_text))
+            for t in doc_tokens:
+                token_doc_freq[t] = token_doc_freq.get(t, 0) + 1
+
+        for md in all_files:
+            try:
+                content = self._safe_read(md)
+            except OSError:
+                continue
             content_lower = content.lower()
             rel_path = md.relative_to(self.base_dir)
             filename_lower = md.stem.lower().replace("-", " ")
@@ -798,8 +814,15 @@ class MemKraft:
             if query_tokens:
                 content_tokens = set(self._search_tokens(content_lower))
                 filename_tokens = set(self._search_tokens(filename_lower))
-                matched_tokens = [t for t in query_tokens if t in content_tokens or t in filename_tokens]
-                token_score = len(matched_tokens) / len(query_tokens)
+                # IDF-weighted token scoring: rare tokens count more
+                idf_weights = []
+                for t in query_tokens:
+                    df = token_doc_freq.get(t, 1)
+                    idf = max(0.1, (doc_count - df + 0.5) / (df + 0.5))  # BM25 IDF
+                    idf_weights.append(idf)
+                total_idf = sum(idf_weights) or 1.0
+                matched_weight = sum(w for t, w in zip(query_tokens, idf_weights) if t in content_tokens or t in filename_tokens)
+                token_score = matched_weight / total_idf
                 if token_score and not best_snippet:
                     best_snippet = self._best_token_snippet(query_tokens, lines, lines_orig)
 
@@ -845,7 +868,10 @@ class MemKraft:
         backlinks = []
 
         for md in self._all_md_files():
-            content = md.read_text(encoding="utf-8", errors="replace")
+            try:
+                content = self._safe_read(md)
+            except OSError:
+                continue
             for target in targets:
                 if target in content:
                     rel_path = md.relative_to(self.base_dir)
@@ -1084,7 +1110,7 @@ class MemKraft:
         # Scan decisions dir
         if self.decisions_dir.exists():
             for md in self.decisions_dir.glob("*.md"):
-                content = md.read_text(encoding="utf-8", errors="replace")
+                content = self._safe_read(md)
                 if any(kw in content.lower() for kw in decision_kw_en) or any(kw in content for kw in decision_kw_kr):
                     candidates.append({"source": f"decisions/{md.name}", "event": content[:100].replace('\n', ' '), "importance": "high"})
 
@@ -1093,7 +1119,7 @@ class MemKraft:
         for md in self.base_dir.glob("*.md"):
             if md.name in excluded:
                 continue
-            content = md.read_text(encoding="utf-8", errors="replace")
+            content = self._safe_read(md)
             for line in content.split("\n"):
                 line_lower = line.lower()
                 if any(kw in line_lower for kw in decision_kw_en) or any(kw in line for kw in decision_kw_kr):
@@ -1116,7 +1142,7 @@ class MemKraft:
 
         loops = []
         for md in self._all_md_files():
-            content = md.read_text(encoding="utf-8", errors="replace")
+            content = self._safe_read(md)
             rel = str(md.relative_to(self.base_dir))
             mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
             for line in content.split("\n"):
@@ -1155,7 +1181,7 @@ class MemKraft:
             # Skip if already indexed (deduplicate)
             if rel in index:
                 continue
-            content = md.read_text(encoding="utf-8", errors="replace")
+            content = self._safe_read(md)
             summary = self._first_meaningful_line(content)
             tags = self._extract_tags(content)
             sections = [l.strip() for l in content.split("\n") if l.startswith("#")]
@@ -1192,7 +1218,7 @@ class MemKraft:
 
         suggestions = []
         for md in self._all_md_files():
-            content = md.read_text(encoding="utf-8", errors="replace")
+            content = self._safe_read(md)
             rel = str(md.relative_to(self.base_dir))
             for slug in entity_slugs:
                 if md.stem == slug:
@@ -1230,7 +1256,7 @@ class MemKraft:
         if not text:
             texts = []
             for md in self._all_md_files():
-                texts.append(md.read_text(encoding="utf-8", errors="replace"))
+                texts.append(self._safe_read(md))
             text = " ".join(texts)
 
         facts = []
@@ -1306,7 +1332,7 @@ class MemKraft:
                 rel_path = str(md.relative_to(self.base_dir))
                 if rel_path in seen_files:
                     continue  # Skip exact same file
-                content = md.read_text(encoding="utf-8", errors="replace").lower()
+                content = self._safe_read(md).lower()
                 if query.lower() in content:
                     results.append({"source": source, "file": md.stem, "rel_path": rel_path, "relevance": relevance})
                     seen_files.add(rel_path)
@@ -1516,6 +1542,13 @@ class MemKraft:
             for md in self.base_dir.glob("*.md"):
                 if md.name not in _system_files:
                     yield md
+
+    def _safe_read(self, path: Path) -> str:
+        """Read file safely, returning empty string on any error."""
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            return ""
 
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""
