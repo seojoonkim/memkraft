@@ -1011,6 +1011,7 @@ class MemKraft:
         ]
 
         high_count = 0
+        seen_files = set()  # Deduplicate by filename
         for directory, source, relevance in search_dirs:
             # Brain-first: stop early if we have enough high-relevance results
             if brain_first and not full and high_count >= 2 and relevance != "high":
@@ -1020,60 +1021,38 @@ class MemKraft:
                 continue
 
             for md in directory.glob("*.md"):
+                if md.stem in seen_files:
+                    continue  # Skip duplicates across directories
                 content = md.read_text().lower()
                 if query.lower() in content:
                     results.append({"source": source, "file": md.stem, "relevance": relevance})
+                    seen_files.add(md.stem)
                     if relevance == "high":
                         high_count += 1
 
         if json_output:
-            print(json.dumps(results, indent=2, ensure_ascii=False))
+            # Deduplicate by file stem for JSON output
+            seen = set()
+            deduped = []
+            for r in results:
+                key = r["file"]
+                if key not in seen:
+                    seen.add(key)
+                    deduped.append(r)
+            print(json.dumps(deduped, indent=2, ensure_ascii=False))
         else:
             if not results:
                 print(f"No results for '{query}'. Consider web search as fallback.")
             else:
+                seen = set()
                 for r in results:
+                    key = r["file"]
+                    if key in seen:
+                        continue
+                    seen.add(key)
                     print(f"  [{r['relevance']}] {r['source']}: {r['file']}")
                 if brain_first and not full and high_count >= 2:
                     print(f"  (brain-first: stopped after {high_count} high-relevance results. Use --full for all.)")
-        results = []
-
-        # Search entities
-        if self.entities_dir.exists():
-            for md in self.entities_dir.glob("*.md"):
-                content = md.read_text().lower()
-                if query.lower() in content:
-                    results.append({"source": "entity", "file": md.stem, "relevance": "high"})
-
-        # Search live notes
-        if self.live_notes_dir.exists():
-            for md in self.live_notes_dir.glob("*.md"):
-                content = md.read_text().lower()
-                if query.lower() in content:
-                    results.append({"source": "live-note", "file": md.stem, "relevance": "high"})
-
-        # Search decisions
-        if self.decisions_dir.exists():
-            for md in self.decisions_dir.glob("*.md"):
-                content = md.read_text().lower()
-                if query.lower() in content:
-                    results.append({"source": "decision", "file": md.stem, "relevance": "medium"})
-
-        # Search inbox
-        if self.inbox_dir.exists():
-            for md in self.inbox_dir.glob("*.md"):
-                content = md.read_text().lower()
-                if query.lower() in content:
-                    results.append({"source": "inbox", "file": md.stem, "relevance": "low"})
-
-        if json_output:
-            print(json.dumps(results, indent=2, ensure_ascii=False))
-        else:
-            if not results:
-                print(f"No results for '{query}'. Consider web search as fallback.")
-            else:
-                for r in results:
-                    print(f"  [{r['relevance']}] {r['source']}: {r['file']}")
 
     # ── Helpers ───────────────────────────────────────────────
     def _slugify(self, text: str) -> str:
@@ -1237,10 +1216,13 @@ class MemKraft:
         return files
 
     def _first_meaningful_line(self, content: str) -> str:
-        """Return the first non-heading, non-empty line."""
+        """Return the first non-heading, non-empty, non-boilerplate line."""
+        skip_prefixes = ("#", "---", ">", "**Tier", "- **Type", "- **Started",
+                         "- **Last Update", "- **Update Count", "- **Source",
+                         "- [[", "(")
         for line in content.split("\n"):
             stripped = line.strip()
-            if stripped and not stripped.startswith("#") and not stripped.startswith("---") and not stripped.startswith(">") and not stripped.startswith("**Tier") and len(stripped) > 10:
+            if stripped and not any(stripped.startswith(p) for p in skip_prefixes) and len(stripped) > 10:
                 return stripped
         return ""
 
