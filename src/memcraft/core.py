@@ -60,6 +60,8 @@ class MemCraft:
         now = datetime.now().strftime("%Y-%m-%d")
         content = f"""# {name} (Live Note)
 
+**Tier: core**
+
 > 🔄 Auto-tracked — updates automatically as new information arrives
 
 ## Tracking Config
@@ -294,6 +296,253 @@ class MemCraft:
         print(f"   Thin entities: {issues['thin_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
 
+        if not dry_run:
+            meta_dir = self.base_dir / ".memcraft"
+            meta_dir.mkdir(parents=True, exist_ok=True)
+            (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()))
+
+    # ── Extract ──────────────────────────────────────────────
+    def extract(self, text: str, source: str = "", dry_run: bool = False):
+        """Auto-extract entities and facts from text, write to memory."""
+        entities = self._detect_regex(text)
+        facts = self._extract_facts(text)
+        results = []
+
+        for e in entities:
+            e["source"] = source
+            if dry_run:
+                e["action"] = "would_create"
+                e["path"] = str(self.entities_dir / f"{self._slugify(e['name'])}.md")
+            else:
+                self._create_entity(e["name"], e.get("type", "person"), source)
+                e["action"] = "created"
+                e["path"] = str(self.entities_dir / f"{self._slugify(e['name'])}.md")
+            results.append(e)
+
+        for f in facts:
+            f["source"] = source
+            if dry_run:
+                f["action"] = "would_append"
+            else:
+                self._append_fact(f["entity"], f["fact"], source)
+                f["action"] = "appended"
+            results.append(f)
+
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+
+    def _extract_facts(self, text: str) -> list:
+        """Extract key facts from text using regex patterns."""
+        facts = []
+        # Pattern: "X is Y", "X was Y", "X serves as Y", "X joined Y"
+        fact_patterns = [
+            r'([A-Z][a-z]+ [A-Z][a-z]+) (?:is|was|serves as|joined|became|founded|leads|runs|leads) (.+?)(?:\.|,|;|$)',
+            r'([\uAC00-\uD7AF]{2,4})(?:은|는|이|가) (.+?)(?:이다|다|했다|임|됨|\.)',
+        ]
+        for pattern in fact_patterns:
+            for match in re.finditer(pattern, text):
+                entity_name = match.group(1).strip()
+                fact_text = match.group(2).strip()
+                if len(fact_text) > 5 and len(entity_name) > 1:
+                    facts.append({"entity": entity_name, "fact": fact_text, "type": "fact"})
+        return facts
+
+    def _append_fact(self, entity_name: str, fact: str, source: str = ""):
+        """Append a fact to an entity's live note."""
+        slug = self._slugify(entity_name)
+        # Try live-notes first, then entities
+        for directory in [self.live_notes_dir, self.entities_dir]:
+            filepath = directory / f"{slug}.md"
+            if filepath.exists():
+                now = datetime.now().strftime("%Y-%m-%d")
+                content = filepath.read_text()
+                # Add to Key Points section
+                for marker in ["## Key Points\n", "## 키 포인트\n"]:
+                    if marker in content:
+                        content = content.replace(marker, f"{marker}- {fact} [Source: {source}]\n")
+                        break
+                else:
+                    # Add to timeline if no Key Points section
+                    for marker in ["## Timeline\n\n", "## Timeline (Full Record)\n\n"]:
+                        if marker in content:
+                            content = content.replace(marker, f"{marker}- **{now}** | {fact} [Source: {source}]\n")
+                            break
+                filepath.write_text(content)
+                return
+
+    # ── Cognify ────────────────────────────────────────────────
+    def cognify(self, dry_run: bool = False):
+        """Process inbox items into structured pages."""
+        if not self.inbox_dir.exists():
+            print("No inbox directory found. Run 'memcraft init' first.")
+            return
+
+        results = {"processed": 0, "skipped": 0, "routed": {}}
+        for md in sorted(self.inbox_dir.glob("*.md")):
+            if md.name.startswith("_") or md.name == "README.md":
+                continue
+
+            content = md.read_text().strip()
+            if len(content) < 20:
+                results["skipped"] += 1
+                continue
+
+            # Classify based on content heuristics
+            route = self._classify_content(content)
+            results["routed"][md.name] = route
+
+            if not dry_run:
+                target_dir = self._route_to_dir(route)
+                if target_dir:
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    target_path = target_dir / md.name
+                    md.rename(target_path)
+
+            results["processed"] += 1
+
+        print(f"🧠 Cognify complete: {results['processed']} processed, {results['skipped']} skipped")
+        for name, route in results["routed"].items():
+            action = "would route" if dry_run else "routed"
+            print(f"   {action}: {name} → {route}")
+
+    def _classify_content(self, content: str) -> str:
+        """Classify content based on heuristics."""
+        lower = content.lower()
+        # Decision markers
+        if any(kw in lower for kw in ["decided", "decision", "chose", "agreed"]):
+            return "decision"
+        # Task markers
+        if any(kw in lower for kw in ["todo", "task", "action item", "need to", "must"]):
+            return "task"
+        # Person markers
+        if any(kw in lower for kw in ["ceo", "cto", "founder", "investor", "director"]):
+            return "entity"
+        # Default to entity
+        return "entity"
+
+    def _route_to_dir(self, route: str) -> Path:
+        """Map classification to directory."""
+        mapping = {"entity": self.entities_dir, "decision": self.decisions_dir, "task": self.tasks_dir}
+        return mapping.get(route)
+
+    # ── Promote (Memory Tiers) ────────────────────────────────
+    def promote(self, name: str, tier: str = "core"):
+        """Change memory tier for an entity."""
+        if tier not in ("core", "recall", "archival"):
+            print(f"Invalid tier '{tier}'. Use: core, recall, archival")
+            return
+
+        slug = self._slugify(name)
+        for directory in [self.live_notes_dir, self.entities_dir]:
+            filepath = directory / f"{slug}.md"
+            if filepath.exists():
+                content = filepath.read_text()
+                # Update or add tier
+                if "Tier:" in content:
+                    content = re.sub(r'Tier: \w+', f'Tier: {tier}', content)
+                else:
+                    # Add tier after title
+                    content = content.replace("\n\n> ", f"\n\n**Tier: {tier}**\n\n> ", 1)
+                    if "**Tier:" not in content:
+                        lines = content.split("\n", 2)
+                        lines.insert(1, f"\n**Tier: {tier}**")
+                        content = "\n".join(lines)
+                filepath.write_text(content)
+                print(f"✅ Promoted '{name}' → {tier}")
+                return
+
+        print(f"⚠️ Entity '{name}' not found")
+
+    # ── Diff ──────────────────────────────────────────────────
+    def diff(self):
+        """Show changes since last Dream Cycle."""
+        meta_dir = self.base_dir / ".memcraft"
+        ts_file = meta_dir / "last-dream-timestamp"
+
+        if ts_file.exists():
+            since = float(ts_file.read_text().strip())
+        else:
+            since = 0.0
+
+        changes = []
+        for md in self._all_md_files():
+            mtime = md.stat().st_mtime
+            if mtime > since:
+                change_type = "created" if md.stat().st_ctime > since else "modified"
+                rel_path = md.relative_to(self.base_dir)
+                changes.append((change_type, str(rel_path), datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")))
+
+        if not changes:
+            print("No changes since last Dream Cycle.")
+        else:
+            print(f"Changes since last Dream Cycle ({len(changes)}):")
+            for ctype, path, mtime in sorted(changes, key=lambda x: x[2], reverse=True):
+                icon = "🆕" if ctype == "created" else "✏️"
+                print(f"  {icon} {ctype}: {path} ({mtime})")
+
+    # ── Search (Fuzzy) ────────────────────────────────────────
+    def search(self, query: str, fuzzy: bool = False):
+        """Search memory with optional fuzzy matching."""
+        from difflib import SequenceMatcher
+
+        results = []
+        query_lower = query.lower()
+
+        for md in self._all_md_files():
+            content = md.read_text()
+            content_lower = content.lower()
+            rel_path = md.relative_to(self.base_dir)
+
+            if fuzzy:
+                # Fuzzy match: compare query against each line
+                best_score = 0.0
+                for line in content_lower.split("\n"):
+                    score = SequenceMatcher(None, query_lower, line.strip()).ratio()
+                    best_score = max(best_score, score)
+                # Also check against filename
+                name_score = SequenceMatcher(None, query_lower, md.stem).ratio()
+                best_score = max(best_score, name_score)
+                if best_score >= 0.3:
+                    results.append({"file": str(rel_path), "score": round(best_score, 2), "match": md.stem})
+            else:
+                if query_lower in content_lower:
+                    results.append({"file": str(rel_path), "score": 1.0, "match": md.stem})
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+
+        if not results:
+            print(f"No results for '{query}'.")
+        else:
+            for r in results[:20]:
+                print(f"  [{r['score']:.2f}] {r['file']}")
+
+    # ── Links (Backlinks) ─────────────────────────────────────
+    def links(self, name: str):
+        """Show all backlinks to an entity."""
+        slug = self._slugify(name)
+        targets = [f"[[{name}]]", f"[[{slug}]]"]
+        backlinks = []
+
+        for md in self._all_md_files():
+            content = md.read_text()
+            for target in targets:
+                if target in content:
+                    rel_path = md.relative_to(self.base_dir)
+                    # Extract context around the link
+                    idx = content.find(target)
+                    start = max(0, idx - 40)
+                    end = min(len(content), idx + len(target) + 40)
+                    context = content[start:end].replace("\n", " ").strip()
+                    backlinks.append({"file": str(rel_path), "context": context})
+                    break
+
+        if not backlinks:
+            print(f"No backlinks to '{name}'.")
+        else:
+            print(f"Backlinks to '{name}' ({len(backlinks)}):")
+            for bl in backlinks:
+                print(f"  📎 {bl['file']}")
+                print(f"     ...{bl['context']}...")
+
     # ── Lookup ────────────────────────────────────────────────
     def lookup(self, query: str, json_output: bool = False):
         results = []
@@ -437,6 +686,8 @@ class MemCraft:
 
         now = datetime.now().strftime("%Y-%m-%d")
         content = f"""# {name}
+
+**Tier: recall**
 
 ## Executive Summary
 (Type or auto-generate a 1-2 sentence summary)

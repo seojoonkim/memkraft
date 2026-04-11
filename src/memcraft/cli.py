@@ -54,6 +54,33 @@ def main():
     lookup_parser.add_argument("query", help="Search query")
     lookup_parser.add_argument("--json", action="store_true", help="JSON output")
 
+    # extract
+    extract_parser = subparsers.add_parser("extract", help="Auto-extract entities and facts from text")
+    extract_parser.add_argument("text", help="Text to analyze")
+    extract_parser.add_argument("--source", default="", help="Source attribution")
+    extract_parser.add_argument("--dry-run", action="store_true", help="Preview without creating files")
+
+    # cognify
+    cognify_parser = subparsers.add_parser("cognify", help="Process inbox into structured pages")
+    cognify_parser.add_argument("--dry-run", action="store_true", help="Preview without moving files")
+
+    # promote
+    promote_parser = subparsers.add_parser("promote", help="Change memory tier for an entity")
+    promote_parser.add_argument("name", help="Entity name")
+    promote_parser.add_argument("--tier", default="core", choices=["core", "recall", "archival"], help="Target tier")
+
+    # diff
+    subparsers.add_parser("diff", help="Show changes since last Dream Cycle")
+
+    # search
+    search_parser = subparsers.add_parser("search", help="Search memory (with fuzzy matching)")
+    search_parser.add_argument("query", help="Search query")
+    search_parser.add_argument("--fuzzy", action="store_true", help="Enable fuzzy matching")
+
+    # links
+    links_parser = subparsers.add_parser("links", help="Show backlinks to an entity")
+    links_parser.add_argument("name", help="Entity name")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -78,6 +105,18 @@ def main():
         mc.dream(date=args.date, dry_run=args.dry_run)
     elif args.command == "lookup":
         mc.lookup(args.query, json_output=args.json)
+    elif args.command == "extract":
+        mc.extract(args.text, source=args.source, dry_run=args.dry_run)
+    elif args.command == "cognify":
+        mc.cognify(dry_run=args.dry_run)
+    elif args.command == "promote":
+        mc.promote(args.name, tier=args.tier)
+    elif args.command == "diff":
+        mc.diff()
+    elif args.command == "search":
+        mc.search(args.query, fuzzy=args.fuzzy)
+    elif args.command == "links":
+        mc.links(args.name)
 
     return 0
 
