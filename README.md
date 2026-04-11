@@ -4,7 +4,8 @@
 
 **Compound knowledge for AI agents.**
 
-Every conversation your agent has is a deposit. MemCraft turns those deposits into compounding returns.
+Every conversation your agent has is a deposit.<br>
+MemCraft turns those deposits into compounding returns.
 
 [![PyPI](https://img.shields.io/pypi/v/memcraft?color=blue)](https://pypi.org/project/memcraft/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -20,7 +21,9 @@ pip install memcraft
 
 ## The problem
 
-AI agents start every conversation from scratch. They search transcripts, re-read files, and reconstruct context on demand. Six months of conversations, and the agent still doesn't *know* anything.
+AI agents start every conversation from scratch.
+
+They search transcripts, re-read files, and reconstruct context on demand. Six months of conversations later, the agent still doesn't *know* anything — it just searches faster.
 
 It's like meeting the same person every day and reintroducing yourself each time.
 
@@ -29,44 +32,33 @@ It's like meeting the same person every day and reintroducing yourself each time
 MemCraft gives your agent **long-lived, compound knowledge** — structured, traceable, and self-maintaining.
 
 ```
-Conversation → Capture → Classify → Track → Compound
-     ↑                                        │
-     └─────────── Brain-first lookup ─────────┘
+  Conversation ──▶ Capture ──▶ Classify ──▶ Track ──▶ Compound
+       ▲                                                  │
+       └──────────── Brain-first lookup ◄─────────────────┘
 ```
 
-Every fact has a source. Every entity has a timeline. Every night, Dream Cycle keeps it all healthy. Next conversation starts smarter than the last one.
+Every fact has a source. Every entity has a timeline. Every night, Dream Cycle keeps it all healthy. Your next conversation starts smarter than the last one.
 
 ---
 
-## How it works
-
-### Initialize
+## 30-second demo
 
 ```bash
+# Initialize memory structure
 $ memcraft init
 ✅ MemCraft initialized at memory
-   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/
-   Files: RESOLVER.md, TEMPLATES.md
-```
 
-### Track
-
-```bash
+# Start tracking someone
 $ memcraft track "Garry Tan" --type person --source "X/@garrytan"
 ✅ Tracking: memory/live-notes/garry-tan.md
-```
 
-### Update
-
-```bash
-$ memcraft update "Garry Tan" --info "Open-sourced GBrain under MIT" --source "X/@garrytan, 2026-04-10"
+# Add new information
+$ memcraft update "Garry Tan" --info "Open-sourced GBrain under MIT" \
+    --source "X/@garrytan, 2026-04-10"
 ✅ Updated: memory/live-notes/garry-tan.md
    📌 garry-tan (updates: 2, last: 2026-04-10)
-```
 
-### Meeting Brief
-
-```bash
+# Get a meeting brief
 $ memcraft brief "Garry Tan"
 
 📋 Meeting Brief: Garry Tan
@@ -91,37 +83,22 @@ Generated: 2026-04-11
    - [ ] Verify latest activity
    - [ ] Review open threads
    - [ ] Check related decisions
-```
 
-### Detect entities (CJK supported)
-
-```bash
+# Detect entities (CJK supported out of the box)
 $ memcraft detect "马化腾和李彦宏讨论了人工智能" --no-llm --dry-run
 [
   {"name": "马化腾", "type": "person", "context": "auto-detected (Chinese)"},
   {"name": "李彦宏", "type": "person", "context": "auto-detected (Chinese)"}
 ]
 
-$ memcraft detect "Simon Kim presented at Hashed" --no-llm --dry-run
-[
-  {"name": "Simon Kim", "type": "person", "context": "auto-detected"}
-]
-```
-
-### Dream Cycle (nightly maintenance)
-
-```bash
+# Run nightly maintenance
 $ memcraft dream --dry-run
 🌙 Dream Cycle — 2026-04-11
-   Mode: dry-run
    🔍 Scanning for incomplete source attributions...
    🔍 Scanning for thin entity pages...
    🔍 Scanning inbox for overdue items...
-
-🌙 Dream Cycle complete: 2 total issues found
-   Incomplete sources: 0
-   Thin entities: 1
-   Inbox overdue: 1
+🌙 Dream Cycle complete: 2 issues found
+   Incomplete sources: 0 | Thin entities: 1 | Inbox overdue: 1
 ```
 
 ---
@@ -178,7 +155,7 @@ Every entity uses a **dual-layer structure**:
 - **Compiled Truth** — current state, always rewritable, always up-to-date
 - **Timeline** — append-only historical record with source attribution
 
-This is the key insight: the top half is *what we know now*, the bottom half is *how we got here*. Six months later, you can trace any fact back to its origin.
+The top half is *what we know now*. The bottom half is *how we got here*. Six months later, you can trace any fact back to its origin.
 
 ---
 
@@ -214,7 +191,7 @@ This is the key insight: the top half is *what we know now*, the bottom half is 
 | Framework | Framework-agnostic | Claude-specific | Desktop app |
 | Storage | Markdown | Markdown | Markdown |
 
-MemCraft was originally built as an operational memory system for a multi-agent team, then sharpened by incorporating the best ideas from [GBrain](https://github.com/garrytan/gbrain) (Garry Tan's compiled-truth model) and [Rowboat](https://github.com/rowboatlabs/rowboat) (persistent live-tracking). The result is a system that's been tested in production — not just designed in theory.
+MemCraft was built as a production memory system for a multi-agent team, then refined by incorporating the best ideas from [GBrain](https://github.com/garrytan/gbrain) (Garry Tan's compiled-truth model) and [Rowboat](https://github.com/rowboatlabs/rowboat) (persistent live-tracking). Tested in production — not just designed in theory.
 
 ---
 
@@ -224,7 +201,7 @@ MemCraft was originally built as an operational memory system for a multi-agent 
 pip install memcraft
 ```
 
-### From source
+From source:
 
 ```bash
 git clone https://github.com/seojoonkim/memcraft.git
@@ -244,7 +221,7 @@ memcraft init
 memcraft track "Garry Tan" --type person --source "X/@garrytan"
 
 # 3. Update with new info
-memcraft update "Garry Tan" --info "YC CEO, GBrain creator" --source "X/@garrytan, 2026-04-10"
+memcraft update "Garry Tan" --info "YC CEO, GBrain creator" --source "X/@garrytan"
 
 # 4. Prep for a meeting
 memcraft brief "Garry Tan"
@@ -259,7 +236,7 @@ memcraft dream --dry-run
 memcraft list
 ```
 
-### Environment variable
+### Configuration
 
 ```bash
 # Set memory directory (default: ./memory)
@@ -270,16 +247,17 @@ export MEMCRAFT_DIR=/path/to/your/memory
 
 ## Philosophy
 
-> An agent without compound memory answers from stale context every time. An agent with it gets smarter with every conversation.
+> An agent without compound memory answers from stale context every time.<br>
+> An agent with it gets smarter with every conversation.
 
-MemCraft is built on four principles:
+Four principles:
 
 1. **Memory compounds** — each conversation builds on all prior ones, not just the last window
 2. **Structure enforces quality** — RESOLVER prevents duplication, Source Attribution enforces trustworthiness
 3. **Maintenance is automated** — Dream Cycle keeps memory healthy without manual effort
 4. **Knowledge is portable** — plain Markdown, no lock-in, works with any agent framework
 
-The goal isn't just smarter conversations. It's a system where **knowledge begets knowledge** — where the marginal cost of each new insight decreases over time because the foundation keeps growing.
+The goal: a system where **knowledge begets knowledge** — where the marginal cost of each new insight decreases because the foundation keeps growing.
 
 ---
 
