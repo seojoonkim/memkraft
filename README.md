@@ -64,7 +64,7 @@ $ memcraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 ✅ Tracking: memory/live-notes/simon-kim.md
 
 # Update with new info
-$ memcraft update "Simon Kim" --info "Launched VibeKai, a vibe coding education platform" \
+$ memcraft update "Simon Kim" --info "Open-sourced MemCraft under MIT" \
     --source "X/@simonkim_nft, 2026-04-10"
 ✅ Updated: memory/live-notes/simon-kim.md
 
@@ -82,13 +82,13 @@ Generated: 2026-04-11
    CEO of Hashed. VC based in Seoul.
 
 🔄 Live Note
-   Current State: CEO of Hashed, building VibeKai and MemCraft
+   Current State: CEO of Hashed, building MemCraft, the compound knowledge system
    Recent Activity:
-   - 2026-04-10 | Launched VibeKai [Source: X/@simonkim_nft]
+   - 2026-04-10 | Open-sourced MemCraft [Source: X/@simonkim_nft]
 
 📅 Timeline
    - 2026-04-11 | Entity first detected [Source: Telegram]
-   - 2026-04-10 | VibeKai launch [Source: X/@simonkim_nft]
+   - 2026-04-10 | MemCraft MIT release [Source: X/@simonkim_nft]
 
 🔓 Open Threads
    - [ ] Initial entity — enrichment needed
@@ -119,8 +119,8 @@ Backlinks to 'Simon Kim' (3):
      ...CEO [[simon-kim]] founded Hashed in 2018...
   📎 decisions/seed-round.md
      ...introduced by [[simon-kim]]...
-  📎 live-notes/vibekai.md
-     ...[[simon-kim]] launched VibeKai...
+  📎 live-notes/memcraft.md
+     ...[[simon-kim]] open-sourced MemCraft...
 
 # Diff — what changed since last maintenance?
 $ memcraft diff
@@ -392,7 +392,7 @@ memcraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." --so
 memcraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 
 # 4. Update with new info
-memcraft update "Simon Kim" --info "CEO of Hashed, launched VibeKai" --source "X/@simonkim_nft"
+memcraft update "Simon Kim" --info "CEO of Hashed, created MemCraft" --source "X/@simonkim_nft"
 
 # 5. Promote to core memory
 memcraft promote "Simon Kim" --tier core
