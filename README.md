@@ -1,10 +1,6 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/hero.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/hero.jpg">
-  <img src="docs/hero.jpg" alt="MemKraft" width="100%">
-</picture>
+<img src="assets/memkraft-banner.jpg" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
 
 <br>
 
@@ -93,6 +89,10 @@ All 20+ commands available from day one.
 <br>
 
 ## Why MemKraft
+
+<p align="center">
+  <img src="docs/hero.jpg" alt="MemKraft — forge raw conversations into compound knowledge" width="80%">
+</p>
 
 AI agents start every conversation from zero. Six months later, the agent still doesn't *know* anything — it just searches faster. Conversation 100 is no better-informed than conversation 1.
 
