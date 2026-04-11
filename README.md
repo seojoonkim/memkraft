@@ -104,12 +104,78 @@ $ memkraft detect "马化腾和李彦宏讨论了人工智能" --no-llm --dry-ru
   {"name": "李彦宏", "type": "person", "context": "auto-detected (Chinese)"}
 ]
 
-# Process inbox into structured pages
-$ memkraft cognify --dry-run
-🧠 Cognify complete: 3 processed, 1 skipped
-   would route: meeting-notes.md → entity
-   would route: decision-001.md → decision
-   would route: action-items.md → task
+# Process inbox — recommendation-only by default (no silent misclassification)
+$ memkraft cognify
+🧠 Cognify complete (recommend mode): 3 processed, 1 skipped
+   → meeting-notes.md: entity (use --apply to move)
+   → decision-001.md: decision (use --apply to move)
+   → action-items.md: task (use --apply to move)
+
+# Progressive Disclosure Query — 3 levels of token efficiency
+$ memkraft query --level 1
+  2026-04-11 live-notes/simon-kim.md
+    Auto-tracked — updates automatically as new information arrives
+
+$ memkraft query --level 2 --date 2026-04-11
+  📄 live-notes/simon-kim.md
+    # Simon Kim (Live Note)
+    ## Tracking Config
+    ## Current State
+    ## Recent Activity
+    ## Key Points
+
+# Session Event Logging — structured audit trail
+$ memkraft log --event "Deployed v0.2 to production" --tags deploy,release --importance high
+📝 Logged: Deployed v0.2 to production
+
+$ memkraft log --read
+📋 Session events for 2026-04-11 (2 events):
+  🔴 14:30:00 Deployed v0.2 to production [deploy,release]
+  🟡 11:00:00 Bug fix applied [bug]
+
+# Daily Retrospective — Well / Bad / Next
+$ memkraft retro
+🔄 Daily Retrospective — 2026-04-11
+✅ Well (went well):
+  • Deployed v0.2 to production
+⚠️ Bad (issues):
+  • (none)
+➡️ Next (action items):
+  • (none)
+👥 Entities touched: MemKraft
+
+# Distill decision candidates from events and notes
+$ memkraft distill-decisions
+📋 Decision candidates (1):
+  [high] sessions/2026-04-11.jsonl: decided to use MemKraft over alternatives
+
+# Track unresolved items across all memory
+$ memkraft open-loops
+🔓 Open Loops (2):
+  [2026-04-11] live-notes/simon-kim.md: - [ ] Initial setup — enrichment needed
+  [2026-04-10] decisions/stack.md: ⏳ pending team approval
+
+# Build memory index for progressive disclosure
+$ memkraft index
+📇 Index built: 15 files → memory/.memkraft/index.json
+
+# Suggest missing wiki-links
+$ memkraft suggest-links
+🔗 Link suggestions (1):
+  live-notes/simon-kim.md: add [[simon-kim]] — "CEO of Hashed, building MemKraft"
+
+# Extract numeric/date facts to cross-domain registry
+$ memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees, deadline 2026-06-30"
+📊 Facts extracted (4):
+  • $5.3M
+  • 85%
+  • 42 employees
+  • 2026-06-30
+
+# Brain-first lookup with sufficiency threshold
+$ memkraft lookup "Simon" --brain-first
+  [high] live-note: simon-kim
+  (brain-first: stopped after 1 high-relevance results. Use --full for all.)
 
 # Fuzzy search — find even when you don't remember the exact words
 $ memkraft search "venture capital Seoul" --fuzzy
@@ -137,12 +203,20 @@ Changes since last Dream Cycle (4):
 # Dream Cycle — nightly auto-maintenance, catches facts without sources
 $ memkraft dream --dry-run
 🌙 Dream Cycle — 2026-04-11
+   Mode: dry-run
    🔍 Scanning for incomplete source attributions...
       ⚠️ entities/hashed.md: timeline entry missing [Source: ...]
    🔍 Scanning for thin entity pages...
+   🔍 Scanning for duplicate entities...
+      ⚠️ Possible duplicate: simon-kim ↔ 김서준
    🔍 Scanning for inbox overdue items...
    🔍 Scanning for bloated pages (auto-compact)...
-🌙 Dream Cycle complete: 2 issues found
+🌙 Dream Cycle complete: 3 issues found
+   Incomplete sources: 1
+   Thin entities: 0
+   Duplicate entities: 1
+   Inbox overdue: 0
+   Bloated pages: 1
 
 # Capture raw text verbatim — no paraphrasing, no interpretation loss
 $ echo "Simon: 'We're building the memory layer that agents actually need.'" \
@@ -189,16 +263,18 @@ Why dual-layer? Because a single "current state" page silently overwrites histor
 
 All detected entities are de-duplicated and routed to `entities/` with auto-generated pages. Detected facts are appended to the relevant entity's Key Points or Timeline sections.
 
-### Cognify: inbox → structured pages
+### Cognify: inbox → structured pages (recommendation-only by default)
 
-The `cognify` command processes raw captures in `inbox/` and routes them to the right destination:
+The `cognify` command processes raw captures in `inbox/` and recommends routing to the right destination:
 
 - **Decision** — if the text contains "decided", "decision", "chose", "agreed" → `decisions/`
 - **Task** — if the text contains "todo", "task", "action item", "need to", "must" → `tasks/`
 - **Entity** — if the text contains role words like "CEO", "CTO", "founder", "investor" → `entities/`
 - **Entity** (default) — anything else lands in `entities/` for manual review
 
-Files under 20 bytes are skipped. `--dry-run` shows where everything would go without moving files. This is a heuristic classifier, not an LLM — it runs instantly, costs nothing, and works offline.
+**By default, cognify only recommends** — it shows where each file should go without moving anything. Add `--apply` to actually route files. This prevents silent misclassification: you review the recommendations first, then apply them explicitly.
+
+Files under 20 bytes are skipped. `--dry-run` shows where everything would go. This is a heuristic classifier, not an LLM — it runs instantly, costs nothing, and works offline.
 
 ### Source Attribution: trust chain enforcement
 
@@ -218,12 +294,14 @@ Why tiers? Because LLM context windows are finite. Without explicit priority, yo
 
 ### Dream Cycle: automated memory maintenance
 
-Run `memkraft dream` (or schedule it nightly). It performs four health checks:
+Run `memkraft dream` (or schedule it nightly). It performs five health checks:
 
-1. **Incomplete source attributions** — scans every Timeline entry for missing `[Source: ...]` tags. Flags each one so you can add provenance.
-2. **Thin entity pages** — flags any entity page under 300 bytes. These are placeholders that got created by `detect` or `extract` but never enriched.
-3. **Overdue inbox items** — flags anything in `inbox/` older than 48 hours. If it's been sitting there for two days, it either needs to be cognified or deleted.
-4. **Bloated pages (auto-compact)** — flags any page over 4KB. When Compiled Truth sections grow too long, they waste context window space. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601): selectively condensing context is more effective than expanding context windows.
+1. **Daily note fallback** — auto-creates `memory/YYYY-MM-DD.md` if missing, ensuring there's always a daily note to write to.
+2. **Incomplete source attributions** — scans every Timeline entry for missing `[Source: ...]` tags. Flags each one so you can add provenance.
+3. **Thin entity pages** — flags any entity page under 300 bytes. These are placeholders that got created by `detect` or `extract` but never enriched.
+4. **Duplicate entity detection** — normalizes entity slugs (lowercase, strips Korean particles) and flags potential duplicates like `simon-kim` ↔ `김서준` or `hashed` ↔ `해시드`.
+5. **Overdue inbox items** — flags anything in `inbox/` older than 48 hours. If it's been sitting there for two days, it either needs to be cognified or deleted.
+6. **Bloated pages (auto-compact)** — flags any page over 4KB. When Compiled Truth sections grow too long, they waste context window space. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601): selectively condensing context is more effective than expanding context windows.
 
 After running, Dream Cycle writes a timestamp to `.memkraft/last-dream-timestamp`. This enables `memkraft diff` to show exactly what changed since the last maintenance pass.
 
@@ -263,8 +341,8 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 │  └──────────┘  │  tree)   │  └────┬─────┘              │
 │  ┌──────────┐  └──────────┘       │                     │
 │  │  Inbox    │──────▶ Cognify ────┘                     │
-│  │ (capture) │        (forge)                            │
-│  └──────────┘                                           │
+│  │ (capture) │     (recommend    │                     │
+│  └──────────┘      by default)   │                     │
 │                                     ▼                    │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
 │  │ Decisions │  │ Entities │  │Live Notes│              │
@@ -273,21 +351,32 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 │        │             │             │                     │
 │        └─────────────┼─────────────┘                     │
 │                      ▼                                   │
-│              ┌──────────────┐                            │
-│              │  Dream Cycle │ ◀── nightly forge-cleaning  │
-│              │  (auto-heal) │                            │
-│              └──────────────┘                            │
-│                      │                                   │
-│                      ▼                                   │
-│              ┌──────────────┐                            │
-│              │    Diff      │ ◀── change tracking        │
-│              └──────────────┘                            │
-│                                                          │
-│  ┌─────────────────────────────────────────────┐        │
-│  │ Source Attribution: [Source: who, when, how] │        │
-│  │ Memory Tiers: core | recall | archival       │        │
-│  │ Backlinks: [[entity-name]]                   │        │
-│  └─────────────────────────────────────────────┘        │
+│  ┌──────────────┐  ┌──────────────┐                     │
+│  │ Dream Cycle  │  │   Sessions    │                     │
+│  │ (auto-heal)  │  │  (JSONL log)  │                     │
+│  │ • sources    │  │              │                     │
+│  │ • thin pages  │  └──────┬───────┘                     │
+│  │ • duplicates  │         │                              │
+│  │ • inbox age   │         ▼                              │
+│  │ • bloated     │  ┌──────────────┐                     │
+│  │ • daily note  │  │  Retro &     │                     │
+│  └──────┬───────┘  │  Distill      │                     │
+│         │           └──────────────┘                     │
+│         ▼                                                 │
+│  ┌──────────────┐  ┌──────────────┐                     │
+│  │    Diff      │  │  Open Loops  │                     │
+│  │ (changes)    │  │  (unresolved)│                     │
+│  └──────────────┘  └──────────────┘                     │
+│                                                           │
+│  ┌──────────────────────────────────────────────┐       │
+│  │ Progressive Disclosure: query --level 1|2|3    │       │
+│  │ Brain-first Lookup: entities → notes → ...    │       │
+│  │ Memory Index: .memkraft/index.json            │       │
+│  │ Source Attribution: [Source: who, when, how]  │       │
+│  │ Memory Tiers: core | recall | archival         │       │
+│  │ Backlinks: [[entity-name]]                    │       │
+│  │ Fact Registry: cross-domain numeric index     │       │
+│  └──────────────────────────────────────────────┘       │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -295,9 +384,13 @@ The key property: **MECE** — every piece of knowledge has exactly one correct 
 
 ```
 memory/
-├── .memkraft/           # Internal state (Dream Cycle timestamps, etc.)
+├── .memkraft/           # Internal state (index.json, Dream Cycle timestamps)
+├── sessions/            # Structured event logs (YYYY-MM-DD.jsonl)
 ├── RESOLVER.md          # Classification decision tree (MECE)
 ├── TEMPLATES.md         # Page templates with tier labels
+├── open-loops.md        # Unresolved items hub (auto-generated)
+├── fact-registry.md    # Cross-domain numeric/date facts
+├── YYYY-MM-DD.md       # Daily notes (auto-created by Dream Cycle)
 ├── entities/            # People, companies, concepts (Tier: recall)
 ├── live-notes/          # Persistent tracking targets (Tier: core)
 ├── decisions/           # Why we decided what we decided
@@ -314,14 +407,22 @@ memory/
 | Feature | What it does | How it works |
 |---------|-------------|-------------|
 | **Auto-extract** | Pipe any text → entities + facts auto-detected and stored | Regex-based NER for EN (Title Case), KR (Hangul + particle stripping), CN (120 surnames), JP (80 surnames) + fact pattern matching |
-| **Cognify** | Process inbox → structured pages. One command. | Heuristic keyword classifier (decision/task/entity) routes files to the right directory |
-| **Brain-first lookup** | Search memory before the web. `memory → grep → web` | Searches entities → live-notes → decisions → inbox with relevance ranking |
+| **Cognify** | Process inbox → structured pages. Recommendation-only by default. | Heuristic keyword classifier routes files to the right directory. `--apply` to actually move |
+| **Progressive Disclosure** | 3-level query for token efficiency | Level 1: index scan (~50 tokens), Level 2: section headers, Level 3: full file. Filters: `--recent`, `--tag`, `--date` |
+| **Session Logging** | Structured event audit trail | JSONL per day with tags, importance, entity, task, decision fields. `log --read` to review |
+| **Daily Retrospective** | Well / Bad / Next — auto-generated from events + changes | Combines session events, inbox items, and file changes into structured retro |
+| **Decision Distillation** | Scan events and notes for decision candidates | Matches EN (decided, chose, approved...) + KR (결정, 채택, 승인...) keywords |
+| **Open Loop Tracking** | Find all unresolved/pending items across memory | Scans for pending, TODO, FIXME, [ ], ⏳ keywords → `open-loops.md` hub |
+| **Memory Index** | Build `.memkraft/index.json` for fast scanning | Date, summary, tags, sections, file size per file — foundation for progressive disclosure |
+| **Link Suggestions** | Suggest missing `[[wiki-links]]` based on entity names | Matches entity slugs against text not already wrapped in `[[]]` |
+| **Fact Registry** | Extract numeric/date facts to cross-domain index | Currency, percentages, dates, quantities → `fact-registry.md` |
+| **Brain-first lookup** | Search memory before the web with sufficiency threshold | Searches entities → live-notes → decisions → inbox. Stops after ≥2 high-relevance results unless `--full` |
 | **Live Notes** | Track people/companies persistently. Auto-update with new info | Dual-layer pages with auto-incrementing update count and timeline append |
-| **Meeting Brief** | One command to compile everything before a meeting | Pulls entity info, live note state, recent timeline, open threads, and generates a pre-meeting checklist |
+| **Meeting Brief** | One command to compile everything before a meeting | Pulls entity info, live note state, recent timeline, open threads, related decisions, and generates a pre-meeting checklist |
 | **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex + LLM) | 533 stopwords, 120 CN surnames, 80 JP surnames, Korean particle/suffix stripping |
 | **Source attribution** | Every fact tagged with `[Source: who, when, how]` | Enforced by Dream Cycle scans — facts without sources are flagged as trust debts |
 | **Memory tiers** | Core / Recall / Archival — explicit context window priority | Labels on every page, `promote`/`demote` commands to reclassify as priorities shift |
-| **Dream Cycle** | Nightly auto-maintenance | 4 checks: incomplete sources, thin pages, overdue inbox, bloated pages. Saves timestamp for `diff` |
+| **Dream Cycle** | Nightly auto-maintenance | 6 checks: daily note fallback, incomplete sources, thin pages, duplicate entities, overdue inbox, bloated pages |
 | **Diff tracking** | See what changed since last Dream Cycle | Compares file mtimes against `.memkraft/last-dream-timestamp`, reports created/modified |
 | **Fuzzy search** | Find even when you don't remember the exact name | `difflib.SequenceMatcher` with 0.3 threshold + ±3 line snippets, zero dependencies, works offline |
 | **Backlinks** | See every page that references an entity | Scans all `.md` files for `[[entity-name]]` patterns, returns file + context excerpt |
@@ -338,6 +439,14 @@ memory/
 | Knowledge structure | Compiled Truth + Timeline | Graph + vector | Tiered (core/recall/archival) | Compiled Truth + Timeline | Obsidian vault |
 | Auto-extract | ✅ | ✅ | — | — | — |
 | Cognify pipeline | ✅ | — | — | — | — |
+| Progressive disclosure | ✅ | — | — | — | — |
+| Session logging | ✅ | — | — | — | — |
+| Daily retrospective | ✅ | — | — | — | — |
+| Decision distillation | ✅ | — | — | — | — |
+| Open loop tracking | ✅ | — | — | — | — |
+| Memory index | ✅ | — | — | — | — |
+| Link suggestions | ✅ | — | — | — | — |
+| Fact registry | ✅ | — | — | — | — |
 | Entity detection | ✅ (EN/KR/CN/JP) | ✅ (LLM) | — | — | — |
 | Live tracking | ✅ | — | — | — | ✅ |
 | Meeting prep | ✅ | — | — | — | ✅ |
@@ -346,6 +455,7 @@ memory/
 | Memory tiers | ✅ | — | ✅ | — | — |
 | Diff tracking | ✅ | — | — | — | — |
 | Fuzzy search | ✅ | ✅ (vector) | — | — | — |
+| Semantic search | — | ✅ | — | — | — |
 | Backlinks | ✅ | — | — | — | — |
 | Memory resolver | ✅ | — | — | — | — |
 | Originals capture | ✅ | — | — | — | — |
@@ -407,28 +517,58 @@ memkraft update "Simon Kim" --info "CEO of Hashed, created MemKraft" --source "X
 # 5. Promote to core memory
 memkraft promote "Simon Kim" --tier core
 
-# 6. Prep for a meeting
+# 6. Prep for a meeting (includes related decisions)
 memkraft brief "Simon Kim"
 
 # 7. Detect entities in text
 memkraft detect "Jack Ma and 马化腾 discussed AI" --source "news"
 
-# 8. Process inbox
+# 8. Process inbox (recommend-only; add --apply to move)
 memkraft cognify
 
-# 9. Search memory
+# 9. Progressive disclosure query — 3 levels of detail
+memkraft query --level 1                    # Index scan (~50 tokens)
+memkraft query --level 2 --date 2026-04-11   # Section headers
+memkraft query --level 3 --recent 5         # Full content
+
+# 10. Log session events
+memkraft log --event "Deployed v0.2" --tags deploy --importance high
+memkraft log --read                          # Review today's events
+
+# 11. Daily retrospective
+memkraft retro
+
+# 12. Find decision candidates
+memkraft distill-decisions
+
+# 13. Track unresolved items
+memkraft open-loops
+
+# 14. Build memory index
+memkraft index
+
+# 15. Suggest missing wiki-links
+memkraft suggest-links
+
+# 16. Extract numeric/date facts
+memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees"
+
+# 17. Search memory
 memkraft search "venture capital" --fuzzy
 
-# 10. Check backlinks
+# 18. Brain-first lookup (stops after high-relevance results)
+memkraft lookup "Simon" --brain-first
+
+# 19. Check backlinks
 memkraft links "Simon Kim"
 
-# 11. See changes
+# 20. See changes
 memkraft diff
 
-# 12. Nightly maintenance
+# 21. Nightly maintenance (includes duplicate detection + daily note fallback)
 memkraft dream --dry-run
 
-# 13. See what you're tracking
+# 22. See what you're tracking
 memkraft list
 ```
 
