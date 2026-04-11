@@ -177,21 +177,34 @@ The top half is *what we know now*. The bottom half is *how we got here*. Six mo
 
 ## Comparison
 
-| | **MemCraft** | **GBrain** | **Rowboat** |
-|---|---|---|---|
-| Knowledge structure | Compiled Truth + Timeline | Compiled Truth + Timeline | Obsidian vault |
-| Entity detection | Auto (regex + LLM, CJK) | Manual | Auto (email/calendar) |
-| Live tracking | ✅ | ❌ | ✅ |
-| Meeting prep | ✅ | ❌ | ✅ |
-| Source attribution | ✅ Required | ✅ | ❌ |
-| Dream Cycle | ✅ | ❌ | ❌ |
-| Memory resolver | ✅ | ❌ | ❌ |
-| Originals capture | ✅ | ❌ | ❌ |
-| CJK support | ✅ | ❌ | ❌ |
-| Framework | Framework-agnostic | Claude-specific | Desktop app |
-| Storage | Markdown | Markdown | Markdown |
+| | **MemCraft** | **Mem0** | **Letta** | **GBrain** | **Rowboat** |
+|---|---|---|---|---|---|
+| Knowledge structure | Compiled Truth + Timeline | Graph + vector | Tiered (core/recall/archival) | Compiled Truth + Timeline | Obsidian vault |
+| Entity detection | Auto (regex + LLM, CJK) | Auto (LLM extraction) | ❌ | Manual | Auto (email/calendar) |
+| Live tracking | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Meeting prep | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Source attribution | ✅ Required | ❌ | ❌ | ✅ | ❌ |
+| Dream Cycle | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Memory resolver | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Originals capture | ✅ | ❌ | ❌ | ❌ | ❌ |
+| CJK support | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Auto memory extraction | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Virtual context mgmt | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Graph memory | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Self-editing memory | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Framework | Framework-agnostic | API-first (Python/JS) | Agent framework | Claude-specific | Desktop app |
+| Storage | Markdown | Vector DB + graph DB | DB-backed | Markdown | Markdown |
+| Offline / git-friendly | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Cost to run | Free | Free tier + paid | Free | Free | Free |
 
-MemCraft was built as a production memory system for a multi-agent team, then refined by incorporating the best ideas from [GBrain](https://github.com/garrytan/gbrain) (Garry Tan's compiled-truth model) and [Rowboat](https://github.com/rowboatlabs/rowboat) (persistent live-tracking). Tested in production — not just designed in theory.
+**What MemCraft learns from each:**
+
+- **Mem0** — auto memory extraction from conversations (roadmap). But Mem0 trades transparency for convenience: vector embeddings you can't read, graph edges you can't edit. MemCraft keeps everything in readable Markdown.
+- **Letta** (MemGPT) — tiered memory is a powerful idea (core/recall/archival). MemCraft's `Compiled Truth + Timeline` achieves a similar effect without the complexity of virtual context paging.
+- **GBrain** — the compiled-truth model was a direct inspiration. MemCraft adopts it and adds Dream Cycle, Source Attribution, and entity detection.
+- **Rowboat** — persistent live-tracking is essential. MemCraft incorporates it alongside meeting briefs and resolution logic.
+
+MemCraft was built as a production memory system for a multi-agent team, then refined by absorbing the best ideas from each of these projects. The result: **readable, traceable, self-maintaining knowledge that compounds over time** — tested in production, not just designed in theory.
 
 ---
 
