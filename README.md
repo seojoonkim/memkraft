@@ -1,15 +1,18 @@
-<div align="center">
-
 <img src="assets/memkraft-banner.jpg" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
 
-<br>
+<div align="center">
 
 # MemKraft
 
-### 🔴 Without MemKraft: Session 100 = Session 1
-### 🟢 With MemKraft: Every conversation makes the next one smarter
+</div>
 
-Zero-dependency compound memory that turns raw conversations<br>into an ever-growing, self-maintaining knowledge base.
+🔴 Without MemKraft: Session 100 = Session 1
+
+🟢 With MemKraft: Every conversation makes the next one smarter
+
+Zero-dependency compound memory that turns raw conversations into an ever-growing, self-maintaining knowledge base.
+
+<div align="center">
 
 <br>
 
