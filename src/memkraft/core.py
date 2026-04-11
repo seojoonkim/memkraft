@@ -48,6 +48,10 @@ class MemKraft:
 
     # ── Track ─────────────────────────────────────────────────
     def track(self, name: str, entity_type: str = "person", source: str = ""):
+        name = name.strip()
+        if not name:
+            print("Error: Entity name cannot be empty.")
+            return
         self.live_notes_dir.mkdir(parents=True, exist_ok=True)
         slug = self._slugify(name)
         filepath = self.live_notes_dir / f"{slug}.md"
@@ -125,7 +129,7 @@ class MemKraft:
         for marker in ["## Recent Activity", "## 최근 동향"]:
             recent_idx = content.find(marker)
             if recent_idx != -1:
-                insert_pos = content.find("\n", content.find("\n", recent_idx) + 1) + 1
+                insert_pos = content.find("\n", recent_idx) + 1
                 content = content[:insert_pos] + f"- **{now}** | {info} [Source: {source}]\n" + content[insert_pos:]
                 break
 
@@ -188,7 +192,23 @@ class MemKraft:
         if entity_path.exists():
             content = entity_path.read_text()
             brief_parts.append("## 👤 Entity Info")
-            if "---" in content:
+            
+            # Extract meaningful summary (skip Title, Tier, etc.)
+            summary_lines = []
+            capture = False
+            for line in content.split("\n"):
+                if line.startswith("## Executive Summary") or line.startswith("## State"):
+                    capture = True
+                    continue
+                elif line.startswith("## ") and capture:
+                    break
+                
+                if capture and line.strip() and not line.startswith("#") and not line.startswith("**Tier"):
+                    summary_lines.append(line.strip())
+            
+            if summary_lines:
+                brief_parts.append(" ".join(summary_lines))
+            elif "---" in content:
                 brief_parts.append(content.split("---")[0].strip())
             else:
                 brief_parts.append(content[:800])
@@ -643,6 +663,9 @@ class MemKraft:
         """Progressive disclosure query — 3 levels of token efficiency."""
         files = self._gather_memory_files(recent=recent, tag=tag, date=date)
 
+        if query:
+            files = [f for f in files if query.lower() in f.read_text().lower() or query.lower() in f.name.lower()]
+
         if not files:
             print("No matching files found.")
             return
@@ -784,7 +807,8 @@ class MemKraft:
         if inbox_items:
             bad.append(f"{len(inbox_items)} inbox items unprocessed")
 
-        print("\n✅ Well (went well):")
+        prefix = "[DRY RUN] " if dry_run else ""
+        print(f"\n{prefix}✅ Well (went well):")
         for w in well[:10] or ["(none)"]:
             print(f"  • {w}")
 
@@ -837,6 +861,13 @@ class MemKraft:
                     event_text = entry.get("event", "")
                     if any(kw in event_text.lower() for kw in decision_kw_en) or any(kw in event_text for kw in decision_kw_kr):
                         candidates.append({"source": f"sessions/{jsonl.name}", "event": event_text, "importance": entry.get("importance", "normal")})
+
+        # Scan decisions dir
+        if self.decisions_dir.exists():
+            for md in self.decisions_dir.glob("*.md"):
+                content = md.read_text()
+                if any(kw in content.lower() for kw in decision_kw_en) or any(kw in content for kw in decision_kw_kr):
+                    candidates.append({"source": f"decisions/{md.name}", "event": content[:100].replace('\n', ' '), "importance": "high"})
 
         # Scan daily notes (exclude template/system files)
         excluded = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
@@ -1053,35 +1084,23 @@ class MemKraft:
                 continue
 
             for md in directory.glob("*.md"):
-                if md.stem in seen_files:
-                    continue  # Skip duplicates across directories
+                rel_path = str(md.relative_to(self.base_dir))
+                if rel_path in seen_files:
+                    continue  # Skip exact same file
                 content = md.read_text().lower()
                 if query.lower() in content:
-                    results.append({"source": source, "file": md.stem, "relevance": relevance})
-                    seen_files.add(md.stem)
+                    results.append({"source": source, "file": md.stem, "rel_path": rel_path, "relevance": relevance})
+                    seen_files.add(rel_path)
                     if relevance == "high":
                         high_count += 1
 
         if json_output:
-            # Deduplicate by file stem for JSON output
-            seen = set()
-            deduped = []
-            for r in results:
-                key = r["file"]
-                if key not in seen:
-                    seen.add(key)
-                    deduped.append(r)
-            print(json.dumps(deduped, indent=2, ensure_ascii=False))
+            print(json.dumps(results, indent=2, ensure_ascii=False))
         else:
             if not results:
                 print(f"No results for '{query}'. Consider web search as fallback.")
             else:
-                seen = set()
                 for r in results:
-                    key = r["file"]
-                    if key in seen:
-                        continue
-                    seen.add(key)
                     print(f"  [{r['relevance']}] {r['source']}: {r['file']}")
                 if brain_first and not full and high_count >= 2:
                     print(f"  (brain-first: stopped after {high_count} high-relevance results. Use --full for all.)")

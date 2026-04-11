@@ -106,14 +106,14 @@ $ memkraft detect "马化腾和李彦宏讨论了人工智能" --dry-run
 # Process inbox — recommendation-only by default (no silent misclassification)
 $ memkraft cognify
 🧠 Cognify complete (recommend mode): 3 processed, 1 skipped
-   → meeting-notes.md: entity (use --apply to move)
+   → meeting-notes.md: decision (use --apply to move)
    → decision-001.md: decision (use --apply to move)
    → action-items.md: task (use --apply to move)
 
 # Progressive Disclosure Query — 3 levels of token efficiency
-$ memkraft query --level 1
+$ memkraft query simon --level 1
   2026-04-11 live-notes/simon-kim.md
-    Auto-tracked — updates automatically as new information arrives
+    - **2026-04-11** | Tracking started
 
 $ memkraft query --level 2 --date 2026-04-11
   📄 live-notes/simon-kim.md
@@ -141,7 +141,7 @@ $ memkraft retro
   • (none)
 ➡️ Next (action items):
   • (none)
-👥 Entities touched: MemKraft
+👥 Entities touched (from logged events): MemKraft
 
 # Distill decision candidates from events and notes
 $ memkraft distill-decisions
