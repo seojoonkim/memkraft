@@ -258,7 +258,7 @@ Why dual-layer? Because a single "current state" page silently overwrites histor
 3. **Chinese names** — surname-first detection using a built-in dictionary of 100 Chinese surnames (王李张刘陈杨赵黄周吴...). Since Chinese characters lack word boundaries, the engine scans character runs and extracts 2–3 character sequences starting with a known surname
 4. **Japanese names** — surname-matched detection against 85 Japanese surnames (田中, 佐藤, 鈴木, 高橋...), extracting surname + 1–2 character given name
 5. **Fact extraction** — pattern matching for "X is/was/founded/leads Y" constructions in English and "X은/는/이/가 Y이다/다/했다" in Korean
-6. **Stopword filtering** — 533 Korean/Chinese/Japanese stopwords loaded from `stopwords.json`, cached per session to avoid redundant I/O
+6. **Stopword filtering** — 806 Korean/Chinese/Japanese stopwords loaded from `stopwords.json`, cached per session to avoid redundant I/O
 
 All detected entities are de-duplicated and routed to `entities/` with auto-generated pages. Detected facts are appended to the relevant entity's Key Points or Timeline sections.
 
@@ -405,7 +405,7 @@ memory/
 
 | Feature | What it does | How it works |
 |---------|-------------|-------------|
-| **Auto-extract** | Pipe any text → entities + facts auto-detected and stored | Regex-based NER for EN (Title Case), KR (Hangul + particle stripping), CN (120 surnames), JP (80 surnames) + fact pattern matching |
+| **Auto-extract** | Pipe any text → entities + facts auto-detected and stored | Regex-based NER for EN (Title Case), KR (Hangul + particle stripping), CN (100 surnames), JP (85 surnames) + fact pattern matching |
 | **Cognify** | Process inbox → structured pages. Recommendation-only by default. | Heuristic keyword classifier routes files to the right directory. `--apply` to actually move |
 | **Progressive Disclosure** | 3-level query for token efficiency | Level 1: index scan (~50 tokens), Level 2: section headers, Level 3: full file. Filters: `--recent`, `--tag`, `--date` |
 | **Session Logging** | Structured event audit trail | JSONL per day with tags, importance, entity, task, decision fields. `log --read` to review |

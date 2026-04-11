@@ -532,7 +532,12 @@ class MemKraft:
         for md in self._all_md_files():
             mtime = md.stat().st_mtime
             if mtime > since:
-                change_type = "created" if md.stat().st_ctime > since else "modified"
+                # Use st_birthtime on macOS, st_ctime on Linux (neither is perfect)
+                try:
+                    birth = md.stat().st_birthtime  # macOS only
+                    change_type = "created" if birth > since else "modified"
+                except AttributeError:
+                    change_type = "changed"  # Linux: can't reliably distinguish
                 rel_path = md.relative_to(self.base_dir)
                 changes.append((change_type, str(rel_path), datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")))
 
@@ -897,6 +902,9 @@ class MemKraft:
 
         for md in self._all_md_files():
             rel = str(md.relative_to(self.base_dir))
+            # Skip if already indexed (deduplicate)
+            if rel in index:
+                continue
             content = md.read_text()
             summary = self._first_meaningful_line(content)
             tags = self._extract_tags(content)
@@ -910,17 +918,7 @@ class MemKraft:
                 "size": md.stat().st_size,
             }
 
-        # Also index daily notes (exclude system files)
-        _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
-        for md in self.base_dir.glob("*.md"):
-            if md.name in _system_files:
-                continue
-            rel = md.name
-            content = md.read_text()
-            summary = self._first_meaningful_line(content)
-            index[rel] = {"date": datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d"),
-                          "summary": summary[:200], "tags": [], "sections": [], "size": md.stat().st_size}
-
+        # Deduplicate keys (prefer _all_md_files entries which have richer metadata)
         index_path = meta_dir / "index.json"
         with open(index_path, "w", encoding="utf-8") as f:
             json.dump(index, f, ensure_ascii=False, indent=2)
@@ -1151,7 +1149,7 @@ class MemKraft:
                     for name_len in [len(js)+2, len(js)+1]:  # 긴 것부터
                         if idx + name_len <= len(run):
                             candidate = run[idx:idx+name_len]
-                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords:
+                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords and candidate not in seen_chinese:
                                 entities.append({"name": candidate, "type": "person", "context": "auto-detected (Japanese)"})
                                 break
 
@@ -1223,8 +1221,8 @@ class MemKraft:
         for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
             if subdir.exists():
                 yield from subdir.glob("*.md")
-        # Include daily notes and base-dir markdown files (exclude system files)
-        _system_files = {"RESOLVER.md", "TEMPLATES.md"}
+        # Include daily notes and base-dir markdown files (exclude system/auto-generated files)
+        _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
         if self.base_dir.exists():
             for md in self.base_dir.glob("*.md"):
                 if md.name not in _system_files:
@@ -1233,10 +1231,14 @@ class MemKraft:
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""
         files = list(self._all_md_files())
-        # Also include daily notes in base dir
-        for md in self.base_dir.glob("*.md"):
-            if md.name not in ("RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"):
-                files.append(md)
+        # Deduplicate (in case _all_md_files yields same file from base_dir)
+        seen = set()
+        unique = []
+        for f in files:
+            if f not in seen:
+                seen.add(f)
+                unique.append(f)
+        files = unique
         if recent > 0:
             files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
             files = files[:recent]
