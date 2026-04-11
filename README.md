@@ -200,18 +200,18 @@ This is the key insight: the top half is *what we know now*, the bottom half is 
 
 ## Comparison
 
-| | **GBrain** | **Rowboat** | **MemCraft** |
+| | **MemCraft** | **GBrain** | **Rowboat** |
 |---|---|---|---|
-| Knowledge structure | Compiled Truth + Timeline | Obsidian vault | Compiled Truth + Timeline |
-| Entity detection | Manual | Auto (email/calendar) | Auto (regex + LLM, CJK) |
-| Live tracking | ❌ | ✅ | ✅ |
-| Meeting prep | ❌ | ✅ | ✅ |
-| Source attribution | ✅ | ❌ | ✅ Required |
-| Dream Cycle | ❌ | ❌ | ✅ |
-| Memory resolver | ❌ | ❌ | ✅ |
-| Originals capture | ❌ | ❌ | ✅ |
-| CJK support | ❌ | ❌ | ✅ |
-| Framework | Claude-specific | Desktop app | Framework-agnostic |
+| Knowledge structure | Compiled Truth + Timeline | Compiled Truth + Timeline | Obsidian vault |
+| Entity detection | Auto (regex + LLM, CJK) | Manual | Auto (email/calendar) |
+| Live tracking | ✅ | ❌ | ✅ |
+| Meeting prep | ✅ | ❌ | ✅ |
+| Source attribution | ✅ Required | ✅ | ❌ |
+| Dream Cycle | ✅ | ❌ | ❌ |
+| Memory resolver | ✅ | ❌ | ❌ |
+| Originals capture | ✅ | ❌ | ❌ |
+| CJK support | ✅ | ❌ | ❌ |
+| Framework | Framework-agnostic | Claude-specific | Desktop app |
 | Storage | Markdown | Markdown | Markdown |
 
 MemCraft was originally built as an operational memory system for a multi-agent team, then sharpened by incorporating the best ideas from [GBrain](https://github.com/garrytan/gbrain) (Garry Tan's compiled-truth model) and [Rowboat](https://github.com/rowboatlabs/rowboat) (persistent live-tracking). The result is a system that's been tested in production — not just designed in theory.
