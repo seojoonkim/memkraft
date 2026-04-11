@@ -34,3 +34,6 @@ Repository = "https://github.com/seojoonkim/memcraft"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+memcraft = ["templates/*.md"]
