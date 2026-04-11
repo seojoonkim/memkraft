@@ -102,9 +102,9 @@ $ memcraft detect "马化腾和李彦宏讨论了人工智能" --no-llm --dry-ru
   {"name": "李彦宏", "type": "person", "context": "auto-detected (Chinese)"}
 ]
 
-$ memcraft detect "김서준이 Hashed에서 발표했다" --no-llm --dry-run
+$ memcraft detect "Simon Kim presented at Hashed" --no-llm --dry-run
 [
-  {"name": "김서준", "type": "person", "context": "auto-detected (Korean)"}
+  {"name": "Simon Kim", "type": "person", "context": "auto-detected"}
 ]
 ```
 
