@@ -1,104 +1,102 @@
 <div align="center">
 
-<img src="docs/hero.jpg" alt="MemKraft — forge raw conversations into compound knowledge" width="100%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/hero.jpg">
+  <img src="docs/hero.jpg" alt="MemKraft" width="100%">
+</picture>
+
+<br>
 
 # MemKraft
 
-**Zero-dependency compound memory for AI agents.**
+### Agents don't learn. They search. Until now.
 
-Your agent forgets everything between conversations.<br>
-MemKraft gives it a memory that compounds — structured, traceable, self-maintaining.
+Zero-dependency compound memory that turns raw conversations<br>into an ever-growing, self-maintaining knowledge base.
 
-[![PyPI](https://img.shields.io/pypi/v/memkraft?color=blue)](https://pypi.org/project/memkraft/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/memkraft/)
-[![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)](https://pypi.org/project/memkraft/)
-[![Tests](https://img.shields.io/badge/tests-51%20passed-brightgreen)](#)
+<br>
 
-[Quick Start](#quick-start) · [Why MemKraft?](#why-memkraft) · [Features](#features) · [Architecture](#architecture) · [Comparison](#comparison) · [Docs](#how-it-works--technical-design)
+[![PyPI][pypi-badge]][pypi-url]
+[![Python][python-badge]][pypi-url]
+[![License][license-badge]][license-url]
+[![Tests][tests-badge]](#)
+[![Dependencies][deps-badge]][pypi-url]
+
+[pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
+[python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
+[license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-51%20passed-brightgreen?style=for-the-badge
+[deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
+[pypi-url]: https://pypi.org/project/memkraft/
+[license-url]: LICENSE
+
+<br>
+
+[Quick Start](#quick-start) · [Why MemKraft](#why-memkraft) · [Features](#features) · [Architecture](#architecture) · [Comparison](#comparison)
 
 </div>
 
----
+<br>
 
 ## Quick Start
-
-Install and go from zero to compound memory in 30 seconds:
 
 ```bash
 pip install memkraft
 ```
 
 ```bash
-# 1. Initialize
 memkraft init
-
-# 2. Extract entities and facts from any text
-memkraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." \
-    --source "news article"
-
-# 3. Search your memory
-memkraft search "venture capital" --fuzzy
-
-# 4. Get a meeting brief — all context in one place
+memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft brief "Simon Kim"
 ```
 
-That's it. No API keys, no database, no config files. Everything is plain Markdown in a `memory/` directory you own.
+That's it. No API keys. No database. No config. Plain Markdown files you own.
 
 <details>
-<summary><b>See all 6 daily patterns</b></summary>
+<summary><b>More examples — 6 daily patterns that cover 90% of use</b></summary>
+
+<br>
 
 ```bash
-# Pattern 1: Extract & Track — auto-detect entities from any text
+# 1. Extract & Track — auto-detect entities from any text
 memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 memkraft update "Simon Kim" --info "Launched MemKraft" --source "X/@simonkim_nft"
 
-# Pattern 2: Search & Recall — find anything in your memory
+# 2. Search & Recall — find anything in your memory
 memkraft search "venture capital" --fuzzy
 memkraft lookup "Simon" --brain-first
 memkraft agentic-search "who is the CEO of Hashed"
 
-# Pattern 3: Meeting Prep — compile all context before a meeting
+# 3. Meeting Prep — compile all context before a meeting
 memkraft brief "Simon Kim"
 memkraft links "Simon Kim"
 
-# Pattern 4: Ingest & Classify — inbox → structured pages (safe by default)
+# 4. Ingest & Classify — inbox → structured pages (safe by default)
 memkraft cognify            # recommend-only; add --apply to move files
 memkraft detect "Jack Ma and 马化腾 discussed AI" --dry-run
 
-# Pattern 5: Log & Reflect — structured audit trail
+# 5. Log & Reflect — structured audit trail
 memkraft log --event "Deployed v0.2" --tags deploy --importance high
 memkraft retro              # daily Well / Bad / Next retrospective
 
-# Pattern 6: Maintain & Heal — Dream Cycle keeps memory healthy
+# 6. Maintain & Heal — Dream Cycle keeps memory healthy
 memkraft dream --dry-run    # nightly: sources, duplicates, bloated pages
 memkraft diff               # what changed since last maintenance?
 memkraft open-loops         # find all unresolved items
 ```
 
-All 20+ commands available from day one. These 6 patterns cover 90% of daily use.
+All 20+ commands available from day one.
 
 </details>
 
----
+<br>
 
-## Why MemKraft?
+## Why MemKraft
 
-### The Problem
+AI agents start every conversation from zero. Six months later, the agent still doesn't *know* anything — it just searches faster. Conversation 100 is no better-informed than conversation 1.
 
-AI agents start every conversation from zero. Six months of conversations later, the agent still doesn't *know* anything — it just searches faster.
-
-- Context windows fill up. Important facts get lost.
-- No compound returns — conversation 100 is no better-informed than conversation 1.
-- When an agent *does* recall something, you can't tell if it's real or hallucinated.
-
-**Agents without compound memory don't learn. They search.**
-
-### The Solution
-
-MemKraft forges **long-lived, compound knowledge** — structured, traceable, and self-maintaining.
+**MemKraft fixes this.**
 
 ```
 Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compound Knowledge
@@ -107,75 +105,169 @@ Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compoun
                         maintained by Dream Cycle ◀── nightly
 ```
 
-Every fact has a source. Every entity has a timeline. Every night, Dream Cycle cleans the dross. Your next conversation starts sharper than the last one.
+Every fact has a source. Every entity has a timeline. Every night, Dream Cycle cleans the dross. Your next conversation starts sharper than the last.
 
-### Design Principles
+<table>
+<tr>
+<td><b>Memory compounds</b></td>
+<td>Each conversation builds on all prior ones. The 100th conversation is the best-informed.</td>
+</tr>
+<tr>
+<td><b>Structure enforces quality</b></td>
+<td>RESOLVER prevents duplicates. Source Attribution enforces trust. Tiers prioritize what matters.</td>
+</tr>
+<tr>
+<td><b>Maintenance is automated</b></td>
+<td>Dream Cycle keeps memory healthy — no manual curation required.</td>
+</tr>
+<tr>
+<td><b>Knowledge is portable</b></td>
+<td>Plain Markdown, zero dependencies, any framework. If MemKraft disappears, your memory is still readable.</td>
+</tr>
+<tr>
+<td><b>Provenance is non-negotiable</b></td>
+<td>Every fact traces back to a source. Facts without sources are trust debts.</td>
+</tr>
+<tr>
+<td><b>Context is finite</b></td>
+<td>Memory tiers fill the context window with what matters. Bloated pages get flagged. Inspired by <a href="https://arxiv.org/abs/2512.24601">Recursive Language Models (Zhang et al., 2025)</a>.</td>
+</tr>
+</table>
 
-| Principle | What it means |
-|-----------|--------------|
-| **Memory compounds** | Each conversation builds on all prior ones. The 100th conversation is the best-informed. |
-| **Structure enforces quality** | RESOLVER prevents duplicates. Source Attribution enforces trust. Tiers prioritize what matters. |
-| **Maintenance is automated** | Dream Cycle keeps memory healthy — no manual curation required. |
-| **Knowledge is portable** | Plain Markdown, zero dependencies, any framework. If MemKraft disappears, your memory is still readable. |
-| **Provenance is non-negotiable** | Every fact traces back to a source. Facts without sources are trust debts. |
-| **Context is finite** | Memory tiers ensure the right information fills the context window. Bloated pages get flagged. Inspired by [Recursive Language Models (Zhang et al., 2025)](https://arxiv.org/abs/2512.24601). |
-
----
+<br>
 
 ## Features
 
 ### Ingestion & Extraction
 
-| Feature | Description |
-|---------|------------|
-| **Auto-extract** | Pipe any text → entities + facts auto-detected. Regex-based NER for EN, KR, CN, JP — no LLM calls. |
-| **CJK entity detection** | 806 stopwords, 100 CN surnames, 85 JP surnames, Korean particle stripping. Works out of the box. |
-| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default — add `--apply` to move. |
-| **Fact registry** | Extracts currencies, percentages, dates, quantities into a cross-domain index. |
-| **Originals capture** | Save raw text verbatim — no paraphrasing, no interpretation loss. |
+<table>
+<tr>
+<td width="200"><b>Auto-extract</b></td>
+<td>Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP — no LLM calls, instant results.</td>
+</tr>
+<tr>
+<td><b>CJK detection</b></td>
+<td>806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. Multilingual out of the box.</td>
+</tr>
+<tr>
+<td><b>Cognify pipeline</b></td>
+<td>Routes <code>inbox/</code> items to the right directory. Recommend-only by default — <code>--apply</code> to actually move.</td>
+</tr>
+<tr>
+<td><b>Fact registry</b></td>
+<td>Extracts currencies, percentages, dates, quantities into a cross-domain index.</td>
+</tr>
+<tr>
+<td><b>Originals capture</b></td>
+<td>Save raw text verbatim. No paraphrasing, no interpretation loss.</td>
+</tr>
+</table>
 
 ### Search & Retrieval
 
-| Feature | Description |
-|---------|------------|
-| **Fuzzy search** | `difflib.SequenceMatcher` — works offline, on a plane, with zero setup. |
-| **Brain-first lookup** | Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results. |
-| **Agentic search** | Multi-hop: decompose query → search → traverse `[[wiki-links]]` → re-rank by tier/recency. |
-| **Progressive disclosure** | 3-level query: L1 index scan (~50 tokens), L2 section headers, L3 full file. |
-| **Backlinks** | Wiki-style `[[entity-name]]` cross-references. See every page that references an entity. |
-| **Link suggestions** | Auto-suggest missing `[[wiki-links]]` based on known entity names. |
+<table>
+<tr>
+<td width="200"><b>Fuzzy search</b></td>
+<td>Built on <code>difflib.SequenceMatcher</code>. Works offline, on a plane, with zero setup.</td>
+</tr>
+<tr>
+<td><b>Brain-first lookup</b></td>
+<td>Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results.</td>
+</tr>
+<tr>
+<td><b>Agentic search</b></td>
+<td>Multi-hop: decompose query → search → traverse <code>[[wiki-links]]</code> → re-rank by tier and recency.</td>
+</tr>
+<tr>
+<td><b>Progressive disclosure</b></td>
+<td>3-level query for token efficiency. L1: index scan (~50 tokens). L2: section headers. L3: full file.</td>
+</tr>
+<tr>
+<td><b>Backlinks</b></td>
+<td>Wiki-style <code>[[entity-name]]</code> cross-references. See every page that references an entity.</td>
+</tr>
+<tr>
+<td><b>Link suggestions</b></td>
+<td>Auto-suggest missing <code>[[wiki-links]]</code> based on known entity names.</td>
+</tr>
+</table>
 
 ### Structure & Organization
 
-| Feature | Description |
-|---------|------------|
-| **Compiled Truth + Timeline** | Dual-layer entity model: mutable current state + append-only audit trail. |
-| **Memory tiers** | Core / Recall / Archival — explicit context window priority with `promote` command. |
-| **RESOLVER.md** | MECE classification tree — every piece of knowledge has exactly one destination. |
-| **Source attribution** | Every fact tagged with `[Source: who, when, how]`. Enforced by Dream Cycle. |
-| **Live Notes** | Persistent tracking for people/companies. Auto-incrementing updates + timeline. |
+<table>
+<tr>
+<td width="200"><b>Compiled Truth + Timeline</b></td>
+<td>Dual-layer entity model: mutable current state + append-only audit trail with source tags.</td>
+</tr>
+<tr>
+<td><b>Memory tiers</b></td>
+<td>Core / Recall / Archival — explicit context window priority. <code>promote</code> to reclassify.</td>
+</tr>
+<tr>
+<td><b>RESOLVER.md</b></td>
+<td>MECE classification tree — every piece of knowledge has exactly one destination.</td>
+</tr>
+<tr>
+<td><b>Source attribution</b></td>
+<td>Every fact tagged with <code>[Source: who, when, how]</code>. Enforced by Dream Cycle.</td>
+</tr>
+<tr>
+<td><b>Live Notes</b></td>
+<td>Persistent tracking for people and companies. Auto-incrementing updates + timeline.</td>
+</tr>
+</table>
 
 ### Maintenance & Audit
 
-| Feature | Description |
-|---------|------------|
-| **Dream Cycle** | Nightly auto-maintenance: sources, thin pages, duplicates, inbox age, bloated pages, daily notes. |
-| **Memory decay** | Older, unaccessed memories naturally decay — keeps the knowledge base fresh. |
-| **Fact dedup** | Automatically detects and merges duplicate facts across entities. |
-| **Auto-summarize** | Condenses bloated pages while preserving key information. |
-| **Diff tracking** | See exactly what changed since the last Dream Cycle. |
-| **Open loop tracking** | Finds all pending/TODO/FIXME items across your entire memory. |
+<table>
+<tr>
+<td width="200"><b>Dream Cycle</b></td>
+<td>Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes.</td>
+</tr>
+<tr>
+<td><b>Memory decay</b></td>
+<td>Older, unaccessed memories naturally decay — keeps the knowledge base fresh.</td>
+</tr>
+<tr>
+<td><b>Fact dedup</b></td>
+<td>Automatically detects and merges duplicate facts across entities.</td>
+</tr>
+<tr>
+<td><b>Auto-summarize</b></td>
+<td>Condenses bloated pages while preserving key information.</td>
+</tr>
+<tr>
+<td><b>Diff tracking</b></td>
+<td>See exactly what changed since the last Dream Cycle.</td>
+</tr>
+<tr>
+<td><b>Open loop tracking</b></td>
+<td>Finds all pending / TODO / FIXME items across your entire memory.</td>
+</tr>
+</table>
 
 ### Logging & Reflection
 
-| Feature | Description |
-|---------|------------|
-| **Session logging** | JSONL event trail with tags, importance, entity, task, and decision fields. |
-| **Daily retrospective** | Auto-generated Well / Bad / Next from events + file changes. |
-| **Decision distillation** | Scans events and notes for decision candidates (EN + KR keyword matching). |
-| **Meeting briefs** | One command compiles entity info, timeline, open threads, and a pre-meeting checklist. |
+<table>
+<tr>
+<td width="200"><b>Session logging</b></td>
+<td>JSONL event trail with tags, importance, entity, task, and decision fields.</td>
+</tr>
+<tr>
+<td><b>Daily retrospective</b></td>
+<td>Auto-generated Well / Bad / Next from session events + file changes.</td>
+</tr>
+<tr>
+<td><b>Decision distillation</b></td>
+<td>Scans events and notes for decision candidates. EN + KR keyword matching.</td>
+</tr>
+<tr>
+<td><b>Meeting briefs</b></td>
+<td>One command compiles entity info, timeline, open threads, and a pre-meeting checklist.</td>
+</tr>
+</table>
 
----
+<br>
 
 ## Architecture
 
@@ -258,11 +350,13 @@ memory/
 └── meetings/            # Briefs and notes
 ```
 
----
+<br>
 
 ## Comparison
 
-> Honest comparison. MemKraft isn't the right choice for every use case.
+> We respect every project in this space. Here's an honest look at the trade-offs.
+
+**The short version:** Mem0 and Letta are excellent — if you want vector search or a full agent runtime, use them. MemKraft is for teams who want **portable, git-friendly memory with zero dependencies** that works with any framework, offline, forever.
 
 | | **MemKraft** | **Mem0** | **Letta** | **GBrain** | **Rowboat** |
 |---|:---:|:---:|:---:|:---:|:---:|
@@ -296,6 +390,8 @@ memory/
 <details>
 <summary><b>Where each tool shines</b></summary>
 
+<br>
+
 - **Mem0** — Best for API-first integration with vector retrieval and graph traversal. Strongest at semantic search and automatic memory extraction. MemKraft takes the auto-extraction idea but keeps everything in readable, git-friendly Markdown.
 
 - **Letta** (MemGPT) — Best when you want a complete agent runtime with automatic context paging and self-editing memory. Pioneered tiered memory and virtual context management. MemKraft adopts tiers as a lightweight convention without requiring a runtime.
@@ -304,16 +400,57 @@ memory/
 
 - **Rowboat** — Best as an Obsidian desktop app for human-in-the-loop workflows. MemKraft incorporates live-tracking and meeting briefs into a CLI-first, programmable workflow that agents can call directly.
 
-**Choose MemKraft when:** you want compound memory that's portable, transparent, git-friendly, and works with any agent framework — without needing a database, API keys, or a running service.
+**Choose MemKraft when:** you want compound memory that's portable, transparent, git-friendly, and works with any agent framework — without a database, API keys, or a running service.
 
 **Choose something else when:** you need semantic/vector search, graph traversal, or a full agent runtime with virtual context management.
 
 </details>
 
----
+<br>
+
+## Installation
+
+```bash
+pip install memkraft
+```
+
+<details>
+<summary><b>More installation options</b></summary>
+
+<br>
+
+```bash
+# Isolated install with pipx (recommended for CLI use)
+pipx install memkraft
+
+# Run without installing
+pipx run memkraft brief
+
+# From source
+git clone https://github.com/seojoonkim/memkraft.git
+cd memkraft && pip install .
+```
+
+Don't have pipx?
+```bash
+brew install pipx && pipx ensurepath   # macOS
+```
+
+</details>
+
+**Requirements:** Python 3.9+. Nothing else.
+
+```bash
+# Optional: set memory directory (default: ./memory)
+export MEMKRAFT_DIR=/path/to/your/memory
+```
+
+<br>
 
 <details>
 <summary><h2>How It Works — Technical Design</h2></summary>
+
+<br>
 
 ### Zero-dependency Philosophy
 
@@ -389,10 +526,10 @@ A decision tree that ensures every piece of knowledge has exactly one correct de
 
 </details>
 
----
-
 <details>
 <summary><h2>Full CLI Demo</h2></summary>
+
+<br>
 
 ```bash
 # Initialize the forge
@@ -577,45 +714,7 @@ $ cat memory/RESOLVER.md
 
 </details>
 
----
-
-## Installation
-
-```bash
-# Recommended — isolated install with pipx
-pipx install memkraft
-
-# Or with pip
-pip install memkraft
-
-# Run without installing
-pipx run memkraft brief
-
-# From source
-git clone https://github.com/seojoonkim/memkraft.git
-cd memkraft && pipx install .
-```
-
-<details>
-<summary>Don't have pipx?</summary>
-
-```bash
-brew install pipx     # macOS
-pipx ensurepath
-```
-
-</details>
-
-**Requirements:** Python 3.9+. Nothing else.
-
-### Configuration
-
-```bash
-# Set memory directory (default: ./memory)
-export MEMKRAFT_DIR=/path/to/your/memory
-```
-
----
+<br>
 
 ## Contributing
 
@@ -629,7 +728,7 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <div align="center">
 
-**MemKraft** — *Forge your memory. Compound your knowledge.*
+**MemKraft** — *Agents don't learn. They search. Until now.*
 
 [GitHub](https://github.com/seojoonkim/memkraft) · [PyPI](https://pypi.org/project/memkraft/) · [Issues](https://github.com/seojoonkim/memkraft/issues)
 
