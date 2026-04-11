@@ -96,7 +96,7 @@ class MemKraft:
 
 - **{now}** | Live note created [Source: {source or 'Manual'}]
 """
-        filepath.write_text(content)
+        filepath.write_text(content, encoding="utf-8")
         print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
 
     # ── Update ────────────────────────────────────────────────
@@ -108,7 +108,7 @@ class MemKraft:
             print(f"⚠️ Not tracking '{name}'. Use 'memkraft track' first.")
             return
 
-        content = filepath.read_text()
+        content = filepath.read_text(encoding="utf-8", errors="replace")
         now = datetime.now().strftime("%Y-%m-%d")
 
         # Increment update count (English + Korean) — positional replace to avoid global corruption
@@ -142,7 +142,7 @@ class MemKraft:
                 )
                 break
 
-        filepath.write_text(content)
+        filepath.write_text(content, encoding="utf-8")
         print(f"✅ Updated: {filepath.relative_to(self.base_dir.parent)}")
 
     # ── List ──────────────────────────────────────────────────
@@ -154,7 +154,7 @@ class MemKraft:
             for md in sorted(self.live_notes_dir.glob("*.md")):
                 if md.name == "README.md":
                     continue
-                content = md.read_text()
+                content = md.read_text(encoding="utf-8", errors="replace")
                 count_val = "?"
                 date_val = "?"
                 for line in content.split("\n"):
@@ -190,7 +190,7 @@ class MemKraft:
         entity_path = self.entities_dir / f"{slug}.md"
         live_path_check = self.live_notes_dir / f"{slug}.md"
         if entity_path.exists():
-            content = entity_path.read_text()
+            content = entity_path.read_text(encoding="utf-8", errors="replace")
             brief_parts.append("## 👤 Entity Info")
             
             # Extract meaningful summary (skip Title, Tier, etc.)
@@ -207,7 +207,7 @@ class MemKraft:
                     summary_lines.append(line.strip())
             
             if summary_lines:
-                brief_parts.append(" ".join(summary_lines))
+                brief_parts.append("\n".join(summary_lines))
             elif "---" in content:
                 brief_parts.append(content.split("---")[0].strip())
             else:
@@ -237,7 +237,7 @@ class MemKraft:
         # Live note
         live_path = self.live_notes_dir / f"{slug}.md"
         if live_path.exists():
-            content = live_path.read_text()
+            content = live_path.read_text(encoding="utf-8", errors="replace")
             brief_parts.append("## 🔄 Live Note")
             for section in ["Current State", "현재 상태", "Key Points", "키 포인트", "Recent Activity", "최근 동향"]:
                 text = self._extract_section(content, section)
@@ -249,7 +249,7 @@ class MemKraft:
         if self.decisions_dir.exists():
             related_decisions = []
             for md in self.decisions_dir.glob("*.md"):
-                dcontent_orig = md.read_text()
+                dcontent_orig = md.read_text(encoding="utf-8", errors="replace")
                 dcontent = dcontent_orig.lower()
                 if name.lower() in dcontent or slug in dcontent or f"[[{slug}]]" in dcontent:
                     first_line = self._first_meaningful_line(dcontent_orig)
@@ -276,7 +276,7 @@ class MemKraft:
         if save:
             save_path = self.meetings_dir / f"{datetime.now().strftime('%Y-%m-%d')}-{slug}-brief.md"
             self.meetings_dir.mkdir(parents=True, exist_ok=True)
-            save_path.write_text(output)
+            save_path.write_text(output, encoding="utf-8")
             print(f"\n💾 Saved: {save_path}")
 
     # ── Detect ────────────────────────────────────────────────
@@ -314,7 +314,7 @@ class MemKraft:
         # Check for incomplete source attributions
         print("   🔍 Scanning for incomplete source attributions...")
         for md in self._all_md_files():
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             if "## Timeline" in content:
                 section = content.split("## Timeline")[1].split("\n## ")[0]
                 for line in section.split("\n"):
@@ -379,7 +379,7 @@ class MemKraft:
         if not dry_run:
             meta_dir = self.base_dir / ".memkraft"
             meta_dir.mkdir(parents=True, exist_ok=True)
-            (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()))
+            (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()), encoding="utf-8")
 
     # ── Extract ──────────────────────────────────────────────
     def extract(self, text: str, source: str = "", dry_run: bool = False):
@@ -434,7 +434,7 @@ class MemKraft:
             filepath = directory / f"{slug}.md"
             if filepath.exists():
                 now = datetime.now().strftime("%Y-%m-%d")
-                content = filepath.read_text()
+                content = filepath.read_text(encoding="utf-8", errors="replace")
                 # Add to Key Points section
                 for marker in ["## Key Points\n", "## 키 포인트\n"]:
                     if marker in content:
@@ -446,7 +446,7 @@ class MemKraft:
                         if marker in content:
                             content = content.replace(marker, f"{marker}- **{now}** | {fact} [Source: {source}]\n")
                             break
-                filepath.write_text(content)
+                filepath.write_text(content, encoding="utf-8")
                 return
 
     # ── Cognify ────────────────────────────────────────────────
@@ -464,7 +464,7 @@ class MemKraft:
             if md.name.startswith("_") or md.name == "README.md":
                 continue
 
-            content = md.read_text().strip()
+            content = md.read_text(encoding="utf-8", errors="replace").strip()
             if len(content) < 20:
                 results["skipped"] += 1
                 continue
@@ -521,7 +521,7 @@ class MemKraft:
         for directory in [self.live_notes_dir, self.entities_dir]:
             filepath = directory / f"{slug}.md"
             if filepath.exists():
-                content = filepath.read_text()
+                content = filepath.read_text(encoding="utf-8", errors="replace")
                 # Update or add tier
                 if "Tier:" in content:
                     content = re.sub(r'\*\*Tier: \w+', f'**Tier: {tier}', content, count=1)
@@ -532,7 +532,7 @@ class MemKraft:
                         lines = content.split("\n", 2)
                         lines.insert(1, f"\n**Tier: {tier}**")
                         content = "\n".join(lines)
-                filepath.write_text(content)
+                filepath.write_text(content, encoding="utf-8")
                 print(f"✅ Promoted '{name}' → {tier}")
                 return
 
@@ -545,7 +545,10 @@ class MemKraft:
         ts_file = meta_dir / "last-dream-timestamp"
 
         if ts_file.exists():
-            since = float(ts_file.read_text().strip())
+            try:
+                since = float(ts_file.read_text(encoding="utf-8", errors="replace").strip())
+            except ValueError:
+                since = 0.0
         else:
             since = 0.0
 
@@ -579,7 +582,7 @@ class MemKraft:
         query_lower = query.lower()
 
         for md in self._all_md_files():
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             content_lower = content.lower()
             rel_path = md.relative_to(self.base_dir)
 
@@ -637,7 +640,7 @@ class MemKraft:
         backlinks = []
 
         for md in self._all_md_files():
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             for target in targets:
                 if target in content:
                     rel_path = md.relative_to(self.base_dir)
@@ -664,7 +667,7 @@ class MemKraft:
         files = self._gather_memory_files(recent=recent, tag=tag, date=date)
 
         if query:
-            files = [f for f in files if query.lower() in f.read_text().lower() or query.lower() in f.name.lower()]
+            files = [f for f in files if query.lower() in f.read_text(encoding="utf-8", errors="replace").lower() or query.lower() in f.name.lower()]
 
         if not files:
             print("No matching files found.")
@@ -672,7 +675,7 @@ class MemKraft:
 
         for md in files:
             rel = md.relative_to(self.base_dir)
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
 
             if level == 1:
                 # Level 1: Index — date, first-line summary, tags (~50-100 tokens)
@@ -732,7 +735,7 @@ class MemKraft:
             print(f"No events for {target_date}.")
             return
         events = []
-        for line in filepath.read_text().strip().split("\n"):
+        for line in filepath.read_text(encoding="utf-8", errors="replace").strip().split("\n"):
             if line.strip():
                 try:
                     events.append(json.loads(line))
@@ -761,7 +764,7 @@ class MemKraft:
         events = []
         event_file = self.base_dir / "sessions" / f"{today}.jsonl"
         if event_file.exists():
-            for line in event_file.read_text().strip().split("\n"):
+            for line in event_file.read_text(encoding="utf-8", errors="replace").strip().split("\n"):
                 if line.strip():
                     try:
                         events.append(json.loads(line))
@@ -778,7 +781,10 @@ class MemKraft:
         # Collect today's changes
         meta_dir = self.base_dir / ".memkraft"
         ts_file = meta_dir / "last-dream-timestamp"
-        since = float(ts_file.read_text().strip()) if ts_file.exists() else 0.0
+        try:
+            since = float(ts_file.read_text(encoding="utf-8", errors="replace").strip()) if ts_file.exists() else 0.0
+        except ValueError:
+            since = 0.0
         changed_files = []
         for md in self._all_md_files():
             if md.stat().st_mtime > since:
@@ -812,11 +818,11 @@ class MemKraft:
         for w in well[:10] or ["(none)"]:
             print(f"  • {w}")
 
-        print("\n⚠️ Bad (issues):")
+        print(f"\n{prefix}⚠️ Bad (issues):")
         for b in bad[:10] or ["(none)"]:
             print(f"  • {b}")
 
-        print("\n➡️ Next (action items):")
+        print(f"\n{prefix}➡️ Next (action items):")
         for n in next_actions[:10] or ["(none)"]:
             print(f"  • {n}")
 
@@ -834,7 +840,7 @@ class MemKraft:
         daily_path = self.base_dir / f"{today}.md"
         if not daily_path.exists():
             content = f"# Daily Note — {today}\n\n## Summary\n(Auto-created by MemKraft)\n\n## Events\n\n## Decisions\n\n## Notes\n"
-            daily_path.write_text(content)
+            daily_path.write_text(content, encoding="utf-8")
             print(f"📝 Created daily note: {daily_path}")
         return daily_path
 
@@ -851,7 +857,7 @@ class MemKraft:
         sessions_dir = self.base_dir / "sessions"
         if sessions_dir.exists():
             for jsonl in sessions_dir.glob("*.jsonl"):
-                for line in jsonl.read_text().strip().split("\n"):
+                for line in jsonl.read_text(encoding="utf-8", errors="replace").strip().split("\n"):
                     if not line.strip():
                         continue
                     try:
@@ -865,7 +871,7 @@ class MemKraft:
         # Scan decisions dir
         if self.decisions_dir.exists():
             for md in self.decisions_dir.glob("*.md"):
-                content = md.read_text()
+                content = md.read_text(encoding="utf-8", errors="replace")
                 if any(kw in content.lower() for kw in decision_kw_en) or any(kw in content for kw in decision_kw_kr):
                     candidates.append({"source": f"decisions/{md.name}", "event": content[:100].replace('\n', ' '), "importance": "high"})
 
@@ -874,7 +880,7 @@ class MemKraft:
         for md in self.base_dir.glob("*.md"):
             if md.name in excluded:
                 continue
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             for line in content.split("\n"):
                 line_lower = line.lower()
                 if any(kw in line_lower for kw in decision_kw_en) or any(kw in line for kw in decision_kw_kr):
@@ -899,7 +905,7 @@ class MemKraft:
 
         loops = []
         for md in self._all_md_files():
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             rel = str(md.relative_to(self.base_dir))
             mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
             for line in content.split("\n"):
@@ -923,7 +929,7 @@ class MemKraft:
             content = "# Open Loops\n\nAuto-generated by MemKraft\n\n"
             for l in sorted(loops, key=lambda x: x["date"]):
                 content += f"- [{l['date']}] {l['file']}: {l['line'][:100]}\n"
-            hub.write_text(content)
+            hub.write_text(content, encoding="utf-8")
             print(f"\n💾 Updated: {hub}")
 
     # ── Memory Index ─────────────────────────────────────────────
@@ -938,7 +944,7 @@ class MemKraft:
             # Skip if already indexed (deduplicate)
             if rel in index:
                 continue
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             summary = self._first_meaningful_line(content)
             tags = self._extract_tags(content)
             sections = [l.strip() for l in content.split("\n") if l.startswith("#")]
@@ -975,7 +981,7 @@ class MemKraft:
 
         suggestions = []
         for md in self._all_md_files():
-            content = md.read_text()
+            content = md.read_text(encoding="utf-8", errors="replace")
             rel = str(md.relative_to(self.base_dir))
             for slug in entity_slugs:
                 if md.stem == slug:
@@ -1013,7 +1019,7 @@ class MemKraft:
         if not text:
             texts = []
             for md in self._all_md_files():
-                texts.append(md.read_text())
+                texts.append(md.read_text(encoding="utf-8", errors="replace"))
             text = " ".join(texts)
 
         facts = []
@@ -1047,7 +1053,7 @@ class MemKraft:
         # Write to fact-registry.md (deduplicate against existing)
         registry = self.base_dir / "fact-registry.md"
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        existing = registry.read_text() if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
+        existing = registry.read_text(encoding="utf-8", errors="replace") if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
         # Skip facts that already exist in the registry
         existing_facts = set(re.findall(r'^- (.+)$', existing, re.MULTILINE))
         new_facts = [f for f in facts if f not in existing_facts]
@@ -1055,7 +1061,7 @@ class MemKraft:
             existing += f"\n## {now}\n"
             for f in new_facts:
                 existing += f"- {f}\n"
-            registry.write_text(existing)
+            registry.write_text(existing, encoding="utf-8")
             print(f"\n💾 Updated: {registry.relative_to(self.base_dir.parent)} ({len(new_facts)} new facts)")
         else:
             print("\n✅ No new facts to add (all already in registry)")
@@ -1087,7 +1093,7 @@ class MemKraft:
                 rel_path = str(md.relative_to(self.base_dir))
                 if rel_path in seen_files:
                     continue  # Skip exact same file
-                content = md.read_text().lower()
+                content = md.read_text(encoding="utf-8", errors="replace").lower()
                 if query.lower() in content:
                     results.append({"source": source, "file": md.stem, "rel_path": rel_path, "relevance": relevance})
                     seen_files.add(rel_path)
@@ -1114,7 +1120,7 @@ class MemKraft:
 
     def _detect_regex(self, text: str) -> list:
         entities = []
-        common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With'}
+        common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With', 'Please', 'Contact', 'However', 'While', 'These', 'Those', 'Each', 'Some', 'Many', 'Other', 'Such', 'Most', 'Last', 'New', 'Old', 'Next', 'Here', 'After', 'Before', 'Between', 'Under', 'Over', 'Every', 'About'}
 
         names_2 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b', text)
         names_3 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+)\b', text)
@@ -1194,7 +1200,7 @@ class MemKraft:
 
         if filepath.exists():
             # Append to timeline
-            content = filepath.read_text()
+            content = filepath.read_text(encoding="utf-8", errors="replace")
             now = datetime.now().strftime("%Y-%m-%d")
             timeline_marker = "## Timeline\n\n"
             if timeline_marker in content:
@@ -1202,7 +1208,7 @@ class MemKraft:
                     timeline_marker,
                     f"{timeline_marker}- **{now}** | Re-detected [Source: {source}]\n"
                 )
-                filepath.write_text(content)
+                filepath.write_text(content, encoding="utf-8")
             return
 
         now = datetime.now().strftime("%Y-%m-%d")
@@ -1231,7 +1237,7 @@ class MemKraft:
 
 - **{now}** | Entity first detected [Source: {source}]
 """
-        filepath.write_text(content)
+        filepath.write_text(content, encoding="utf-8")
 
     def _extract_section(self, content: str, section_name: str) -> str:
         marker = f"## {section_name}"
@@ -1271,9 +1277,9 @@ class MemKraft:
             files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
             files = files[:recent]
         if date:
-            files = [f for f in files if date in f.read_text() or date in f.name]
+            files = [f for f in files if date in f.read_text(encoding="utf-8", errors="replace") or date in f.name]
         if tag:
-            files = [f for f in files if tag.lower() in f.read_text().lower()]
+            files = [f for f in files if tag.lower() in f.read_text(encoding="utf-8", errors="replace").lower()]
         return files
 
     def _first_meaningful_line(self, content: str) -> str:

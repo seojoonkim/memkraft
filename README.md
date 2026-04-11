@@ -141,7 +141,7 @@ $ memkraft retro
   • (none)
 ➡️ Next (action items):
   • (none)
-👥 Entities touched (from logged events): MemKraft
+👥 Entities touched: MemKraft
 
 # Distill decision candidates from events and notes
 $ memkraft distill-decisions
