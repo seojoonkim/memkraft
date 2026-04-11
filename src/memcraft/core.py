@@ -105,33 +105,35 @@ class MemCraft:
         content = filepath.read_text()
         now = datetime.now().strftime("%Y-%m-%d")
 
-        # Increment update count
-        count_match = re.search(r'Update Count:\*\* (\d+)', content)
+        # Increment update count (English + Korean)
+        count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
         if count_match:
             new_count = int(count_match.group(1)) + 1
-            content = content.replace(
-                f"Update Count:** {count_match.group(1)}",
-                f"Update Count:** {new_count}"
-            )
+            old_str = count_match.group(0)
+            new_str = old_str.replace(str(count_match.group(1)), str(new_count))
+            content = content.replace(old_str, new_str)
 
-        # Update last update date
-        last_match = re.search(r'Last Update:\*\* \d{4}-\d{2}-\d{2}', content)
+        # Update last update date (English + Korean)
+        last_match = re.search(r'(?:Last Update|마지막 업데이트):\*\* \d{4}-\d{2}-\d{2}', content)
         if last_match:
-            content = content.replace(last_match.group(), f"Last Update:** {now}")
+            content = content.replace(last_match.group(), re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group()))
 
-        # Add to Recent Activity
-        recent_idx = content.find("## Recent Activity")
-        if recent_idx != -1:
-            insert_pos = content.find("\n", content.find("\n", recent_idx) + 1) + 1
-            content = content[:insert_pos] + f"- **{now}** | {info} [Source: {source}]\n" + content[insert_pos:]
+        # Add to Recent Activity (English + Korean)
+        for marker in ["## Recent Activity", "## 최근 동향"]:
+            recent_idx = content.find(marker)
+            if recent_idx != -1:
+                insert_pos = content.find("\n", content.find("\n", recent_idx) + 1) + 1
+                content = content[:insert_pos] + f"- **{now}** | {info} [Source: {source}]\n" + content[insert_pos:]
+                break
 
-        # Add to Timeline
-        timeline_marker = "## Timeline (Full Record)\n\n"
-        if timeline_marker in content:
-            content = content.replace(
-                timeline_marker,
-                f"{timeline_marker}- **{now}** | {info} [Source: {source}]\n\n"
-            )
+        # Add to Timeline (English + Korean)
+        for marker in ["## Timeline (Full Record)\n\n", "## 타임라인 (전체 기록)\n\n", "## Timeline\n\n"]:
+            if marker in content:
+                content = content.replace(
+                    marker,
+                    f"{marker}- **{now}** | {info} [Source: {source}]\n\n"
+                )
+                break
 
         filepath.write_text(content)
         print(f"✅ Updated: {filepath}")
@@ -150,11 +152,11 @@ class MemCraft:
             count_val = "?"
             date_val = "?"
             for line in content.split("\n"):
-                if "Update Count" in line:
+                if "Update Count" in line or "업데이트 횟수" in line:
                     nums = re.findall(r'\d+', line)
                     if nums:
                         count_val = nums[-1]
-                if "Last Update" in line:
+                if "Last Update" in line or "마지막 업데이트" in line:
                     dates = re.findall(r'\d{4}-\d{2}-\d{2}', line)
                     if dates:
                         date_val = dates[-1]
@@ -205,7 +207,7 @@ class MemCraft:
         if live_path.exists():
             content = live_path.read_text()
             brief_parts.append("## 🔄 Live Note")
-            for section in ["Current State", "Key Points", "Recent Activity"]:
+            for section in ["Current State", "현재 상태", "Key Points", "키 포인트", "Recent Activity", "최근 동향"]:
                 text = self._extract_section(content, section)
                 if text:
                     brief_parts.append(f"**{section}:** {text[:300]}")
