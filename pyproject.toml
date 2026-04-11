@@ -36,4 +36,4 @@ Repository = "https://github.com/seojoonkim/memcraft"
 where = ["src"]
 
 [tool.setuptools.package-data]
-memcraft = ["templates/*.md"]
+memcraft = ["templates/*.md", "stopwords.json"]
