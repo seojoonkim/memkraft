@@ -81,7 +81,7 @@ class MemKraft:
 (Key points are automatically summarized here)
 
 ## Related Entities
-- [[{slug}]]
+(Links auto-populated as relationships are discovered)
 
 ## Open Threads
 - [ ] Initial setup — enrichment needed
@@ -107,18 +107,19 @@ class MemKraft:
         content = filepath.read_text()
         now = datetime.now().strftime("%Y-%m-%d")
 
-        # Increment update count (English + Korean)
+        # Increment update count (English + Korean) — positional replace to avoid global corruption
         count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
         if count_match:
             new_count = int(count_match.group(1)) + 1
             old_str = count_match.group(0)
-            new_str = old_str.replace(str(count_match.group(1)), str(new_count))
-            content = content.replace(old_str, new_str)
+            new_str = old_str[:old_str.rfind(count_match.group(1))] + str(new_count)
+            content = content[:count_match.start()] + new_str + content[count_match.end():]
 
-        # Update last update date (English + Korean)
+        # Update last update date (English + Korean) — positional replace
         last_match = re.search(r'(?:Last Update|마지막 업데이트):\*\* \d{4}-\d{2}-\d{2}', content)
         if last_match:
-            content = content.replace(last_match.group(), re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group()))
+            new_date_str = re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group())
+            content = content[:last_match.start()] + new_date_str + content[last_match.end():]
 
         # Add to Recent Activity (English + Korean)
         for marker in ["## Recent Activity", "## 최근 동향"]:
@@ -276,8 +277,9 @@ class MemKraft:
             "bloated_pages": 0,
         }
 
-        # Ensure daily note exists before running
-        self.ensure_daily_note()
+        # Ensure daily note exists before running (skip in dry-run to keep read-only)
+        if not dry_run:
+            self.ensure_daily_note()
 
         # Check for incomplete source attributions
         print("   🔍 Scanning for incomplete source attributions...")
@@ -492,7 +494,7 @@ class MemKraft:
                 content = filepath.read_text()
                 # Update or add tier
                 if "Tier:" in content:
-                    content = re.sub(r'Tier: \w+', f'Tier: {tier}', content)
+                    content = re.sub(r'\*\*Tier: \w+', f'**Tier: {tier}', content, count=1)
                 else:
                     # Add tier after title
                     content = content.replace("\n\n> ", f"\n\n**Tier: {tier}**\n\n> ", 1)
@@ -1199,7 +1201,7 @@ class MemKraft:
         return content[start:end].strip()
 
     def _all_md_files(self):
-        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
+        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
             if subdir.exists():
                 yield from subdir.glob("*.md")
 

@@ -98,7 +98,7 @@ Generated: 2026-04-11
    - [ ] Initial entity — enrichment needed
 
 # Detect CJK entities — Chinese, Japanese, Korean out of the box
-$ memkraft detect "马化腾和李彦宏讨论了人工智能" --no-llm --dry-run
+$ memkraft detect "马化腾和李彦宏讨论了人工智能" --dry-run
 [
   {"name": "马化腾", "type": "person", "context": "auto-detected (Chinese)"},
   {"name": "李彦宏", "type": "person", "context": "auto-detected (Chinese)"}
@@ -175,7 +175,7 @@ $ memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees, deadline 2026
 # Brain-first lookup with sufficiency threshold
 $ memkraft lookup "Simon" --brain-first
   [high] live-note: simon-kim
-  (brain-first: stopped after 1 high-relevance results. Use --full for all.)
+  (brain-first: stopped after 2 high-relevance results. Use --full for all.)
 
 # Fuzzy search — find even when you don't remember the exact words
 $ memkraft search "venture capital Seoul" --fuzzy
@@ -290,7 +290,7 @@ Every page has a tier label: **Core**, **Recall**, or **Archival**.
 - **Recall** — searchable, include when explicitly relevant. Entity default. Background context that matters sometimes.
 - **Archival** — historical, rarely accessed. Old decisions, former roles, completed projects.
 
-Why tiers? Because LLM context windows are finite. Without explicit priority, you're either cramming everything in (expensive, noisy) or guessing what matters (lossy). Tiers give your agent a clear rule: load core, search recall, skip archival. `memkraft promote` and `memkraft demote` let you reclassify as priorities shift.
+Why tiers? Because LLM context windows are finite. Without explicit priority, you're either cramming everything in (expensive, noisy) or guessing what matters (lossy). Tiers give your agent a clear rule: load core, search recall, skip archival. `memkraft promote` let you reclassify as priorities shift.
 
 ### Dream Cycle: automated memory maintenance
 
@@ -419,9 +419,9 @@ memory/
 | **Brain-first lookup** | Search memory before the web with sufficiency threshold | Searches entities → live-notes → decisions → inbox. Stops after ≥2 high-relevance results unless `--full` |
 | **Live Notes** | Track people/companies persistently. Auto-update with new info | Dual-layer pages with auto-incrementing update count and timeline append |
 | **Meeting Brief** | One command to compile everything before a meeting | Pulls entity info, live note state, recent timeline, open threads, related decisions, and generates a pre-meeting checklist |
-| **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex + LLM) | 533 stopwords, 120 CN surnames, 80 JP surnames, Korean particle/suffix stripping |
+| **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex-based) | 533 stopwords, 120 CN surnames, 80 JP surnames, Korean particle/suffix stripping |
 | **Source attribution** | Every fact tagged with `[Source: who, when, how]` | Enforced by Dream Cycle scans — facts without sources are flagged as trust debts |
-| **Memory tiers** | Core / Recall / Archival — explicit context window priority | Labels on every page, `promote`/`demote` commands to reclassify as priorities shift |
+| **Memory tiers** | Core / Recall / Archival — explicit context window priority | Labels on every page, `promote` command to reclassify as priorities shift |
 | **Dream Cycle** | Nightly auto-maintenance | 6 checks: daily note fallback, incomplete sources, thin pages, duplicate entities, overdue inbox, bloated pages |
 | **Diff tracking** | See what changed since last Dream Cycle | Compares file mtimes against `.memkraft/last-dream-timestamp`, reports created/modified |
 | **Fuzzy search** | Find even when you don't remember the exact name | `difflib.SequenceMatcher` with 0.3 threshold + ±3 line snippets, zero dependencies, works offline |

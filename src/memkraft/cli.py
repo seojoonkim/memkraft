@@ -41,7 +41,6 @@ def main():
     detect_parser = subparsers.add_parser("detect", help="Detect entities in text")
     detect_parser.add_argument("text", help="Text to analyze")
     detect_parser.add_argument("--source", default="", help="Source attribution")
-    detect_parser.add_argument("--no-llm", action="store_true", help="Regex-only mode")
     detect_parser.add_argument("--dry-run", action="store_true", help="Preview without creating files")
 
     # dream
@@ -144,7 +143,7 @@ def main():
     elif args.command == "brief":
         mc.brief(args.name, save=args.save)
     elif args.command == "detect":
-        mc.detect(args.text, args.source, no_llm=args.no_llm, dry_run=args.dry_run)
+        mc.detect(args.text, args.source, dry_run=args.dry_run)
     elif args.command == "dream":
         mc.dream(date=args.date, dry_run=args.dry_run)
     elif args.command == "lookup":
