@@ -125,6 +125,20 @@ def main():
     ef_parser = subparsers.add_parser("extract-facts", help="Extract numeric/date facts")
     ef_parser.add_argument("text", nargs="?", default="", help="Text to scan (default: scan memory files)")
 
+    # decay
+    decay_parser = subparsers.add_parser("decay", help="Flag stale facts older than N days")
+    decay_parser.add_argument("--days", type=int, default=90, help="Age threshold in days (default: 90)")
+    decay_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
+
+    # dedup
+    dedup_parser = subparsers.add_parser("dedup", help="Find and merge duplicate facts")
+    dedup_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
+
+    # summarize
+    summarize_parser = subparsers.add_parser("summarize", help="Auto-summarize entity pages")
+    summarize_parser.add_argument("name", nargs="?", default=None, help="Entity name (default: all bloated pages)")
+    summarize_parser.add_argument("--max-length", type=int, default=500, help="Max summary length in chars")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -186,6 +200,12 @@ def main():
         mc.suggest_links()
     elif args.command == "extract-facts":
         mc.extract_facts_registry(text=args.text or "")
+    elif args.command == "decay":
+        mc.decay(days=args.days, dry_run=args.dry_run)
+    elif args.command == "dedup":
+        mc.dedup(dry_run=args.dry_run)
+    elif args.command == "summarize":
+        mc.summarize(name=args.name, max_length=args.max_length)
 
     return 0
 

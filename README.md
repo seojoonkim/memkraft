@@ -459,6 +459,9 @@ memory/
 | Memory resolver | ✅ | — | — | — | — |
 | Originals capture | ✅ | — | — | — | — |
 | Auto-compact | ✅ | — | — | — | — |
+| **Memory decay** | ✅ **R14** | — | — | — | — |
+| **Fact dedup** | ✅ **R14** | — | — | — | — |
+| **Auto-summarize** | ✅ **R14** | — | ✅ | — | — |
 | Self-editing memory | — | — | ✅ | — | — |
 | Graph memory | — | ✅ | — | — | — |
 | Virtual context mgmt | — | — | ✅ | — | — |
@@ -516,75 +519,36 @@ pipx install .
 ## Quick Start
 
 ```bash
-# 1. Initialize the forge
+# 1. Initialize & extract — from zero to compound knowledge in 30 seconds
 memkraft init
+memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 
-# 2. Auto-extract from any text
-memkraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." --source "news"
-
-# 3. Start tracking
+# 2. Track & update — persistent living documents
 memkraft track "Simon Kim" --type person --source "X/@simonkim_nft"
+memkraft update "Simon Kim" --info "Launched MemKraft" --source "X/@simonkim_nft"
 
-# 4. Update with new info
-memkraft update "Simon Kim" --info "CEO of Hashed, created MemKraft" --source "X/@simonkim_nft"
-
-# 5. Promote to core memory
-memkraft promote "Simon Kim" --tier core
-
-# 6. Prep for a meeting (includes related decisions)
+# 3. Search & brief — find anything, prep for meetings
+memkraft search "venture capital" --fuzzy
 memkraft brief "Simon Kim"
 
-# 7. Detect entities in text
-memkraft detect "Jack Ma and 马化腾 discussed AI" --source "news"
+# 4. Ingest & classify — inbox → structured pages (safe by default)
+memkraft cognify          # recommend-only; add --apply to move files
+memkraft detect "Jack Ma and 马化腾 discussed AI" --dry-run
 
-# 8. Process inbox (recommend-only; add --apply to move)
-memkraft cognify
+# 5. Maintain & audit — Dream Cycle keeps memory healthy
+memkraft dream --dry-run  # nightly: sources, duplicates, bloated pages, decay
+memkraft diff              # what changed since last Dream Cycle?
 
-# 9. Progressive disclosure query — 3 levels of detail
-memkraft query --level 1                    # Index scan (~50 tokens)
-memkraft query --level 2 --date 2026-04-11   # Section headers
-memkraft query --level 3 --recent 5         # Full content
-
-# 10. Log session events
+# 6. Everything else — one-command access
 memkraft log --event "Deployed v0.2" --tags deploy --importance high
-memkraft log --read                          # Review today's events
-
-# 11. Daily retrospective
-memkraft retro
-
-# 12. Find decision candidates
-memkraft distill-decisions
-
-# 13. Track unresolved items
-memkraft open-loops
-
-# 14. Build memory index
-memkraft index
-
-# 15. Suggest missing wiki-links
-memkraft suggest-links
-
-# 16. Extract numeric/date facts
-memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees"
-
-# 17. Search memory
-memkraft search "venture capital" --fuzzy
-
-# 18. Brain-first lookup (stops after high-relevance results)
-memkraft lookup "Simon" --brain-first
-
-# 19. Check backlinks
-memkraft links "Simon Kim"
-
-# 20. See changes
-memkraft diff
-
-# 21. Nightly maintenance (includes duplicate detection + daily note fallback)
-memkraft dream --dry-run
-
-# 22. See what you're tracking
-memkraft list
+memkraft retro             # daily retrospective
+memkraft lookup "Simon" --brain-first  # brain-first recall
+memkraft links "Simon Kim" # backlinks
+memkraft open-loops        # unresolved items
+memkraft list              # what you're tracking
 ```
+
+All 20+ commands are available from day one. The 6 patterns above cover 90% of daily use.
 
 ### Configuration
 

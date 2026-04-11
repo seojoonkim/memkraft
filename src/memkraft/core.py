@@ -1303,6 +1303,156 @@ class MemKraft:
         else:
             print("\n✅ No new facts to add (all already in registry)")
 
+    # ── Memory Decay ────────────────────────────────────────────
+    def decay(self, days: int = 90, dry_run: bool = False):
+        """Downgrade stale facts older than N days. Reduces noise in search results."""
+        from datetime import timedelta
+        threshold = datetime.now() - timedelta(days=days)
+        results = []
+
+        for md in self._all_md_files():
+            content = self._safe_read(md)
+            if not content:
+                continue
+            modified = False
+            lines = content.split("\n")
+            new_lines = []
+
+            for line in lines:
+                # Find timeline entries with dates
+                date_match = re.search(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', line)
+                if date_match:
+                    entry_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+                    if entry_date < threshold and "⏳" not in line:
+                        # Mark as stale (don't delete, just flag)
+                        if dry_run:
+                            results.append({"file": str(md.relative_to(self.base_dir)), "line": line.strip()[:80], "age_days": (datetime.now() - entry_date).days})
+                        else:
+                            line = line.replace("- **", "- ⏳ ", 1)
+                            modified = True
+                new_lines.append(line)
+
+            if modified and not dry_run:
+                md.write_text("\n".join(new_lines), encoding="utf-8")
+
+        if results:
+            action = "would flag" if dry_run else "flagged"
+            print(f"📉 Decay: {action} {len(results)} entries older than {days} days")
+            for r in results[:10]:
+                print(f"  [{r['age_days']}d] {r['file']}: {r['line']}")
+        else:
+            print(f"📉 Decay: no entries older than {days} days")
+        return results
+
+    # ── Fact Dedup ──────────────────────────────────────────────
+    def dedup(self, dry_run: bool = False):
+        """Merge duplicate/similar facts across entity pages."""
+        from difflib import SequenceMatcher
+        all_facts = []  # [(entity, fact_text, file_path)]
+
+        for md in self._all_md_files():
+            content = self._safe_read(md)
+            if not content:
+                continue
+            # Extract bullet-point facts from Key Points and Timeline
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("- ") and len(stripped) > 10:
+                    # Strip source tags for comparison
+                    clean = re.sub(r'\[Source:.*?\]', '', stripped).strip()
+                    if clean.startswith("- "):
+                        all_facts.append((md.stem, clean, str(md.relative_to(self.base_dir))))
+
+        # Find similar pairs
+        duplicates = []
+        seen = set()
+        for i, (entity1, fact1, path1) in enumerate(all_facts):
+            for j, (entity2, fact2, path2) in enumerate(all_facts):
+                if i >= j:
+                    continue
+                pair_key = (min(path1, path2), max(path1, path2), min(fact1, fact2))
+                if pair_key in seen:
+                    continue
+                similarity = SequenceMatcher(None, fact1, fact2).ratio()
+                if similarity >= 0.85:
+                    duplicates.append({"fact1": fact1[:60], "path1": path1, "fact2": fact2[:60], "path2": path2, "similarity": round(similarity, 2)})
+                    seen.add(pair_key)
+
+        if duplicates:
+            action = "would merge" if dry_run else "detected"
+            print(f"🔗 Dedup: {action} {len(duplicates)} duplicate pairs")
+            for d in duplicates[:10]:
+                print(f"  [{d['similarity']:.0%}] {d['path1']}: {d['fact1']}")
+                print(f"        {d['path2']}: {d['fact2']}")
+        else:
+            print("🔗 Dedup: no duplicates found")
+        return duplicates
+
+    # ── Auto-Summarize ──────────────────────────────────────────
+    def summarize(self, name: str = None, max_length: int = 500):
+        """Generate a compact summary of an entity's current state."""
+        if name:
+            targets = [name]
+        else:
+            # Summarize all bloated pages
+            targets = []
+            for md in self._all_md_files():
+                if md.stat().st_size > max_length * 3:
+                    targets.append(md.stem.replace("-", " "))
+
+        results = []
+        for target in targets:
+            slug = self._slugify(target)
+            filepath = self.live_notes_dir / f"{slug}.md"
+            if not filepath.exists():
+                filepath = self.entities_dir / f"{slug}.md"
+            if not filepath.exists():
+                continue
+
+            content = self._safe_read(filepath)
+            if not content:
+                continue
+
+            # Extract key sections
+            summary_parts = []
+            for section in ["## Current State", "## 현재 상태", "## Key Points", "## 핵심 포인트"]:
+                if section in content:
+                    section_text = content.split(section)[1].split("\n## ")[0]
+                    bullets = [l.strip() for l in section_text.split("\n") if l.strip().startswith("- ")][:5]
+                    if bullets:
+                        summary_parts.extend(bullets)
+
+            # Extract recent timeline (last 3 entries)
+            for marker in ["## Timeline", "## 타임라인"]:
+                if marker in content:
+                    section = content.split(marker)[1].split("\n## ")[0]
+                    entries = [l.strip() for l in section.split("\n") if l.strip().startswith("- **")][:3]
+                    if entries:
+                        summary_parts.append("\nRecent:")
+                        summary_parts.extend(entries)
+                    break
+
+            if summary_parts:
+                summary = "\n".join(summary_parts)[:max_length]
+                # Write summary as comment in the file
+                summary_marker = "<!-- AUTO-SUMMARY -->"
+                if summary_marker not in content:
+                    if not name:  # Only auto-write for bulk summarize
+                        new_content = content.replace("# ", f"# ", 1)
+                        # Insert after first heading
+                        heading_end = content.find("\n", content.find("# "))
+                        if heading_end > 0:
+                            new_content = content[:heading_end+1] + f"\n{summary_marker}\n{summary}\n<!-- END-AUTO-SUMMARY -->\n" + content[heading_end+1:]
+                            filepath.write_text(new_content, encoding="utf-8")
+                results.append({"entity": target, "summary": summary[:100] + "..." if len(summary) > 100 else summary})
+                print(f"📝 Summarized: {target} ({len(summary)} chars)")
+            else:
+                print(f"📝 Skipped: {target} (nothing to summarize)")
+
+        if not results:
+            print("📝 Summarize: no entities to summarize")
+        return results
+
     # ── Brain-first Lookup ───────────────────────────────────────
     def lookup(self, query: str, json_output: bool = False,
                brain_first: bool = False, full: bool = False):

@@ -316,3 +316,29 @@ class TestErrorHandling:
         result = mk._safe_read(bad)
         # Should not crash, return something
         assert isinstance(result, str)
+
+
+class TestR14Features:
+    def test_decay_dry_run(self, mk_with_data):
+        results = mk_with_data.decay(days=1, dry_run=True)
+        assert isinstance(results, list)
+
+    def test_decay_no_crash(self, mk):
+        mk.decay(days=999, dry_run=True)
+
+    def test_dedup_dry_run(self, mk_with_data):
+        results = mk_with_data.dedup(dry_run=True)
+        assert isinstance(results, list)
+
+    def test_dedup_empty_memory(self, mk):
+        mk.dedup(dry_run=True)
+
+    def test_summarize_existing(self, mk_with_data):
+        results = mk_with_data.summarize(name="Ada Lovelace")
+        assert isinstance(results, list)
+
+    def test_summarize_nonexistent(self, mk):
+        mk.summarize(name="Nobody")
+
+    def test_summarize_all(self, mk_with_data):
+        mk_with_data.summarize()  # bulk summarize
