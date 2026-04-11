@@ -53,6 +53,8 @@ def main():
     lookup_parser = subparsers.add_parser("lookup", help="Brain-first lookup")
     lookup_parser.add_argument("query", help="Search query")
     lookup_parser.add_argument("--json", action="store_true", help="JSON output")
+    lookup_parser.add_argument("--brain-first", action="store_true", help="Stop after high-relevance results")
+    lookup_parser.add_argument("--full", action="store_true", help="Search all directories")
 
     # extract
     extract_parser = subparsers.add_parser("extract", help="Auto-extract entities and facts from text")
@@ -63,6 +65,7 @@ def main():
     # cognify
     cognify_parser = subparsers.add_parser("cognify", help="Process inbox into structured pages")
     cognify_parser.add_argument("--dry-run", action="store_true", help="Preview without moving files")
+    cognify_parser.add_argument("--apply", action="store_true", help="Auto-move files (default: recommend-only)")
 
     # promote
     promote_parser = subparsers.add_parser("promote", help="Change memory tier for an entity")
@@ -80,6 +83,47 @@ def main():
     # links
     links_parser = subparsers.add_parser("links", help="Show backlinks to an entity")
     links_parser.add_argument("name", help="Entity name")
+
+    # query
+    query_parser = subparsers.add_parser("query", help="Progressive disclosure query (3 levels)")
+    query_parser.add_argument("query", nargs="?", default="", help="Search query (optional)")
+    query_parser.add_argument("--level", type=int, default=1, choices=[1, 2, 3], help="Detail level (1=index, 2=sections, 3=full)")
+    query_parser.add_argument("--recent", type=int, default=0, help="Show N most recent files")
+    query_parser.add_argument("--tag", default="", help="Filter by tag")
+    query_parser.add_argument("--date", default="", help="Filter by date (YYYY-MM-DD)")
+
+    # log
+    log_parser = subparsers.add_parser("log", help="Log or read session events")
+    log_parser.add_argument("--event", default="", help="Event description to log")
+    log_parser.add_argument("--tags", default="", help="Comma-separated tags")
+    log_parser.add_argument("--importance", default="normal", choices=["high", "medium", "normal", "low"], help="Importance level")
+    log_parser.add_argument("--entity", default="", help="Related entity")
+    log_parser.add_argument("--task", default="", help="Related task")
+    log_parser.add_argument("--decision", default="", help="Decision made")
+    log_parser.add_argument("--read", action="store_true", help="Read events")
+    log_parser.add_argument("--date", default="", help="Date for reading events (YYYY-MM-DD)")
+
+    # retro
+    retro_parser = subparsers.add_parser("retro", help="Daily retrospective")
+    retro_parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
+
+    # distill-decisions
+    dd_parser = subparsers.add_parser("distill-decisions", help="Scan for decision candidates")
+    dd_parser.add_argument("--dry-run", action="store_true", help="Preview only")
+
+    # open-loops
+    ol_parser = subparsers.add_parser("open-loops", help="Track unresolved items")
+    ol_parser.add_argument("--dry-run", action="store_true", help="Preview without writing hub file")
+
+    # index
+    subparsers.add_parser("index", help="Build memory index")
+
+    # suggest-links
+    subparsers.add_parser("suggest-links", help="Suggest missing wiki-links")
+
+    # extract-facts
+    ef_parser = subparsers.add_parser("extract-facts", help="Extract numeric/date facts")
+    ef_parser.add_argument("text", nargs="?", default="", help="Text to scan (default: scan memory files)")
 
     args = parser.parse_args()
 
@@ -104,11 +148,11 @@ def main():
     elif args.command == "dream":
         mc.dream(date=args.date, dry_run=args.dry_run)
     elif args.command == "lookup":
-        mc.lookup(args.query, json_output=args.json)
+        mc.lookup(args.query, json_output=args.json, brain_first=args.brain_first, full=args.full)
     elif args.command == "extract":
         mc.extract(args.text, source=args.source, dry_run=args.dry_run)
     elif args.command == "cognify":
-        mc.cognify(dry_run=args.dry_run)
+        mc.cognify(dry_run=args.dry_run, apply=args.apply)
     elif args.command == "promote":
         mc.promote(args.name, tier=args.tier)
     elif args.command == "diff":
@@ -117,6 +161,28 @@ def main():
         mc.search(args.query, fuzzy=args.fuzzy)
     elif args.command == "links":
         mc.links(args.name)
+    elif args.command == "query":
+        mc.query(args.query, level=args.level, recent=args.recent, tag=args.tag, date=args.date)
+    elif args.command == "log":
+        if args.read:
+            mc.log_read(date=args.date)
+        elif args.event:
+            mc.log_event(args.event, tags=args.tags, importance=args.importance,
+                         entity=args.entity, task=args.task, decision=args.decision)
+        else:
+            print("Use --event to log or --read to view events.")
+    elif args.command == "retro":
+        mc.retro(dry_run=args.dry_run)
+    elif args.command == "distill-decisions":
+        mc.distill_decisions(dry_run=args.dry_run)
+    elif args.command == "open-loops":
+        mc.open_loops(dry_run=args.dry_run)
+    elif args.command == "index":
+        mc.build_index()
+    elif args.command == "suggest-links":
+        mc.suggest_links()
+    elif args.command == "extract-facts":
+        mc.extract_facts_registry(text=args.text or "")
 
     return 0
 

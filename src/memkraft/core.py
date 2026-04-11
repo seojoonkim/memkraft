@@ -215,6 +215,19 @@ class MemKraft:
                     brief_parts.append(f"**{section}:** {text[:300]}")
             brief_parts.append("")
 
+        # Related decisions
+        if self.decisions_dir.exists():
+            related_decisions = []
+            for md in self.decisions_dir.glob("*.md"):
+                dcontent = md.read_text().lower()
+                if name.lower() in dcontent or slug in dcontent or f"[[{slug}]]" in dcontent:
+                    first_line = self._first_meaningful_line(dcontent)
+                    related_decisions.append(f"  - {md.stem}: {first_line[:80]}")
+            if related_decisions:
+                brief_parts.append("## 📌 Related Decisions")
+                brief_parts.extend(related_decisions[:10])
+                brief_parts.append("")
+
         # Checklist
         brief_parts.append("## ✅ Pre-Meeting Checklist")
         brief_parts.append("- [ ] Review recent communication history")
@@ -262,6 +275,9 @@ class MemKraft:
             "inbox_overdue": 0,
         }
 
+        # Ensure daily note exists before running
+        self.ensure_daily_note()
+
         # Check for incomplete source attributions
         print("   🔍 Scanning for incomplete source attributions...")
         for md in self._all_md_files():
@@ -278,6 +294,22 @@ class MemKraft:
             for md in self.entities_dir.glob("*.md"):
                 if md.stat().st_size < 300:
                     issues["thin_entities"] += 1
+
+        # Check for duplicate entities
+        print("   🔍 Scanning for duplicate entities...")
+        if self.entities_dir.exists():
+            seen_normalized = {}
+            for md in self.entities_dir.glob("*.md"):
+                # Normalize slug: lowercase, strip common suffixes
+                norm = md.stem.lower().replace("-", "")
+                # Also strip Korean particles for comparison
+                norm_kr = re.sub(r'(이|을|를|은|는|에|로|의)$', '', norm)
+                for n in [norm, norm_kr]:
+                    if n in seen_normalized and seen_normalized[n] != md.stem:
+                        issues["duplicate_entities"] += 1
+                        print(f"      ⚠️ Possible duplicate: {md.stem} ↔ {seen_normalized[n]}")
+                    else:
+                        seen_normalized[n] = md.stem
 
         # Check for overdue inbox items
         print("   🔍 Scanning inbox for overdue items...")
@@ -307,6 +339,7 @@ class MemKraft:
         print(f"\n🌙 Dream Cycle complete: {total} total issues found")
         print(f"   Incomplete sources: {issues['incomplete_sources']}")
         print(f"   Thin entities: {issues['thin_entities']}")
+        print(f"   Duplicate entities: {issues['duplicate_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
         print(f"   Bloated pages: {issues['bloated_pages']}")
 
@@ -384,11 +417,14 @@ class MemKraft:
                 return
 
     # ── Cognify ────────────────────────────────────────────────
-    def cognify(self, dry_run: bool = False):
-        """Process inbox items into structured pages."""
+    def cognify(self, dry_run: bool = False, apply: bool = False):
+        """Process inbox items — recommendation-only by default. Use --apply to auto-move."""
         if not self.inbox_dir.exists():
             print("No inbox directory found. Run 'memkraft init' first.")
             return
+
+        # Default is recommendation-only; --apply enables auto-classify
+        should_apply = apply and not dry_run
 
         results = {"processed": 0, "skipped": 0, "routed": {}}
         for md in sorted(self.inbox_dir.glob("*.md")):
@@ -404,7 +440,7 @@ class MemKraft:
             route = self._classify_content(content)
             results["routed"][md.name] = route
 
-            if not dry_run:
+            if should_apply:
                 target_dir = self._route_to_dir(route)
                 if target_dir:
                     target_dir.mkdir(parents=True, exist_ok=True)
@@ -413,10 +449,13 @@ class MemKraft:
 
             results["processed"] += 1
 
-        print(f"🧠 Cognify complete: {results['processed']} processed, {results['skipped']} skipped")
+        mode_str = "recommend" if not should_apply else "applied"
+        print(f"🧠 Cognify complete ({mode_str} mode): {results['processed']} processed, {results['skipped']} skipped")
         for name, route in results["routed"].items():
-            action = "would route" if dry_run else "routed"
-            print(f"   {action}: {name} → {route}")
+            if should_apply:
+                print(f"   routed: {name} → {route}")
+            else:
+                print(f"   → {name}: {route} (use --apply to move)")
 
     def _classify_content(self, content: str) -> str:
         """Classify content based on heuristics."""
@@ -578,8 +617,425 @@ class MemKraft:
                 print(f"  📎 {bl['file']}")
                 print(f"     ...{bl['context']}...")
 
-    # ── Lookup ────────────────────────────────────────────────
-    def lookup(self, query: str, json_output: bool = False):
+    # ── Query (Progressive Disclosure) ────────────────────────
+    def query(self, query: str = "", level: int = 1, recent: int = 0,
+              tag: str = "", date: str = ""):
+        """Progressive disclosure query — 3 levels of token efficiency."""
+        files = self._gather_memory_files(recent=recent, tag=tag, date=date)
+
+        if not files:
+            print("No matching files found.")
+            return
+
+        for md in files:
+            rel = md.relative_to(self.base_dir)
+            content = md.read_text()
+
+            if level == 1:
+                # Level 1: Index — date, first-line summary, tags (~50-100 tokens)
+                first_line = self._first_meaningful_line(content)
+                tags = self._extract_tags(content)
+                mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+                tag_str = f" [{tags}]" if tags else ""
+                print(f"  {mtime} {rel}{tag_str}")
+                print(f"    {first_line[:100]}")
+
+            elif level == 2:
+                # Level 2: Section headers + first line of each section
+                print(f"\n📄 {rel}")
+                sections = re.split(r'^(#{1,3} )', content, flags=re.MULTILINE)
+                for i in range(1, len(sections), 2):
+                    header = sections[i] + sections[i+1].split('\n')[0] if i+1 < len(sections) else ""
+                    body = sections[i+1] if i+1 < len(sections) else ""
+                    first_body = [l.strip() for l in body.split('\n') if l.strip() and not l.startswith('#')]
+                    first_body = first_body[0][:80] if first_body else ""
+                    print(f"  {header.strip()}")
+                    if first_body:
+                        print(f"    {first_body}")
+
+            elif level == 3:
+                # Level 3: Full file content
+                print(f"\n{'='*60}")
+                print(f"📄 {rel}")
+                print(f"{'='*60}")
+                print(content)
+
+    # ── Session Event Logging ───────────────────────────────────
+    def log_event(self, event: str, tags: str = "", importance: str = "normal",
+                   entity: str = "", task: str = "", decision: str = ""):
+        """Log a structured event to sessions JSONL."""
+        sessions_dir = self.base_dir / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        now = datetime.now()
+        entry = {
+            "ts": now.isoformat(),
+            "event": event,
+            "tags": [t.strip() for t in tags.split(",") if t.strip()],
+            "importance": importance,
+            "entity": entity,
+            "task": task,
+            "decision": decision,
+        }
+        filepath = sessions_dir / f"{now.strftime('%Y-%m-%d')}.jsonl"
+        with open(filepath, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        print(f"📝 Logged: {event[:60]}")
+
+    def log_read(self, date: str = None):
+        """Read session events from JSONL."""
+        target_date = date or datetime.now().strftime("%Y-%m-%d")
+        filepath = self.base_dir / "sessions" / f"{target_date}.jsonl"
+        if not filepath.exists():
+            print(f"No events for {target_date}.")
+            return
+        events = []
+        for line in filepath.read_text().strip().split("\n"):
+            if line.strip():
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        if not events:
+            print(f"No events for {target_date}.")
+            return
+        print(f"📋 Session events for {target_date} ({len(events)} events):")
+        for e in events:
+            imp = "🔴" if e.get("importance") == "high" else "🟡" if e.get("importance") == "medium" else "⚪"
+            tags_str = f" [{','.join(e.get('tags', []))}]" if e.get('tags') else ""
+            print(f"  {imp} {e['ts'][11:19]} {e['event'][:80]}{tags_str}")
+
+    # ── Daily Retrospective ─────────────────────────────────────
+    def retro(self, dry_run: bool = False):
+        """Generate daily retrospective — Well / Bad / Next."""
+        today = datetime.now().strftime("%Y-%m-%d")
+        print(f"🔄 Daily Retrospective — {today}")
+
+        # Ensure daily note exists
+        self.ensure_daily_note()
+
+        # Collect session events
+        events = []
+        event_file = self.base_dir / "sessions" / f"{today}.jsonl"
+        if event_file.exists():
+            for line in event_file.read_text().strip().split("\n"):
+                if line.strip():
+                    try:
+                        events.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+
+        # Collect inbox items
+        inbox_items = []
+        if self.inbox_dir.exists():
+            for md in self.inbox_dir.glob("*.md"):
+                if not md.name.startswith("_"):
+                    inbox_items.append(md.name)
+
+        # Collect today's changes
+        meta_dir = self.base_dir / ".memkraft"
+        ts_file = meta_dir / "last-dream-timestamp"
+        since = float(ts_file.read_text().strip()) if ts_file.exists() else 0.0
+        changed_files = []
+        for md in self._all_md_files():
+            if md.stat().st_mtime > since:
+                changed_files.append(str(md.relative_to(self.base_dir)))
+
+        # Build retrospective
+        well = []
+        bad = []
+        next_actions = []
+        entities_touched = set()
+        decisions_made = []
+
+        for e in events:
+            if e.get("entity"):
+                entities_touched.add(e["entity"])
+            if e.get("decision"):
+                decisions_made.append(e["decision"])
+            if e.get("importance") == "high":
+                if "fail" in e["event"].lower() or "error" in e["event"].lower():
+                    bad.append(e["event"])
+                else:
+                    well.append(e["event"])
+            if e.get("tags") and "todo" in e.get("tags", []):
+                next_actions.append(e["event"])
+
+        # Inbox overdue = bad
+        if inbox_items:
+            bad.append(f"{len(inbox_items)} inbox items unprocessed")
+
+        print("\n✅ Well (went well):")
+        for w in well[:10] or ["(none)"]:
+            print(f"  • {w}")
+
+        print("\n⚠️ Bad (issues):")
+        for b in bad[:10] or ["(none)"]:
+            print(f"  • {b}")
+
+        print("\n➡️ Next (action items):")
+        for n in next_actions[:10] or ["(none)"]:
+            print(f"  • {n}")
+
+        if entities_touched:
+            print(f"\n👥 Entities touched: {', '.join(sorted(entities_touched)[:20])}")
+        if decisions_made:
+            print(f"📌 Decisions made: {len(decisions_made)}")
+        if changed_files:
+            print(f"📄 Files changed: {len(changed_files)}")
+
+    # ── Ensure Daily Note ───────────────────────────────────────
+    def ensure_daily_note(self):
+        """Create today's daily note if missing (fallback safety)."""
+        today = datetime.now().strftime("%Y-%m-%d")
+        daily_path = self.base_dir / f"{today}.md"
+        if not daily_path.exists():
+            content = f"# Daily Note — {today}\n\n## Summary\n(Auto-created by MemKraft)\n\n## Events\n\n## Decisions\n\n## Notes\n"
+            daily_path.write_text(content)
+            print(f"📝 Created daily note: {daily_path}")
+        return daily_path
+
+    # ── Decision Distillation ───────────────────────────────────
+    def distill_decisions(self, dry_run: bool = False):
+        """Scan for decision candidates from events and daily notes."""
+        decision_kw_en = ["decided", "decision", "chose", "agreed", "approved", "rejected", "postponed"]
+        decision_kw_kr = ["결정", "채택", "승인", "보류", "통일", "제한", "확정"]
+        all_kw = decision_kw_en + decision_kw_kr
+
+        candidates = []
+
+        # Scan session events
+        sessions_dir = self.base_dir / "sessions"
+        if sessions_dir.exists():
+            for jsonl in sessions_dir.glob("*.jsonl"):
+                for line in jsonl.read_text().strip().split("\n"):
+                    if not line.strip():
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    event_text = entry.get("event", "")
+                    if any(kw in event_text.lower() for kw in decision_kw_en) or any(kw in event_text for kw in decision_kw_kr):
+                        candidates.append({"source": f"sessions/{jsonl.name}", "event": event_text, "importance": entry.get("importance", "normal")})
+
+        # Scan daily notes
+        for md in self.base_dir.glob("*.md"):
+            content = md.read_text()
+            for line in content.split("\n"):
+                line_lower = line.lower()
+                if any(kw in line_lower for kw in decision_kw_en) or any(kw in line for kw in decision_kw_kr):
+                    if line.strip() and not line.startswith("#"):
+                        candidates.append({"source": str(md.relative_to(self.base_dir)), "event": line.strip(), "importance": "normal"})
+
+        if not candidates:
+            print("No decision candidates found.")
+            return
+
+        print(f"📋 Decision candidates ({len(candidates)}):")
+        for c in candidates[:20]:
+            print(f"  [{c['importance']}] {c['source']}: {c['event'][:80]}")
+        if dry_run:
+            print("   (dry-run — no files created)")
+
+    # ── Open Loop Tracking ───────────────────────────────────────
+    def open_loops(self, dry_run: bool = False):
+        """Scan for unresolved/pending items across all memory files."""
+        pending_kw = ["pending", "waiting", "대기", "필요", "블로커", "확인 필요",
+                      "TODO", "FIXME", "[ ]", "⏳", "미해결", "미완료"]
+
+        loops = []
+        for md in self._all_md_files():
+            content = md.read_text()
+            rel = str(md.relative_to(self.base_dir))
+            mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            for line in content.split("\n"):
+                line_s = line.strip()
+                if not line_s or line_s.startswith("#"):
+                    continue
+                if any(kw in line_s for kw in pending_kw):
+                    loops.append({"file": rel, "line": line_s[:120], "date": mtime})
+
+        if not loops:
+            print("No open loops found. 🎉")
+            return
+
+        print(f"🔓 Open Loops ({len(loops)}):")
+        for l in sorted(loops, key=lambda x: x["date"])[:30]:
+            print(f"  [{l['date']}] {l['file']}: {l['line'][:80]}")
+
+        if not dry_run:
+            # Write open-loops.md hub
+            hub = self.base_dir / "open-loops.md"
+            content = "# Open Loops\n\nAuto-generated by MemKraft\n\n"
+            for l in sorted(loops, key=lambda x: x["date"]):
+                content += f"- [{l['date']}] {l['file']}: {l['line'][:100]}\n"
+            hub.write_text(content)
+            print(f"\n💾 Updated: {hub}")
+
+    # ── Memory Index ─────────────────────────────────────────────
+    def build_index(self):
+        """Build .memkraft/index.json for progressive disclosure."""
+        meta_dir = self.base_dir / ".memkraft"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        index = {}
+
+        for md in self._all_md_files():
+            rel = str(md.relative_to(self.base_dir))
+            content = md.read_text()
+            summary = self._first_meaningful_line(content)
+            tags = self._extract_tags(content)
+            sections = [l.strip() for l in content.split("\n") if l.startswith("#")]
+            mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            index[rel] = {
+                "date": mtime,
+                "summary": summary[:200],
+                "tags": tags,
+                "sections": sections[:20],
+                "size": md.stat().st_size,
+            }
+
+        # Also index daily notes
+        for md in self.base_dir.glob("*.md"):
+            rel = md.name
+            content = md.read_text()
+            summary = self._first_meaningful_line(content)
+            index[rel] = {"date": datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d"),
+                          "summary": summary[:200], "tags": [], "sections": [], "size": md.stat().st_size}
+
+        index_path = meta_dir / "index.json"
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
+        print(f"📇 Index built: {len(index)} files → {index_path}")
+
+    # ── Wiki Link Suggestion ─────────────────────────────────────
+    def suggest_links(self):
+        """Suggest [[wiki-links]] that should be added based on entity names."""
+        # Get existing entity slugs
+        entity_slugs = set()
+        if self.entities_dir.exists():
+            for md in self.entities_dir.glob("*.md"):
+                entity_slugs.add(md.stem)
+        if self.live_notes_dir.exists():
+            for md in self.live_notes_dir.glob("*.md"):
+                entity_slugs.add(md.stem)
+
+        if not entity_slugs:
+            print("No entities to suggest links for.")
+            return
+
+        suggestions = []
+        for md in self._all_md_files():
+            content = md.read_text()
+            rel = str(md.relative_to(self.base_dir))
+            for slug in entity_slugs:
+                # Check if slug appears in text but not as [[slug]]
+                pattern = r'\b' + re.escape(slug.replace("-", " ")) + r'\b'
+                # Also check hyphenated form
+                pattern_hyphen = re.escape(slug)
+                for p in [pattern, pattern_hyphen]:
+                    for match in re.finditer(p, content, re.IGNORECASE):
+                        start = max(0, match.start() - 2)
+                        if content[start:start+2] == "[[":
+                            continue  # Already a link
+                        context_start = max(0, match.start() - 20)
+                        context_end = min(len(content), match.end() + 20)
+                        context = content[context_start:context_end].replace("\n", " ").strip()
+                        suggestions.append({"file": rel, "slug": slug, "context": context[:80]})
+                        break  # One suggestion per slug per file
+                    else:
+                        continue
+                    break  # Found one, skip to next slug
+
+        if not suggestions:
+            print("No link suggestions found.")
+            return
+
+        print(f"🔗 Link suggestions ({len(suggestions)}):")
+        for s in suggestions[:20]:
+            print(f"  {s['file']}: add [[{s['slug']}]] — \"{s['context']}\"")
+
+    # ── Fact Registry ───────────────────────────────────────────
+    def extract_facts_registry(self, text: str = ""):
+        """Extract numeric/date facts and route to fact-registry.md."""
+        # If no text provided, scan recent files
+        if not text:
+            texts = []
+            for md in self._all_md_files():
+                texts.append(md.read_text())
+            text = " ".join(texts)
+
+        facts = []
+        # Currency: $N, ₩N, €N
+        for m in re.finditer(r'[\$₩€]\s?[\d,.]+(?:\s*(?:million|billion|trillion|만|억|조|M|B|K))?\b', text, re.IGNORECASE):
+            facts.append(m.group())
+        # Percentages
+        for m in re.finditer(r'\d+(?:\.\d+)?%', text):
+            facts.append(m.group())
+        # Dates
+        for m in re.finditer(r'\d{4}-\d{2}-\d{2}', text):
+            facts.append(m.group())
+        # Quantities: N items/users/employees/members
+        for m in re.finditer(r'\d+(?:,\d+)*(?:\s+(?:items|users|employees|members|people|명|개|건|팀))', text, re.IGNORECASE):
+            facts.append(m.group().strip())
+
+        if not facts:
+            print("No facts extracted.")
+            return
+
+        facts = list(dict.fromkeys(facts))  # Deduplicate preserving order
+        print(f"📊 Facts extracted ({len(facts)}):")
+        for f in facts[:30]:
+            print(f"  • {f}")
+
+        # Write to fact-registry.md
+        registry = self.base_dir / "fact-registry.md"
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        existing = registry.read_text() if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
+        existing += f"\n## {now}\n"
+        for f in facts:
+            existing += f"- {f}\n"
+        registry.write_text(existing)
+        print(f"\n💾 Updated: {registry}")
+
+    # ── Brain-first Lookup ───────────────────────────────────────
+    def lookup(self, query: str, json_output: bool = False,
+               brain_first: bool = False, full: bool = False):
+        """Brain-first lookup with search hierarchy and sufficiency threshold."""
+        results = []
+        search_dirs = [
+            (self.entities_dir, "entity", "high"),
+            (self.live_notes_dir, "live-note", "high"),
+            (self.decisions_dir, "decision", "medium"),
+            (self.inbox_dir, "inbox", "low"),
+            (self.tasks_dir, "task", "low"),
+        ]
+
+        high_count = 0
+        for directory, source, relevance in search_dirs:
+            # Brain-first: stop early if we have enough high-relevance results
+            if brain_first and not full and high_count >= 2 and relevance != "high":
+                break
+
+            if not directory.exists():
+                continue
+
+            for md in directory.glob("*.md"):
+                content = md.read_text().lower()
+                if query.lower() in content:
+                    results.append({"source": source, "file": md.stem, "relevance": relevance})
+                    if relevance == "high":
+                        high_count += 1
+
+        if json_output:
+            print(json.dumps(results, indent=2, ensure_ascii=False))
+        else:
+            if not results:
+                print(f"No results for '{query}'. Consider web search as fallback.")
+            else:
+                for r in results:
+                    print(f"  [{r['relevance']}] {r['source']}: {r['file']}")
+                if brain_first and not full and high_count >= 2:
+                    print(f"  (brain-first: stopped after {high_count} high-relevance results. Use --full for all.)")
         results = []
 
         # Search entities
@@ -760,9 +1216,40 @@ class MemKraft:
         return content[start:end].strip()
 
     def _all_md_files(self):
-        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.inbox_dir, self.tasks_dir]:
+        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
             if subdir.exists():
                 yield from subdir.glob("*.md")
+
+    def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
+        """Gather memory files with optional filters."""
+        files = list(self._all_md_files())
+        # Also include daily notes in base dir
+        for md in self.base_dir.glob("*.md"):
+            if md.name not in ("RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"):
+                files.append(md)
+        if recent > 0:
+            files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            files = files[:recent]
+        if date:
+            files = [f for f in files if date in f.read_text() or date in f.name]
+        if tag:
+            files = [f for f in files if tag.lower() in f.read_text().lower()]
+        return files
+
+    def _first_meaningful_line(self, content: str) -> str:
+        """Return the first non-heading, non-empty line."""
+        for line in content.split("\n"):
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and not stripped.startswith("---") and not stripped.startswith(">") and not stripped.startswith("**Tier") and len(stripped) > 10:
+                return stripped
+        return ""
+
+    def _extract_tags(self, content: str) -> str:
+        """Extract tags from content."""
+        tags = re.findall(r'(?:tags?:|태그:)\s*(.+)', content, re.IGNORECASE)
+        if tags:
+            return tags[0].strip()[:50]
+        return ""
 
     def _load_stopwords(self) -> dict:
         """불용어를 JSON 파일에서 로드 (캐시)"""
