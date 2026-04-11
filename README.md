@@ -90,7 +90,7 @@ All 20+ commands available from day one.
 
 ## Why MemKraft
 
-<img src="docs/hero.webp" alt="MemKraft — forge raw conversations into compound knowledge" width="100%">
+<img src="docs/hero.jpg" alt="MemKraft — forge raw conversations into compound knowledge" width="100%">
 
 AI agents start every conversation from zero. Six months later, the agent still doesn't *know* anything — it just searches faster. Conversation 100 is no better-informed than conversation 1.
 
