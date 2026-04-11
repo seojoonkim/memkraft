@@ -27,8 +27,11 @@ class MemKraft:
         self.meetings_dir = self.base_dir / "meetings"
 
     # ── Init ──────────────────────────────────────────────────
-    def init(self, path: str = "."):
-        target = Path(path) / "memory"
+    def init(self, path: str = ""):
+        if path:
+            target = Path(path) / "memory"
+        else:
+            target = self.base_dir
         target.mkdir(parents=True, exist_ok=True)
         for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions"]:
             (target / subdir).mkdir(exist_ok=True)
@@ -388,7 +391,7 @@ class MemKraft:
     # ── Extract ──────────────────────────────────────────────
     def extract(self, text: str, source: str = "", dry_run: bool = False):
         """Auto-extract entities and facts from text, write to memory."""
-        self.extract_conversations(text, source=source, dry_run=dry_run)
+        return self.extract_conversations(text, source=source, dry_run=dry_run)
 
     def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False):
         """Auto-extract entities/facts from markdown text, file path, or stdin."""
@@ -397,8 +400,8 @@ class MemKraft:
             resolved_source = source
 
         if not text.strip():
-            print("No input text provided.")
-            return
+            print("No input text provided. Usage: memkraft extract <text-or-filepath> --source <source>")
+            return []
 
         entities = self._detect_regex(text)
         facts = self._extract_facts(text)
@@ -438,6 +441,7 @@ class MemKraft:
                 results.append({"type": "fact-registry", "facts": written, "action": "written", "count": len(written)})
 
         print(json.dumps(results, indent=2, ensure_ascii=False))
+        return results
 
     def _extract_facts(self, text: str) -> list:
         """Extract key facts from text using regex patterns."""
@@ -463,8 +467,11 @@ class MemKraft:
                 return maybe_path.read_text(encoding="utf-8", errors="replace"), str(maybe_path)
             return input_text, "inline"
 
-        if not sys.stdin.isatty():
-            return sys.stdin.read(), "stdin"
+        try:
+            if not sys.stdin.isatty():
+                return sys.stdin.read(), "stdin"
+        except (OSError, AttributeError):
+            pass
 
         return "", ""
 
@@ -792,7 +799,11 @@ class MemKraft:
                 if fuzzy_score >= 0.3 and not best_snippet:
                     best_snippet = best_fuzzy_snippet
 
-            final_score = min(1.0, (exact_score * 0.65) + (token_score * 0.3) + (fuzzy_score * 0.35))
+            # If exact match found, score should reflect it strongly
+            if exact_score:
+                final_score = max(exact_score, min(1.0, (exact_score * 0.65) + (token_score * 0.3)))
+            else:
+                final_score = min(1.0, (token_score * 0.6) + (fuzzy_score * 0.4))
             if exact_score or token_score or (fuzzy and fuzzy_score >= 0.3):
                 results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
@@ -804,6 +815,7 @@ class MemKraft:
             for r in results[:20]:
                 snippet_display = f"\n     {r['snippet'][:100]}" if r.get('snippet') else ""
                 print(f"  [{r['score']:.2f}] {r['file']}{snippet_display}")
+        return results
 
     # ── Links (Backlinks) ─────────────────────────────────────
     def links(self, name: str):
