@@ -229,9 +229,10 @@ class MemKraft:
         if self.decisions_dir.exists():
             related_decisions = []
             for md in self.decisions_dir.glob("*.md"):
-                dcontent = md.read_text().lower()
+                dcontent_orig = md.read_text()
+                dcontent = dcontent_orig.lower()
                 if name.lower() in dcontent or slug in dcontent or f"[[{slug}]]" in dcontent:
-                    first_line = self._first_meaningful_line(dcontent)
+                    first_line = self._first_meaningful_line(dcontent_orig)
                     related_decisions.append(f"  - {md.stem}: {first_line[:80]}")
             if related_decisions:
                 brief_parts.append("## 📌 Related Decisions")
@@ -993,6 +994,11 @@ class MemKraft:
             facts.append(m.group())
         # Dates
         for m in re.finditer(r'\d{4}-\d{2}-\d{2}', text):
+            # Skip if it looks like metadata ([Source: ..., Last Update: ..., - **YYYY-MM-DD**)
+            start = max(0, m.start() - 20)
+            prefix = text[start:m.start()].lower()
+            if "source" in prefix or "update" in prefix or "started" in prefix or "**" in prefix:
+                continue
             facts.append(m.group())
         # Quantities: N items/users/employees/members
         for m in re.finditer(r'\d+(?:,\d+)*(?:\s+(?:items|users|employees|members|people|명|개|건|팀))', text, re.IGNORECASE):
@@ -1156,7 +1162,7 @@ class MemKraft:
                                 entities.append({"name": candidate, "type": "person", "context": "auto-detected (Japanese)"})
                                 break
 
-        handles = re.findall(r'@(\w+)', text)
+        handles = re.findall(r'(?:^|(?<=\s))@(\w+)', text)
         for handle in set(handles):
             entities.append({"name": handle, "type": "person", "context": "mentioned via @handle"})
 

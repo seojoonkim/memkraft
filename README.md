@@ -130,7 +130,7 @@ $ memkraft log --event "Deployed v0.2 to production" --tags deploy,release --imp
 $ memkraft log --read
 📋 Session events for 2026-04-11 (2 events):
   🔴 14:30:00 Deployed v0.2 to production [deploy,release]
-  🟡 11:00:00 Bug fix applied [bug]
+  ⚪ 11:00:00 Bug fix applied [bug]
 
 # Daily Retrospective — Well / Bad / Next
 $ memkraft retro
@@ -161,7 +161,7 @@ $ memkraft index
 # Suggest missing wiki-links
 $ memkraft suggest-links
 🔗 Link suggestions (1):
-  live-notes/simon-kim.md: add [[simon-kim]] — "CEO of Hashed, building MemKraft"
+  meetings/2026-04-10-hashed.md: add [[simon-kim]] — "CEO of Hashed, building MemKraft"
 
 # Extract numeric/date facts to cross-domain registry
 $ memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees, deadline 2026-06-30"
