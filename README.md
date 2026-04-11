@@ -15,6 +15,10 @@ from scattered fragments into an ever-growing, self-maintaining knowledge base.
 [![Zero dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen)](https://pypi.org/project/memkraft/)
 
 ```bash
+# Recommended: install as an isolated CLI tool
+pipx install memkraft
+
+# Or install into a project
 pip install memkraft
 ```
 
@@ -481,11 +485,36 @@ MemKraft was originally built as a production memory system for a multi-agent te
 
 ## Installation
 
+### pipx (recommended for CLI usage)
+
+```bash
+pipx install memkraft
+memkraft brief
+```
+
+`pipx` installs CLI tools in isolated virtualenvs — no dependency conflicts, no global pollution. One command to install, one to uninstall (`pipx uninstall memkraft`).
+
+Don't have pipx?
+```bash
+pip install pipx
+pipx ensurepath
+```
+
+### pip (for library usage)
+
 ```bash
 pip install memkraft
 ```
 
-From source:
+Use this when you want to `from memkraft import core` in your own Python project.
+
+### pipx run (one-shot, no install)
+
+```bash
+pipx run memkraft brief
+```
+
+### From source
 
 ```bash
 git clone https://github.com/seojoonkim/memkraft.git
