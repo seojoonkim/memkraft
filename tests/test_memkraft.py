@@ -1,4 +1,4 @@
-"""MemKraft unit tests — R11 hotfix"""
+"""MemKraft unit tests — R11 hotfix + org/product/location detection"""
 import json
 import os
 import tempfile
@@ -6,7 +6,6 @@ import shutil
 import pytest
 from pathlib import Path
 
-# Add src to path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -62,28 +61,98 @@ class TestExtract:
     def test_extract_fact_registry(self, mk):
         result = mk.extract("Revenue is $5.3M with 85% growth.", source="test")
         registry_facts = [r for r in result if r.get("type") == "fact-registry"]
-        # Should detect monetary and percentage facts
         if registry_facts:
             assert registry_facts[0]["action"] == "written"
 
     def test_extract_file(self, mk):
-        # Create a temp markdown file
         tmpfile = mk.base_dir / "test-conversation.md"
         tmpfile.write_text("# Meeting\n\nJack Ma discussed AI strategy.", encoding="utf-8")
         result = mk.extract(str(tmpfile), source="file-test")
-        # Should extract from file content
         entities = [r for r in result if r.get("type") == "person"]
         names = [e["name"] for e in entities]
         assert "Jack Ma" in names
 
     def test_extract_empty_returns_empty(self, mk):
         result = mk.extract("", source="test")
-        assert result == [] or result is None
+        assert result == []
 
-    def test_extract_nonexistent_file(self, mk):
+    def test_extract_nonexistent_file_no_crash(self, mk):
         result = mk.extract("/tmp/nonexistent_md_file_12345.md", source="test")
-        # Should not crash, should return empty or handle gracefully
+        # Should return empty list, not crash
         assert result is not None
+
+    def test_extract_returns_list(self, mk):
+        result = mk.extract("Simon Kim is the CEO of Hashed.", source="test")
+        assert isinstance(result, list)
+
+
+# ── Organization Detection ───────────────────────────────
+class TestOrgDetection:
+    def test_detect_known_org_apple(self, mk):
+        entities = mk._detect_regex("Apple released a new MacBook Pro with M5 chip.")
+        names = [e["name"] for e in entities]
+        assert "Apple" in names
+        apple_type = [e for e in entities if e["name"] == "Apple"][0]["type"]
+        assert apple_type == "organization"
+
+    def test_detect_known_org_google(self, mk):
+        entities = mk._detect_regex("Google announced new AI features.")
+        names = [e["name"] for e in entities]
+        assert "Google" in names
+
+    def test_detect_org_suffix(self, mk):
+        entities = mk._detect_regex("OpenAI Labs released GPT-5.")
+        org_entities = [e for e in entities if e["type"] == "organization"]
+        org_names = [e["name"] for e in org_entities]
+        assert any("Labs" in n for n in org_names)
+
+    def test_detect_korean_org(self, mk):
+        entities = mk._detect_regex("삼성전자와 현대자동차가 협력했다.")
+        org_entities = [e for e in entities if e["type"] == "organization"]
+        assert len(org_entities) >= 1
+
+    def test_detect_hashed_as_org(self, mk):
+        entities = mk._detect_regex("Hashed is a VC firm in Seoul.")
+        names = [e["name"] for e in entities]
+        assert "Hashed" in names
+        hashed_type = [e for e in entities if e["name"] == "Hashed"][0]["type"]
+        assert hashed_type == "organization"
+
+
+# ── Product Detection ────────────────────────────────────
+class TestProductDetection:
+    def test_detect_macbook_pro(self, mk):
+        entities = mk._detect_regex("Apple released a new MacBook Pro with M5 chip.")
+        product_entities = [e for e in entities if e["type"] == "product"]
+        product_names = [e["name"] for e in product_entities]
+        assert any("Pro" in n for n in product_names)
+
+    def test_detect_iphone_pro(self, mk):
+        entities = mk._detect_regex("The iPhone Pro has a new camera.")
+        product_entities = [e for e in entities if e["type"] == "product"]
+        assert len(product_entities) >= 1
+
+
+# ── Location Detection ───────────────────────────────────
+class TestLocationDetection:
+    def test_detect_seoul(self, mk):
+        entities = mk._detect_regex("Simon Kim is based in Seoul.")
+        location_entities = [e for e in entities if e["type"] == "location"]
+        location_names = [e["name"] for e in location_entities]
+        assert "Seoul" in location_names
+
+    def test_detect_multiple_locations(self, mk):
+        entities = mk._detect_regex("Offices in Seoul, Tokyo, and Singapore.")
+        location_entities = [e for e in entities if e["type"] == "location"]
+        location_names = [e["name"] for e in location_entities]
+        assert "Seoul" in location_names
+        assert "Tokyo" in location_names
+        assert "Singapore" in location_names
+
+    def test_detect_korean_location(self, mk):
+        entities = mk._detect_regex("서울시에서 강남구로 이사했다.")
+        location_entities = [e for e in entities if e["type"] == "location"]
+        assert len(location_entities) >= 1
 
 
 # ── Track & Update ───────────────────────────────────────
@@ -99,15 +168,18 @@ class TestTrackUpdate:
         assert "CEO of TestCorp" in content
 
     def test_update_entity_not_found_no_crash(self, mk):
-        # Should not crash when updating non-existent entity
         mk.update("Nobody", info="something", source="test")
+
+    def test_update_empty_info_skipped(self, mk):
+        mk.track("Test Person", entity_type="person", source="test")
+        # Empty info should be silently skipped
+        mk.update("Test Person", info="", source="test")
 
     def test_state_transition(self, mk):
         mk.track("Ada Lovelace", entity_type="person", source="test")
         mk.update("Ada Lovelace", info="Role: CTO of EngineCo", source="test1")
         mk.update("Ada Lovelace", info="Role: CEO of Analytical Machines", source="test2")
         content = (mk.base_dir / "live-notes" / "ada-lovelace.md").read_text(encoding="utf-8")
-        # Should have a state transition entry
         assert "CEO of Analytical Machines" in content
 
 
@@ -126,21 +198,28 @@ class TestSearch:
 
     def test_search_fuzzy(self, mk_with_data):
         results = mk_with_data.search("Hashd", fuzzy=True)
-        # Fuzzy should find something close to "Hashed"
         assert isinstance(results, list)
 
-    def test_search_no_results(self, mk):
+    def test_search_no_results_returns_empty(self, mk):
         results = mk.search("zzzznonexistent")
-        assert results == [] or results is not None
+        assert results == []
 
-    def test_search_exact_score_is_high(self, mk_with_data):
+    def test_search_exact_score_is_1_or_high(self, mk_with_data):
         """Exact match should score >= 0.8"""
         results = mk_with_data.search("CEO of Hashed")
         if results:
             assert results[0]["score"] >= 0.8, f"Exact match score too low: {results[0]['score']}"
 
+    def test_search_empty_query_returns_empty(self, mk):
+        results = mk.search("")
+        assert results == []
 
-# ── Detect ───────────────────────────────────────────────
+    def test_search_returns_list(self, mk_with_data):
+        results = mk_with_data.search("Hashed")
+        assert isinstance(results, list)
+
+
+# ── Detect (Core) ────────────────────────────────────────
 class TestDetect:
     def test_detect_english_names(self, mk):
         entities = mk._detect_regex("Simon Kim and Grace Hopper discussed AI.")
@@ -158,19 +237,10 @@ class TestDetect:
         names = [e["name"] for e in entities]
         assert "simonkim_nft" in names
 
-    def test_detect_organization(self, mk):
-        """Organizations like 'Apple', 'Google' should ideally be detected."""
-        entities = mk._detect_regex("Apple released a new MacBook Pro.")
-        # Current limitation: org/product detection not implemented
-        # This test documents the gap
-        # TODO: Add organization detection
-        pass  # Will fail when org detection is added — change to assert
-
 
 # ── Promote ──────────────────────────────────────────────
 class TestPromote:
     def test_promote_nonexistent(self, mk):
-        # Should not crash
         mk.promote("Nobody", tier="core")
 
     def test_promote_existing(self, mk):
@@ -181,7 +251,6 @@ class TestPromote:
 # ── Brief ────────────────────────────────────────────────
 class TestBrief:
     def test_brief_nonexistent(self, mk):
-        # Should not crash
         mk.brief("Nobody")
 
     def test_brief_existing(self, mk):
@@ -192,25 +261,31 @@ class TestBrief:
 # ── Dream ────────────────────────────────────────────────
 class TestDream:
     def test_dream_dry_run(self, mk):
-        mk.dream(dry_run=True)  # Should not crash
+        mk.dream(dry_run=True)
 
     def test_dream_live(self, mk):
         mk.track("Test Person", entity_type="person", source="test")
-        mk.dream()  # Should not crash
+        mk.dream()
 
 
 # ── Error Handling ───────────────────────────────────────
 class TestErrorHandling:
     def test_corrupted_md_file_no_crash(self, mk):
-        bad_file = mk.base_dir / "entities" / "bad.md"
         mk.entities_dir.mkdir(parents=True, exist_ok=True)
+        bad_file = mk.base_dir / "entities" / "bad.md"
         bad_file.write_bytes(b'\xff\xfe\x00\x00')
-        # list/search should not crash
-        mk.search("test")
+        mk.search("test")  # Should not crash
 
     def test_empty_entity_dir(self, mk):
-        mk.search("anything")  # No crash on empty dir
+        mk.search("anything")
 
     def test_extract_special_chars(self, mk):
         mk.extract("Test with <script>alert('xss')</script>", source="test")
-        # Should not crash, should sanitize or handle
+
+    def test_track_duplicate_no_crash(self, mk):
+        mk.track("Test Person", entity_type="person", source="test")
+        mk.track("Test Person", entity_type="person", source="test2")
+
+    def test_very_long_input(self, mk):
+        long_text = "Simon Kim is the CEO. " * 1000
+        mk.extract(long_text, source="test")

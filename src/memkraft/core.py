@@ -55,18 +55,19 @@ class MemKraft:
         name = name.strip()
         if not name:
             print("Error: Entity name cannot be empty.")
-            return
-        self.live_notes_dir.mkdir(parents=True, exist_ok=True)
-        slug = self._slugify(name)
-        filepath = self.live_notes_dir / f"{slug}.md"
+            return None
+        try:
+            self.live_notes_dir.mkdir(parents=True, exist_ok=True)
+            slug = self._slugify(name)
+            filepath = self.live_notes_dir / f"{slug}.md"
 
-        if filepath.exists():
-            print(f"⚠️ Already tracking: {filepath}")
-            print(f"   Use 'memkraft update \"{name}\" --info \"...\"' to add info")
-            return
+            if filepath.exists():
+                print(f"⚠️ Already tracking: {filepath}")
+                print(f"   Use 'memkraft update \"{name}\" --info \"...\"' to add info")
+                return None
 
-        now = datetime.now().strftime("%Y-%m-%d")
-        content = f"""# {name} (Live Note)
+            now = datetime.now().strftime("%Y-%m-%d")
+            content = f"""# {name} (Live Note)
 
 **Tier: core**
 
@@ -100,58 +101,69 @@ class MemKraft:
 
 - **{now}** | Live note created [Source: {source or 'Manual'}]
 """
-        filepath.write_text(content, encoding="utf-8")
-        print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
+            filepath.write_text(content, encoding="utf-8")
+            print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
+        except OSError as e:
+            print(f"❌ Error creating tracking file: {e}")
+            return None
+            return None
 
     # ── Update ────────────────────────────────────────────────
     def update(self, name: str, info: str, source: str = "manual"):
+        if not info or not info.strip():
+            return  # Skip empty updates
+
         slug = self._slugify(name)
         filepath = self.live_notes_dir / f"{slug}.md"
 
         if not filepath.exists():
             print(f"⚠️ Not tracking '{name}'. Use 'memkraft track' first.")
-            return
+            return None
 
-        content = filepath.read_text(encoding="utf-8", errors="replace")
-        now = datetime.now().strftime("%Y-%m-%d")
-        content, state_transitions = self._apply_state_changes(content, info)
+        try:
+            content = filepath.read_text(encoding="utf-8", errors="replace")
+            now = datetime.now().strftime("%Y-%m-%d")
+            content, state_transitions = self._apply_state_changes(content, info)
 
-        # Increment update count (English + Korean) — positional replace to avoid global corruption
-        count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
-        if count_match:
-            new_count = int(count_match.group(1)) + 1
-            old_str = count_match.group(0)
-            new_str = old_str[:old_str.rfind(count_match.group(1))] + str(new_count)
-            content = content[:count_match.start()] + new_str + content[count_match.end():]
+            # Increment update count
+            count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
+            if count_match:
+                new_count = int(count_match.group(1)) + 1
+                old_str = count_match.group(0)
+                new_str = old_str[:old_str.rfind(count_match.group(1))] + str(new_count)
+                content = content[:count_match.start()] + new_str + content[count_match.end():]
 
-        # Update last update date (English + Korean) — positional replace
-        last_match = re.search(r'(?:Last Update|마지막 업데이트):\*\* \d{4}-\d{2}-\d{2}', content)
-        if last_match:
-            new_date_str = re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group())
-            content = content[:last_match.start()] + new_date_str + content[last_match.end():]
+            # Update last update date
+            last_match = re.search(r'(?:Last Update|마지막 업데이트):\*\* \d{4}-\d{2}-\d{2}', content)
+            if last_match:
+                new_date_str = re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group())
+                content = content[:last_match.start()] + new_date_str + content[last_match.end():]
 
-        # Add to Recent Activity (English + Korean)
-        for marker in ["## Recent Activity", "## 최근 동향"]:
-            recent_idx = content.find(marker)
-            if recent_idx != -1:
-                insert_pos = content.find("\n", recent_idx) + 1
-                content = content[:insert_pos] + f"- **{now}** | {info} [Source: {source}]\n" + content[insert_pos:]
-                break
+            # Add to Recent Activity
+            for marker in ["## Recent Activity", "## 최근 동향"]:
+                recent_idx = content.find(marker)
+                if recent_idx != -1:
+                    insert_pos = content.find("\n", recent_idx) + 1
+                    content = content[:insert_pos] + f"- **{now}** | {info} [Source: {source}]\n" + content[insert_pos:]
+                    break
 
-        # Add to Timeline (English + Korean)
-        for marker in ["## Timeline (Full Record)\n\n", "## 타임라인 (전체 기록)\n\n", "## Timeline\n\n"]:
-            if marker in content:
-                transition_text = ""
-                for transition in state_transitions:
-                    transition_text += f"- **{now}** | State transition: {transition} [Source: {source}]\n"
-                content = content.replace(
-                    marker,
-                    f"{marker}{transition_text}- **{now}** | {info} [Source: {source}]\n\n"
-                )
-                break
+            # Add to Timeline
+            for marker in ["## Timeline (Full Record)\n\n", "## 타임라인 (전체 기록)\n\n", "## Timeline\n\n"]:
+                if marker in content:
+                    transition_text = ""
+                    for transition in state_transitions:
+                        transition_text += f"- **{now}** | State transition: {transition} [Source: {source}]\n"
+                    content = content.replace(
+                        marker,
+                        f"{marker}{transition_text}- **{now}** | {info} [Source: {source}]\n\n"
+                    )
+                    break
 
-        filepath.write_text(content, encoding="utf-8")
-        print(f"✅ Updated: {filepath.relative_to(self.base_dir.parent)}")
+            filepath.write_text(content, encoding="utf-8")
+            print(f"✅ Updated: {filepath.relative_to(self.base_dir.parent)}")
+        except OSError as e:
+            print(f"❌ Error updating file: {e}")
+            return None
 
     # ── List ──────────────────────────────────────────────────
     def list_entities(self):
@@ -462,9 +474,14 @@ class MemKraft:
     def _resolve_extract_input(self, input_text: str) -> tuple:
         """Resolve extract input from a file path, literal text, or stdin."""
         if input_text:
-            maybe_path = Path(input_text).expanduser()
-            if maybe_path.exists() and maybe_path.is_file():
-                return maybe_path.read_text(encoding="utf-8", errors="replace"), str(maybe_path)
+            # Skip path check for very long inputs (clearly not a file path)
+            if len(input_text) <= 4096:
+                maybe_path = Path(input_text).expanduser()
+                try:
+                    if maybe_path.exists() and maybe_path.is_file():
+                        return maybe_path.read_text(encoding="utf-8", errors="replace"), str(maybe_path)
+                except OSError:
+                    pass  # Not a valid path, treat as text
             return input_text, "inline"
 
         try:
@@ -742,6 +759,9 @@ class MemKraft:
     # ── Search (Fuzzy) ────────────────────────────────────────
     def search(self, query: str, fuzzy: bool = False):
         """Search memory with hybrid exact/token matching and optional fuzzy matching."""
+        if not query or not query.strip():
+            return []
+
         from difflib import SequenceMatcher
 
         results = []
@@ -1383,6 +1403,48 @@ class MemKraft:
         handles = re.findall(r'(?:^|(?<=\s))@(\w+)', text)
         for handle in set(handles):
             entities.append({"name": handle, "type": "person", "context": "mentioned via @handle"})
+
+        # ── Organization detection ─────────────────────────────
+        # Known tech companies (extendable)
+        known_orgs = {'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Tesla', 'Netflix', 'Nvidia', 'OpenAI', 'Anthropic', 'Samsung', 'Hashed', 'Tencent', 'Alibaba', 'ByteDance', 'Baidu', 'Sony', 'Toyota', 'Hyundai', 'LG', 'Kakao', 'Naver', 'Coupang', 'Toss', 'Stripe', 'SpaceX', 'Palantir', 'Uber', 'Airbnb', 'Coinbase', 'Binance', 'Riot', 'Epic', 'Valve', 'Blizzard'}
+        # "X Corp", "X Inc", "X Ltd", "X Co", "X Foundation", "X Labs", "X Group", "X Capital", "X Ventures"
+        org_suffix_pattern = re.findall(r'\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+(?:Corp|Inc|Ltd|Co|Foundation|Labs|Group|Capital|Ventures|Systems|Technologies|Networks|AI|IO|Software|Digital|Dynamics|Industries|Holdings))\b', text)
+        for org in org_suffix_pattern:
+            entities.append({"name": org, "type": "organization", "context": "auto-detected (suffix)"})
+
+        # Known org names from text
+        for org in known_orgs:
+            if re.search(r'\b' + re.escape(org) + r'\b', text):
+                # Check not already captured as person
+                if not any(e["name"] == org for e in entities):
+                    entities.append({"name": org, "type": "organization", "context": "auto-detected (known)"})
+
+        # Korean organizations: 한자+기관/회사/은행/그룹 etc.
+        kr_orgs = re.findall(r'([가-힣]{2,6}(?:기관|회사|은행|그룹|재단|연구소|대학|대학교|병원|센터|연합|협회|위원회|청|부|처|실|국|원|전자|자동차|물산|중공업|건설|해운|항공|통신|제약|화학|철강|에너지|인터넷|소프트웨어))', text)
+        for org in kr_orgs:
+            if org not in korean_stopwords:
+                entities.append({"name": org, "type": "organization", "context": "auto-detected (Korean org)"})
+
+        # ── Product detection ──────────────────────────────────
+        # "X Pro", "X Max", "X Ultra", "X Plus", "X Mini", "X Air"
+        product_pattern = re.findall(r'\b([A-Za-z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+(?:Pro|Max|Ultra|Plus|Mini|Air|Lite|SE|Studio|Suite|Cloud|Engine|Platform|OS|OSX))\b', text)
+        for prod in product_pattern:
+            # Avoid capturing person names like "Simon Pro"
+            if not any(e["name"] == prod for e in entities):
+                entities.append({"name": prod, "type": "product", "context": "auto-detected (suffix)"})
+
+        # ── Location detection ─────────────────────────────────
+        known_locations = {'Seoul', 'Tokyo', 'Beijing', 'Shanghai', 'Singapore', 'London', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Dubai', 'Hong Kong', 'Taipei', 'Bangkok', 'Sydney', 'Toronto', 'Vancouver', 'Busan', 'Jeju', 'Osaka', 'Mumbai', 'Delhi', 'Jakarta', 'Manila', 'Kuala Lumpur'}
+        for loc in known_locations:
+            if re.search(r'\b' + re.escape(loc) + r'\b', text):
+                if not any(e["name"] == loc for e in entities):
+                    entities.append({"name": loc, "type": "location", "context": "auto-detected (known)"})
+
+        # Korean locations: 시/도/구/군/읍/면
+        kr_locations = re.findall(r'([가-힣]{2,5}(?:시|도|구|군|읍|면|동|로|길))', text)
+        for loc in kr_locations:
+            if loc not in korean_stopwords and len(loc) >= 3:
+                entities.append({"name": loc, "type": "location", "context": "auto-detected (Korean location)"})
 
         return entities
 
