@@ -359,7 +359,6 @@ class MemKraft:
         # Inspired by Recursive Language Models (arXiv:2512.24601):
         # bloated pages waste context window — flag for compaction
         print("   🔍 Scanning for bloated pages (auto-compact candidates)...")
-        issues["bloated_pages"] = 0
         for md in self._all_md_files():
             size = md.stat().st_size
             if size > 4000:  # >4KB suggests Compiled Truth needs condensing
@@ -827,11 +826,11 @@ class MemKraft:
             print(f"  • {n}")
 
         if entities_touched:
-            print(f"\n👥 Entities touched: {', '.join(sorted(entities_touched)[:20])}")
+            print(f"\n{prefix}👥 Entities touched: {', '.join(sorted(entities_touched)[:20])}")
         if decisions_made:
-            print(f"📌 Decisions made: {len(decisions_made)}")
+            print(f"{prefix}📌 Decisions made: {len(decisions_made)}")
         if changed_files:
-            print(f"📄 Files changed: {len(changed_files)}")
+            print(f"{prefix}📄 Files changed: {len(changed_files)}")
 
     # ── Ensure Daily Note ───────────────────────────────────────
     def ensure_daily_note(self):
@@ -845,7 +844,7 @@ class MemKraft:
         return daily_path
 
     # ── Decision Distillation ───────────────────────────────────
-    def distill_decisions(self, dry_run: bool = False):
+    def distill_decisions(self):
         """Scan for decision candidates from events and daily notes."""
         decision_kw_en = ["decided", "decision", "chose", "agreed", "approved", "rejected", "postponed"]
         decision_kw_kr = ["결정", "채택", "승인", "보류", "통일", "제한", "확정"]
@@ -894,8 +893,6 @@ class MemKraft:
         print(f"📋 Decision candidates ({len(candidates)}):")
         for c in candidates[:20]:
             print(f"  [{c['importance']}] {c['source']}: {c['event'][:80]}")
-        if dry_run:
-            print("   (dry-run — no files created)")
 
     # ── Open Loop Tracking ───────────────────────────────────────
     def open_loops(self, dry_run: bool = False):
@@ -957,11 +954,11 @@ class MemKraft:
                 "size": md.stat().st_size,
             }
 
-        # Deduplicate keys (prefer _all_md_files entries which have richer metadata)
+        # Write index
         index_path = meta_dir / "index.json"
         with open(index_path, "w", encoding="utf-8") as f:
             json.dump(index, f, ensure_ascii=False, indent=2)
-        print(f"📇 Index built: {len(index)} files → {index_path}")
+        print(f"📇 Index built: {len(index)} files → {index_path.relative_to(self.base_dir)}")
 
     # ── Wiki Link Suggestion ─────────────────────────────────────
     def suggest_links(self):
@@ -1075,6 +1072,8 @@ class MemKraft:
             (self.entities_dir, "entity", "high"),
             (self.live_notes_dir, "live-note", "high"),
             (self.decisions_dir, "decision", "medium"),
+            (self.base_dir / "meetings", "meeting", "medium"),
+            (self.originals_dir, "original", "low"),
             (self.inbox_dir, "inbox", "low"),
             (self.tasks_dir, "task", "low"),
         ]
@@ -1139,14 +1138,15 @@ class MemKraft:
         chinese_stopwords = set(stopwords.get("chinese", []))
         japanese_stopwords = set(stopwords.get("japanese", []))
 
-        names_3_words = set()
-        for n in names_3:
-            names_3_words.update(n.split())
+        names_3_full = set(names_3)
+        names_3_word_sets = [set(n.split()) for n in names_3]
         for name in set(names_3):
             if name not in common:
                 entities.append({"name": name, "type": "person", "context": "auto-detected"})
         for name in set(names_2):
-            if name not in common and name.split()[0] not in common and name.split()[1] not in common and name.split()[0] not in names_3_words and name.split()[1] not in names_3_words:
+            name_words = set(name.split())
+            is_substring = any(name_words.issubset(ws) for ws in names_3_word_sets)
+            if name not in common and name.split()[0] not in common and name.split()[1] not in common and not is_substring:
                 entities.append({"name": name, "type": "person", "context": "auto-detected"})
         for name in set(korean_names):
             if len(name) >= 2 and name not in korean_stopwords:

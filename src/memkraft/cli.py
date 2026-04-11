@@ -110,7 +110,6 @@ def main():
 
     # distill-decisions
     dd_parser = subparsers.add_parser("distill-decisions", help="Scan for decision candidates")
-    dd_parser.add_argument("--dry-run", action="store_true", help="Preview only")
 
     # open-loops
     ol_parser = subparsers.add_parser("open-loops", help="Track unresolved items")
@@ -178,7 +177,7 @@ def main():
     elif args.command == "retro":
         mc.retro(dry_run=args.dry_run)
     elif args.command == "distill-decisions":
-        mc.distill_decisions(dry_run=args.dry_run)
+        mc.distill_decisions()
     elif args.command == "open-loops":
         mc.open_loops(dry_run=args.dry_run)
     elif args.command == "index":

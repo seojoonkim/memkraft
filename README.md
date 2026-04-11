@@ -415,7 +415,7 @@ memory/
 | **Memory Index** | Build `.memkraft/index.json` for fast scanning | Date, summary, tags, sections, file size per file — foundation for progressive disclosure |
 | **Link Suggestions** | Suggest missing `[[wiki-links]]` based on entity names | Matches entity slugs against text not already wrapped in `[[]]` |
 | **Fact Registry** | Extract numeric/date facts to cross-domain index | Currency, percentages, dates, quantities → `fact-registry.md` |
-| **Brain-first lookup** | Search memory before the web with sufficiency threshold | Searches entities → live-notes → decisions → inbox. Stops after ≥2 high-relevance results unless `--full` |
+| **Brain-first lookup** | Search memory before the web with sufficiency threshold | Searches entities → live-notes → decisions → meetings → originals → inbox → tasks. Stops after ≥2 high-relevance results unless `--full` |
 | **Live Notes** | Track people/companies persistently. Auto-update with new info | Dual-layer pages with auto-incrementing update count and timeline append |
 | **Meeting Brief** | One command to compile everything before a meeting | Pulls entity info, live note state, recent timeline, open threads, related decisions, and generates a pre-meeting checklist |
 | **Entity detection** | Auto-detect people in EN/KR/CN/JP text (regex-based) | 806 stopwords (533 KR + 250 CN + 23 JP), 100 CN surnames, 85 JP surnames, Korean particle/suffix stripping |
