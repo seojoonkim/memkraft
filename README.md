@@ -1,10 +1,6 @@
 <img src="assets/memkraft-banner.jpg" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
 
-<div align="center">
-
-# MemKraft
-
-</div>
+# 🧠 MemKraft
 
 🔴 Without MemKraft: Session 100 = Session 1
 
