@@ -242,35 +242,36 @@ Promote or demote with `memcraft promote "Name" --tier core`.
 | | **MemCraft** | **Mem0** | **Letta** | **GBrain** | **Rowboat** |
 |---|---|---|---|---|---|
 | Knowledge structure | Compiled Truth + Timeline | Graph + vector | Tiered (core/recall/archival) | Compiled Truth + Timeline | Obsidian vault |
-| Auto-extract | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Cognify pipeline | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Entity detection | ✅ (EN/KR/CN/JP) | ✅ (LLM extraction) | ❌ | ❌ | ❌ |
-| Live tracking | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Meeting prep | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Source attribution | ✅ Required | ❌ | ❌ | ✅ | ❌ |
-| Dream Cycle | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Memory tiers | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Diff tracking | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Fuzzy search | ✅ | ✅ (vector) | ❌ | ❌ | ❌ |
-| Backlinks | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Memory resolver | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Originals capture | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Self-editing memory | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Graph memory | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Virtual context mgmt | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Offline / git-friendly | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Auto-extract | ✅ | ✅ | — | — | — |
+| Cognify pipeline | ✅ | — | — | — | — |
+| Entity detection | ✅ (EN/KR/CN/JP) | ✅ (LLM) | — | — | — |
+| Live tracking | ✅ | — | — | — | ✅ |
+| Meeting prep | ✅ | — | — | — | ✅ |
+| Source attribution | ✅ Required | — | — | ✅ | — |
+| Dream Cycle | ✅ | — | — | — | — |
+| Memory tiers | ✅ | — | ✅ | — | — |
+| Diff tracking | ✅ | — | — | — | — |
+| Fuzzy search | ✅ | ✅ (vector) | — | — | — |
+| Backlinks | ✅ | — | — | — | — |
+| Memory resolver | ✅ | — | — | — | — |
+| Originals capture | ✅ | — | — | — | — |
+| Self-editing memory | — | — | ✅ | — | — |
+| Graph memory | — | ✅ | — | — | — |
+| Virtual context mgmt | — | — | ✅ | — | — |
+| Offline / git-friendly | ✅ | — | — | ✅ | ✅ |
 | Framework | Framework-agnostic | API-first (Python/JS) | Agent framework | Claude-specific | Desktop app |
-| Storage | Markdown | Vector DB + graph DB | DB-backed | Markdown | Markdown |
+| Storage | Plain Markdown | Vector DB + graph DB | DB-backed | Plain Markdown | Plain Markdown |
+| Semantic search | — | ✅ | — | — | — |
 | Cost to run | Free | Free tier + paid | Free | Free | Free |
 
-**What MemCraft absorbs from each:**
+**Different design priorities:**
 
-- **Mem0** — auto memory extraction from text. But Mem0 trades transparency for convenience: vector embeddings you can't read, graph edges you can't edit. MemCraft keeps everything in readable Markdown.
-- **Letta** (MemGPT) — tiered memory is a powerful idea (core/recall/archival). MemCraft adopts explicit tier labels without the complexity of virtual context paging.
-- **GBrain** — the compiled-truth model was a direct inspiration. MemCraft adopts it and adds Dream Cycle, Source Attribution, auto-extraction, and more.
-- **Rowboat** — persistent live-tracking is essential. MemCraft incorporates it alongside meeting briefs and resolution logic.
+- **Mem0** — strong at automatic memory extraction and semantic graph search. Best when you need API-first integration with vector retrieval. MemCraft takes the auto-extraction idea but keeps everything in readable, git-friendly Markdown.
+- **Letta** (MemGPT) — pioneered tiered memory and virtual context management within a full agent framework. Best when you want a complete agent runtime. MemCraft adopts tier labels as a lightweight convention without requiring a runtime.
+- **GBrain** — the compiled-truth + timeline model was a direct inspiration. Best for Claude-specific workflows. MemCraft generalizes it to be framework-agnostic and adds Dream Cycle, auto-extraction, and cognify.
+- **Rowboat** — persistent live-tracking and meeting briefs are essential ideas. Best as a desktop app. MemCraft incorporates them into a CLI-first, programmable workflow.
 
-MemCraft was built as a production memory system for a multi-agent team, then refined by absorbing the best ideas from each of these projects. The result: **the most complete, transparent, self-maintaining compound knowledge system available** — tested in production, not just designed in theory.
+MemCraft was built as a production memory system for a multi-agent team, then refined by incorporating ideas from each of these projects. The result: **a complete, transparent, self-maintaining compound knowledge system** — tested in production, not just designed in theory.
 
 ---
 
