@@ -48,9 +48,9 @@
   </g>
 
   <!-- Title -->
-  <text x="600" y="52" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="32" font-weight="700" fill="#e0f7fa" text-anchor="middle">MemKraft Architecture</text>
-  <text x="600" y="76" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#4db6ac" text-anchor="middle" letter-spacing="3">ZERO-DEPENDENCY MEMORY ENGINE</text>
-  <line x1="400" y1="88" x2="800" y2="88" stroke="url(#accentGrad)" stroke-width="1" opacity="0.4"/>
+  <text x="600" y="58" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="64" font-weight="700" fill="#e0f7fa" text-anchor="middle">MemKraft Architecture</text>
+  <text x="600" y="82" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#4db6ac" text-anchor="middle" letter-spacing="3">ZERO-DEPENDENCY COMPOUND MEMORY</text>
+  <line x1="300" y1="96" x2="900" y2="96" stroke="url(#accentGrad)" stroke-width="1" opacity="0.4"/>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- INPUT LAYER -->
