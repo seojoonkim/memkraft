@@ -1,4 +1,4 @@
-<img src="assets/memkraft-banner.webp" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
+<img src="assets/memkraft-banner.jpg" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
 
 # MemKraft 🧠
 
