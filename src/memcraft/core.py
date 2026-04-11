@@ -602,7 +602,7 @@ class MemCraft:
         korean_names_cleaned = []
         for name in korean_names:
             # 동사 어미 제거: 했다, 한다, 해요, 함, 됨, 됐다, etc.
-            stripped = re.sub(r'(했|할|해|되|됐|받|만|지|보|주|가|오|알|인|있|없|갈|될|할|만들|사용|개발|적용|설정|확인|업데이트|추가|수정|삭제|생성|실행|테스트|분석|검색|연결|설치|시작|완료|진행|보고|논의|발표|참여|준비|요청|제안|검토|승인|거절|검증|배포|구축|도입|운영|관리|모니터링|추적|감지|정리|보강|업그레이드|마이그레이션)(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서)?$', '', name)
+            stripped = re.sub(r'(했|할|해|되|됐|받|만|지|보|주|가|오|알|인|있|없|갈|될|할|만들|사용|개발|적용|설정|확인|업데이트|추가|수정|삭제|생성|실행|테스트|분석|검색|연결|설치|시작|완료|진행|보고|논의|발표|참여|준비|요청|제안|검토|승인|거절|검증|배포|구축|도입|운영|관리|모니터링|추적|감지|정리|보강|업그레이드|마이그레이션|이|이다|입니다|였다|였음)(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서|의)?$', '', name)
             if len(stripped) >= 2:
                 korean_names_cleaned.append(stripped)
         korean_names = korean_names_cleaned
@@ -624,7 +624,7 @@ class MemCraft:
         for name in set(korean_names):
             if len(name) >= 2 and name not in korean_stopwords:
                 # 한국어 조사 제거: 이, 을, 를, 은, 는, 에, 에서, 로, 으로, 와, 과, 도, 만, 이라, 이라서
-                stripped = re.sub(r'([가-힣]+?)([이을를은는에로으와과도만이라서는]+)$', r'\1', name)
+                stripped = re.sub(r'([가-힣]+?)([이을를은는에로으와과도만이라서의는]+)$', r'\1', name)
                 if stripped != name and len(stripped) >= 2 and stripped not in korean_stopwords:
                     name = stripped
                 if name not in korean_stopwords and len(name) >= 2:
