@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
+**v0.3.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
 
 <div align="center">
 
@@ -35,7 +35,7 @@ Zero-dependency compound knowledge system for AI agents. Auto-extract, classify,
 ### Install
 
 ```bash
-pip install memkraft
+pipx install memkraft
 ```
 
 ### CLI Usage
