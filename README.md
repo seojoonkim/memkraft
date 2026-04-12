@@ -38,7 +38,7 @@ The ultimate compound knowledge system for AI agents — auto-extract, cognify, 
 ## Quick Start
 
 ```bash
-pip install memkraft
+pipx install memkraft
 ```
 
 ```bash
@@ -410,7 +410,7 @@ memory/
 ## Installation
 
 ```bash
-pip install memkraft
+pipx install memkraft
 ```
 
 <details>
@@ -427,7 +427,7 @@ pipx run memkraft brief
 
 # From source
 git clone https://github.com/seojoonkim/memkraft.git
-cd memkraft && pip install .
+cd memkraft && pipx install .
 ```
 
 Don't have pipx?
