@@ -2,12 +2,7 @@
 
 # MemKraft 🧠
 
-
-🔴 Without MemKraft: Session 100 = Session 1
-
-🟢 With MemKraft: Every conversation makes the next one smarter
-
-The ultimate compound knowledge system for AI agents — auto-extract, cognify, track, tier, search, and maintain memory in plain Markdown with zero lock-in. A zero-dependency compound memory layer that turns raw conversations into an ever-growing, self-maintaining knowledge base.
+Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
 
 <div align="center">
 
@@ -22,14 +17,14 @@ The ultimate compound knowledge system for AI agents — auto-extract, cognify, 
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-180%2B%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-198%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
 
 <br>
 
-[Quick Start](#quick-start) · [Why MemKraft](#why-memkraft) · [Features](#features) · [Architecture](#architecture) · [Comparison](#comparison)
+[Quick Start](#quick-start) · [Features](#features) · [API Reference](#api-reference) · [CLI Reference](#cli-reference) · [Architecture](#architecture) · [Changelog](#changelog)
 
 </div>
 
@@ -37,9 +32,13 @@ The ultimate compound knowledge system for AI agents — auto-extract, cognify, 
 
 ## Quick Start
 
+### Install
+
 ```bash
-pipx install memkraft
+pip install memkraft
 ```
+
+### CLI Usage
 
 ```bash
 memkraft init
@@ -47,26 +46,62 @@ memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft brief "Simon Kim"
 ```
 
-That's it. No API keys. No database. No config. Plain Markdown files you own.
+No API keys. No database. No config. Plain Markdown files you own.
+
+### Python Usage
+
+```python
+from memkraft import MemKraft
+
+mk = MemKraft("/path/to/memory")
+mk.init()
+
+# Extract entities & facts from text
+mk.extract_conversations("Simon Kim is the CEO of Hashed.", source="news")
+
+# Track an entity
+mk.track("Simon Kim", entity_type="person", source="news")
+mk.update("Simon Kim", info="Launched MemKraft", source="X/@simonkim_nft")
+
+# Search with fuzzy matching
+results = mk.search("venture capital", fuzzy=True)
+
+# Agentic multi-hop search with context-aware re-ranking
+results = mk.agentic_search(
+    "who is the CEO of Hashed",
+    context="crypto investment research",  # Conway SMS: same query, different context → different ranking
+    file_back=True,  # feedback loop: results auto-filed back to entity timelines
+)
+
+# Run health check (5 self-diagnostic assertions)
+report = mk.health_check()
+# → {"pass_rate": 80.0, "health_score": "A", ...}
+
+# Dream Cycle — nightly maintenance
+mk.dream(dry_run=True)
+```
 
 <details>
-<summary><b>More examples — 6 daily patterns that cover 90% of use</b></summary>
+<summary><b>More CLI examples — 6 daily patterns that cover 90% of use</b></summary>
 
 <br>
 
 ```bash
 # 1. Extract & Track — auto-detect entities from any text
 memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
+memkraft extract "Revenue grew 85% YoY" --confidence verified --when "bull market"
 memkraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 memkraft update "Simon Kim" --info "Launched MemKraft" --source "X/@simonkim_nft"
 
 # 2. Search & Recall — find anything in your memory
 memkraft search "venture capital" --fuzzy
+memkraft search "Seoul VC" --file-back           # feedback loop: auto-file to timelines
 memkraft lookup "Simon" --brain-first
-memkraft agentic-search "who is the CEO of Hashed"
+memkraft agentic-search "who is the CEO of Hashed" --context "meeting prep"
 
 # 3. Meeting Prep — compile all context before a meeting
 memkraft brief "Simon Kim"
+memkraft brief "Simon Kim" --file-back            # record brief generation in timeline
 memkraft links "Simon Kim"
 
 # 4. Ingest & Classify — inbox → structured pages (safe by default)
@@ -74,64 +109,18 @@ memkraft cognify            # recommend-only; add --apply to move files
 memkraft detect "Jack Ma and 马化腾 discussed AI" --dry-run
 
 # 5. Log & Reflect — structured audit trail
-memkraft log --event "Deployed v0.2" --tags deploy --importance high
+memkraft log --event "Deployed v0.3" --tags deploy --importance high
 memkraft retro              # daily Well / Bad / Next retrospective
 
 # 6. Maintain & Heal — Dream Cycle keeps memory healthy
+memkraft health-check       # 5 assertions → pass rate + health score (A/B/C/D)
 memkraft dream --dry-run    # nightly: sources, duplicates, bloated pages
+memkraft resolve-conflicts --strategy confidence  # resolve contradictory facts
 memkraft diff               # what changed since last maintenance?
 memkraft open-loops         # find all unresolved items
 ```
 
-All 20+ commands available from day one.
-
 </details>
-
-<br>
-
-## Why MemKraft
-
-<img src="docs/hero.jpg" alt="MemKraft — forge raw conversations into compound knowledge" width="100%">
-
-AI agents start every conversation from zero. Six months later, the agent still doesn't *know* anything — it just searches faster. Conversation 100 is no better-informed than conversation 1.
-
-**MemKraft fixes this.**
-
-```
-Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compound Knowledge
-     ▲                                                │
-     └──────────── Brain-first recall ◄───────────────┘
-                        maintained by Dream Cycle ◀── nightly
-```
-
-Every fact has a source. Every entity has a timeline. Every night, Dream Cycle cleans the dross. Your next conversation starts sharper than the last.
-
-<table>
-<tr>
-<td><b>Memory compounds</b></td>
-<td>Each conversation builds on all prior ones. The 100th conversation is the best-informed.</td>
-</tr>
-<tr>
-<td><b>Structure enforces quality</b></td>
-<td>RESOLVER prevents duplicates. Source Attribution enforces trust. Tiers prioritize what matters.</td>
-</tr>
-<tr>
-<td><b>Maintenance is automated</b></td>
-<td>Dream Cycle keeps memory healthy — no manual curation required.</td>
-</tr>
-<tr>
-<td><b>Knowledge is portable</b></td>
-<td>Plain Markdown, zero dependencies, any framework. If MemKraft disappears, your memory is still readable.</td>
-</tr>
-<tr>
-<td><b>Provenance is non-negotiable</b></td>
-<td>Every fact traces back to a source. Facts without sources are trust debts.</td>
-</tr>
-<tr>
-<td><b>Context is finite</b></td>
-<td>Memory tiers fill the context window with what matters. Bloated pages get flagged. Inspired by <a href="https://arxiv.org/abs/2512.24601">Recursive Language Models (Zhang et al., 2025)</a>.</td>
-</tr>
-</table>
 
 <br>
 
@@ -139,195 +128,202 @@ Every fact has a source. Every entity has a timeline. Every night, Dream Cycle c
 
 ### Ingestion & Extraction
 
-<table>
-<tr>
-<td width="200"><b>Auto-extract</b></td>
-<td>Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP — no LLM calls, instant results.</td>
-</tr>
-<tr>
-<td><b>CJK detection</b></td>
-<td>806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. Multilingual out of the box.</td>
-</tr>
-<tr>
-<td><b>Cognify pipeline</b></td>
-<td>Routes <code>inbox/</code> items to the right directory. Recommend-only by default — <code>--apply</code> to actually move.</td>
-</tr>
-<tr>
-<td><b>Fact registry</b></td>
-<td>Extracts currencies, percentages, dates, quantities into a cross-domain index.</td>
-</tr>
-<tr>
-<td><b>Originals capture</b></td>
-<td>Save raw text verbatim. No paraphrasing, no interpretation loss.</td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Auto-extract** | Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP — no LLM calls. |
+| **CJK detection** | 806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. |
+| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default — `--apply` to move. |
+| **Fact registry** | Extracts currencies, percentages, dates, quantities into a cross-domain index. |
+| **Originals capture** | Save raw text verbatim — no paraphrasing. |
+| **Confidence levels** | Tag facts as `verified` / `experimental` / `hypothesis`. Dream Cycle warns untagged facts. |
+| **Applicability conditions** | `--when "condition" --when-not "condition"` — facts get `When:` / `When NOT:` metadata. |
 
 ### Search & Retrieval
 
-<table>
-<tr>
-<td width="200"><b>Fuzzy search</b></td>
-<td>Built on <code>difflib.SequenceMatcher</code>. Works offline, on a plane, with zero setup.</td>
-</tr>
-<tr>
-<td><b>Brain-first lookup</b></td>
-<td>Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results.</td>
-</tr>
-<tr>
-<td><b>Agentic search</b></td>
-<td>Multi-hop: decompose query → search → traverse <code>[[wiki-links]]</code> → re-rank by tier and recency.</td>
-</tr>
-<tr>
-<td><b>Progressive disclosure</b></td>
-<td>3-level query for token efficiency. L1: index scan (~50 tokens). L2: section headers. L3: full file.</td>
-</tr>
-<tr>
-<td><b>Backlinks</b></td>
-<td>Wiki-style <code>[[entity-name]]</code> cross-references. See every page that references an entity.</td>
-</tr>
-<tr>
-<td><b>Link suggestions</b></td>
-<td>Auto-suggest missing <code>[[wiki-links]]</code> based on known entity names.</td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Fuzzy search** | `difflib.SequenceMatcher`-based. Works offline, zero setup. |
+| **Brain-first lookup** | Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results. |
+| **Agentic search** | Multi-hop: decompose query → search → traverse `[[wiki-links]]` → re-rank by tier/recency/confidence/applicability. |
+| **Goal-weighted re-ranking** | Conway SMS: same query with different `--context` produces different rankings. |
+| **Feedback loop** | `--file-back`: search results auto-filed back to entity timelines (compound interest for memory). |
+| **Progressive disclosure** | 3-level query: L1 index (~50 tokens) → L2 section headers → L3 full file. |
+| **Backlinks** | `[[entity-name]]` cross-references. See every page that references an entity. |
+| **Link suggestions** | Auto-suggest missing `[[wiki-links]]` based on known entity names. |
 
 ### Structure & Organization
 
-<table>
-<tr>
-<td width="200"><b>Compiled Truth + Timeline</b></td>
-<td>Dual-layer entity model: mutable current state + append-only audit trail with source tags.</td>
-</tr>
-<tr>
-<td><b>Memory tiers</b></td>
-<td>Core / Recall / Archival — explicit context window priority. <code>promote</code> to reclassify.</td>
-</tr>
-<tr>
-<td><b>RESOLVER.md</b></td>
-<td>MECE classification tree — every piece of knowledge has exactly one destination.</td>
-</tr>
-<tr>
-<td><b>Source attribution</b></td>
-<td>Every fact tagged with <code>[Source: who, when, how]</code>. Enforced by Dream Cycle.</td>
-</tr>
-<tr>
-<td><b>Live Notes</b></td>
-<td>Persistent tracking for people and companies. Auto-incrementing updates + timeline.</td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Compiled Truth + Timeline** | Dual-layer entity model: mutable current state + append-only audit trail with `[Source:]` tags. |
+| **Memory tiers** | Core / Recall / Archival — explicit context window priority. `promote` to reclassify. |
+| **Memory type classification** | 8 types: identity, belief, preference, relationship, skill, episodic, routine, transient. |
+| **Type-aware decay** | Identity memories decay 10x slower than routine memories. Differential decay multipliers. |
+| **RESOLVER.md** | MECE classification tree — every piece of knowledge has exactly one destination. |
+| **Source attribution** | Every fact tagged with `[Source: who, when, how]`. Enforced by Dream Cycle. |
+| **Dialectic synthesis** | Auto-detect contradictory facts during `extract`, tag `[CONFLICT]`, generate `CONFLICTS.md`. |
+| **Conflict resolution** | `resolve-conflicts --strategy newest|confidence|keep-both|prompt`. |
+| **Live Notes** | Persistent tracking for people and companies. Auto-incrementing updates + timeline. |
 
 ### Maintenance & Audit
 
-<table>
-<tr>
-<td width="200"><b>Dream Cycle</b></td>
-<td>Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes.</td>
-</tr>
-<tr>
-<td><b>Memory decay</b></td>
-<td>Older, unaccessed memories naturally decay — keeps the knowledge base fresh.</td>
-</tr>
-<tr>
-<td><b>Fact dedup</b></td>
-<td>Automatically detects and merges duplicate facts across entities.</td>
-</tr>
-<tr>
-<td><b>Auto-summarize</b></td>
-<td>Condenses bloated pages while preserving key information.</td>
-</tr>
-<tr>
-<td><b>Diff tracking</b></td>
-<td>See exactly what changed since the last Dream Cycle.</td>
-</tr>
-<tr>
-<td><b>Open loop tracking</b></td>
-<td>Finds all pending / TODO / FIXME items across your entire memory.</td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Dream Cycle** | Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes. |
+| **Health Check** | 5 self-diagnostic assertions: source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts. Pass rate % + health score (A/B/C/D). |
+| **Memory decay** | Older, unaccessed memories naturally decay — type-aware differential curves. |
+| **Fact dedup** | Detects and merges duplicate facts across entities. |
+| **Auto-summarize** | Condenses bloated pages while preserving key information. |
+| **Diff tracking** | See exactly what changed since the last Dream Cycle. |
+| **Open loop tracking** | Finds all pending / TODO / FIXME items across memory. |
 
 ### Logging & Reflection
 
-<table>
-<tr>
-<td width="200"><b>Session logging</b></td>
-<td>JSONL event trail with tags, importance, entity, task, and decision fields.</td>
-</tr>
-<tr>
-<td><b>Daily retrospective</b></td>
-<td>Auto-generated Well / Bad / Next from session events + file changes.</td>
-</tr>
-<tr>
-<td><b>Decision distillation</b></td>
-<td>Scans events and notes for decision candidates. EN + KR keyword matching.</td>
-</tr>
-<tr>
-<td><b>Meeting briefs</b></td>
-<td>One command compiles entity info, timeline, open threads, and a pre-meeting checklist.</td>
-</tr>
-</table>
+| Feature | Description |
+|---------|-------------|
+| **Session logging** | JSONL event trail with tags, importance, entity, task, and decision fields. |
+| **Daily retrospective** | Auto-generated Well / Bad / Next from session events + file changes. |
+| **Decision distillation** | Scans events and notes for decision candidates. EN + KR keyword matching. |
+| **Meeting briefs** | One command compiles entity info, timeline, open threads, and a pre-meeting checklist. |
+
+<br>
+
+## API Reference
+
+### `MemKraft(base_dir=None)`
+
+Initialize the memory system. If `base_dir` is not provided, uses `$MEMKRAFT_DIR` or `./memory`.
+
+```python
+from memkraft import MemKraft
+mk = MemKraft("/path/to/memory")
+```
+
+### Core Methods
+
+| Method | Description |
+|--------|-------------|
+| `init(path="")` | Create memory directory structure with all subdirectories and templates. |
+| `track(name, entity_type="person", source="")` | Start tracking an entity. Creates a live-note in `live-notes/`. |
+| `update(name, info, source="manual")` | Append new information to a tracked entity's timeline. |
+| `brief(name, save=False, file_back=False)` | Generate a meeting brief for an entity. `file_back=True` records the brief generation in the entity timeline. |
+| `promote(name, tier="core")` | Change memory tier: `core` / `recall` / `archival`. |
+| `list_entities()` | List all tracked entities with their types. |
+
+### Extraction & Classification
+
+| Method | Description |
+|--------|-------------|
+| `extract_conversations(input_text, source="", dry_run=False, confidence="experimental", applicability="")` | Extract entities and facts from text. `confidence`: `verified` / `experimental` / `hypothesis`. `applicability`: `"When: X \| When NOT: Y"`. |
+| `detect(text, source="", dry_run=False)` | Detect entities in text (EN/KR/CN/JP). |
+| `cognify(dry_run=False, apply=False)` | Route inbox items to structured directories. Recommend-only by default. |
+| `extract_facts_registry(text="")` | Extract numeric/date facts into cross-domain index. |
+| `detect_conflicts(entity_name, new_fact, source="")` | Check for contradictory facts and tag with `[CONFLICT]`. |
+| `resolve_conflicts(strategy="newest", dry_run=False)` | Resolve conflicts. Strategies: `newest`, `confidence`, `keep-both`, `prompt`. |
+| `classify_memory_type(text)` | Classify text into one of 8 memory types. |
+
+### Search
+
+| Method | Description |
+|--------|-------------|
+| `search(query, fuzzy=False)` | Search memory files. Returns list of `{file, score, context, line}`. |
+| `agentic_search(query, max_hops=2, json_output=False, context="", file_back=False)` | Multi-hop search with query decomposition, link traversal, and goal-weighted re-ranking. `context` enables Conway SMS reconstructive ranking. `file_back` enables the feedback loop. |
+| `lookup(query, json_output=False, brain_first=False, full=False)` | Brain-first lookup: stop early on high-relevance hits unless `full=True`. |
+| `query(query="", level=1, recent=0, tag="", date="")` | Progressive disclosure: L1=index, L2=sections, L3=full. |
+| `links(name)` | Show backlinks to an entity (`[[wiki-links]]`). |
+
+### Maintenance
+
+| Method | Description |
+|--------|-------------|
+| `dream(date=None, dry_run=False, resolve_conflicts=False)` | Run Dream Cycle. 6 health checks + optional conflict resolution. |
+| `health_check()` | Run 5 self-diagnostic assertions. Returns `{pass_rate, health_score, assertions}`. |
+| `decay(days=90, dry_run=False)` | Flag stale facts. Type-aware: identity decays 10x slower than routine. |
+| `dedup(dry_run=False)` | Find and merge duplicate facts. |
+| `summarize(name=None, max_length=500)` | Auto-summarize bloated entity pages. |
+| `diff()` | Show changes since last Dream Cycle. |
+| `open_loops(dry_run=False)` | Find unresolved items (TODO/FIXME/pending). |
+| `build_index()` | Build memory index at `.memkraft/index.json`. |
+| `suggest_links()` | Suggest missing `[[wiki-links]]`. |
+
+### Logging
+
+| Method | Description |
+|--------|-------------|
+| `log_event(event, tags="", importance="normal", entity="", task="", decision="")` | Log a session event to JSONL. |
+| `log_read(date=None)` | Read session events for a date. |
+| `retro(dry_run=False)` | Generate daily retrospective (Well / Bad / Next). |
+| `distill_decisions()` | Scan for decision candidates in events and notes. |
+
+<br>
+
+## CLI Reference
+
+```
+memkraft <command> [options]
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `init [--path DIR]` | Initialize memory structure |
+| `extract TEXT [--source S] [--dry-run] [--confidence C] [--when W] [--when-not W]` | Auto-extract entities and facts |
+| `detect TEXT [--source S] [--dry-run]` | Detect entities in text (EN/KR/CN/JP) |
+| `track NAME [--type T] [--source S]` | Start tracking an entity |
+| `update NAME --info INFO [--source S]` | Update a tracked entity |
+| `list` | List all tracked entities |
+| `brief NAME [--save] [--file-back]` | Generate meeting brief |
+| `promote NAME [--tier T]` | Change memory tier (core/recall/archival) |
+| `search QUERY [--fuzzy] [--file-back]` | Search memory files |
+| `agentic-search QUERY [--max-hops N] [--json] [--context C] [--file-back]` | Multi-hop agentic search |
+| `lookup QUERY [--json] [--brain-first] [--full]` | Brain-first lookup |
+| `query [QUERY] [--level 1\|2\|3] [--recent N] [--tag T] [--date D]` | Progressive disclosure query |
+| `links NAME` | Show backlinks to an entity |
+| `cognify [--dry-run] [--apply]` | Process inbox into structured pages |
+| `log --event E [--tags T] [--importance I] [--entity E] [--task T] [--decision D]` | Log session event |
+| `log --read [--date D]` | Read session events |
+| `retro [--dry-run]` | Daily retrospective |
+| `distill-decisions` | Scan for decision candidates |
+| `health-check` | Run 5 self-diagnostic assertions → health score |
+| `dream [--date D] [--dry-run] [--resolve-conflicts]` | Run Dream Cycle (nightly maintenance) |
+| `resolve-conflicts [--strategy S] [--dry-run]` | Resolve fact conflicts |
+| `decay [--days N] [--dry-run]` | Flag stale facts |
+| `dedup [--dry-run]` | Find and merge duplicates |
+| `summarize [NAME] [--max-length N]` | Auto-summarize bloated pages |
+| `diff` | Show changes since last Dream Cycle |
+| `open-loops [--dry-run]` | Find unresolved items |
+| `index` | Build memory index |
+| `suggest-links` | Suggest missing wiki-links |
+| `extract-facts [TEXT]` | Extract numeric/date facts |
 
 <br>
 
 ## Architecture
 
-<p align="center">
-  <img src="assets/memkraft-architecture.svg" alt="MemKraft Architecture" width="100%">
-</p>
-
-<details>
-<summary>Text-based architecture diagram</summary>
-
 ```
-┌──────────────────────────────────────────────────────────┐
-│                        MemKraft                          │
-│                The Compound Knowledge Engine              │
-│                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │  Extract  │─▶│ RESOLVER │─▶│ Classify │              │
-│  │(auto-detect)│ │ (MECE   │─▶│ & Route  │              │
-│  └──────────┘  │  tree)   │  └────┬─────┘              │
-│  ┌──────────┐  └──────────┘       │                     │
-│  │  Inbox    │──────▶ Cognify ────┘                     │
-│  │ (capture) │     (recommend    │                     │
-│  └──────────┘      by default)   │                     │
-│                                     ▼                    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │ Decisions │  │ Entities │  │Live Notes│              │
-│  │ (why)     │  │ (who)    │  │ (track)  │              │
-│  └─────┬────┘  └─────┬────┘  └─────┬────┘              │
-│        │             │             │                     │
-│        └─────────────┼─────────────┘                     │
-│                      ▼                                   │
-│  ┌──────────────┐  ┌──────────────┐                     │
-│  │ Dream Cycle  │  │   Sessions    │                     │
-│  │ (auto-heal)  │  │  (JSONL log)  │                     │
-│  │ • sources    │  │              │                     │
-│  │ • thin pages  │  └──────┬───────┘                     │
-│  │ • duplicates  │         │                              │
-│  │ • inbox age   │         ▼                              │
-│  │ • bloated     │  ┌──────────────┐                     │
-│  │ • daily note  │  │  Retro &     │                     │
-│  └──────┬───────┘  │  Distill      │                     │
-│         │           └──────────────┘                     │
-│         ▼                                                 │
-│  ┌──────────────┐  ┌──────────────┐                     │
-│  │    Diff      │  │  Open Loops  │                     │
-│  │ (changes)    │  │  (unresolved)│                     │
-│  └──────────────┘  └──────────────┘                     │
-│                                                           │
-│  ┌──────────────────────────────────────────────┐       │
-│  │ Progressive Disclosure: query --level 1|2|3    │       │
-│  │ Brain-first Lookup: entities → notes → ...    │       │
-│  │ Memory Index: .memkraft/index.json            │       │
-│  │ Source Attribution: [Source: who, when, how]  │       │
-│  │ Memory Tiers: core | recall | archival         │       │
-│  │ Backlinks: [[entity-name]]                    │       │
-│  │ Fact Registry: cross-domain numeric index     │       │
-│  └──────────────────────────────────────────────┘       │
-└──────────────────────────────────────────────────────────┘
+Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compound Knowledge
+     ▲            │                                      │
+     │        Confidence                                 │
+     │        Applicability                              │
+     │                                                   │
+     └──── Feedback Loop ◄── Brain-first recall ◄───────┘
+                              maintained by Dream Cycle + Health Check
 ```
 
-</details>
+### How It Works
+
+**Zero dependencies.** Built entirely from Python stdlib: `re` for NER, `difflib` for fuzzy search, `json` for structured data, `pathlib` for file ops. No vector DB, no LLM calls at runtime, no framework lock-in.
+
+**Compiled Truth + Timeline.** Every entity has two layers: a mutable *Compiled Truth* (current state) and an append-only *Timeline* with `[Source:]` tags. You get both "what we know now" and "how we got here."
+
+**Auto-Extract pipeline.** Multi-stage NER: English Title Case → Korean particle stripping → Chinese surname detection (100 surnames) → Japanese surname detection (85 surnames) → fact extraction (`X is/was/leads Y`) → stopword filtering (806 KR/CN/JP stopwords).
+
+**Goal-weighted re-ranking (Conway SMS).** `agentic_search("X", context="meeting prep")` and `agentic_search("X", context="investment analysis")` return different rankings from the same data. Memory type, confidence, and applicability conditions all factor into scoring.
+
+**Feedback loop.** `--file-back` files search results back into entity timelines. Each query makes future queries richer — compound interest for memory.
+
+**Health Check.** 5 assertions: (1) source attribution, (2) no orphan facts, (3) no duplicates, (4) inbox freshness, (5) no unresolved conflicts. Returns a pass rate and letter grade (A/B/C/D).
 
 ### Memory Directory Structure
 
@@ -337,12 +333,13 @@ memory/
 ├── sessions/            # Structured event logs (YYYY-MM-DD.jsonl)
 ├── RESOLVER.md          # Classification decision tree (MECE)
 ├── TEMPLATES.md         # Page templates with tier labels
-├── open-loops.md        # Unresolved items hub (auto-generated)
+├── CONFLICTS.md         # Auto-generated conflict report
+├── open-loops.md        # Unresolved items hub
 ├── fact-registry.md     # Cross-domain numeric/date facts
-├── YYYY-MM-DD.md        # Daily notes (auto-created by Dream Cycle)
+├── YYYY-MM-DD.md        # Daily notes
 ├── entities/            # People, companies, concepts (Tier: recall)
 ├── live-notes/          # Persistent tracking targets (Tier: core)
-├── decisions/           # Why we decided what we decided
+├── decisions/           # Decision records with rationale
 ├── originals/           # Captured verbatim — no paraphrasing
 ├── inbox/               # Quick capture before classification
 ├── tasks/               # Work-in-progress context
@@ -353,365 +350,30 @@ memory/
 
 ## Comparison
 
-> We respect every project in this space. Here's an honest look at the trade-offs.
+| | **MemKraft** | **Mem0** | **Letta** |
+|---|:---:|:---:|:---:|
+| **Storage** | Plain Markdown | Vector + Graph DB | DB-backed |
+| **Dependencies** | Zero | Vector DB + API | DB + runtime |
+| **Offline / git-friendly** | ✅ | ❌ | ❌ |
+| Auto-extract (EN/KR/CN/JP) | ✅ | ✅ (LLM) | — |
+| Agentic search | ✅ | — | — |
+| Goal-weighted re-ranking | ✅ | — | — |
+| Feedback loop | ✅ | — | — |
+| Confidence levels | ✅ | — | — |
+| Health check | ✅ | — | — |
+| Conflict detection & resolution | ✅ | — | — |
+| Source attribution | Required | — | — |
+| Dream Cycle | ✅ | — | — |
+| Memory tiers | ✅ | — | ✅ |
+| Type-aware decay | ✅ | — | — |
+| **Semantic search** | ❌ | ✅ | — |
+| **Graph memory** | ❌ | ✅ | — |
+| **Self-editing memory** | ❌ | — | ✅ |
+| **Cost** | Free | Free tier + paid | Free |
 
-**The short version:** Mem0 and Letta are excellent — if you want vector search or a full agent runtime, use them. MemKraft is for teams who want **portable, git-friendly memory with zero dependencies** that works with any framework, offline, forever.
-
-| | **MemKraft** | **Mem0** | **Letta** | **GBrain** | **Rowboat** |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **Storage** | Plain Markdown | Vector + Graph DB | DB-backed | Plain Markdown | Plain Markdown |
-| **Dependencies** | Zero | Vector DB + API | DB + runtime | Zero | Desktop app |
-| **Framework** | Any | API-first (Py/JS) | Agent framework | Claude-specific | Obsidian |
-| **Offline / git-friendly** | Yes | No | No | Yes | Yes |
-| | | | | | |
-| Auto-extract (EN/KR/CN/JP) | Yes | Yes (LLM) | — | — | — |
-| Cognify pipeline | Yes | — | — | — | — |
-| Progressive disclosure | Yes | — | — | — | — |
-| Agentic search | Yes | — | — | — | — |
-| Fuzzy search | Yes | Yes (vector) | — | — | — |
-| **Semantic search** | **No** | **Yes** | — | — | — |
-| **Graph memory** | **No** | **Yes** | — | — | — |
-| **Self-editing memory** | **No** | — | **Yes** | — | — |
-| **Virtual context mgmt** | **No** | — | **Yes** | — | — |
-| Source attribution | Required | — | — | Yes | — |
-| Memory tiers | Yes | — | Yes | — | — |
-| Dream Cycle | Yes | — | — | — | — |
-| Memory decay + dedup | Yes | — | — | — | — |
-| Auto-summarize | Yes | — | Yes | — | — |
-| Live tracking | Yes | — | — | — | Yes |
-| Meeting prep | Yes | — | — | — | Yes |
-| Session logging | Yes | — | — | — | — |
-| Backlinks | Yes | — | — | — | — |
-| Open loop tracking | Yes | — | — | — | — |
-| Decision distillation | Yes | — | — | — | — |
-| **Cost** | Free | Free tier + paid | Free | Free | Free |
-
-<details>
-<summary><b>Where each tool shines</b></summary>
-
-<br>
-
-- **Mem0** — Best for API-first integration with vector retrieval and graph traversal. Strongest at semantic search and automatic memory extraction. MemKraft takes the auto-extraction idea but keeps everything in readable, git-friendly Markdown.
-
-- **Letta** (MemGPT) — Best when you want a complete agent runtime with automatic context paging and self-editing memory. Pioneered tiered memory and virtual context management. MemKraft adopts tiers as a lightweight convention without requiring a runtime.
-
-- **GBrain** — Best for Claude-specific workflows. The compiled-truth + timeline model was a direct inspiration. MemKraft generalizes it to be framework-agnostic and adds Dream Cycle, auto-extraction, and cognify.
-
-- **Rowboat** — Best as an Obsidian desktop app for human-in-the-loop workflows. MemKraft incorporates live-tracking and meeting briefs into a CLI-first, programmable workflow that agents can call directly.
-
-**Choose MemKraft when:** you want compound memory that's portable, transparent, git-friendly, and works with any agent framework — without a database, API keys, or a running service.
+**Choose MemKraft when:** you want portable, git-friendly, zero-dependency memory that works with any agent framework, offline, forever.
 
 **Choose something else when:** you need semantic/vector search, graph traversal, or a full agent runtime with virtual context management.
-
-</details>
-
-<br>
-
-## Installation
-
-```bash
-pipx install memkraft
-```
-
-<details>
-<summary><b>More installation options</b></summary>
-
-<br>
-
-```bash
-# Isolated install with pipx (recommended for CLI use)
-pipx install memkraft
-
-# Run without installing
-pipx run memkraft brief
-
-# From source
-git clone https://github.com/seojoonkim/memkraft.git
-cd memkraft && pipx install .
-```
-
-Don't have pipx?
-```bash
-brew install pipx && pipx ensurepath   # macOS
-```
-
-</details>
-
-**Requirements:** Python 3.9+. Nothing else.
-
-```bash
-# Optional: set memory directory (default: ./memory)
-export MEMKRAFT_DIR=/path/to/your/memory
-```
-
-<br>
-
-<details>
-<summary><h2>How It Works — Technical Design</h2></summary>
-
-<br>
-
-### Zero-dependency Philosophy
-
-MemKraft runs on **Python 3.9+ with zero external dependencies**. No vector databases, no LLM API calls at runtime, no framework lock-in. Built entirely from the standard library: `re` for pattern matching, `difflib` for fuzzy search, `json` for structured data, `pathlib` for file operations.
-
-Why? Because memory should be **portable and permanent**. A Markdown file from 2026 is still readable in 2036. A vector embedding from a proprietary model may not even decode. When you `git push` your memory directory, you're backing up knowledge in its most durable form.
-
-### Compiled Truth + Timeline (Dual-Layer Entity Model)
-
-Every entity page is forged in two layers:
-
-- **Compiled Truth** — the current state. Mutable, always rewritable. This is what an LLM reads first: role, affiliation, key context. When facts change, you re-forge this section.
-- **Timeline** — an append-only log of every event, each tagged with `[Source: who, when, how]`. Never edited, only appended.
-
-Why dual-layer? Because a single "current state" page silently overwrites history. The timeline is an audit trail — it makes every claim traceable. Compiled Truth makes it actionable. Together, they give you both *what we know now* and *how we got here*.
-
-### Auto-Extract: Entity and Fact Detection
-
-`memkraft extract` runs a multi-stage detection pipeline:
-
-1. **English names** — regex for Title Case patterns, filtered against a common-word blocklist
-2. **Korean names** — Hangul syllable extraction with particle stripping (조사 제거: 이, 을, 를, 은, 는, 에, 로...) and verb-suffix removal
-3. **Chinese names** — surname-first detection using 100 built-in Chinese surnames (王李张刘陈杨赵黄周吴...)
-4. **Japanese names** — surname-matched detection against 85 Japanese surnames (田中, 佐藤, 鈴木, 高橋...)
-5. **Fact extraction** — pattern matching for "X is/was/founded/leads Y" in English and Korean
-6. **Stopword filtering** — 806 KR/CN/JP stopwords loaded from `stopwords.json`, cached per session
-
-### Cognify: Inbox Classification
-
-The `cognify` command processes `inbox/` items and recommends routing:
-
-- Contains "decided", "decision", "chose" → `decisions/`
-- Contains "todo", "task", "action item" → `tasks/`
-- Contains role words (CEO, CTO, founder, investor) → `entities/`
-- Default → `entities/` for manual review
-
-**Recommend-only by default.** Add `--apply` to actually move files. Files under 20 characters are skipped.
-
-### Source Attribution: Trust Chain
-
-Every fact carries a `[Source: who, when, how]` tag. Dream Cycle scans for entries without attribution and flags them. Facts without sources are trust debts — they work until they don't. MemKraft makes the debt visible.
-
-### Memory Tiers: Context Window Management
-
-- **Core** — always in context. Live Notes default. Active people and projects.
-- **Recall** — searchable, included when relevant. Entity default.
-- **Archival** — historical, rarely accessed. Old decisions, completed projects.
-
-`memkraft promote` reclassifies tiers as priorities shift.
-
-### Dream Cycle: Automated Maintenance
-
-Six nightly health checks:
-
-1. **Daily note fallback** — auto-creates daily note if missing
-2. **Incomplete source attributions** — flags timeline entries without `[Source: ...]`
-3. **Thin entity pages** — flags pages under 300 bytes
-4. **Duplicate entity detection** — normalizes slugs, flags potential duplicates (e.g., `simon-kim` ↔ `김서준`)
-5. **Overdue inbox items** — flags anything in `inbox/` older than 48 hours
-6. **Bloated pages** — flags pages over 4KB for compaction
-
-### Fuzzy Search
-
-Uses `difflib.SequenceMatcher` — no embedding model, no API calls. Compares the query against every line in every memory file, keeping matches above a 0.3 similarity threshold with ±3 lines of context. Works offline, in CI, on a plane.
-
-### Backlinks
-
-`[[entity-name]]` syntax (compatible with Obsidian, Logseq). `memkraft links "Entity Name"` scans all `.md` files and returns referencing files with surrounding context.
-
-### RESOLVER.md: MECE Classification
-
-A decision tree that ensures every piece of knowledge has exactly one correct destination. Prevents the two most common memory diseases: duplicates and orphans.
-
-</details>
-
-<details>
-<summary><h2>Full CLI Demo</h2></summary>
-
-<br>
-
-```bash
-# Initialize the forge
-$ memkraft init
-✅ MemKraft initialized at memory
-
-# Auto-extract entities and facts from any text
-$ memkraft extract "Simon Kim is the CEO of Hashed. Hashed is a VC in Seoul." \
-    --source "X/@simonkim_nft"
-[
-  {"name": "Simon Kim", "type": "person", "context": "auto-detected", "source": "X/@simonkim_nft", "action": "created", "path": "entities/simon-kim.md"},
-  {"entity": "Simon Kim", "fact": "the CEO of Hashed", "action": "appended"}
-]
-
-# Start tracking someone persistently
-$ memkraft track "Simon Kim" --type person --source "X/@simonkim_nft"
-✅ Tracking: memory/live-notes/simon-kim.md
-
-# Update with new info
-$ memkraft update "Simon Kim" --info "Open-sourced MemKraft under MIT" \
-    --source "X/@simonkim_nft, 2026-04-10"
-✅ Updated: memory/live-notes/simon-kim.md
-
-# Promote to core memory (always in context)
-$ memkraft promote "Simon Kim" --tier core
-✅ Promoted 'Simon Kim' → core
-
-# Get a meeting brief
-$ memkraft brief "Simon Kim"
-
-📋 Meeting Brief: Simon Kim
-Generated: 2026-04-11
-
-👤 Entity Info
-   CEO of Hashed. VC based in Seoul.
-
-🔄 Live Note
-   Current State: CEO of Hashed, building MemKraft, the compound knowledge engine
-   Recent Activity:
-   - 2026-04-10 | Open-sourced MemKraft [Source: X/@simonkim_nft]
-
-📅 Timeline
-   - 2026-04-11 | Entity first detected [Source: Telegram]
-   - 2026-04-10 | MemKraft MIT release [Source: X/@simonkim_nft]
-
-🔓 Open Threads
-   - [ ] Initial entity — enrichment needed
-
-# Detect CJK entities
-$ memkraft detect "马化腾和李彦宏讨论了人工智能" --dry-run
-[
-  {"name": "马化腾", "type": "person", "context": "auto-detected (Chinese)"},
-  {"name": "李彦宏", "type": "person", "context": "auto-detected (Chinese)"}
-]
-
-# Process inbox
-$ memkraft cognify
-🧠 Cognify complete (recommend mode): 3 processed, 1 skipped
-   → meeting-notes.md: decision (use --apply to move)
-   → decision-001.md: decision (use --apply to move)
-   → action-items.md: task (use --apply to move)
-
-# Progressive Disclosure Query
-$ memkraft query simon --level 1
-  2026-04-11 live-notes/simon-kim.md
-    - **2026-04-11** | Tracking started
-
-$ memkraft query --level 2 --date 2026-04-11
-  📄 live-notes/simon-kim.md
-    # Simon Kim (Live Note)
-    ## Tracking Config
-    ## Current State
-    ## Recent Activity
-    ## Key Points
-
-# Session Event Logging
-$ memkraft log --event "Deployed v0.2 to production" --tags deploy,release --importance high
-📝 Logged: Deployed v0.2 to production
-
-$ memkraft log --read
-📋 Session events for 2026-04-11 (2 events):
-  🔴 14:30:00 Deployed v0.2 to production [deploy,release]
-  ⚪ 11:00:00 Bug fix applied [bug]
-
-# Daily Retrospective
-$ memkraft retro
-🔄 Daily Retrospective — 2026-04-11
-✅ Well (went well):
-  • Deployed v0.2 to production
-⚠️ Bad (issues):
-  • (none)
-➡️ Next (action items):
-  • (none)
-👥 Entities touched: MemKraft
-
-# Distill decision candidates
-$ memkraft distill-decisions
-📋 Decision candidates (1):
-  [high] sessions/2026-04-11.jsonl: decided to use MemKraft over alternatives
-
-# Track unresolved items
-$ memkraft open-loops
-🔓 Open Loops (2):
-  [2026-04-11] live-notes/simon-kim.md: - [ ] Initial setup — enrichment needed
-  [2026-04-10] decisions/stack.md: ⏳ pending team approval
-
-# Build memory index
-$ memkraft index
-📇 Index built: 15 files → .memkraft/index.json
-
-# Suggest missing wiki-links
-$ memkraft suggest-links
-🔗 Link suggestions (1):
-  meetings/2026-04-10-hashed.md: add [[simon-kim]] — "CEO of Hashed, building MemKraft"
-
-# Extract numeric/date facts
-$ memkraft extract-facts "Revenue $5.3M, 85% growth, 42 employees, deadline 2026-06-30"
-📊 Facts extracted (4):
-  • $5.3M
-  • 85%
-  • 42 employees
-  • 2026-06-30
-
-# Brain-first lookup
-$ memkraft lookup "Simon" --brain-first
-  [high] live-note: simon-kim
-  (brain-first: stopped after 2 high-relevance results. Use --full for all.)
-
-# Fuzzy search
-$ memkraft search "venture capital Seoul" --fuzzy
-  [0.72] entities/simon-kim.md
-     Simon Kim | CEO of Hashed. VC based in Seoul.
-  [0.58] entities/hashed.md
-     Hashed | VC firm in Seoul, blockchain-focused
-
-# Backlinks
-$ memkraft links "Simon Kim"
-Backlinks to 'Simon Kim' (3):
-  📎 entities/hashed.md
-     ...CEO [[simon-kim]] founded Hashed in 2018...
-  📎 decisions/seed-round.md
-     ...introduced by [[simon-kim]]...
-  📎 live-notes/memkraft.md
-     ...[[simon-kim]] open-sourced MemKraft...
-
-# Diff — what changed since last maintenance?
-$ memkraft diff
-Changes since last Dream Cycle (4):
-  🆕 created: entities/simon-kim.md (2026-04-11 16:00)
-  ✏️ modified: entities/hashed.md (2026-04-11 15:30)
-
-# Dream Cycle
-$ memkraft dream --dry-run
-🌙 Dream Cycle — 2026-04-11
-   Mode: dry-run
-   🔍 Scanning for incomplete source attributions...
-      ⚠️ entities/hashed.md: timeline entry missing [Source: ...]
-   🔍 Scanning for thin entity pages...
-   🔍 Scanning for duplicate entities...
-      ⚠️ Possible duplicate: simon-kim ↔ 김서준
-   🔍 Scanning for inbox overdue items...
-   🔍 Scanning for bloated pages (auto-compact)...
-🌙 Dream Cycle complete: 3 total issues found
-   Incomplete sources: 1
-   Thin entities: 0
-   Duplicate entities: 1
-   Inbox overdue: 0
-   Bloated pages: 1
-
-# Capture raw text verbatim
-$ echo "Simon: 'We're building the memory layer that agents actually need.'" \
-    > memory/originals/simon-2026-04-11.md
-
-# RESOLVER.md — classification decision tree
-$ cat memory/RESOLVER.md
-# RESOLVER — Classification Decision Tree
-## Is it a person, company, or concept? → entities/
-## Is it a decision with rationale? → decisions/
-## Is it raw capture before processing? → inbox/ then cognify
-## Is it verbatim text to preserve? → originals/
-```
-
-</details>
 
 <br>
 
@@ -728,20 +390,24 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Changelog
 
 ### v0.3.0 (2026-04-13)
+
 - **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` — search results auto-filed back to entity timelines (compound interest for memory)
-- **Confidence Level:** All facts support `verified` / `experimental` / `hypothesis` tags; `extract --confidence verified`; Dream Cycle warns about untagged facts; agentic-search re-ranking weights by confidence; conflict resolution via `--strategy confidence`
+- **Confidence Levels:** All facts support `verified` / `experimental` / `hypothesis` tags; `extract --confidence verified`; Dream Cycle warns about untagged facts; agentic-search re-ranking weights by confidence; conflict resolution via `--strategy confidence`
 - **Memory Health Assertions:** `memkraft health-check` — 5 self-diagnostic assertions (source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts) with pass rate % and health score (A/B/C/D); auto-runs in Dream Cycle
-- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` — insights/decisions get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
-- Tests: 158 → 180+ (new tests for v0.3.0 features)
+- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` — facts get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
+- **Python re-export:** `from memkraft import MemKraft` now works directly
+- Tests: 158 → 198
 
 ### v0.2.0 (2026-04-12)
+
 - **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` — same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves
 - **Dialectic Synthesis:** Auto-detect contradictory facts during `extract`, tag with `[CONFLICT]`, generate `CONFLICTS.md` report, resolve via `dream --resolve-conflicts` or `resolve-conflicts` command
 - **Memory Type Classification:** 8 memory types (identity, belief, preference, relationship, skill, episodic, routine, transient) with differential decay multipliers
 - **Type-Aware Decay:** Identity memories decay 10x slower than routine memories
-- Tests: 112 → 158 (46 new tests for v0.2.0 features)
+- Tests: 112 → 158
 
 ### v0.1.0 (2026-04-12)
+
 - Initial release: extract, detect, decay, dedup, summarize, agentic search
 - Entity tracking (track, update, brief, promote)
 - Dream Cycle (7 health checks), cognify, retro
