@@ -327,7 +327,7 @@ class MemKraft:
         print(json.dumps(entities, indent=2, ensure_ascii=False))
 
     # ── Dream ─────────────────────────────────────────────────
-    def dream(self, date: str = None, dry_run: bool = False) -> Dict[str, Any]:
+    def dream(self, date: str = None, dry_run: bool = False, resolve_conflicts: bool = False) -> Dict[str, Any]:
         """Run the Dream Cycle — nightly maintenance for memory health.
 
         Performs 7 health checks:
@@ -441,6 +441,22 @@ class MemKraft:
                 if issues["bloated_pages"] <= 5:
                     print(f"      ⚠️ {rel} ({size}B) — {suggestion}")
 
+        # Check for unresolved conflicts
+        print("   🔍 Scanning for unresolved conflicts...")
+        conflicts_path = self.base_dir / "CONFLICTS.md"
+        conflict_count = 0
+        if conflicts_path.exists():
+            cc = conflicts_path.read_text(encoding="utf-8", errors="replace")
+            conflict_count = cc.count("❌ unresolved")
+        issues["unresolved_conflicts"] = conflict_count
+        details["unresolved_conflicts"] = []
+
+        # Resolve conflicts if flag is set
+        conflict_resolution = None
+        if resolve_conflicts and conflict_count > 0:
+            print("   ⚔️ Resolving conflicts (strategy: newest)...")
+            conflict_resolution = self.resolve_conflicts(strategy="newest", dry_run=dry_run)
+
         total = sum(issues.values())
         print(f"\n🌙 Dream Cycle complete: {total} total issues found")
         print(f"   Incomplete sources: {issues['incomplete_sources']}")
@@ -449,13 +465,17 @@ class MemKraft:
         print(f"   Duplicate entities: {issues['duplicate_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
         print(f"   Bloated pages: {issues['bloated_pages']}")
+        print(f"   Unresolved conflicts: {issues['unresolved_conflicts']}")
 
         if not dry_run:
             meta_dir = self.base_dir / ".memkraft"
             meta_dir.mkdir(parents=True, exist_ok=True)
             (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()), encoding="utf-8")
 
-        return {"issues": issues, "details": details, "total": total}
+        result = {"issues": issues, "details": details, "total": total}
+        if conflict_resolution:
+            result["conflict_resolution"] = conflict_resolution
+        return result
 
     def _compression_suggestion(self, md: Path, size: int) -> str:
         """Generate an actionable compression suggestion for a bloated page."""
@@ -479,6 +499,229 @@ class MemKraft:
         if not suggestions:
             suggestions.append("consider condensing Compiled Truth")
         return "; ".join(suggestions)
+
+    # ── Dialectic Synthesis (Conflict Detection) ───────────
+    def detect_conflicts(self, entity_name: str, new_fact: str,
+                         threshold: float = 0.4) -> List[Dict[str, Any]]:
+        """Detect if a new fact conflicts with existing entity facts.
+
+        Uses difflib.SequenceMatcher to find same-subject + opposing predicate.
+        Returns list of conflict dicts with old_fact, new_fact, similarity, etc.
+        """
+        slug = self._slugify(entity_name)
+        conflicts = []
+
+        # Look in both live-notes and entities
+        for directory in [self.live_notes_dir, self.entities_dir]:
+            filepath = directory / f"{slug}.md"
+            if not filepath.exists():
+                continue
+
+            content = self._safe_read(filepath)
+            existing_facts = self._extract_bullet_facts(content)
+
+            new_lower = new_fact.lower().strip()
+            for old_fact in existing_facts:
+                old_lower = old_fact.lower().strip()
+                # Skip if identical
+                if old_lower == new_lower:
+                    continue
+
+                # Check similarity — high similarity means same topic
+                sim = SequenceMatcher(None, old_lower, new_lower).ratio()
+                if sim < threshold:
+                    continue
+
+                # Check for opposing predicates (negation, different values)
+                is_conflict = self._is_opposing(old_lower, new_lower)
+                if is_conflict:
+                    conflicts.append({
+                        "entity": entity_name,
+                        "old_fact": old_fact,
+                        "new_fact": new_fact,
+                        "similarity": round(sim, 2),
+                        "file": str(filepath.relative_to(self.base_dir)),
+                    })
+
+        return conflicts
+
+    def _is_opposing(self, old: str, new: str) -> bool:
+        """Detect if two facts are opposing/contradictory."""
+        # Negation detection
+        negation_pairs = [
+            ("is ", "is not "), ("is ", "isn't "),
+            ("was ", "was not "), ("was ", "wasn't "),
+            ("can ", "cannot "), ("can ", "can't "),
+            ("will ", "will not "), ("will ", "won't "),
+            ("이다", "아니다"), ("맞다", "틀리다"), ("맞다", "아니다"),
+            ("true", "false"), ("yes", "no"),
+            ("active", "inactive"), ("open", "closed"),
+            ("joined", "left"), ("started", "stopped"),
+            ("accepted", "rejected"), ("approved", "denied"),
+        ]
+
+        for pos, neg in negation_pairs:
+            if (pos in old and neg in new) or (neg in old and pos in new):
+                return True
+
+        # Same field, different value detection
+        # Pattern: "Role: X" vs "Role: Y" where X != Y
+        field_pattern = r'(\w+):\s*(.+?)$'
+        old_match = re.search(field_pattern, old)
+        new_match = re.search(field_pattern, new)
+        if old_match and new_match:
+            if old_match.group(1).lower() == new_match.group(1).lower():
+                if old_match.group(2).strip().lower() != new_match.group(2).strip().lower():
+                    return True
+
+        # High similarity (>0.6) but not identical suggests value change
+        sim = SequenceMatcher(None, old, new).ratio()
+        if sim > 0.6 and sim < 0.95:
+            # Check if they share a subject but differ in predicate
+            old_tokens = old.split()
+            new_tokens = new.split()
+            if len(old_tokens) >= 3 and len(new_tokens) >= 3:
+                # Same first 2 words (subject) but different rest (predicate)
+                if old_tokens[:2] == new_tokens[:2] and old_tokens[2:] != new_tokens[2:]:
+                    return True
+
+        return False
+
+    def _extract_bullet_facts(self, content: str) -> List[str]:
+        """Extract bullet-point facts from Key Points and Timeline sections."""
+        facts = []
+        for line in content.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("- ") and len(stripped) > 10:
+                # Clean up: remove source tags, timestamps, markers
+                clean = re.sub(r'\[Source:.*?\]', '', stripped)
+                clean = re.sub(r'\[CONFLICT\]', '', clean)
+                clean = re.sub(r'^- \*\*\d{4}-\d{2}-\d{2}\*\* \| ', '- ', clean)
+                clean = re.sub(r'^- ⏳ ', '- ', clean)
+                clean = clean.strip()
+                if clean.startswith("- ") and len(clean) > 5:
+                    facts.append(clean[2:])  # Strip leading "- "
+        return facts
+
+    def _tag_conflict(self, filepath: Path, old_fact: str, new_fact: str, source: str) -> None:
+        """Tag a conflict in the entity file: keep both, mark with [CONFLICT]."""
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d")
+
+        # Add [CONFLICT] tag to the new fact in Key Points
+        for marker in ["## Key Points\n", "── 키 포인트\n"]:
+            if marker in content:
+                conflict_entry = f"- [CONFLICT] {new_fact} [Source: {source}] (conflicts with: {old_fact[:60]})\n"
+                content = content.replace(marker, f"{marker}{conflict_entry}")
+                break
+
+        # Add to Timeline
+        for marker in ["## Timeline\n\n", "## Timeline (Full Record)\n\n"]:
+            if marker in content:
+                content = content.replace(
+                    marker,
+                    f"{marker}- **{now}** | [CONFLICT] Detected conflict: '{new_fact[:50]}' vs '{old_fact[:50]}' [Source: {source}]\n"
+                )
+                break
+
+        filepath.write_text(content, encoding="utf-8")
+
+    def _write_conflicts_report(self, conflicts: List[Dict[str, Any]]) -> Path:
+        """Write or update CONFLICTS.md with detected conflicts."""
+        conflicts_path = self.base_dir / "CONFLICTS.md"
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        if conflicts_path.exists():
+            existing = conflicts_path.read_text(encoding="utf-8", errors="replace")
+        else:
+            existing = "# ⚔️ Fact Conflicts\n\nAuto-detected contradictions in memory. Resolve with `memkraft dream --resolve-conflicts`.\n\n"
+
+        if conflicts:
+            existing += f"## {now}\n\n"
+            for c in conflicts:
+                existing += f"### {c['entity']}\n"
+                existing += f"- **Old:** {c['old_fact']}\n"
+                existing += f"- **New:** {c['new_fact']}\n"
+                existing += f"- **Similarity:** {c['similarity']}\n"
+                existing += f"- **File:** {c['file']}\n"
+                existing += f"- **Status:** ❌ unresolved\n\n"
+
+        conflicts_path.write_text(existing, encoding="utf-8")
+        return conflicts_path
+
+    def resolve_conflicts(self, strategy: str = "newest", dry_run: bool = False) -> Dict[str, Any]:
+        """Resolve detected conflicts in CONFLICTS.md.
+
+        Strategies:
+        - 'newest': Keep the newest fact (default)
+        - 'keep-both': Keep both with [CONFLICT] tag
+        - 'prompt': Generate synthesis prompt for LLM resolution
+        """
+        conflicts_path = self.base_dir / "CONFLICTS.md"
+        if not conflicts_path.exists():
+            print("✅ No conflicts to resolve.")
+            return {"resolved": 0, "remaining": 0}
+
+        content = conflicts_path.read_text(encoding="utf-8", errors="replace")
+
+        # Parse unresolved conflicts
+        unresolved = []
+        conflict_blocks = re.findall(
+            r'### (.+?)\n- \*\*Old:\*\* (.+?)\n- \*\*New:\*\* (.+?)\n- \*\*Similarity:\*\* ([\d.]+)\n- \*\*File:\*\* (.+?)\n- \*\*Status:\*\* ❌ unresolved',
+            content
+        )
+
+        for entity, old_fact, new_fact, sim, filepath in conflict_blocks:
+            unresolved.append({
+                "entity": entity,
+                "old_fact": old_fact,
+                "new_fact": new_fact,
+                "similarity": float(sim),
+                "file": filepath,
+            })
+
+        if not unresolved:
+            print("✅ No unresolved conflicts.")
+            return {"resolved": 0, "remaining": 0}
+
+        resolved = 0
+        for conflict in unresolved:
+            if dry_run:
+                print(f"  [dry-run] Would resolve: {conflict['entity']} — {strategy}")
+                resolved += 1
+                continue
+
+            if strategy == "newest":
+                # Remove old fact's [CONFLICT] tags, keep new fact
+                md_path = self.base_dir / conflict["file"]
+                if md_path.exists():
+                    fc = md_path.read_text(encoding="utf-8", errors="replace")
+                    # Remove [CONFLICT] tag from the new fact line
+                    fc = fc.replace(f"[CONFLICT] {conflict['new_fact']}", conflict['new_fact'])
+                    md_path.write_text(fc, encoding="utf-8")
+                resolved += 1
+
+            elif strategy == "keep-both":
+                # Just mark as resolved in CONFLICTS.md
+                resolved += 1
+
+            elif strategy == "prompt":
+                # Generate synthesis prompt
+                print(f"  🤖 Synthesis prompt for {conflict['entity']}:")
+                print(f"     Given these contradictory facts about {conflict['entity']}:")
+                print(f"     1. {conflict['old_fact']}")
+                print(f"     2. {conflict['new_fact']}")
+                print(f"     Which is correct? Synthesize a single accurate statement.")
+                resolved += 1
+
+        # Update CONFLICTS.md: mark resolved
+        if not dry_run:
+            content = content.replace("❌ unresolved", "✅ resolved")
+            conflicts_path.write_text(content, encoding="utf-8")
+
+        remaining = len(unresolved) - resolved
+        print(f"⚔️ Conflicts: {resolved} resolved ({strategy}), {remaining} remaining")
+        return {"resolved": resolved, "remaining": remaining, "strategy": strategy}
 
     # ── Extract ──────────────────────────────────────────────
     def extract(self, text: str, source: str = "", dry_run: bool = False) -> List[Dict[str, Any]]:
@@ -511,14 +754,32 @@ class MemKraft:
                 e["path"] = str(self.entities_dir / f"{self._slugify(e['name'])}.md")
             results.append(e)
 
+        all_conflicts = []
         for f in facts:
             f["source"] = resolved_source
+
+            # Dialectic Synthesis: check for conflicts before appending
+            conflicts = self.detect_conflicts(f["entity"], f["fact"])
+            if conflicts:
+                f["conflicts"] = conflicts
+                all_conflicts.extend(conflicts)
+                if not dry_run:
+                    for c in conflicts:
+                        conflict_path = self.base_dir / c["file"]
+                        if conflict_path.exists():
+                            self._tag_conflict(conflict_path, c["old_fact"], f["fact"], resolved_source)
+
             if dry_run:
                 f["action"] = "would_append"
             else:
                 self._append_fact(f["entity"], f["fact"], resolved_source)
                 f["action"] = "appended"
             results.append(f)
+
+        # Write CONFLICTS.md if any conflicts detected
+        if all_conflicts and not dry_run:
+            conflicts_path = self._write_conflicts_report(all_conflicts)
+            results.append({"type": "conflicts", "count": len(all_conflicts), "path": str(conflicts_path), "action": "written"})
 
         registry_entries = []
         for f in facts:
@@ -1415,16 +1676,29 @@ class MemKraft:
         else:
             print("\n✅ No new facts to add (all already in registry)")
 
-    # ── Memory Decay ────────────────────────────────────────────
+    # ── Memory Decay (with type-aware differential curves) ────
     def decay(self, days: int = 90, dry_run: bool = False) -> List[Dict[str, Any]]:
-        """Downgrade stale facts older than N days. Reduces noise in search results."""
-        threshold = datetime.now() - timedelta(days=days)
+        """Downgrade stale facts older than N days. Reduces noise in search results.
+
+        Supports memory-type-aware differential decay curves:
+        identity memories decay slowly (effective threshold = days / 0.1 = 10x longer),
+        routine memories decay fast (effective threshold ≈ days).
+        """
+        base_threshold = timedelta(days=days)
         results = []
 
         for md in self._all_md_files():
             content = self._safe_read(md)
             if not content:
                 continue
+
+            # Determine memory type for differential decay
+            memory_type = self.classify_memory_type(content)
+            decay_mult = self.get_decay_multiplier(memory_type)
+            # Effective threshold: identity (0.1) → days/0.1 = 10x, routine (0.9) → days/0.9 ≈ 1x
+            effective_days = int(days / max(decay_mult, 0.05))
+            threshold = datetime.now() - timedelta(days=effective_days)
+
             modified = False
             lines = content.split("\n")
             new_lines = []
@@ -1437,7 +1711,7 @@ class MemKraft:
                     if entry_date < threshold and "⏳" not in line:
                         # Mark as stale (don't delete, just flag)
                         if dry_run:
-                            results.append({"file": str(md.relative_to(self.base_dir)), "line": line.strip()[:80], "age_days": (datetime.now() - entry_date).days})
+                            results.append({"file": str(md.relative_to(self.base_dir)), "line": line.strip()[:80], "age_days": (datetime.now() - entry_date).days, "memory_type": memory_type, "effective_days": effective_days})
                         else:
                             line = line.replace("- **", "- ⏳ ", 1)
                             modified = True
@@ -1448,9 +1722,9 @@ class MemKraft:
 
         if results:
             action = "would flag" if dry_run else "flagged"
-            print(f"📉 Decay: {action} {len(results)} entries older than {days} days")
+            print(f"📉 Decay: {action} {len(results)} entries older than {days} days (type-aware)")
             for r in results[:10]:
-                print(f"  [{r['age_days']}d] {r['file']}: {r['line']}")
+                print(f"  [{r['age_days']}d, {r['memory_type']}] {r['file']}: {r['line']}")
         else:
             print(f"📉 Decay: no entries older than {days} days")
         return results
@@ -1563,9 +1837,129 @@ class MemKraft:
             print("📝 Summarize: no entities to summarize")
         return results
 
+    # ── Memory Type Classification ─────────────────────────────
+    # Memory type → decay multiplier (lower = slower decay)
+    MEMORY_TYPE_DECAY: Dict[str, float] = {
+        "identity": 0.1,     # Who I am — decays very slowly
+        "belief": 0.2,       # Core beliefs and values
+        "preference": 0.3,   # Preferences and opinions
+        "relationship": 0.3, # Relationship knowledge
+        "skill": 0.4,        # Learned procedures
+        "episodic": 0.6,     # Specific events
+        "routine": 0.9,      # Daily routines — decays fast
+        "transient": 1.0,    # Temporary info — decays fastest
+        "default": 0.5,      # Unclassified
+    }
+
+    def classify_memory_type(self, text: str) -> str:
+        """Classify text into a memory type for differential decay."""
+        text_lower = text.lower()
+        identity_kw = ["i am", "my name", "i'm", "내 이름", "나는", "저는", "identity", "core"]
+        belief_kw = ["believe", "value", "principle", "conviction", "philosophy", "신념", "가치", "원칙"]
+        preference_kw = ["prefer", "like", "favorite", "hate", "dislike", "좋아", "싫어", "선호"]
+        relationship_kw = ["friend", "colleague", "partner", "team", "동료", "친구", "팀"]
+        routine_kw = ["daily", "routine", "every day", "always", "usually", "매일", "항상", "일상"]
+        transient_kw = ["today", "tonight", "right now", "currently", "오늘", "지금", "현재"]
+        skill_kw = ["how to", "procedure", "workflow", "방법", "절차", "워크플로우"]
+
+        for kw in identity_kw:
+            if kw in text_lower:
+                return "identity"
+        for kw in belief_kw:
+            if kw in text_lower:
+                return "belief"
+        for kw in preference_kw:
+            if kw in text_lower:
+                return "preference"
+        for kw in relationship_kw:
+            if kw in text_lower:
+                return "relationship"
+        for kw in skill_kw:
+            if kw in text_lower:
+                return "skill"
+        for kw in routine_kw:
+            if kw in text_lower:
+                return "routine"
+        for kw in transient_kw:
+            if kw in text_lower:
+                return "transient"
+        return "default"
+
+    def get_decay_multiplier(self, memory_type: str) -> float:
+        """Return the decay multiplier for a given memory type."""
+        return self.MEMORY_TYPE_DECAY.get(memory_type, self.MEMORY_TYPE_DECAY["default"])
+
+    # ── Goal-Weighted Reconstruction ──────────────────────────
+    def _goal_weighted_rerank(self, results: List[Dict[str, Any]], context: str) -> List[Dict[str, Any]]:
+        """Re-rank search results based on goal context (Conway SMS).
+
+        Same query with different context produces different rankings.
+        Uses difflib similarity between context and file content + memory-type decay.
+        """
+        if not context or not results:
+            return results
+
+        context_lower = context.lower()
+        context_tokens = set(self._search_tokens(context_lower))
+
+        for r in results:
+            md_path = self.base_dir / r["file"]
+            content = self._safe_read(md_path)
+            if not content:
+                continue
+
+            content_lower = content.lower()
+
+            # 1. Context relevance: how well does this result match the goal?
+            context_score = 0.0
+            if context_lower in content_lower:
+                context_score = 0.3
+            else:
+                content_tokens = set(self._search_tokens(content_lower))
+                overlap = len(context_tokens & content_tokens)
+                if context_tokens:
+                    context_score = 0.2 * (overlap / len(context_tokens))
+
+            # 2. Semantic similarity via difflib
+            # Compare context against most relevant section
+            best_section_sim = 0.0
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped and len(stripped) > 10:
+                    sim = SequenceMatcher(None, context_lower, stripped.lower()).ratio()
+                    if sim > best_section_sim:
+                        best_section_sim = sim
+            context_score += best_section_sim * 0.15
+
+            # 3. Memory-type decay adjustment
+            memory_type = self.classify_memory_type(content)
+            decay_mult = self.get_decay_multiplier(memory_type)
+            # For identity/belief memories, boost score; for routine/transient, penalize
+            type_bonus = 0.05 * (1.0 - decay_mult)  # identity → +0.045, routine → +0.005
+
+            # 4. Tier-context alignment
+            tier_bonus = 0.0
+            if "Tier: core" in content:
+                tier_bonus = 0.03
+
+            r["score"] = round(min(1.0, r.get("score", 0) + context_score + type_bonus + tier_bonus), 2)
+            r["memory_type"] = memory_type
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results
+
     # ── Agentic Search ──────────────────────────────────────────
-    def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False) -> List[Dict[str, Any]]:
-        """Multi-step search: decompose query → search → traverse links → re-rank → check sufficiency."""
+    def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False,
+                       context: str = "") -> List[Dict[str, Any]]:
+        """Multi-step search: decompose query → search → traverse links → goal-weighted re-rank → check sufficiency.
+
+        Args:
+            query: Search query string.
+            max_hops: Maximum link traversal hops (default: 2).
+            json_output: Return JSON-serializable output.
+            context: Goal context for reconstructive re-ranking. Same query with
+                     different context produces different result rankings (Conway SMS).
+        """
         # Step 1: Query Decomposition
         sub_queries = self._decompose_query(query)
 
@@ -1618,7 +2012,7 @@ class MemKraft:
         # Merge initial + hop results
         merged = list(all_results.values()) + list(hop_results.values())
 
-        # Step 4: Contextual Re-ranking
+        # Step 4: Contextual Re-ranking (basic tier + recency)
         for r in merged:
             bonus = 0.0
             md_path = self.base_dir / r["file"]
@@ -1633,16 +2027,19 @@ class MemKraft:
                 dates = re.findall(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', content)
                 if dates:
                     try:
-                        from datetime import datetime
                         latest = max(dates)
                         days_old = (datetime.now() - datetime.strptime(latest, "%Y-%m-%d")).days
                         if days_old < 7:
                             bonus += 0.05
-                    except (ValueError, ImportError):
+                    except ValueError:
                         pass
             r["score"] = round(min(1.0, r.get("score", 0) + bonus), 2)
 
-        merged.sort(key=lambda x: x["score"], reverse=True)
+        # Step 4b: Goal-Weighted Reconstructive Re-ranking (Conway SMS)
+        if context:
+            merged = self._goal_weighted_rerank(merged, context)
+        else:
+            merged.sort(key=lambda x: x["score"], reverse=True)
 
         # Step 5: Sufficiency Check — if top result < 0.5, expand search
         if merged and merged[0]["score"] < 0.5 and len(sub_queries) > 1:
@@ -1657,11 +2054,13 @@ class MemKraft:
         if not merged:
             print(f"🔍 Agentic search: no results for '{query}'")
         else:
-            print(f"🔍 Agentic search: {len(merged)} results for '{query}' (decomposed into {len(sub_queries)} queries, {max_hops} hops)")
+            ctx_str = f", context='{context[:30]}...'" if context and len(context) > 30 else (f", context='{context}'" if context else "")
+            print(f"🔍 Agentic search: {len(merged)} results for '{query}' (decomposed into {len(sub_queries)} queries, {max_hops} hops{ctx_str})")
             for r in merged[:10]:
                 hop_marker = " ↳" if r.get("hop") else ""
+                type_marker = f" [{r['memory_type']}]" if r.get("memory_type") else ""
                 snippet = f"\n     {r['snippet'][:80]}" if r.get('snippet') else ""
-                print(f"  [{r['score']:.2f}] {r['file']}{snippet}{hop_marker}")
+                print(f"  [{r['score']:.2f}] {r['file']}{type_marker}{snippet}{hop_marker}")
 
         if json_output:
             return merged

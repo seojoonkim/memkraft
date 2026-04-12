@@ -49,6 +49,7 @@ def main():
     dream_parser = subparsers.add_parser("dream", help="Run Dream Cycle (memory maintenance)")
     dream_parser.add_argument("--date", default=None, help="Date (YYYY-MM-DD)")
     dream_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
+    dream_parser.add_argument("--resolve-conflicts", action="store_true", help="Auto-resolve detected fact conflicts (newest-wins strategy)")
 
     # lookup
     lookup_parser = subparsers.add_parser("lookup", help="Brain-first lookup")
@@ -144,6 +145,12 @@ def main():
     agentic_parser.add_argument("query", help="Search query")
     agentic_parser.add_argument("--max-hops", type=int, default=2, help="Max link traversal hops (default: 2)")
     agentic_parser.add_argument("--json", action="store_true", help="JSON output")
+    agentic_parser.add_argument("--context", default="", help="Goal context for reconstructive re-ranking (Conway SMS)")
+
+    # resolve-conflicts
+    rc_parser = subparsers.add_parser("resolve-conflicts", help="Resolve detected fact conflicts")
+    rc_parser.add_argument("--strategy", default="newest", choices=["newest", "keep-both", "prompt"], help="Resolution strategy")
+    rc_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
 
     args = parser.parse_args()
 
@@ -169,7 +176,7 @@ def main():
     elif args.command == "detect":
         mc.detect(args.text, args.source, dry_run=args.dry_run)
     elif args.command == "dream":
-        mc.dream(date=args.date, dry_run=args.dry_run)
+        mc.dream(date=args.date, dry_run=args.dry_run, resolve_conflicts=getattr(args, 'resolve_conflicts', False))
     elif args.command == "lookup":
         mc.lookup(args.query, json_output=args.json, brain_first=args.brain_first, full=args.full)
     elif args.command == "extract":
@@ -213,7 +220,9 @@ def main():
     elif args.command == "summarize":
         mc.summarize(name=args.name, max_length=args.max_length)
     elif args.command == "agentic-search":
-        mc.agentic_search(args.query, max_hops=args.max_hops, json_output=args.json)
+        mc.agentic_search(args.query, max_hops=args.max_hops, json_output=args.json, context=getattr(args, 'context', ''))
+    elif args.command == "resolve-conflicts":
+        mc.resolve_conflicts(strategy=args.strategy, dry_run=args.dry_run)
 
     return 0
 

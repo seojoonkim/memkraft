@@ -22,7 +22,7 @@ The ultimate compound knowledge system for AI agents — auto-extract, cognify, 
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-51%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-158%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -722,6 +722,24 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 [MIT](LICENSE) — use it however you want.
+
+---
+
+## Changelog
+
+### v0.2.0 (2026-04-12)
+- **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` — same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves
+- **Dialectic Synthesis:** Auto-detect contradictory facts during `extract`, tag with `[CONFLICT]`, generate `CONFLICTS.md` report, resolve via `dream --resolve-conflicts` or `resolve-conflicts` command
+- **Memory Type Classification:** 8 memory types (identity, belief, preference, relationship, skill, episodic, routine, transient) with differential decay multipliers
+- **Type-Aware Decay:** Identity memories decay 10x slower than routine memories
+- Tests: 112 → 158 (46 new tests for v0.2.0 features)
+
+### v0.1.0 (2026-04-12)
+- Initial release: extract, detect, decay, dedup, summarize, agentic search
+- Entity tracking (track, update, brief, promote)
+- Dream Cycle (7 health checks), cognify, retro
+- Hybrid search (exact + IDF-weighted + fuzzy), agentic multi-hop search
+- Zero dependencies — stdlib only
 
 ---
 
