@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-The ultimate compound knowledge system for AI agents — auto-extract, cognify, track, tier, search, and maintain memory in plain Markdown with zero lock-in
+**The ultimate compound knowledge system for AI agents — auto-extract, cognify, track, tier, search, and maintain memory in plain Markdown with zero lock-in**
 
 🔴 Without MemKraft: Session 100 = Session 1
 
