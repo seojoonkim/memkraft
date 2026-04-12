@@ -214,7 +214,7 @@ class MemKraft:
             print("No entities found. Use 'memkraft track' or 'memkraft detect' to start.")
 
     # ── Brief ─────────────────────────────────────────────────
-    def brief(self, name: str, save: bool = False) -> None:
+    def brief(self, name: str, save: bool = False, file_back: bool = False) -> None:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         slug = self._slugify(name)
         brief_parts = [f"# 📋 Meeting Brief: {name}", f"Generated: {now}", ""]
@@ -311,6 +311,21 @@ class MemKraft:
             self.meetings_dir.mkdir(parents=True, exist_ok=True)
             save_path.write_text(output, encoding="utf-8")
             print(f"\n💾 Saved: {save_path}")
+
+        if file_back:
+            now = datetime.now().strftime("%Y-%m-%d")
+            for directory in [self.live_notes_dir, self.entities_dir]:
+                filepath = directory / f"{slug}.md"
+                if filepath.exists():
+                    content = self._safe_read(filepath)
+                    feedback = f"- **{now}** | [Filed back] Brief generated for '{name}' [Source: brief | Confidence: verified]"
+                    for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
+                        if marker in content:
+                            content = content.replace(marker, f"{marker}{feedback}\n")
+                            filepath.write_text(content, encoding="utf-8")
+                            print(f"📂 Filed back brief generation to {filepath.name} timeline")
+                            break
+                    break
 
     # ── Detect ────────────────────────────────────────────────
     def detect(self, text: str, source: str = "", dry_run: bool = False) -> None:
@@ -441,6 +456,22 @@ class MemKraft:
                 if issues["bloated_pages"] <= 5:
                     print(f"      ⚠️ {rel} ({size}B) — {suggestion}")
 
+        # Check for facts without confidence levels
+        print("   🔍 Scanning for facts without confidence levels...")
+        issues["no_confidence"] = 0
+        details["no_confidence"] = []
+        for md in self._all_md_files():
+            content = self._safe_read(md)
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("- ") and "[Source:" in stripped and "Confidence:" not in stripped:
+                    # Skip placeholder lines
+                    if stripped.startswith("(") or "enrichment needed" in stripped.lower():
+                        continue
+                    issues["no_confidence"] += 1
+                    rel = str(md.relative_to(self.base_dir))
+                    details["no_confidence"].append(f"{rel}: {stripped[:80]}")
+
         # Check for unresolved conflicts
         print("   🔍 Scanning for unresolved conflicts...")
         conflicts_path = self.base_dir / "CONFLICTS.md"
@@ -461,6 +492,7 @@ class MemKraft:
         print(f"\n🌙 Dream Cycle complete: {total} total issues found")
         print(f"   Incomplete sources: {issues['incomplete_sources']}")
         print(f"   Source-less facts: {issues['sourceless_facts']}")
+        print(f"   No confidence tag: {issues['no_confidence']}")
         print(f"   Thin entities: {issues['thin_entities']}")
         print(f"   Duplicate entities: {issues['duplicate_entities']}")
         print(f"   Inbox overdue: {issues['inbox_overdue']}")
@@ -472,7 +504,11 @@ class MemKraft:
             meta_dir.mkdir(parents=True, exist_ok=True)
             (meta_dir / "last-dream-timestamp").write_text(str(datetime.now().timestamp()), encoding="utf-8")
 
-        result = {"issues": issues, "details": details, "total": total}
+        # Run health check as part of Dream Cycle
+        print("\n   🏥 Running health check...")
+        health_result = self.health_check()
+
+        result = {"issues": issues, "details": details, "total": total, "health": health_result}
         if conflict_resolution:
             result["conflict_resolution"] = conflict_resolution
         return result
@@ -654,6 +690,7 @@ class MemKraft:
 
         Strategies:
         - 'newest': Keep the newest fact (default)
+        - 'confidence': Keep the fact with higher confidence level (verified > experimental > hypothesis)
         - 'keep-both': Keep both with [CONFLICT] tag
         - 'prompt': Generate synthesis prompt for LLM resolution
         """
@@ -701,6 +738,21 @@ class MemKraft:
                     md_path.write_text(fc, encoding="utf-8")
                 resolved += 1
 
+            elif strategy == "confidence":
+                # Keep the fact with higher confidence level
+                old_conf = self._extract_fact_confidence(conflict["old_fact"])
+                new_conf = self._extract_fact_confidence(conflict["new_fact"])
+                conf_order = {"verified": 3, "experimental": 2, "hypothesis": 1, "": 0}
+                winner = "new" if conf_order.get(new_conf, 0) >= conf_order.get(old_conf, 0) else "old"
+                md_path = self.base_dir / conflict["file"]
+                if md_path.exists():
+                    fc = md_path.read_text(encoding="utf-8", errors="replace")
+                    if winner == "new":
+                        fc = fc.replace(f"[CONFLICT] {conflict['new_fact']}", conflict['new_fact'])
+                    md_path.write_text(fc, encoding="utf-8")
+                print(f"  ✅ Resolved {conflict['entity']}: {winner} fact wins (confidence: {new_conf or 'none'} vs {old_conf or 'none'})")
+                resolved += 1
+
             elif strategy == "keep-both":
                 # Just mark as resolved in CONFLICTS.md
                 resolved += 1
@@ -724,12 +776,36 @@ class MemKraft:
         return {"resolved": resolved, "remaining": remaining, "strategy": strategy}
 
     # ── Extract ──────────────────────────────────────────────
-    def extract(self, text: str, source: str = "", dry_run: bool = False) -> List[Dict[str, Any]]:
-        """Auto-extract entities and facts from text, write to memory."""
-        return self.extract_conversations(text, source=source, dry_run=dry_run)
+    # ── Confidence Levels ─────────────────────────────────────
+    CONFIDENCE_LEVELS = ("verified", "experimental", "hypothesis")
+    CONFIDENCE_WEIGHTS = {"verified": 1.0, "experimental": 0.7, "hypothesis": 0.4}
 
-    def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False) -> List[Dict[str, Any]]:
-        """Auto-extract entities/facts from markdown text, file path, or stdin."""
+    def extract(self, text: str, source: str = "", dry_run: bool = False,
+                confidence: str = "experimental",
+                applicability: str = "") -> List[Dict[str, Any]]:
+        """Auto-extract entities and facts from text, write to memory.
+
+        Args:
+            confidence: Confidence level for extracted facts
+                        (verified / experimental / hypothesis). Default: experimental.
+            applicability: Applicability condition string for the facts.
+                          Format: 'When: condition' or 'When NOT: condition' or both
+                          separated by ' | '. Optional.
+        """
+        return self.extract_conversations(text, source=source, dry_run=dry_run,
+                                          confidence=confidence, applicability=applicability)
+
+    def extract_conversations(self, input_text: str = "", source: str = "", dry_run: bool = False,
+                               confidence: str = "experimental",
+                               applicability: str = "") -> List[Dict[str, Any]]:
+        """Auto-extract entities/facts from markdown text, file path, or stdin.
+
+        Args:
+            confidence: Confidence level for extracted facts
+                        (verified / experimental / hypothesis). Default: experimental.
+            applicability: Applicability condition string (optional).
+                          Format: 'When: condition' or 'When NOT: condition'.
+        """
         text, resolved_source = self._resolve_extract_input(input_text)
         if source:
             resolved_source = source
@@ -772,8 +848,12 @@ class MemKraft:
             if dry_run:
                 f["action"] = "would_append"
             else:
-                self._append_fact(f["entity"], f["fact"], resolved_source)
+                self._append_fact(f["entity"], f["fact"], resolved_source,
+                                  confidence=confidence, applicability=applicability)
                 f["action"] = "appended"
+            f["confidence"] = confidence
+            if applicability:
+                f["applicability"] = applicability
             results.append(f)
 
         # Write CONFLICTS.md if any conflicts detected
@@ -950,9 +1030,18 @@ class MemKraft:
             return False
         return True
 
-    def _append_fact(self, entity_name: str, fact: str, source: str = ""):
-        """Append a fact to an entity's live note."""
+    def _append_fact(self, entity_name: str, fact: str, source: str = "",
+                     confidence: str = "experimental",
+                     applicability: str = ""):
+        """Append a fact to an entity's live note.
+
+        Args:
+            confidence: Confidence level (verified / experimental / hypothesis).
+            applicability: Applicability condition (optional).
+        """
         slug = self._slugify(entity_name)
+        conf_tag = f" | Confidence: {confidence}" if confidence else ""
+        app_tag = f" | {applicability}" if applicability else ""
         # Try live-notes first, then entities
         for directory in [self.live_notes_dir, self.entities_dir]:
             filepath = directory / f"{slug}.md"
@@ -962,13 +1051,13 @@ class MemKraft:
                 # Add to Key Points section
                 for marker in ["## Key Points\n", "## 키 포인트\n"]:
                     if marker in content:
-                        content = content.replace(marker, f"{marker}- {fact} [Source: {source}]\n")
+                        content = content.replace(marker, f"{marker}- {fact} [Source: {source}{conf_tag}]{app_tag}\n")
                         break
                 else:
                     # Add to timeline if no Key Points section
                     for marker in ["## Timeline\n\n", "## Timeline (Full Record)\n\n"]:
                         if marker in content:
-                            content = content.replace(marker, f"{marker}- **{now}** | {fact} [Source: {source}]\n")
+                            content = content.replace(marker, f"{marker}- **{now}** | {fact} [Source: {source}{conf_tag}]{app_tag}\n")
                             break
                 filepath.write_text(content, encoding="utf-8")
                 return
@@ -1444,6 +1533,145 @@ class MemKraft:
             print(f"{prefix}📌 Decisions made: {len(decisions_made)}")
         if changed_files:
             print(f"{prefix}📄 Files changed: {len(changed_files)}")
+
+    # ── Health Check (Memory Health Assertions) ──────────
+    def health_check(self) -> Dict[str, Any]:
+        """Run memory health assertions — self-diagnostic for memory quality.
+
+        Assertions:
+        1. All entities have source attribution
+        2. No orphan facts (entity-disconnected)
+        3. No duplicate facts
+        4. No inbox items older than 7 days
+        5. No unresolved conflicts in CONFLICTS.md
+
+        Returns dict with pass_rate (%), failed items list, and health_score.
+        """
+        assertions = []
+        total_checks = 0
+        passed_checks = 0
+
+        # 1. All entities have source attribution
+        assertion_1 = {"name": "source_attribution", "description": "All entities have source attribution", "passed": True, "failures": []}
+        for directory in [self.entities_dir, self.live_notes_dir]:
+            if directory.exists():
+                for md in directory.glob("*.md"):
+                    if md.name == "README.md":
+                        continue
+                    content = self._safe_read(md)
+                    if "[Source:" not in content:
+                        assertion_1["passed"] = False
+                        assertion_1["failures"].append(str(md.relative_to(self.base_dir)))
+        total_checks += 1
+        if assertion_1["passed"]:
+            passed_checks += 1
+        assertions.append(assertion_1)
+
+        # 2. No orphan facts (facts not linked to any entity)
+        assertion_2 = {"name": "no_orphan_facts", "description": "No orphan facts (entity-disconnected)", "passed": True, "failures": []}
+        entity_slugs = set()
+        for directory in [self.entities_dir, self.live_notes_dir]:
+            if directory.exists():
+                for md in directory.glob("*.md"):
+                    entity_slugs.add(md.stem)
+        # Check fact-registry for facts not linked to any entity
+        registry_path = self.base_dir / "fact-registry.md"
+        if registry_path.exists():
+            reg_content = self._safe_read(registry_path)
+            for line in reg_content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("- ") and len(stripped) > 5:
+                    fact_text = stripped[2:].lower()
+                    linked = any(slug.replace("-", " ") in fact_text or slug in fact_text for slug in entity_slugs)
+                    if not linked and ":" in stripped:
+                        # Entity-prefixed facts like "entity: fact" are linked
+                        prefix = stripped[2:].split(":")[0].strip().lower()
+                        linked = any(slug.replace("-", " ") == prefix or slug == prefix for slug in entity_slugs)
+                    if not linked and len(entity_slugs) > 0:
+                        assertion_2["passed"] = False
+                        assertion_2["failures"].append(stripped[:80])
+        total_checks += 1
+        if assertion_2["passed"]:
+            passed_checks += 1
+        assertions.append(assertion_2)
+
+        # 3. No duplicate facts
+        assertion_3 = {"name": "no_duplicate_facts", "description": "No duplicate facts", "passed": True, "failures": []}
+        all_facts_set: Dict[str, str] = {}  # fact_text -> file
+        for md in self._all_md_files():
+            content = self._safe_read(md)
+            rel = str(md.relative_to(self.base_dir))
+            for line in content.split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("- ") and len(stripped) > 15:
+                    clean = re.sub(r'\[Source:.*?\]', '', stripped).strip()
+                    clean = re.sub(r'^- \*\*\d{4}-\d{2}-\d{2}\*\* \| ', '- ', clean)
+                    clean_lower = clean.lower()
+                    if clean_lower in all_facts_set and all_facts_set[clean_lower] != rel:
+                        assertion_3["passed"] = False
+                        assertion_3["failures"].append(f"{clean[:60]} (in {all_facts_set[clean_lower]} and {rel})")
+                    elif len(clean_lower) > 10:
+                        all_facts_set[clean_lower] = rel
+        total_checks += 1
+        if assertion_3["passed"]:
+            passed_checks += 1
+        assertions.append(assertion_3)
+
+        # 4. No inbox items older than 7 days
+        assertion_4 = {"name": "inbox_freshness", "description": "No inbox items older than 7 days", "passed": True, "failures": []}
+        if self.inbox_dir.exists():
+            now_ts = datetime.now().timestamp()
+            for md in self.inbox_dir.glob("*.md"):
+                if md.name.startswith("_") or md.name == "README.md":
+                    continue
+                age_days = (now_ts - md.stat().st_mtime) / 86400
+                if age_days > 7:
+                    assertion_4["passed"] = False
+                    assertion_4["failures"].append(f"{md.name} ({age_days:.0f} days old)")
+        total_checks += 1
+        if assertion_4["passed"]:
+            passed_checks += 1
+        assertions.append(assertion_4)
+
+        # 5. No unresolved conflicts in CONFLICTS.md
+        assertion_5 = {"name": "no_unresolved_conflicts", "description": "No unresolved conflicts in CONFLICTS.md", "passed": True, "failures": []}
+        conflicts_path = self.base_dir / "CONFLICTS.md"
+        if conflicts_path.exists():
+            cc = self._safe_read(conflicts_path)
+            unresolved_count = cc.count("❌ unresolved")
+            if unresolved_count > 0:
+                assertion_5["passed"] = False
+                assertion_5["failures"].append(f"{unresolved_count} unresolved conflict(s)")
+        total_checks += 1
+        if assertion_5["passed"]:
+            passed_checks += 1
+        assertions.append(assertion_5)
+
+        # Compute health score
+        pass_rate = round((passed_checks / total_checks) * 100, 1) if total_checks > 0 else 100.0
+        health_score = "A" if pass_rate >= 80 else "B" if pass_rate >= 60 else "C" if pass_rate >= 40 else "D"
+
+        result = {
+            "pass_rate": pass_rate,
+            "passed": passed_checks,
+            "total": total_checks,
+            "health_score": health_score,
+            "assertions": assertions,
+        }
+
+        # Print report
+        print(f"🏥 Memory Health Check")
+        print(f"   Score: {health_score} ({pass_rate}% pass rate, {passed_checks}/{total_checks})")
+        for a in assertions:
+            icon = "✅" if a["passed"] else "❌"
+            print(f"   {icon} {a['description']}")
+            if not a["passed"]:
+                for f in a["failures"][:5]:
+                    print(f"      → {f}")
+                if len(a["failures"]) > 5:
+                    print(f"      ... and {len(a['failures']) - 5} more")
+
+        return result
 
     # ── Ensure Daily Note ───────────────────────────────────────
     def ensure_daily_note(self):
@@ -1942,15 +2170,88 @@ class MemKraft:
             if "Tier: core" in content:
                 tier_bonus = 0.03
 
-            r["score"] = round(min(1.0, r.get("score", 0) + context_score + type_bonus + tier_bonus), 2)
+            # 5. Confidence weighting: verified facts boost score
+            confidence_bonus = self._compute_confidence_bonus(content)
+
+            # 6. Applicability conditions: boost if current context matches When: conditions
+            applicability_bonus = self._compute_applicability_bonus(content, context)
+
+            r["score"] = round(min(1.0, r.get("score", 0) + context_score + type_bonus + tier_bonus + confidence_bonus + applicability_bonus), 2)
             r["memory_type"] = memory_type
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results
 
+    def _compute_applicability_bonus(self, content: str, context: str) -> float:
+        """Compute a score bonus based on applicability conditions matching context.
+
+        Lines with 'When: X' get boosted if X keywords match context.
+        Lines with 'When NOT: X' get penalized if X keywords match context.
+        """
+        if not context:
+            return 0.0
+
+        context_lower = context.lower()
+        context_tokens = set(self._search_tokens(context_lower))
+        bonus = 0.0
+        match_count = 0
+
+        for line in content.split("\n"):
+            when_match = re.search(r'When:\s*([^|\]]+)', line)
+            when_not_match = re.search(r'When NOT:\s*([^|\]]+)', line)
+
+            if when_match:
+                condition = when_match.group(1).strip().lower()
+                cond_tokens = set(self._search_tokens(condition))
+                overlap = len(context_tokens & cond_tokens)
+                if overlap > 0 and cond_tokens:
+                    bonus += 0.03 * (overlap / len(cond_tokens))
+                    match_count += 1
+
+            if when_not_match:
+                condition = when_not_match.group(1).strip().lower()
+                cond_tokens = set(self._search_tokens(condition))
+                overlap = len(context_tokens & cond_tokens)
+                if overlap > 0 and cond_tokens:
+                    bonus -= 0.02 * (overlap / len(cond_tokens))
+                    match_count += 1
+
+        return round(min(0.1, bonus), 3)
+
+    def _parse_applicability(self, text: str) -> Dict[str, List[str]]:
+        """Parse applicability conditions from text.
+
+        Returns dict with 'when' and 'when_not' lists.
+        """
+        result: Dict[str, List[str]] = {"when": [], "when_not": []}
+        for match in re.finditer(r'When:\s*([^|\]]+)', text):
+            result["when"].append(match.group(1).strip())
+        for match in re.finditer(r'When NOT:\s*([^|\]]+)', text):
+            result["when_not"].append(match.group(1).strip())
+        return result
+
+    def _compute_confidence_bonus(self, content: str) -> float:
+        """Compute a score bonus based on the confidence levels of facts in content.
+
+        Files with more verified facts get a higher bonus.
+        """
+        verified_count = content.count("Confidence: verified")
+        experimental_count = content.count("Confidence: experimental")
+        hypothesis_count = content.count("Confidence: hypothesis")
+        total = verified_count + experimental_count + hypothesis_count
+        if total == 0:
+            return 0.0
+        weighted = (verified_count * 1.0 + experimental_count * 0.7 + hypothesis_count * 0.4) / total
+        return round(0.05 * weighted, 3)
+
+    def _extract_fact_confidence(self, line: str) -> str:
+        """Extract confidence level from a fact line."""
+        m = re.search(r'Confidence:\s*(verified|experimental|hypothesis)', line)
+        return m.group(1) if m else ""
+
     # ── Agentic Search ──────────────────────────────────────────
     def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False,
-                       context: str = "") -> List[Dict[str, Any]]:
+                       context: str = "", file_back: bool = False) -> List[Dict[str, Any]]:
         """Multi-step search: decompose query → search → traverse links → goal-weighted re-rank → check sufficiency.
 
         Args:
@@ -1959,6 +2260,8 @@ class MemKraft:
             json_output: Return JSON-serializable output.
             context: Goal context for reconstructive re-ranking. Same query with
                      different context produces different result rankings (Conway SMS).
+            file_back: If True, file search results back into entity timelines
+                       (Query-to-Memory Feedback Loop — compound interest for memory).
         """
         # Step 1: Query Decomposition
         sub_queries = self._decompose_query(query)
@@ -2062,9 +2365,43 @@ class MemKraft:
                 snippet = f"\n     {r['snippet'][:80]}" if r.get('snippet') else ""
                 print(f"  [{r['score']:.2f}] {r['file']}{type_marker}{snippet}{hop_marker}")
 
+        # Step 6: Query-to-Memory Feedback Loop (file_back)
+        if file_back and merged:
+            self._file_back_results(query, merged)
+
         if json_output:
             return merged
         return merged
+
+    def _file_back_results(self, query: str, results: List[Dict[str, Any]]) -> None:
+        """File search results back into entity timelines (feedback loop).
+
+        Creates a compound interest effect: searching enriches memory,
+        so future searches return richer results.
+        """
+        now = datetime.now().strftime("%Y-%m-%d")
+        filed_count = 0
+        for r in results[:5]:  # Top 5 results only to avoid noise
+            md_path = self.base_dir / r["file"]
+            if not md_path.exists():
+                continue
+            content = self._safe_read(md_path)
+            snippet = r.get("snippet", "")[:120]
+            if not snippet:
+                continue
+
+            feedback_entry = f"- **{now}** | [Filed back] Query: '{query[:60]}' — {snippet} [Source: agentic_search | Confidence: experimental]"
+
+            # Append to timeline
+            for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
+                if marker in content:
+                    content = content.replace(marker, f"{marker}{feedback_entry}\n")
+                    md_path.write_text(content, encoding="utf-8")
+                    filed_count += 1
+                    break
+
+        if filed_count:
+            print(f"📂 Filed back {filed_count} results into entity timelines")
 
     def _decompose_query(self, query: str) -> List[str]:
         """Decompose a complex query into sub-queries."""

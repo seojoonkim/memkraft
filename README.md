@@ -22,7 +22,7 @@ The ultimate compound knowledge system for AI agents — auto-extract, cognify, 
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-158%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-180%2B%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -726,6 +726,13 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.3.0 (2026-04-13)
+- **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` — search results auto-filed back to entity timelines (compound interest for memory)
+- **Confidence Level:** All facts support `verified` / `experimental` / `hypothesis` tags; `extract --confidence verified`; Dream Cycle warns about untagged facts; agentic-search re-ranking weights by confidence; conflict resolution via `--strategy confidence`
+- **Memory Health Assertions:** `memkraft health-check` — 5 self-diagnostic assertions (source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts) with pass rate % and health score (A/B/C/D); auto-runs in Dream Cycle
+- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` — insights/decisions get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
+- Tests: 158 → 180+ (new tests for v0.3.0 features)
 
 ### v0.2.0 (2026-04-12)
 - **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` — same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves

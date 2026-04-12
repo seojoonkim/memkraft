@@ -38,6 +38,7 @@ def main():
     brief_parser = subparsers.add_parser("brief", help="Generate meeting brief")
     brief_parser.add_argument("name", help="Entity name")
     brief_parser.add_argument("--save", action="store_true", help="Save to file")
+    brief_parser.add_argument("--file-back", action="store_true", help="File brief generation back into entity timeline (feedback loop)")
 
     # detect
     detect_parser = subparsers.add_parser("detect", help="Detect entities in text")
@@ -63,6 +64,10 @@ def main():
     extract_parser.add_argument("input", nargs="?", default="", help="Markdown file or text to analyze (default: stdin)")
     extract_parser.add_argument("--source", default="", help="Source attribution")
     extract_parser.add_argument("--dry-run", action="store_true", help="Preview without creating files")
+    extract_parser.add_argument("--confidence", default="experimental", choices=["verified", "experimental", "hypothesis"], help="Confidence level for extracted facts (default: experimental)")
+    extract_parser.add_argument("--applicability", default="", help="Applicability condition (e.g., 'When: crypto bull market | When NOT: recession')")
+    extract_parser.add_argument("--when", default="", help="Shorthand for applicability When: condition")
+    extract_parser.add_argument("--when-not", default="", help="Shorthand for applicability When NOT: condition")
 
     # cognify
     cognify_parser = subparsers.add_parser("cognify", help="Process inbox into structured pages")
@@ -81,6 +86,10 @@ def main():
     search_parser = subparsers.add_parser("search", help="Search memory (with fuzzy matching)")
     search_parser.add_argument("query", help="Search query")
     search_parser.add_argument("--fuzzy", action="store_true", help="Enable fuzzy matching")
+    search_parser.add_argument("--file-back", action="store_true", help="File results back into entity timelines (feedback loop)")
+
+    # health-check
+    subparsers.add_parser("health-check", help="Run memory health assertions (self-diagnostic)")
 
     # links
     links_parser = subparsers.add_parser("links", help="Show backlinks to an entity")
@@ -146,10 +155,11 @@ def main():
     agentic_parser.add_argument("--max-hops", type=int, default=2, help="Max link traversal hops (default: 2)")
     agentic_parser.add_argument("--json", action="store_true", help="JSON output")
     agentic_parser.add_argument("--context", default="", help="Goal context for reconstructive re-ranking (Conway SMS)")
+    agentic_parser.add_argument("--file-back", action="store_true", help="File results back into entity timelines (feedback loop)")
 
     # resolve-conflicts
     rc_parser = subparsers.add_parser("resolve-conflicts", help="Resolve detected fact conflicts")
-    rc_parser.add_argument("--strategy", default="newest", choices=["newest", "keep-both", "prompt"], help="Resolution strategy")
+    rc_parser.add_argument("--strategy", default="newest", choices=["newest", "confidence", "keep-both", "prompt"], help="Resolution strategy")
     rc_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
 
     args = parser.parse_args()
@@ -172,7 +182,7 @@ def main():
     elif args.command == "list":
         mc.list_entities()
     elif args.command == "brief":
-        mc.brief(args.name, save=args.save)
+        mc.brief(args.name, save=args.save, file_back=getattr(args, 'file_back', False))
     elif args.command == "detect":
         mc.detect(args.text, args.source, dry_run=args.dry_run)
     elif args.command == "dream":
@@ -180,7 +190,17 @@ def main():
     elif args.command == "lookup":
         mc.lookup(args.query, json_output=args.json, brain_first=args.brain_first, full=args.full)
     elif args.command == "extract":
-        mc.extract_conversations(args.input, source=args.source, dry_run=args.dry_run)
+        # Build applicability from --applicability, --when, --when-not
+        applicability = getattr(args, 'applicability', '')
+        when_cond = getattr(args, 'when', '')
+        when_not_cond = getattr(args, 'when_not', '')
+        if when_cond and not applicability:
+            applicability = f"When: {when_cond}"
+        if when_not_cond:
+            applicability = f"{applicability} | When NOT: {when_not_cond}".strip(' |')
+        mc.extract_conversations(args.input, source=args.source, dry_run=args.dry_run,
+                                 confidence=getattr(args, 'confidence', 'experimental'),
+                                 applicability=applicability)
     elif args.command == "cognify":
         mc.cognify(dry_run=args.dry_run, apply=args.apply)
     elif args.command == "promote":
@@ -188,7 +208,9 @@ def main():
     elif args.command == "diff":
         mc.diff()
     elif args.command == "search":
-        mc.search(args.query, fuzzy=args.fuzzy)
+        results = mc.search(args.query, fuzzy=args.fuzzy)
+        if getattr(args, 'file_back', False) and results:
+            mc._file_back_results(args.query, results)
     elif args.command == "links":
         mc.links(args.name)
     elif args.command == "query":
@@ -220,7 +242,11 @@ def main():
     elif args.command == "summarize":
         mc.summarize(name=args.name, max_length=args.max_length)
     elif args.command == "agentic-search":
-        mc.agentic_search(args.query, max_hops=args.max_hops, json_output=args.json, context=getattr(args, 'context', ''))
+        mc.agentic_search(args.query, max_hops=args.max_hops, json_output=args.json,
+                          context=getattr(args, 'context', ''),
+                          file_back=getattr(args, 'file_back', False))
+    elif args.command == "health-check":
+        mc.health_check()
     elif args.command == "resolve-conflicts":
         mc.resolve_conflicts(strategy=args.strategy, dry_run=args.dry_run)
 
