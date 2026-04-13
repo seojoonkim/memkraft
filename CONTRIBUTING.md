@@ -15,7 +15,7 @@ Thank you for your interest in contributing!
 ```bash
 git clone https://github.com/seojoonkim/memkraft.git
 cd memkraft
-pip install -e .
+pipx install -e .
 ```
 
 ## Guidelines

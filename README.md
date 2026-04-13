@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.4.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory.**
+**v0.4.1** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory.**
 
 <div align="center">
 
@@ -514,6 +514,12 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.4.1 (2026-04-13)
+
+- README: comprehensive "Debugging is Memory" section with flow diagram, full API/CLI reference for debug methods
+- README: Appendix — Inspirations & Credits (8 projects with links)
+- Tests: 277 (79 new for Debug Hypothesis Tracking)
 
 ### v0.4.0 (2026-04-13)
 
