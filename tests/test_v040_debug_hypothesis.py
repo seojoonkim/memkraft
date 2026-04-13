@@ -668,9 +668,9 @@ class TestCLIDebug:
 # ── 17. Version Check ────────────────────────────────────────
 
 class TestVersion:
-    def test_version_is_041(self):
+    def test_version_is_042(self):
         from memkraft import __version__
-        assert __version__ == "0.4.1"
+        assert __version__ == "0.4.2"
 
     def test_memkraft_importable(self):
         from memkraft import MemKraft

@@ -465,6 +465,6 @@ class TestIntegration:
         assert isinstance(result["total"], int)
 
     def test_version_030(self):
-        """Version should be 0.4.1."""
+        """Version should be 0.4.2."""
         from memkraft import __version__
-        assert __version__ == "0.4.1"
+        assert __version__ == "0.4.2"
