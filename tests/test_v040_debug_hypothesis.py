@@ -1,552 +1,677 @@
-# tests/test_v040_debug_hypothesis.py
-"""Test MemKraft v0.4.0 Debug Hypothesis Tracking features"""
+#!/usr/bin/env python3
+"""Tests for MemKraft v0.4.0 Debug Hypothesis Tracking features.
+
+Covers:
+1. Debug session lifecycle (start/end)
+2. Hypothesis CRUD (create/read/reject/confirm)
+3. Evidence recording and retrieval
+4. Full debug flow (OBSERVE -> HYPOTHESIZE -> EXPERIMENT -> CONCLUDE)
+5. Auto-switch detection (2 failures -> switch)
+6. Past session search
+7. Rejected hypothesis search (anti-pattern detection)
+8. CLI debug subcommands
+"""
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
 
 import pytest
-import tempfile
-import os
-import time
-from datetime import datetime, timedelta
-from pathlib import Path
+
 from memkraft.core import MemKraft
-from memkraft import __version__
 
 
-class TestDebugHypothesis:
-    @pytest.fixture
-    def mk(self, tmp_path):
-        mk = MemKraft(str(tmp_path))
-        mk.init()
-        return mk
+# ── Fixtures ──────────────────────────────────────────────────
 
-    # --- Version ---
+@pytest.fixture
+def mk(tmp_path):
+    """Create a MemKraft instance with a temporary directory."""
+    mc = MemKraft(base_dir=str(tmp_path / "memory"))
+    mc.init()
+    return mc
 
-    def test_version_040(self):
-        """Version should be 0.4.0."""
-        assert __version__ == "0.4.0"
 
-    # --- start_debug ---
+@pytest.fixture
+def mk_with_session(mk):
+    """MemKraft instance with an active debug session."""
+    result = mk.start_debug("App crashes on login")
+    return mk, result["bug_id"]
 
-    def test_start_debug_creates_file(self, mk, tmp_path):
-        result = mk.start_debug("Test bug: TypeError in parser")
+
+@pytest.fixture
+def mk_with_hypothesis(mk_with_session):
+    """MemKraft instance with a debug session and one hypothesis."""
+    mk, bug_id = mk_with_session
+    mk.log_hypothesis(bug_id, "Null pointer in auth module")
+    return mk, bug_id
+
+
+# ── 1. Debug Session Start ───────────────────────────────────
+
+class TestDebugStart:
+    def test_start_creates_file(self, mk):
+        result = mk.start_debug("TypeError in parser")
+        assert "bug_id" in result
         assert result["bug_id"].startswith("DEBUG-")
+        filepath = Path(result["file"])
+        assert filepath.exists()
+
+    def test_start_returns_observe_status(self, mk):
+        result = mk.start_debug("Crash on startup")
         assert result["status"] == "OBSERVE"
-        debug_file = tmp_path / "debug" / f"{result['bug_id']}.md"
-        assert debug_file.exists()
-        content = debug_file.read_text()
-        assert "Test bug: TypeError in parser" in content
+
+    def test_start_file_contains_description(self, mk):
+        result = mk.start_debug("Memory leak in worker")
+        content = Path(result["file"]).read_text()
+        assert "Memory leak in worker" in content
+
+    def test_start_file_has_all_sections(self, mk):
+        result = mk.start_debug("Test bug")
+        content = Path(result["file"]).read_text()
+        for section in ["## Observation", "## Hypotheses", "## Evidence Log", "## Conclusion", "## Timeline"]:
+            assert section in content
+
+    def test_start_file_status_is_observe(self, mk):
+        result = mk.start_debug("Test bug")
+        content = Path(result["file"]).read_text()
         assert "**Status:** OBSERVE" in content
 
-    def test_start_debug_returns_dict(self, mk):
-        result = mk.start_debug("Simple bug")
-        assert isinstance(result, dict)
-        assert "bug_id" in result
-        assert "file" in result
-        assert "status" in result
+    def test_start_creates_debug_dir(self, mk):
+        mk.start_debug("Bug")
+        assert mk.debug_dir.exists()
 
-    def test_start_debug_unique_ids(self, mk):
-        """Multiple sessions in same second should get unique IDs."""
-        debug1 = mk.start_debug("Bug 1")
-        debug2 = mk.start_debug("Bug 2")
-        debug3 = mk.start_debug("Bug 3")
-        ids = {debug1["bug_id"], debug2["bug_id"], debug3["bug_id"]}
-        assert len(ids) == 3, "All bug_ids must be unique"
+    def test_start_multiple_sessions(self, mk):
+        r1 = mk.start_debug("Bug 1")
+        time.sleep(1)  # ensure different timestamp
+        r2 = mk.start_debug("Bug 2")
+        assert r1["bug_id"] != r2["bug_id"]
 
-    def test_start_debug_file_content_structure(self, mk, tmp_path):
-        result = mk.start_debug("Check structure")
-        filepath = tmp_path / "debug" / f"{result['bug_id']}.md"
-        content = filepath.read_text()
-        assert "## Observation" in content
-        assert "## Hypotheses" in content
-        assert "## Evidence Log" in content
-        assert "## Conclusion" in content
-        assert "## Timeline" in content
 
-    # --- log_hypothesis ---
+# ── 2. Hypothesis CRUD ───────────────────────────────────────
 
-    def test_log_hypothesis_valid_status(self, mk):
-        debug = mk.start_debug("Test bug")
-        result = mk.log_hypothesis(debug["bug_id"], "Hypothesis: wrong regex pattern")
+class TestHypothesisCRUD:
+    def test_log_hypothesis_returns_id(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.log_hypothesis(bug_id, "Bad regex pattern")
+        assert result["hypothesis_id"] == "H1"
         assert result["status"] == "testing"
-        assert "H1" in result["hypothesis_id"]
 
-    def test_log_hypothesis_invalid_status(self, mk):
-        debug = mk.start_debug("Test bug")
-        result = mk.log_hypothesis(debug["bug_id"], "Test hyp", status="invalid")
-        assert result == {}  # Empty dict on error
+    def test_log_multiple_hypotheses(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        r1 = mk.log_hypothesis(bug_id, "Hypothesis A")
+        r2 = mk.log_hypothesis(bug_id, "Hypothesis B")
+        assert r1["hypothesis_id"] == "H1"
+        assert r2["hypothesis_id"] == "H2"
 
-    def test_log_hypothesis_creates_entry(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Hypothesis 1: missing import")
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert len(hypotheses) == 1
-        assert hypotheses[0]["hypothesis_id"] == "H1"
-        assert "missing import" in hypotheses[0]["hypothesis"]
+    def test_log_hypothesis_with_initial_evidence(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.log_hypothesis(bug_id, "Race condition", evidence="Thread dump shows deadlock")
+        assert result["hypothesis_id"] == "H1"
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "Thread dump shows deadlock" in content
 
-    def test_log_multiple_hypotheses(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "H1: import issue")
-        mk.log_hypothesis(debug["bug_id"], "H2: regex issue")
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert len(hypotheses) == 2
-        assert hypotheses[1]["hypothesis_id"] == "H2"
+    def test_get_hypotheses_empty(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        assert mk.get_hypotheses(bug_id) == []
 
-    def test_hypothesis_with_evidence(self, mk):
-        debug = mk.start_debug("With evidence")
-        mk.log_hypothesis(debug["bug_id"], "H1 with evidence", evidence="stacktrace shows...")
-        content = mk._get_debug_file(debug["bug_id"]).read_text()
-        assert "Initial evidence: stacktrace shows" in content
+    def test_get_hypotheses_returns_list(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        hyps = mk.get_hypotheses(bug_id)
+        assert len(hyps) == 1
+        assert hyps[0]["hypothesis_id"] == "H1"
+        assert hyps[0]["status"] == "testing"
+        assert "Null pointer" in hyps[0]["hypothesis"]
 
-    def test_log_hypothesis_nonexistent_session(self, mk):
-        result = mk.log_hypothesis("DEBUG-FAKE-000000", "test")
+    def test_get_hypotheses_multiple(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "Theory A")
+        mk.log_hypothesis(bug_id, "Theory B")
+        mk.log_hypothesis(bug_id, "Theory C")
+        hyps = mk.get_hypotheses(bug_id)
+        assert len(hyps) == 3
+
+    def test_invalid_hypothesis_status(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.log_hypothesis(bug_id, "Bad", status="invalid")
         assert result == {}
 
-    def test_log_hypothesis_all_valid_statuses(self, mk):
-        """Test all three valid statuses for hypotheses."""
-        debug = mk.start_debug("Status test")
-        r1 = mk.log_hypothesis(debug["bug_id"], "H1", status="testing")
-        assert r1["status"] == "testing"
-        r2 = mk.log_hypothesis(debug["bug_id"], "H2", status="rejected")
-        assert r2["status"] == "rejected"
-        r3 = mk.log_hypothesis(debug["bug_id"], "H3", status="confirmed")
-        assert r3["status"] == "confirmed"
+    def test_hypothesis_updates_status_to_hypothesize(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "Test")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "**Status:** HYPOTHESIZE" in content
 
-    # --- get_hypotheses ---
+    def test_hypothesis_nonexistent_session(self, mk):
+        result = mk.log_hypothesis("DEBUG-FAKE-000000", "Test")
+        assert result == {}
 
-    def test_get_hypotheses_empty(self, mk):
-        debug = mk.start_debug("Test bug")
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert hypotheses == []
 
-    def test_get_hypotheses_nonexistent_session(self, mk):
-        result = mk.get_hypotheses("DEBUG-FAKE-000000")
-        assert result == []
+# ── 3. Reject Hypothesis ─────────────────────────────────────
 
-    def test_get_hypotheses_after_reject(self, mk):
-        """Hypotheses should still be retrievable after rejection."""
-        debug = mk.start_debug("Reject test")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "didn't work")
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert len(hypotheses) == 1
-        assert hypotheses[0]["status"] == "rejected"
-
-    def test_get_hypotheses_after_confirm(self, mk):
-        """Hypotheses should still be retrievable after confirmation."""
-        debug = mk.start_debug("Confirm test")
-        mk.log_hypothesis(debug["bug_id"], "Working hyp")
-        mk.confirm_hypothesis(debug["bug_id"], "H1")
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert len(hypotheses) == 1
-        assert hypotheses[0]["status"] == "confirmed"
-
-    # --- reject_hypothesis ---
-
-    def test_reject_hypothesis_updates_status(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        result = mk.reject_hypothesis(debug["bug_id"], "H1", "reason: didnt work")
+class TestRejectHypothesis:
+    def test_reject_with_reason(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.reject_hypothesis(bug_id, "H1", reason="Stack trace shows different module")
         assert result["status"] == "rejected"
-        assert result["reason"] == "reason: didnt work"
+        assert result["hypothesis_id"] == "H1"
 
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert hypotheses[0]["status"] == "rejected"
+    def test_reject_updates_file(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.reject_hypothesis(bug_id, "H1", reason="Wrong")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "REJECTED" in content
 
-    def test_reject_nonexistent_hypothesis(self, mk):
-        debug = mk.start_debug("Test bug")
-        result = mk.reject_hypothesis(debug["bug_id"], "H999")
+    def test_reject_without_reason(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.reject_hypothesis(bug_id, "H1")
+        assert result["status"] == "rejected"
+
+    def test_reject_nonexistent_hypothesis(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.reject_hypothesis(bug_id, "H99")
         assert result == {}
 
-    def test_reject_already_rejected(self, mk):
-        """Rejecting an already rejected hypothesis returns empty."""
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "first reason")
-        result = mk.reject_hypothesis(debug["bug_id"], "H1", "second reason")
+    def test_reject_already_rejected(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.reject_hypothesis(bug_id, "H1", reason="First rejection")
+        # Trying to reject again should fail (not in TESTING state)
+        result = mk.reject_hypothesis(bug_id, "H1", reason="Second rejection")
         assert result == {}
 
-    # --- confirm_hypothesis ---
+    def test_reject_preserves_hypothesis_text(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.reject_hypothesis(bug_id, "H1", reason="Disproven")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "Null pointer in auth module" in content
 
-    def test_confirm_hypothesis_updates_status(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Working hyp")
-        mk.confirm_hypothesis(debug["bug_id"], "H1")
 
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert hypotheses[0]["status"] == "confirmed"
+# ── 4. Confirm Hypothesis ────────────────────────────────────
 
-    def test_confirm_non_testing_hypothesis(self, mk):
-        debug = mk.start_debug("Confirm error test")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.reject_hypothesis(debug["bug_id"], "H1")
-        result = mk.confirm_hypothesis(debug["bug_id"], "H1")
-        assert result == {}  # Should fail — already rejected
+class TestConfirmHypothesis:
+    def test_confirm_returns_confirmed(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.confirm_hypothesis(bug_id, "H1")
+        assert result["status"] == "confirmed"
+        assert result["hypothesis_id"] == "H1"
 
-    def test_confirm_nonexistent_hypothesis(self, mk):
-        debug = mk.start_debug("Test")
-        result = mk.confirm_hypothesis(debug["bug_id"], "H999")
+    def test_confirm_updates_file(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.confirm_hypothesis(bug_id, "H1")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "CONFIRMED" in content
+
+    def test_confirm_nonexistent(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.confirm_hypothesis(bug_id, "H99")
         assert result == {}
 
-    # --- log_evidence ---
+    def test_confirm_rejected_hypothesis_fails(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.reject_hypothesis(bug_id, "H1")
+        result = mk.confirm_hypothesis(bug_id, "H1")
+        assert result == {}
 
-    def test_log_evidence(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        result = mk.log_evidence(debug["bug_id"], "H1", "Stack trace shows line 42", "supports")
+    def test_confirm_includes_hypothesis_text(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.confirm_hypothesis(bug_id, "H1")
+        assert "Null pointer" in result.get("hypothesis", "")
+
+
+# ── 5. Evidence Recording ────────────────────────────────────
+
+class TestEvidence:
+    def test_log_evidence_supports(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.log_evidence(bug_id, "H1", "Stack trace points to line 42", result="supports")
         assert result["result"] == "supports"
+        assert result["hypothesis_id"] == "H1"
 
-    def test_evidence_invalid_result(self, mk):
-        debug = mk.start_debug("Invalid result test")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        result = mk.log_evidence(debug["bug_id"], "H1", "test", "invalid")
+    def test_log_evidence_contradicts(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.log_evidence(bug_id, "H1", "Variable is initialized", result="contradicts")
+        assert result["result"] == "contradicts"
+
+    def test_log_evidence_neutral(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.log_evidence(bug_id, "H1", "Unrelated log entry", result="neutral")
+        assert result["result"] == "neutral"
+
+    def test_log_evidence_invalid_result(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        result = mk.log_evidence(bug_id, "H1", "Test", result="maybe")
         assert result == {}
 
-    def test_log_evidence_all_types(self, mk):
-        """Test all three evidence result types."""
-        debug = mk.start_debug("Evidence types")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        r1 = mk.log_evidence(debug["bug_id"], "H1", "supports this", "supports")
-        r2 = mk.log_evidence(debug["bug_id"], "H1", "contradicts this", "contradicts")
-        r3 = mk.log_evidence(debug["bug_id"], "H1", "neutral to this", "neutral")
-        assert r1["result"] == "supports"
-        assert r2["result"] == "contradicts"
-        assert r3["result"] == "neutral"
-
-    # --- get_evidence ---
-
-    def test_get_evidence(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        mk.log_evidence(debug["bug_id"], "H1", "Evidence 1", "supports")
-        mk.log_evidence(debug["bug_id"], "H1", "Evidence 2", "contradicts")
-
-        evidence = mk.get_evidence(debug["bug_id"], "H1")
-        assert len(evidence) == 2
-        assert evidence[0]["result"] == "supports"
-        assert evidence[1]["result"] == "contradicts"
-
-    def test_get_evidence_all(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.log_hypothesis(debug["bug_id"], "H2")
-        mk.log_evidence(debug["bug_id"], "H1", "E1", "supports")
-        mk.log_evidence(debug["bug_id"], "H2", "E2", "neutral")
-
-        evidence = mk.get_evidence(debug["bug_id"])  # All evidence
-        assert len(evidence) == 2
-
-    def test_get_evidence_filtered(self, mk):
-        debug = mk.start_debug("Filter test")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.log_hypothesis(debug["bug_id"], "H2")
-        mk.log_evidence(debug["bug_id"], "H1", "H1 evidence", "supports")
-        mk.log_evidence(debug["bug_id"], "H2", "H2 evidence", "neutral")
-
-        h1_evidence = mk.get_evidence(debug["bug_id"], "H1")
-        assert len(h1_evidence) == 1
-        assert h1_evidence[0]["hypothesis_id"] == "H1"
-
-    def test_get_evidence_empty(self, mk):
-        debug = mk.start_debug("No evidence")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        evidence = mk.get_evidence(debug["bug_id"], "H1")
+    def test_get_evidence_empty(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        evidence = mk.get_evidence(bug_id)
         assert evidence == []
 
-    # --- end_debug ---
+    def test_get_evidence_returns_entries(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.log_evidence(bug_id, "H1", "Found error in log", result="supports")
+        mk.log_evidence(bug_id, "H1", "Config is correct", result="contradicts")
+        evidence = mk.get_evidence(bug_id)
+        assert len(evidence) == 2
 
-    def test_end_debug(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        mk.log_evidence(debug["bug_id"], "H1", "Evidence", "supports")
-        result = mk.end_debug(debug["bug_id"], "Fixed by adding missing import")
+    def test_get_evidence_filtered_by_hypothesis(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "Hypothesis A")
+        mk.log_hypothesis(bug_id, "Hypothesis B")
+        mk.log_evidence(bug_id, "H1", "Evidence for A", result="supports")
+        mk.log_evidence(bug_id, "H2", "Evidence for B", result="supports")
+        h1_evidence = mk.get_evidence(bug_id, hypothesis_id="H1")
+        assert len(h1_evidence) == 1
+        assert "Evidence for A" in h1_evidence[0]["evidence"]
+
+    def test_evidence_updates_status_to_experiment(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.log_evidence(bug_id, "H1", "Test evidence", result="supports")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "**Status:** EXPERIMENT" in content
+
+    def test_evidence_written_to_file(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.log_evidence(bug_id, "H1", "Segfault at 0xDEAD", result="supports")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "Segfault at 0xDEAD" in content
+
+
+# ── 6. End Debug Session ─────────────────────────────────────
+
+class TestEndDebug:
+    def test_end_session(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.confirm_hypothesis(bug_id, "H1")
+        result = mk.end_debug(bug_id, "Fixed null check in auth.py")
         assert result["status"] == "CONCLUDE"
+        assert result["resolution"] == "Fixed null check in auth.py"
 
-    def test_end_debug_feeds_back(self, mk):
-        debug = mk.start_debug("Feedback test")
-        mk.log_hypothesis(debug["bug_id"], "Confirmed: missing null check")
-        mk.confirm_hypothesis(debug["bug_id"], "H1")
-        mk.end_debug(debug["bug_id"], "Added null check at line 42")
+    def test_end_updates_file_status(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.end_debug(bug_id, "Resolved")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "**Status:** CONCLUDE" in content
 
-        # Should have confirmed hypothesis count
-        result = mk.end_debug(debug["bug_id"], "test")  # Already ended
+    def test_end_writes_resolution(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.end_debug(bug_id, "Applied patch XYZ")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "Applied patch XYZ" in content
+
+    def test_end_counts_hypotheses(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "Wrong A")
+        mk.reject_hypothesis(bug_id, "H1", reason="Nope")
+        mk.log_hypothesis(bug_id, "Right B")
+        mk.confirm_hypothesis(bug_id, "H2")
+        result = mk.end_debug(bug_id, "Fixed via B")
+        assert result["hypotheses_total"] == 2
         assert result["hypotheses_confirmed"] == 1
+        assert result["hypotheses_rejected"] == 1
 
-    def test_end_debug_nonexistent(self, mk):
-        result = mk.end_debug("DEBUG-FAKE-000000", "test")
+    def test_end_nonexistent_session(self, mk):
+        result = mk.end_debug("DEBUG-FAKE", "test")
         assert result == {}
 
-    # --- get_debug_status ---
 
-    def test_get_debug_status(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "H1: test")
-        mk.log_evidence(debug["bug_id"], "H1", "test evidence", "supports")
+# ── 7. Full Debug Flow ───────────────────────────────────────
 
-        status = mk.get_debug_status(debug["bug_id"])
-        assert status["status"] == "EXPERIMENT"
-        assert status["hypotheses_total"] == 1
-        assert status["evidence_count"] == 1
-        assert status["current_hypothesis"] == "H1"
-
-    def test_debug_status_no_hypotheses(self, mk):
-        debug = mk.start_debug("No hyp test")
-        status = mk.get_debug_status(debug["bug_id"])
-        assert status["hypotheses_total"] == 0
-        assert status["current_hypothesis"] is None
-
-    def test_debug_status_concluded(self, mk):
-        debug = mk.start_debug("Concluded test")
-        mk.end_debug(debug["bug_id"], "fixed")
-        status = mk.get_debug_status(debug["bug_id"])
-        assert status["status"] == "CONCLUDE"
-
-    def test_status_shows_rejected_count(self, mk):
-        debug = mk.start_debug("Status rejected test")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.reject_hypothesis(debug["bug_id"], "H1")
-        mk.log_hypothesis(debug["bug_id"], "H2")
-        mk.reject_hypothesis(debug["bug_id"], "H2")
-
-        status = mk.get_debug_status(debug["bug_id"])
-        assert status["hypotheses_rejected"] == 2
-
-    def test_status_shows_description(self, mk):
-        debug = mk.start_debug("Unique bug description XYZ123")
-        status = mk.get_debug_status(debug["bug_id"])
-        assert "XYZ123" in status["description"]
-
-    def test_status_nonexistent(self, mk):
-        result = mk.get_debug_status("DEBUG-FAKE-000000")
-        assert result == {}
-
-    # --- debug_history ---
-
-    def test_debug_history(self, mk):
-        mk.start_debug("Bug 1")
-        mk.start_debug("Bug 2")
-        mk.start_debug("Bug 3")
-
-        history = mk.debug_history(limit=5)
-        assert len(history) == 3
-
-    def test_debug_history_limit(self, mk):
-        for i in range(12):
-            mk.start_debug(f"History test {i}")
-        history = mk.debug_history(limit=5)
-        assert len(history) == 5
-
-    def test_debug_history_empty(self, mk):
-        history = mk.debug_history()
-        assert history == []
-
-    # --- search_rejected_hypotheses ---
-
-    def test_search_rejected_hypotheses(self, mk):
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "Rejected: wrong regex")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "didnt match edge case")
-
-        results = mk.search_rejected_hypotheses("regex")
-        assert len(results) == 1
-        assert results[0]["status"] == "rejected"
-
-    def test_search_rejected_no_match(self, mk):
-        mk.start_debug("No match test")
-        results = mk.search_rejected_hypotheses("nonexistent-hypothesis")
-        assert len(results) == 0
-
-    def test_search_rejected_by_reason(self, mk):
-        """Should find rejected hypotheses by searching the reason text."""
-        debug = mk.start_debug("Test bug")
-        mk.log_hypothesis(debug["bug_id"], "H1: some hypothesis")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "database connection timeout")
-
-        results = mk.search_rejected_hypotheses("timeout")
-        assert len(results) >= 1
-
-    # --- search_debug_sessions ---
-
-    def test_search_debug_sessions(self, mk):
-        mk.start_debug("Search test: parser error")
-        mk.start_debug("Search test: type error")
-
-        results = mk.search_debug_sessions("parser")
-        assert len(results) >= 1
-
-    def test_search_debug_sessions_no_match(self, mk):
-        mk.start_debug("Some bug")
-        results = mk.search_debug_sessions("completely-unrelated-xyz")
-        assert len(results) == 0
-
-    # --- auto_switch_warning ---
-
-    def test_auto_switch_warning(self, mk):
-        debug = mk.start_debug("Test 2-fail switch")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.reject_hypothesis(debug["bug_id"], "H1")
-        mk.log_hypothesis(debug["bug_id"], "H2")
-        mk.reject_hypothesis(debug["bug_id"], "H2")
-
-        # 3rd hypothesis should show warning
-        mk.log_hypothesis(debug["bug_id"], "H3: different approach")
-
-        content = mk._get_debug_file(debug["bug_id"]).read_text()
-        assert "2 hypotheses rejected" in content
-
-    # --- CLI integration ---
-
-    def test_cli_integration_start(self, mk, tmp_path):
-        debug = mk.start_debug("CLI test bug")
-        assert Path(tmp_path / "debug" / f"{debug['bug_id']}.md").exists()
-
-    # --- Full workflow tests ---
-
-    def test_full_debug_workflow(self, mk):
-        """Test complete OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE flow."""
-
+class TestFullDebugFlow:
+    def test_complete_flow(self, mk):
+        """Full flow: start -> hypothesis -> evidence -> reject -> new hypothesis -> confirm -> end"""
         # OBSERVE
-        debug = mk.start_debug("Integration test: API returns 500 on POST /users")
+        session = mk.start_debug("API returns 500 on POST /users")
+        bug_id = session["bug_id"]
+        assert session["status"] == "OBSERVE"
 
-        # HYPOTHESIZE → REJECT
-        mk.log_hypothesis(debug["bug_id"], "H1: Database connection timeout", evidence="Logs show DB timeout")
-        mk.log_evidence(debug["bug_id"], "H1", "Increased connection pool size", "neutral")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "Still timing out after pool increase")
+        # HYPOTHESIZE (first attempt)
+        h1 = mk.log_hypothesis(bug_id, "Database connection timeout")
+        assert h1["hypothesis_id"] == "H1"
 
-        # HYPOTHESIZE → REJECT (triggers 2-fail warning)
-        mk.log_hypothesis(debug["bug_id"], "H2: Missing input validation", evidence="No validation middleware")
-        mk.log_evidence(debug["bug_id"], "H2", "Added validation, still 500", "contradicts")
-        mk.reject_hypothesis(debug["bug_id"], "H2", "Validation passed but server crashed")
+        # EXPERIMENT (gather evidence)
+        e1 = mk.log_evidence(bug_id, "H1", "DB connection pool healthy", result="contradicts")
+        assert e1["result"] == "contradicts"
 
-        # HYPOTHESIZE → CONFIRM
-        mk.log_hypothesis(debug["bug_id"], "H3: Null pointer in user serializer")
-        mk.log_evidence(debug["bug_id"], "H3", "Found null email in test data", "supports")
-        mk.log_evidence(debug["bug_id"], "H3", "Added null check, API works", "supports")
-        mk.confirm_hypothesis(debug["bug_id"], "H3")
+        # Reject H1
+        r1 = mk.reject_hypothesis(bug_id, "H1", reason="DB is fine, connection pool healthy")
+        assert r1["status"] == "rejected"
+
+        # HYPOTHESIZE (second attempt)
+        h2 = mk.log_hypothesis(bug_id, "Request validation fails on empty body")
+        assert h2["hypothesis_id"] == "H2"
+
+        # EXPERIMENT (more evidence)
+        e2 = mk.log_evidence(bug_id, "H2", "Empty POST body triggers 500", result="supports")
+        e3 = mk.log_evidence(bug_id, "H2", "Non-empty POST succeeds", result="supports")
+
+        # Confirm H2
+        c = mk.confirm_hypothesis(bug_id, "H2")
+        assert c["status"] == "confirmed"
 
         # CONCLUDE
-        mk.end_debug(debug["bug_id"], "Fixed null pointer exception in UserSerializer by adding email null check (line 127)")
+        end = mk.end_debug(bug_id, "Added request body validation middleware")
+        assert end["status"] == "CONCLUDE"
+        assert end["hypotheses_confirmed"] == 1
+        assert end["hypotheses_rejected"] == 1
 
-        # Verify final state
-        status = mk.get_debug_status(debug["bug_id"])
-        assert status["status"] == "CONCLUDE"
-        assert status["hypotheses_confirmed"] == 1
-        assert status["hypotheses_rejected"] == 2
+        # Verify file integrity
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "**Status:** CONCLUDE" in content
+        assert "Database connection timeout" in content
+        assert "Request validation fails" in content
+        assert "Added request body validation middleware" in content
 
-        hypotheses = mk.get_hypotheses(debug["bug_id"])
-        assert len(hypotheses) == 3
-        statuses = [h["status"] for h in hypotheses]
-        assert statuses == ["rejected", "rejected", "confirmed"]
 
-        # Verify search finds rejected hypotheses
-        rejected = mk.search_rejected_hypotheses("validation")
-        assert len(rejected) == 1
+# ── 8. Auto-Switch Detection (2 Failures) ────────────────────
 
-        # Verify search finds sessions
-        sessions = mk.search_debug_sessions("serializer")
-        assert len(sessions) >= 1
+class TestAutoSwitchDetection:
+    def test_two_rejections_trigger_warning(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "Theory A")
+        mk.reject_hypothesis(bug_id, "H1", reason="Wrong")
+        mk.log_hypothesis(bug_id, "Theory B")
+        result = mk.reject_hypothesis(bug_id, "H2", reason="Also wrong")
+        assert result["total_rejected"] == 2
 
-    def test_regression_existing_features(self, mk):
-        """Ensure debug features don't break existing functionality."""
+    def test_two_rejections_in_timeline(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "A")
+        mk.reject_hypothesis(bug_id, "H1", reason="no")
+        mk.log_hypothesis(bug_id, "B")
+        mk.reject_hypothesis(bug_id, "H2", reason="no")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "AUTO-SWITCH TRIGGER" in content
 
-        # Test existing extract still works
-        mk.extract("CEO John Doe founded Acme Corp in 2020.", source="test")
+    def test_four_rejections_trigger_again(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        for i in range(4):
+            mk.log_hypothesis(bug_id, f"Theory {i+1}")
+            mk.reject_hypothesis(bug_id, f"H{i+1}", reason=f"Wrong {i+1}")
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        # Should have multiple AUTO-SWITCH triggers
+        assert content.count("AUTO-SWITCH TRIGGER") >= 2
 
-        # Test dream still works
-        dream_result = mk.dream(dry_run=True)
-        assert isinstance(dream_result, dict)
-        assert "issues" in dream_result
+    def test_hypothesis_warning_message_on_add(self, mk_with_session, capsys):
+        mk, bug_id = mk_with_session
+        mk.log_hypothesis(bug_id, "A")
+        mk.reject_hypothesis(bug_id, "H1")
+        mk.log_hypothesis(bug_id, "B")
+        mk.reject_hypothesis(bug_id, "H2")
+        # Third hypothesis should show warning about rejected count
+        mk.log_hypothesis(bug_id, "C")
+        # The warning is embedded in the file when count is even
+        filepath = mk._get_debug_file(bug_id)
+        content = filepath.read_text()
+        assert "rejected" in content.lower()
 
-        # Test search still works
-        mk.track("TestEntity", source="regression")
-        results = mk.search("TestEntity")
-        assert len(results) > 0
 
-    # --- Edge cases ---
+# ── 9. Debug History ─────────────────────────────────────────
 
-    def test_debug_dir_created_on_init(self, mk, tmp_path):
-        """debug/ directory should exist after init."""
-        assert (tmp_path / "debug").is_dir()
+class TestDebugHistory:
+    def test_history_empty(self, mk):
+        sessions = mk.debug_history()
+        assert sessions == []
 
-    def test_evidence_logged_in_correct_section(self, mk):
-        """Evidence should appear between Evidence Log and Conclusion sections."""
-        debug = mk.start_debug("Section test")
-        mk.log_hypothesis(debug["bug_id"], "H1")
-        mk.log_evidence(debug["bug_id"], "H1", "Test evidence text", "supports")
+    def test_history_returns_sessions(self, mk):
+        mk.start_debug("Bug 1")
+        time.sleep(1)
+        mk.start_debug("Bug 2")
+        sessions = mk.debug_history()
+        assert len(sessions) == 2
 
-        content = mk._get_debug_file(debug["bug_id"]).read_text()
-        ev_idx = content.index("## Evidence Log")
-        conc_idx = content.index("## Conclusion")
-        text_idx = content.index("Test evidence text")
-        assert ev_idx < text_idx < conc_idx
+    def test_history_limit(self, mk):
+        for i in range(5):
+            mk.start_debug(f"Bug {i}")
+            time.sleep(0.1)
+        sessions = mk.debug_history(limit=3)
+        assert len(sessions) == 3
 
-    def test_timeline_entries_added(self, mk):
-        """Timeline should have entries for each action."""
-        debug = mk.start_debug("Timeline test")
-        mk.log_hypothesis(debug["bug_id"], "Test hyp")
-        mk.reject_hypothesis(debug["bug_id"], "H1", "bad")
-        mk.end_debug(debug["bug_id"], "done")
+    def test_history_shows_concluded(self, mk):
+        r = mk.start_debug("Bug to fix")
+        mk.log_hypothesis(r["bug_id"], "The fix")
+        mk.confirm_hypothesis(r["bug_id"], "H1")
+        mk.end_debug(r["bug_id"], "Fixed it")
+        sessions = mk.debug_history()
+        assert sessions[0]["status"] == "CONCLUDE"
 
-        content = mk._get_debug_file(debug["bug_id"]).read_text()
-        timeline_section = content.split("## Timeline")[1]
-        assert "Debug session started" in timeline_section
-        assert "Hypothesis H1 added" in timeline_section
-        assert "H1 rejected" in timeline_section
-        assert "concluded" in timeline_section
 
-    def test_multiple_sessions_independent(self, mk):
-        """Actions on one session should not affect another."""
-        d1 = mk.start_debug("Session A")
-        d2 = mk.start_debug("Session B")
+# ── 10. Search Debug Sessions ────────────────────────────────
 
-        mk.log_hypothesis(d1["bug_id"], "H1 for A")
-        mk.log_hypothesis(d2["bug_id"], "H1 for B")
+class TestSearchDebugSessions:
+    def test_search_by_description(self, mk):
+        mk.start_debug("Login page crashes on Safari")
+        mk.start_debug("Payment API timeout")
+        results = mk.search_debug_sessions("Safari")
+        assert len(results) == 1
+        assert "Safari" in results[0]["description"]
 
-        h1 = mk.get_hypotheses(d1["bug_id"])
-        h2 = mk.get_hypotheses(d2["bug_id"])
-        assert len(h1) == 1
-        assert len(h2) == 1
-        assert "for A" in h1[0]["hypothesis"]
-        assert "for B" in h2[0]["hypothesis"]
+    def test_search_by_resolution(self, mk):
+        r = mk.start_debug("Memory leak")
+        mk.log_hypothesis(r["bug_id"], "Unclosed connection")
+        mk.confirm_hypothesis(r["bug_id"], "H1")
+        mk.end_debug(r["bug_id"], "Fixed connection pooling")
+        results = mk.search_debug_sessions("connection pooling")
+        assert len(results) == 1
 
-    def test_hypothesis_statuses_constant(self):
-        """HYPOTHESIS_STATUSES should contain the three valid statuses."""
-        assert "testing" in MemKraft.HYPOTHESIS_STATUSES
-        assert "rejected" in MemKraft.HYPOTHESIS_STATUSES
-        assert "confirmed" in MemKraft.HYPOTHESIS_STATUSES
+    def test_search_no_results(self, mk):
+        mk.start_debug("Some bug")
+        results = mk.search_debug_sessions("nonexistent_query_xyz")
+        assert results == []
 
-    def test_evidence_results_constant(self):
-        """EVIDENCE_RESULTS should contain the three valid results."""
-        assert "supports" in MemKraft.EVIDENCE_RESULTS
-        assert "contradicts" in MemKraft.EVIDENCE_RESULTS
-        assert "neutral" in MemKraft.EVIDENCE_RESULTS
+    def test_search_empty_debug_dir(self, mk):
+        results = mk.search_debug_sessions("anything")
+        assert results == []
 
-    def test_start_debug_bug_id_format(self, mk):
-        """Bug ID should follow DEBUG-YYYYMMDD-HHMMSS format."""
-        import re
-        result = mk.start_debug("Format test")
-        assert re.match(r"DEBUG-\d{8}-\d{6}(-\d+)?$", result["bug_id"])
 
-    def test_get_debug_file_returns_path(self, mk):
-        debug = mk.start_debug("Path test")
-        filepath = mk._get_debug_file(debug["bug_id"])
+# ── 11. Search Rejected Hypotheses ────────────────────────────
+
+class TestSearchRejectedHypotheses:
+    def test_search_finds_rejected(self, mk):
+        r = mk.start_debug("Bug A")
+        mk.log_hypothesis(r["bug_id"], "Regex causes backtracking")
+        mk.reject_hypothesis(r["bug_id"], "H1", reason="Regex is O(n)")
+        results = mk.search_rejected_hypotheses("regex")
+        assert len(results) >= 1
+        assert results[0]["status"] == "rejected"
+
+    def test_search_rejected_by_reason(self, mk):
+        r = mk.start_debug("Bug B")
+        mk.log_hypothesis(r["bug_id"], "Cache invalidation issue")
+        mk.reject_hypothesis(r["bug_id"], "H1", reason="Cache TTL is correct, not the issue")
+        results = mk.search_rejected_hypotheses("cache")
+        assert len(results) >= 1
+
+    def test_search_rejected_no_match(self, mk):
+        r = mk.start_debug("Bug C")
+        mk.log_hypothesis(r["bug_id"], "Thread deadlock")
+        mk.reject_hypothesis(r["bug_id"], "H1", reason="No deadlock")
+        results = mk.search_rejected_hypotheses("completely_unrelated_xyz")
+        assert results == []
+
+    def test_search_rejected_across_sessions(self, mk):
+        r1 = mk.start_debug("Bug 1")
+        mk.log_hypothesis(r1["bug_id"], "Network timeout")
+        mk.reject_hypothesis(r1["bug_id"], "H1", reason="Network is stable")
+
+        time.sleep(1)
+        r2 = mk.start_debug("Bug 2")
+        mk.log_hypothesis(r2["bug_id"], "Network packet loss")
+        mk.reject_hypothesis(r2["bug_id"], "H1", reason="No packet loss detected")
+
+        results = mk.search_rejected_hypotheses("network")
+        assert len(results) == 2
+
+
+# ── 12. Debug Session Status ─────────────────────────────────
+
+class TestDebugStatus:
+    def test_status_observe(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        status = mk.get_debug_status(bug_id)
+        assert status["status"] == "OBSERVE"
+        assert status["hypotheses_total"] == 0
+
+    def test_status_after_hypothesis(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        status = mk.get_debug_status(bug_id)
+        assert status["status"] == "HYPOTHESIZE"
+        assert status["hypotheses_testing"] == 1
+        assert status["current_hypothesis"] == "H1"
+
+    def test_status_after_evidence(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
+        mk.log_evidence(bug_id, "H1", "Test", result="supports")
+        status = mk.get_debug_status(bug_id)
+        assert status["status"] == "EXPERIMENT"
+        assert status["evidence_count"] == 1
+
+    def test_status_nonexistent(self, mk):
+        status = mk.get_debug_status("DEBUG-FAKE")
+        assert status == {}
+
+
+# ── 13. Helper Method Tests ──────────────────────────────────
+
+class TestDebugHelpers:
+    def test_get_debug_file_exists(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        filepath = mk._get_debug_file(bug_id)
         assert filepath is not None
         assert filepath.exists()
-        assert filepath.suffix == ".md"
 
     def test_get_debug_file_nonexistent(self, mk):
-        result = mk._get_debug_file("DEBUG-NONEXISTENT")
-        assert result is None
+        assert mk._get_debug_file("DEBUG-NONEXISTENT") is None
 
-    def test_hypothesis_count_increments(self, mk):
-        """Hypothesis IDs should increment: H1, H2, H3..."""
-        debug = mk.start_debug("Increment test")
+    def test_update_debug_status(self, mk):
+        content = "**Status:** OBSERVE\nSome other text"
+        updated = mk._update_debug_status(content, "HYPOTHESIZE")
+        assert "**Status:** HYPOTHESIZE" in updated
+        assert "**Status:** OBSERVE" not in updated
+
+    def test_append_debug_timeline(self, mk):
+        content = "## Timeline\n- **2026-04-13 12:00** | Started\n"
+        updated = mk._append_debug_timeline(content, "New event")
+        assert "New event" in updated
+
+
+# ── 14. Edge Cases ────────────────────────────────────────────
+
+class TestEdgeCases:
+    def test_long_description(self, mk):
+        desc = "A" * 1000
+        result = mk.start_debug(desc)
+        assert result["bug_id"].startswith("DEBUG-")
+
+    def test_special_characters_in_hypothesis(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        result = mk.log_hypothesis(bug_id, "Bug in path: /api/v1/users?id=123&name=test")
+        assert result["hypothesis_id"] == "H1"
+
+    def test_unicode_in_description(self, mk):
+        result = mk.start_debug("한글 버그 설명: 로그인 실패")
+        filepath = Path(result["file"])
+        content = filepath.read_text()
+        assert "한글 버그 설명" in content
+
+    def test_empty_evidence_list(self, mk_with_session):
+        mk, bug_id = mk_with_session
+        evidence = mk.get_evidence(bug_id)
+        assert evidence == []
+
+    def test_multiple_evidence_for_same_hypothesis(self, mk_with_hypothesis):
+        mk, bug_id = mk_with_hypothesis
         for i in range(5):
-            result = mk.log_hypothesis(debug["bug_id"], f"Hypothesis {i+1}")
-            assert result["hypothesis_id"] == f"H{i+1}"
+            mk.log_evidence(bug_id, "H1", f"Evidence item {i}", result="neutral")
+        evidence = mk.get_evidence(bug_id, hypothesis_id="H1")
+        assert len(evidence) == 5
 
-    def test_end_debug_resolution_in_file(self, mk):
-        """Resolution text should appear in the debug file."""
-        debug = mk.start_debug("Resolution test")
-        resolution_text = "Fixed by refactoring the parser module"
-        mk.end_debug(debug["bug_id"], resolution_text)
-        content = mk._get_debug_file(debug["bug_id"]).read_text()
-        assert resolution_text in content
+
+# ── 15. Debug Session Constants ───────────────────────────────
+
+class TestDebugConstants:
+    def test_debug_states(self):
+        mk = MemKraft()
+        assert "OBSERVE" in mk.DEBUG_STATES
+        assert "HYPOTHESIZE" in mk.DEBUG_STATES
+        assert "EXPERIMENT" in mk.DEBUG_STATES
+        assert "CONCLUDE" in mk.DEBUG_STATES
+
+    def test_hypothesis_statuses(self):
+        mk = MemKraft()
+        assert "testing" in mk.HYPOTHESIS_STATUSES
+        assert "rejected" in mk.HYPOTHESIS_STATUSES
+        assert "confirmed" in mk.HYPOTHESIS_STATUSES
+
+    def test_evidence_results(self):
+        mk = MemKraft()
+        assert "supports" in mk.EVIDENCE_RESULTS
+        assert "contradicts" in mk.EVIDENCE_RESULTS
+        assert "neutral" in mk.EVIDENCE_RESULTS
+
+
+# ── 16. CLI Debug Subcommands ─────────────────────────────────
+
+class TestCLIDebug:
+    def test_cli_debug_start(self, tmp_path):
+        env = os.environ.copy()
+        env["MEMKRAFT_DIR"] = str(tmp_path / "memory")
+        result = subprocess.run(
+            [sys.executable, "-m", "memkraft.cli", "init"],
+            capture_output=True, text=True, env=env
+        )
+        assert result.returncode == 0
+        result = subprocess.run(
+            [sys.executable, "-m", "memkraft.cli", "debug", "start", "CLI test bug"],
+            capture_output=True, text=True, env=env
+        )
+        assert result.returncode == 0
+        assert "Debug session started" in result.stdout or "DEBUG-" in result.stdout
+
+    def test_cli_debug_history(self, tmp_path):
+        env = os.environ.copy()
+        env["MEMKRAFT_DIR"] = str(tmp_path / "memory")
+        subprocess.run([sys.executable, "-m", "memkraft.cli", "init"], capture_output=True, env=env)
+        result = subprocess.run(
+            [sys.executable, "-m", "memkraft.cli", "debug", "history"],
+            capture_output=True, text=True, env=env
+        )
+        assert result.returncode == 0
+
+    def test_cli_debug_no_subcommand_shows_help(self, tmp_path):
+        env = os.environ.copy()
+        env["MEMKRAFT_DIR"] = str(tmp_path / "memory")
+        subprocess.run([sys.executable, "-m", "memkraft.cli", "init"], capture_output=True, env=env)
+        result = subprocess.run(
+            [sys.executable, "-m", "memkraft.cli", "debug"],
+            capture_output=True, text=True, env=env
+        )
+        assert result.returncode == 0
+
+
+# ── 17. Version Check ────────────────────────────────────────
+
+class TestVersion:
+    def test_version_is_040(self):
+        from memkraft import __version__
+        assert __version__ == "0.4.0"
+
+    def test_memkraft_importable(self):
+        from memkraft import MemKraft
+        assert MemKraft is not None

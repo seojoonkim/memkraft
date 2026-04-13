@@ -1,8 +1,8 @@
-<img src="assets/memkraft-banner.webp" alt="MemKraft — Zero-dependency compound memory for AI agents" width="100%">
+<img src="assets/memkraft-banner.webp" alt="MemKraft - Zero-dependency compound memory for AI agents" width="100%">
 
 # MemKraft 🧠
 
-**v0.4.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
+**v0.4.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory.**
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-259%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-277%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -77,47 +77,58 @@ results = mk.agentic_search(
 report = mk.health_check()
 # → {"pass_rate": 80.0, "health_score": "A", ...}
 
-# Dream Cycle — nightly maintenance
+# Dream Cycle - nightly maintenance
 mk.dream(dry_run=True)
 ```
 
 <details>
-<summary><b>More CLI examples — 6 daily patterns that cover 90% of use</b></summary>
+<summary><b>More CLI examples - 6 daily patterns that cover 90% of use</b></summary>
 
 <br>
 
 ```bash
-# 1. Extract & Track — auto-detect entities from any text
+# 1. Extract & Track - auto-detect entities from any text
 memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft extract "Revenue grew 85% YoY" --confidence verified --when "bull market"
 memkraft track "Simon Kim" --type person --source "X/@simonkim_nft"
 memkraft update "Simon Kim" --info "Launched MemKraft" --source "X/@simonkim_nft"
 
-# 2. Search & Recall — find anything in your memory
+# 2. Search & Recall - find anything in your memory
 memkraft search "venture capital" --fuzzy
 memkraft search "Seoul VC" --file-back           # feedback loop: auto-file to timelines
 memkraft lookup "Simon" --brain-first
 memkraft agentic-search "who is the CEO of Hashed" --context "meeting prep"
 
-# 3. Meeting Prep — compile all context before a meeting
+# 3. Meeting Prep - compile all context before a meeting
 memkraft brief "Simon Kim"
 memkraft brief "Simon Kim" --file-back            # record brief generation in timeline
 memkraft links "Simon Kim"
 
-# 4. Ingest & Classify — inbox → structured pages (safe by default)
+# 4. Ingest & Classify - inbox → structured pages (safe by default)
 memkraft cognify            # recommend-only; add --apply to move files
 memkraft detect "Jack Ma and 马化腾 discussed AI" --dry-run
 
-# 5. Log & Reflect — structured audit trail
+# 5. Log & Reflect - structured audit trail
 memkraft log --event "Deployed v0.3" --tags deploy --importance high
 memkraft retro              # daily Well / Bad / Next retrospective
 
-# 6. Maintain & Heal — Dream Cycle keeps memory healthy
+# 6. Maintain & Heal - Dream Cycle keeps memory healthy
 memkraft health-check       # 5 assertions → pass rate + health score (A/B/C/D)
 memkraft dream --dry-run    # nightly: sources, duplicates, bloated pages
 memkraft resolve-conflicts --strategy confidence  # resolve contradictory facts
 memkraft diff               # what changed since last maintenance?
 memkraft open-loops         # find all unresolved items
+
+# 7. Debug Hypothesis Tracking - "Debugging is Memory"
+memkraft debug start "API returns 500 on POST /users"
+memkraft debug hypothesis "Database connection timeout"
+memkraft debug evidence "DB pool healthy" --result contradicts
+memkraft debug reject --reason "DB is fine"
+memkraft debug hypothesis "Request validation missing"
+memkraft debug evidence "Empty POST triggers 500" --result supports
+memkraft debug confirm
+memkraft debug end "Added request body validation"
+memkraft debug search-rejected "timeout"  # avoid past mistakes
 ```
 
 </details>
@@ -130,13 +141,13 @@ memkraft open-loops         # find all unresolved items
 
 | Feature | Description |
 |---------|-------------|
-| **Auto-extract** | Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP — no LLM calls. |
+| **Auto-extract** | Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP - no LLM calls. |
 | **CJK detection** | 806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. |
-| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default — `--apply` to move. |
+| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default - `--apply` to move. |
 | **Fact registry** | Extracts currencies, percentages, dates, quantities into a cross-domain index. |
-| **Originals capture** | Save raw text verbatim — no paraphrasing. |
+| **Originals capture** | Save raw text verbatim - no paraphrasing. |
 | **Confidence levels** | Tag facts as `verified` / `experimental` / `hypothesis`. Dream Cycle warns untagged facts. |
-| **Applicability conditions** | `--when "condition" --when-not "condition"` — facts get `When:` / `When NOT:` metadata. |
+| **Applicability conditions** | `--when "condition" --when-not "condition"` - facts get `When:` / `When NOT:` metadata. |
 
 ### Search & Retrieval
 
@@ -156,10 +167,10 @@ memkraft open-loops         # find all unresolved items
 | Feature | Description |
 |---------|-------------|
 | **Compiled Truth + Timeline** | Dual-layer entity model: mutable current state + append-only audit trail with `[Source:]` tags. |
-| **Memory tiers** | Core / Recall / Archival — explicit context window priority. `promote` to reclassify. |
+| **Memory tiers** | Core / Recall / Archival - explicit context window priority. `promote` to reclassify. |
 | **Memory type classification** | 8 types: identity, belief, preference, relationship, skill, episodic, routine, transient. |
 | **Type-aware decay** | Identity memories decay 10x slower than routine memories. Differential decay multipliers. |
-| **RESOLVER.md** | MECE classification tree — every piece of knowledge has exactly one destination. |
+| **RESOLVER.md** | MECE classification tree - every piece of knowledge has exactly one destination. |
 | **Source attribution** | Every fact tagged with `[Source: who, when, how]`. Enforced by Dream Cycle. |
 | **Dialectic synthesis** | Auto-detect contradictory facts during `extract`, tag `[CONFLICT]`, generate `CONFLICTS.md`. |
 | **Conflict resolution** | `resolve-conflicts --strategy newest|confidence|keep-both|prompt`. |
@@ -170,8 +181,9 @@ memkraft open-loops         # find all unresolved items
 | Feature | Description |
 |---------|-------------|
 | **Dream Cycle** | Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes. |
+| **Debug Hypothesis Tracking** | OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE flow. Track hypotheses, evidence, rejections. Auto-switch warning after 2 failures. Search past sessions to avoid repeating failed approaches. |
 | **Health Check** | 5 self-diagnostic assertions: source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts. Pass rate % + health score (A/B/C/D). |
-| **Memory decay** | Older, unaccessed memories naturally decay — type-aware differential curves. |
+| **Memory decay** | Older, unaccessed memories naturally decay - type-aware differential curves. |
 | **Fact dedup** | Detects and merges duplicate facts across entities. |
 | **Auto-summarize** | Condenses bloated pages while preserving key information. |
 | **Diff tracking** | See exactly what changed since the last Dream Cycle. |
@@ -198,7 +210,7 @@ memkraft open-loops         # find all unresolved items
 
 Debugging insights are too valuable to lose in scrollback. MemKraft treats the entire debug process as first-class memory.
 
-**The debug-hypothesis loop** — inspired by [Shen Huang's scientific debugging method](https://github.com/LichAmnesia/lich-skills/tree/main/skills/debug-hypothesis):
+**The debug-hypothesis loop** - inspired by [Shen Huang's scientific debugging method](https://github.com/LichAmnesia/lich-skills/tree/main/skills/debug-hypothesis):
 
 ```
 OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
@@ -209,40 +221,37 @@ OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
     all rejected? → back to OBSERVE
 ```
 
-- `mk.start_debug("bug description")` — begin a tracked session
-- `mk.log_hypothesis(bug_id, "theory", "evidence")` — record each theory
-- `mk.log_evidence(bug_id, hyp_id, "test result", "supports|contradicts")` — track proof
-- `mk.reject_hypothesis(bug_id, hyp_id, "reason")` — mark failed approaches
-- `mk.confirm_hypothesis(bug_id, hyp_id)` — lock in the root cause
-- `mk.end_debug(bug_id, "resolution")` — close session, feed back to memory
+- `mk.start_debug("bug description")` - begin a tracked session
+- `mk.log_hypothesis(bug_id, "theory", "evidence")` - record each theory
+- `mk.log_evidence(bug_id, hyp_id, "test result", "supports|contradicts")` - track proof
+- `mk.reject_hypothesis(bug_id, hyp_id, "reason")` - mark failed approaches
+- `mk.confirm_hypothesis(bug_id, hyp_id)` - lock in the root cause
+- `mk.end_debug(bug_id, "resolution")` - close session, feed back to memory
 
-**Why it matters:** rejected hypotheses are permanent memory. Next time you hit a similar bug, MemKraft surfaces what you already tried — no more repeating the same failed approaches.
+**Why it matters:** rejected hypotheses are permanent memory. Next time you hit a similar bug, MemKraft surfaces what you already tried - no more repeating the same failed approaches.
 
 <br>
 
 ## API Reference
 
-### Debug Hypothesis Tracking
-```python
-mk.start_debug("bug description") → {"bug_id": "DEBUG-..."}
-mk.log_hypothesis(bug_id, "hypothesis", evidence="", status="testing")
-mk.get_hypotheses(bug_id) → [{"hypothesis_id": "H1", "status": "testing", ...}]
-mk.reject_hypothesis(bug_id, "H1", "reason")
-mk.confirm_hypothesis(bug_id, "H1")
-mk.log_evidence(bug_id, "H1", "evidence", "supports")
-mk.end_debug(bug_id, "resolution")
-```
-
 ### 🧠 Debugging is Memory
 
-**Debugging is not just problem-solving—it's memory creation.** Every bug you encounter becomes structured, searchable memory for your next debugging session.
+> **"Debugging is Memory"** — The reasoning chain matters as much as the fix. Every hypothesis, every piece of evidence, every rejection is permanently recorded. Future you (or your agent) can search past sessions to avoid repeating failed approaches.
 
-The `debug-hypothesis` flow follows **OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE**:
-
-1. **OBSERVE**: Log the bug with `start_debug()` → Creates `debug/DEBUG-YYYYMMDD-HHMMSS.md`
-2. **HYPOTHESIZE**: `log_hypothesis()` → Generates H1, H2, H3... with status tracking
-3. **EXPERIMENT**: `log_evidence()` → ✅ supports | ❌ contradicts | ➖ neutral
-4. **CONCLUDE**: `end_debug()` → Feeds back into memory for future `agentic_search`
+```
+OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
+   │           │             │           │
+   │     log_hypothesis  log_evidence  end_debug
+   │           │             │           │
+   │     reject/confirm   supports/     │
+   │           │          contradicts    │
+   │           │             │           │
+   │     ⚠️ 2 failures      │      feedback loop
+   │     → switch approach   │      → memory
+   │                         │
+   └─── search_rejected ─────┘
+         "we already tried X"
+```
 
 **Key insights:**
 - **2-fail auto-switch**: After 2 rejected hypotheses, warns "consider fundamentally different approach"
@@ -250,28 +259,31 @@ The `debug-hypothesis` flow follows **OBSERVE → HYPOTHESIZE → EXPERIMENT →
 - **Preserved failure memory**: All rejected hypotheses permanently searchable
 - **Feedback loop**: Confirmed hypotheses auto-feed into entity timelines
 
-```bash
-# CLI workflow
-memkraft debug start "API 500 on POST /users"
-memkraft debug hypothesis "DB timeout" 
-memkraft debug evidence "pool increase didn't help" --result contradicts
-memkraft debug reject --reason "still timing out"
-memkraft debug search-rejected "timeout"  # Learn from past failures
+```python
+# Start a debug session
+session = mk.start_debug("API returns 500 on POST /users")
+bug_id = session["bug_id"]  # "DEBUG-20260413-120000"
+
+# Hypothesis 1: test and reject
+mk.log_hypothesis(bug_id, "Database connection timeout")
+mk.log_evidence(bug_id, "H1", "DB pool healthy", result="contradicts")
+mk.reject_hypothesis(bug_id, "H1", reason="DB is fine")
+
+# Hypothesis 2: test and confirm
+mk.log_hypothesis(bug_id, "Request validation missing")
+mk.log_evidence(bug_id, "H2", "Empty POST triggers 500", result="supports")
+mk.confirm_hypothesis(bug_id, "H2")
+
+# End session — auto-feeds back into memory
+mk.end_debug(bug_id, "Added request body validation middleware")
+
+# Search past sessions to avoid repeating mistakes
+mk.search_rejected_hypotheses("timeout")  # → "we already tried this and it failed"
+mk.search_debug_sessions("POST /users")   # → find related past debugging
+mk.debug_history(limit=10)                 # → recent sessions overview
 ```
 
-## CLI Reference
-
-### Debug Commands
-```
-memkraft debug start "bug description"
-memkraft debug hypothesis "missing null check" 
-memkraft debug evidence "stack trace line 42" --result supports
-memkraft debug reject --reason "wrong line"
-memkraft debug confirm
-memkraft debug status
-memkraft debug history
-memkraft debug search-rejected "regex"
-```
+<br>
 
 ## API Reference
 
@@ -340,6 +352,23 @@ mk = MemKraft("/path/to/memory")
 | `retro(dry_run=False)` | Generate daily retrospective (Well / Bad / Next). |
 | `distill_decisions()` | Scan for decision candidates in events and notes. |
 
+### Debug Hypothesis Tracking
+
+| Method | Description |
+|--------|-------------|
+| `start_debug(bug_description)` | Start a new debug session. Returns `{bug_id, file, status}`. |
+| `log_hypothesis(bug_id, hypothesis, evidence="", status="testing")` | Log a hypothesis. Auto-increments ID (H1, H2, ...). |
+| `get_hypotheses(bug_id)` | Get all hypotheses for a debug session. |
+| `reject_hypothesis(bug_id, hypothesis_id, reason="")` | Reject a hypothesis. Preserved permanently for future reference. |
+| `confirm_hypothesis(bug_id, hypothesis_id)` | Confirm a hypothesis. Feeds back into memory. |
+| `log_evidence(bug_id, hypothesis_id, evidence_text, result="neutral")` | Log evidence. Result: `supports` / `contradicts` / `neutral`. |
+| `get_evidence(bug_id, hypothesis_id="")` | Get evidence entries, optionally filtered by hypothesis. |
+| `end_debug(bug_id, resolution)` | End session with resolution. Auto-feeds to memory. |
+| `get_debug_status(bug_id)` | Get current session status and hypothesis counts. |
+| `debug_history(limit=10)` | List past debug sessions. |
+| `search_debug_sessions(query)` | Search past sessions by description/hypothesis/resolution. |
+| `search_rejected_hypotheses(query)` | Search rejected hypotheses — anti-pattern detector. |
+
 <br>
 
 ## CLI Reference
@@ -381,6 +410,16 @@ memkraft <command> [options]
 | `index` | Build memory index |
 | `suggest-links` | Suggest missing wiki-links |
 | `extract-facts [TEXT]` | Extract numeric/date facts |
+| `debug start DESC` | Start a new debug session (OBSERVE) |
+| `debug hypothesis TEXT [--bug-id ID] [--evidence E]` | Log a hypothesis (HYPOTHESIZE) |
+| `debug evidence TEXT [--bug-id ID] [--hypothesis-id H] [--result R]` | Log evidence (supports/contradicts/neutral) |
+| `debug reject [--bug-id ID] [--hypothesis-id H] [--reason R]` | Reject current hypothesis |
+| `debug confirm [--bug-id ID] [--hypothesis-id H]` | Confirm current hypothesis |
+| `debug status [--bug-id ID]` | Show debug session status |
+| `debug history [--limit N]` | List past debug sessions |
+| `debug end RESOLUTION [--bug-id ID]` | End debug session (CONCLUDE) |
+| `debug search QUERY` | Search past debug sessions |
+| `debug search-rejected QUERY` | Search rejected hypotheses (anti-patterns) |
 
 <br>
 
@@ -406,7 +445,7 @@ Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compoun
 
 **Goal-weighted re-ranking (Conway SMS).** `agentic_search("X", context="meeting prep")` and `agentic_search("X", context="investment analysis")` return different rankings from the same data. Memory type, confidence, and applicability conditions all factor into scoring.
 
-**Feedback loop.** `--file-back` files search results back into entity timelines. Each query makes future queries richer — compound interest for memory.
+**Feedback loop.** `--file-back` files search results back into entity timelines. Each query makes future queries richer - compound interest for memory.
 
 **Health Check.** 5 assertions: (1) source attribution, (2) no orphan facts, (3) no duplicates, (4) inbox freshness, (5) no unresolved conflicts. Returns a pass rate and letter grade (A/B/C/D).
 
@@ -425,10 +464,11 @@ memory/
 ├── entities/            # People, companies, concepts (Tier: recall)
 ├── live-notes/          # Persistent tracking targets (Tier: core)
 ├── decisions/           # Decision records with rationale
-├── originals/           # Captured verbatim — no paraphrasing
+├── originals/           # Captured verbatim - no paraphrasing
 ├── inbox/               # Quick capture before classification
 ├── tasks/               # Work-in-progress context
-└── meetings/            # Briefs and notes
+├── meetings/            # Briefs and notes
+└── debug/               # Debug sessions (DEBUG-YYYYMMDD-HHMMSS.md)
 ```
 
 <br>
@@ -440,20 +480,21 @@ memory/
 | **Storage** | Plain Markdown | Vector + Graph DB | DB-backed |
 | **Dependencies** | Zero | Vector DB + API | DB + runtime |
 | **Offline / git-friendly** | ✅ | ❌ | ❌ |
-| Auto-extract (EN/KR/CN/JP) | ✅ | ✅ (LLM) | — |
-| Agentic search | ✅ | — | — |
-| Goal-weighted re-ranking | ✅ | — | — |
-| Feedback loop | ✅ | — | — |
-| Confidence levels | ✅ | — | — |
-| Health check | ✅ | — | — |
-| Conflict detection & resolution | ✅ | — | — |
-| Source attribution | Required | — | — |
-| Dream Cycle | ✅ | — | — |
-| Memory tiers | ✅ | — | ✅ |
-| Type-aware decay | ✅ | — | — |
-| **Semantic search** | ❌ | ✅ | — |
-| **Graph memory** | ❌ | ✅ | — |
-| **Self-editing memory** | ❌ | — | ✅ |
+| Auto-extract (EN/KR/CN/JP) | ✅ | ✅ (LLM) | - |
+| Agentic search | ✅ | - | - |
+| Goal-weighted re-ranking | ✅ | - | - |
+| Feedback loop | ✅ | - | - |
+| Confidence levels | ✅ | - | - |
+| Health check | ✅ | - | - |
+| Conflict detection & resolution | ✅ | - | - |
+| Source attribution | Required | - | - |
+| Dream Cycle | ✅ | - | - |
+| Memory tiers | ✅ | - | ✅ |
+| Type-aware decay | ✅ | - | - |
+| Debug hypothesis tracking | ✅ | - | - |
+| **Semantic search** | ❌ | ✅ | - |
+| **Graph memory** | ❌ | ✅ | - |
+| **Self-editing memory** | ❌ | - | ✅ |
 | **Cost** | Free | Free tier + paid | Free |
 
 **Choose MemKraft when:** you want portable, git-friendly, zero-dependency memory that works with any agent framework, offline, forever.
@@ -468,7 +509,7 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE) — use it however you want.
+[MIT](LICENSE) - use it however you want.
 
 ---
 
@@ -476,22 +517,22 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### v0.4.0 (2026-04-13)
 
-- **Debug Hypothesis Tracking (Debugging is Memory):** `mk.start_debug()` / `mk.log_hypothesis()` / `mk.log_evidence()` / `mk.reject_hypothesis()` / `mk.confirm_hypothesis()` / `mk.end_debug()` — full OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory, 2-fail auto-switch warning, anti-pattern detection via `search_rejected_hypotheses()`, and feedback into entity timelines
+- **Debug Hypothesis Tracking (Debugging is Memory):** `mk.start_debug()` / `mk.log_hypothesis()` / `mk.log_evidence()` / `mk.reject_hypothesis()` / `mk.confirm_hypothesis()` / `mk.end_debug()` - full OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory, 2-fail auto-switch warning, anti-pattern detection via `search_rejected_hypotheses()`, and feedback into entity timelines
 - **CLI debug commands:** `memkraft debug start|hypothesis|evidence|reject|confirm|status|history|search-rejected`
-- Tests: 198 → 259
+- Tests: 198 → 277
 
 ### v0.3.0 (2026-04-13)
 
-- **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` — search results auto-filed back to entity timelines (compound interest for memory)
+- **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` - search results auto-filed back to entity timelines (compound interest for memory)
 - **Confidence Levels:** All facts support `verified` / `experimental` / `hypothesis` tags; `extract --confidence verified`; Dream Cycle warns about untagged facts; agentic-search re-ranking weights by confidence; conflict resolution via `--strategy confidence`
-- **Memory Health Assertions:** `memkraft health-check` — 5 self-diagnostic assertions (source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts) with pass rate % and health score (A/B/C/D); auto-runs in Dream Cycle
-- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` — facts get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
+- **Memory Health Assertions:** `memkraft health-check` - 5 self-diagnostic assertions (source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts) with pass rate % and health score (A/B/C/D); auto-runs in Dream Cycle
+- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` - facts get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
 - **Python re-export:** `from memkraft import MemKraft` now works directly
 - Tests: 158 → 198
 
 ### v0.2.0 (2026-04-12)
 
-- **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` — same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves
+- **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` - same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves
 - **Dialectic Synthesis:** Auto-detect contradictory facts during `extract`, tag with `[CONFLICT]`, generate `CONFLICTS.md` report, resolve via `dream --resolve-conflicts` or `resolve-conflicts` command
 - **Memory Type Classification:** 8 memory types (identity, belief, preference, relationship, skill, episodic, routine, transient) with differential decay multipliers
 - **Type-Aware Decay:** Identity memories decay 10x slower than routine memories
@@ -503,13 +544,13 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Entity tracking (track, update, brief, promote)
 - Dream Cycle (7 health checks), cognify, retro
 - Hybrid search (exact + IDF-weighted + fuzzy), agentic multi-hop search
-- Zero dependencies — stdlib only
+- Zero dependencies - stdlib only
 
 ---
 
 <div align="center">
 
-**MemKraft** — *Agents don't learn. They search. Until now.*
+**MemKraft** - *Agents don't learn. They search. Until now.*
 
 [GitHub](https://github.com/seojoonkim/memkraft) · [PyPI](https://pypi.org/project/memkraft/) · [Issues](https://github.com/seojoonkim/memkraft/issues)
 
@@ -525,9 +566,11 @@ MemKraft stands on the shoulders of giants. These projects and ideas shaped our 
 | **mem0** | Agent memory extraction and retrieval patterns | [GitHub](https://github.com/mem0ai/mem0) |
 | **Zep** | Temporal memory decay and entity extraction | [GitHub](https://github.com/getzep/zep) |
 | **MemoryWeaver** | Dialectic synthesis and memory reconstruction | [GitHub](https://github.com/pchaganti/gx-memory-weaver) |
-| **Shubham Saboo's 6-agent system** | Multi-agent coordination with SOUL.md / MEMORY.md | [Article](https://x.com/Saboo_Shubham_/status/2042916549804077131) |
+| **Shubham Saboo's 6-agent system** | OpenClaw-based multi-agent + SOUL.md / MEMORY.md pattern | [Article](https://x.com/Saboo_Shubham_/article) |
 | **Karpathy llm-wiki** | Wiki-style structured knowledge for LLMs | [Tweet](https://x.com/karpathy/status/2042079355925164424) |
 
-Thank you to all these creators for sharing their work openly.
+*"If I have seen further, it is by standing on the shoulders of giants."*
+
+Thank you to all these creators for sharing their work openly. MemKraft exists because of you.
 
 </div>
