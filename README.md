@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.3.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
+**v0.4.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown.
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-198%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-259%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -186,7 +186,92 @@ memkraft open-loops         # find all unresolved items
 | **Decision distillation** | Scans events and notes for decision candidates. EN + KR keyword matching. |
 | **Meeting briefs** | One command compiles entity info, timeline, open threads, and a pre-meeting checklist. |
 
+### Debugging
+
+| Feature | Description |
+|---------|-------------|
+| ✅ **Debug Hypothesis Tracking** | OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory. |
+
 <br>
+
+## 🐛 Debugging is Memory
+
+Debugging insights are too valuable to lose in scrollback. MemKraft treats the entire debug process as first-class memory.
+
+**The debug-hypothesis loop** — inspired by [Shen Huang's scientific debugging method](https://github.com/LichAmnesia/lich-skills/tree/main/skills/debug-hypothesis):
+
+```
+OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
+    ↑                        |
+    |    rejected?           |
+    +←── next hypothesis ←───+
+    |
+    all rejected? → back to OBSERVE
+```
+
+- `mk.start_debug("bug description")` — begin a tracked session
+- `mk.log_hypothesis(bug_id, "theory", "evidence")` — record each theory
+- `mk.log_evidence(bug_id, hyp_id, "test result", "supports|contradicts")` — track proof
+- `mk.reject_hypothesis(bug_id, hyp_id, "reason")` — mark failed approaches
+- `mk.confirm_hypothesis(bug_id, hyp_id)` — lock in the root cause
+- `mk.end_debug(bug_id, "resolution")` — close session, feed back to memory
+
+**Why it matters:** rejected hypotheses are permanent memory. Next time you hit a similar bug, MemKraft surfaces what you already tried — no more repeating the same failed approaches.
+
+<br>
+
+## API Reference
+
+### Debug Hypothesis Tracking
+```python
+mk.start_debug("bug description") → {"bug_id": "DEBUG-..."}
+mk.log_hypothesis(bug_id, "hypothesis", evidence="", status="testing")
+mk.get_hypotheses(bug_id) → [{"hypothesis_id": "H1", "status": "testing", ...}]
+mk.reject_hypothesis(bug_id, "H1", "reason")
+mk.confirm_hypothesis(bug_id, "H1")
+mk.log_evidence(bug_id, "H1", "evidence", "supports")
+mk.end_debug(bug_id, "resolution")
+```
+
+### 🧠 Debugging is Memory
+
+**Debugging is not just problem-solving—it's memory creation.** Every bug you encounter becomes structured, searchable memory for your next debugging session.
+
+The `debug-hypothesis` flow follows **OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE**:
+
+1. **OBSERVE**: Log the bug with `start_debug()` → Creates `debug/DEBUG-YYYYMMDD-HHMMSS.md`
+2. **HYPOTHESIZE**: `log_hypothesis()` → Generates H1, H2, H3... with status tracking
+3. **EXPERIMENT**: `log_evidence()` → ✅ supports | ❌ contradicts | ➖ neutral
+4. **CONCLUDE**: `end_debug()` → Feeds back into memory for future `agentic_search`
+
+**Key insights:**
+- **2-fail auto-switch**: After 2 rejected hypotheses, warns "consider fundamentally different approach"
+- **Anti-pattern detection**: `search_rejected_hypotheses("regex")` finds past failed approaches
+- **Preserved failure memory**: All rejected hypotheses permanently searchable
+- **Feedback loop**: Confirmed hypotheses auto-feed into entity timelines
+
+```bash
+# CLI workflow
+memkraft debug start "API 500 on POST /users"
+memkraft debug hypothesis "DB timeout" 
+memkraft debug evidence "pool increase didn't help" --result contradicts
+memkraft debug reject --reason "still timing out"
+memkraft debug search-rejected "timeout"  # Learn from past failures
+```
+
+## CLI Reference
+
+### Debug Commands
+```
+memkraft debug start "bug description"
+memkraft debug hypothesis "missing null check" 
+memkraft debug evidence "stack trace line 42" --result supports
+memkraft debug reject --reason "wrong line"
+memkraft debug confirm
+memkraft debug status
+memkraft debug history
+memkraft debug search-rejected "regex"
+```
 
 ## API Reference
 
@@ -389,6 +474,12 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
+### v0.4.0 (2026-04-13)
+
+- **Debug Hypothesis Tracking (Debugging is Memory):** `mk.start_debug()` / `mk.log_hypothesis()` / `mk.log_evidence()` / `mk.reject_hypothesis()` / `mk.confirm_hypothesis()` / `mk.end_debug()` — full OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory, 2-fail auto-switch warning, anti-pattern detection via `search_rejected_hypotheses()`, and feedback into entity timelines
+- **CLI debug commands:** `memkraft debug start|hypothesis|evidence|reject|confirm|status|history|search-rejected`
+- Tests: 198 → 259
+
 ### v0.3.0 (2026-04-13)
 
 - **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` — search results auto-filed back to entity timelines (compound interest for memory)
@@ -421,5 +512,22 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 **MemKraft** — *Agents don't learn. They search. Until now.*
 
 [GitHub](https://github.com/seojoonkim/memkraft) · [PyPI](https://pypi.org/project/memkraft/) · [Issues](https://github.com/seojoonkim/memkraft/issues)
+
+## Appendix: Inspirations & Credits
+
+MemKraft stands on the shoulders of giants. These projects and ideas shaped our approach:
+
+| Project | Inspiration | Link |
+|---------|------------|------|
+| **Karpathy auto-research** | Evidence-based autonomous research methodology | [Tweet](https://x.com/karpathy/status/1906697764923920553) |
+| **Shen Huang debug-hypothesis** | Scientific debugging: hypothesis-driven, max 5-line experiments | [GitHub](https://github.com/LichAmnesia/lich-skills/tree/main/skills/debug-hypothesis) · [Tweet](https://x.com/ShenHuang_/status/2043469166418735204) |
+| **Letta (MemGPT)** | Tiered memory architecture (core / archival / recall) | [GitHub](https://github.com/letta-ai/letta) |
+| **mem0** | Agent memory extraction and retrieval patterns | [GitHub](https://github.com/mem0ai/mem0) |
+| **Zep** | Temporal memory decay and entity extraction | [GitHub](https://github.com/getzep/zep) |
+| **MemoryWeaver** | Dialectic synthesis and memory reconstruction | [GitHub](https://github.com/pchaganti/gx-memory-weaver) |
+| **Shubham Saboo's 6-agent system** | Multi-agent coordination with SOUL.md / MEMORY.md | [Article](https://x.com/Saboo_Shubham_/status/2042916549804077131) |
+| **Karpathy llm-wiki** | Wiki-style structured knowledge for LLMs | [Tweet](https://x.com/karpathy/status/2042079355925164424) |
+
+Thank you to all these creators for sharing their work openly.
 
 </div>

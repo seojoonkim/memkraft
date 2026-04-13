@@ -27,6 +27,11 @@ class MemKraft:
     are implemented with stdlib only.
     """
 
+    # ── Debug Session States ─────────────────────────────────
+    DEBUG_STATES = ("OBSERVE", "HYPOTHESIZE", "EXPERIMENT", "CONCLUDE")
+    HYPOTHESIS_STATUSES = ("testing", "rejected", "confirmed")
+    EVIDENCE_RESULTS = ("supports", "contradicts", "neutral")
+
     def __init__(self, base_dir: Optional[str] = None) -> None:
         if base_dir:
             self.base_dir = Path(base_dir)
@@ -39,6 +44,7 @@ class MemKraft:
         self.inbox_dir = self.base_dir / "inbox"
         self.tasks_dir = self.base_dir / "tasks"
         self.meetings_dir = self.base_dir / "meetings"
+        self.debug_dir = self.base_dir / "debug"
 
     # ── Init ──────────────────────────────────────────────────
     def init(self, path: str = "") -> None:
@@ -47,7 +53,7 @@ class MemKraft:
         else:
             target = self.base_dir
         target.mkdir(parents=True, exist_ok=True)
-        for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions"]:
+        for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions", "debug"]:
             (target / subdir).mkdir(exist_ok=True)
 
         # RESOLVER.md
@@ -2477,6 +2483,542 @@ class MemKraft:
                 if brain_first and not full and high_count >= 2:
                     print(f"  (brain-first: stopped after {high_count} high-relevance results. Use --full for all.)")
 
+    # ── Debug Hypothesis Tracking ─────────────────────────────
+    # Inspired by Shen Huang's debug-hypothesis pattern (Karpathy auto-research):
+    # 1. List hypotheses before code changes
+    # 2. Max 5 lines per experiment
+    # 3. Record all evidence to files (compaction-proof)
+    # 4. After 2 failures → switch hypothesis
+    # "Debugging is memory" — the reasoning chain matters as much as the fix.
+
+    def start_debug(self, bug_description: str) -> Dict[str, Any]:
+        """Start a new debug session.
+
+        Creates a DEBUG-{timestamp}.md file and returns a bug_id.
+        Follows the OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE flow.
+        """
+        self.debug_dir.mkdir(parents=True, exist_ok=True)
+        now = datetime.now()
+        bug_id = f"DEBUG-{now.strftime('%Y%m%d-%H%M%S')}"
+        filepath = self.debug_dir / f"{bug_id}.md"
+
+        # Avoid collision if multiple sessions start in the same second
+        counter = 1
+        while filepath.exists():
+            bug_id = f"DEBUG-{now.strftime('%Y%m%d-%H%M%S')}-{counter}"
+            filepath = self.debug_dir / f"{bug_id}.md"
+            counter += 1
+
+        content = f"""# 🐛 {bug_id}
+
+**Description:** {bug_description}
+**Started:** {now.strftime('%Y-%m-%d %H:%M:%S')}
+**Status:** OBSERVE
+**Resolution:** (pending)
+
+## Observation
+{bug_description}
+
+## Hypotheses
+(Hypotheses will be logged here)
+
+## Evidence Log
+(Evidence will be recorded here)
+
+## Conclusion
+(Pending)
+
+## Timeline
+- **{now.strftime('%Y-%m-%d %H:%M')}** | Debug session started: {bug_description}
+"""
+        filepath.write_text(content, encoding="utf-8")
+        print(f"🐛 Debug session started: {bug_id}")
+        print(f"   Description: {bug_description}")
+        print(f"   File: {filepath.relative_to(self.base_dir)}")
+        return {"bug_id": bug_id, "file": str(filepath), "status": "OBSERVE"}
+
+    def log_hypothesis(self, bug_id: str, hypothesis: str,
+                       evidence: str = "",
+                       status: str = "testing") -> Dict[str, Any]:
+        """Log a hypothesis for a debug session.
+
+        Args:
+            bug_id: The debug session ID (e.g., DEBUG-20260413-120000)
+            hypothesis: The hypothesis text
+            evidence: Optional initial evidence
+            status: testing | rejected | confirmed
+        """
+        if status not in self.HYPOTHESIS_STATUSES:
+            print(f"❌ Invalid status '{status}'. Use: {', '.join(self.HYPOTHESIS_STATUSES)}")
+            return {}
+
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        # Count existing hypotheses to generate ID
+        existing_count = content.count("### H")
+        hypothesis_id = f"H{existing_count + 1}"
+
+        # Check for "2 failures → switch" warning
+        rejected_count = content.count("❌ REJECTED")
+        auto_switch_warning = ""
+        if rejected_count >= 2 and rejected_count % 2 == 0:
+            auto_switch_warning = f"\n> ⚠️ **{rejected_count} hypotheses rejected** — Consider a fundamentally different approach\n"
+
+        # Build hypothesis entry
+        evidence_line = f"\n- Initial evidence: {evidence}" if evidence else ""
+        hypothesis_entry = f"\n### {hypothesis_id}: {hypothesis}\n- **Status:** 🧪 {status.upper()}\n- **Created:** {now}{evidence_line}\n{auto_switch_warning}"
+
+        # Insert into Hypotheses section
+        content = content.replace(
+            "## Evidence Log",
+            f"{hypothesis_entry}\n## Evidence Log"
+        )
+
+        # Update session status to HYPOTHESIZE
+        content = self._update_debug_status(content, "HYPOTHESIZE")
+
+        # Add to timeline
+        content = self._append_debug_timeline(content, f"Hypothesis {hypothesis_id} added: {hypothesis[:60]}")
+
+        filepath.write_text(content, encoding="utf-8")
+        print(f"💡 Hypothesis {hypothesis_id} logged for {bug_id}")
+        print(f"   {hypothesis}")
+        if auto_switch_warning:
+            print(f"   ⚠️ {rejected_count} hypotheses rejected — consider switching approach")
+
+        return {"bug_id": bug_id, "hypothesis_id": hypothesis_id,
+                "hypothesis": hypothesis, "status": status}
+
+    def get_hypotheses(self, bug_id: str) -> List[Dict[str, Any]]:
+        """Get all hypotheses for a debug session."""
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return []
+
+        content = self._safe_read(filepath)
+        hypotheses = []
+
+        # Parse ### HN: hypothesis text
+        # Status line may be followed by optional "Rejected reason" before "Created"
+        pattern = r'### (H\d+): (.+?)\n- \*\*Status:\*\* (.+?)\n(?:- \*\*Rejected reason:\*\* .+?\n)?- \*\*Created:\*\* (.+?)\n'
+        for match in re.finditer(pattern, content):
+            h_id = match.group(1)
+            h_text = match.group(2).strip()
+            status_raw = match.group(3).strip()
+            created = match.group(4).strip()
+
+            # Parse status (strip emoji)
+            if "TESTING" in status_raw.upper():
+                status = "testing"
+            elif "REJECTED" in status_raw.upper():
+                status = "rejected"
+            elif "CONFIRMED" in status_raw.upper():
+                status = "confirmed"
+            else:
+                status = "testing"
+
+            hypotheses.append({
+                "hypothesis_id": h_id,
+                "hypothesis": h_text,
+                "status": status,
+                "created": created,
+            })
+
+        return hypotheses
+
+    def reject_hypothesis(self, bug_id: str, hypothesis_id: str,
+                          reason: str = "") -> Dict[str, Any]:
+        """Reject a hypothesis with a reason.
+
+        Rejected hypotheses are permanently preserved for future reference
+        ("things we already tried and failed").
+        """
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        # Find and update the hypothesis status
+        pattern = rf'(### {re.escape(hypothesis_id)}: .+?\n- \*\*Status:\*\* )🧪 TESTING'
+        match = re.search(pattern, content)
+        if not match:
+            print(f"❌ Hypothesis {hypothesis_id} not found or not in TESTING state")
+            return {}
+
+        reason_line = f"\n- **Rejected reason:** {reason}" if reason else ""
+        content = content[:match.start(1)] + match.group(1) + f"❌ REJECTED ({now}){reason_line}" + content[match.end():]
+
+        # Check total rejected count for auto-switch detection
+        rejected_count = content.count("❌ REJECTED")
+        if rejected_count >= 2 and rejected_count % 2 == 0:
+            content = self._append_debug_timeline(
+                content,
+                f"⚠️ AUTO-SWITCH TRIGGER: {rejected_count} hypotheses rejected — consider fundamentally different approach"
+            )
+
+        content = self._append_debug_timeline(content, f"{hypothesis_id} rejected: {reason[:60]}")
+        filepath.write_text(content, encoding="utf-8")
+
+        print(f"❌ Hypothesis {hypothesis_id} rejected for {bug_id}")
+        if reason:
+            print(f"   Reason: {reason}")
+        if rejected_count >= 2 and rejected_count % 2 == 0:
+            print(f"   ⚠️ {rejected_count} rejected — switch hypothesis approach recommended")
+
+        return {"bug_id": bug_id, "hypothesis_id": hypothesis_id,
+                "status": "rejected", "reason": reason,
+                "total_rejected": rejected_count}
+
+    def confirm_hypothesis(self, bug_id: str, hypothesis_id: str) -> Dict[str, Any]:
+        """Confirm a hypothesis and feed back into memory.
+
+        Confirmed hypotheses generate automatic memory feedback
+        for future agentic_search queries.
+        """
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        # Find and update the hypothesis status
+        pattern = rf'(### {re.escape(hypothesis_id)}: .+?\n- \*\*Status:\*\* )🧪 TESTING'
+        match = re.search(pattern, content)
+        if not match:
+            print(f"❌ Hypothesis {hypothesis_id} not found or not in TESTING state")
+            return {}
+
+        content = content[:match.start(1)] + match.group(1) + f"✅ CONFIRMED ({now})" + content[match.end():]
+
+        # Update session status to CONCLUDE
+        content = self._update_debug_status(content, "EXPERIMENT")
+
+        content = self._append_debug_timeline(content, f"{hypothesis_id} confirmed ✅")
+        filepath.write_text(content, encoding="utf-8")
+
+        # Extract hypothesis text for feedback
+        h_pattern = rf'### {re.escape(hypothesis_id)}: (.+?)\n'
+        h_match = re.search(h_pattern, content)
+        hypothesis_text = h_match.group(1).strip() if h_match else hypothesis_id
+
+        print(f"✅ Hypothesis {hypothesis_id} confirmed for {bug_id}")
+        print(f"   {hypothesis_text}")
+
+        return {"bug_id": bug_id, "hypothesis_id": hypothesis_id,
+                "status": "confirmed", "hypothesis": hypothesis_text}
+
+    def log_evidence(self, bug_id: str, hypothesis_id: str,
+                     evidence_text: str,
+                     result: str = "neutral") -> Dict[str, Any]:
+        """Log evidence for a hypothesis.
+
+        Args:
+            bug_id: Debug session ID
+            hypothesis_id: Hypothesis ID (e.g., H1)
+            evidence_text: The evidence observation
+            result: supports | contradicts | neutral
+        """
+        if result not in self.EVIDENCE_RESULTS:
+            print(f"❌ Invalid result '{result}'. Use: {', '.join(self.EVIDENCE_RESULTS)}")
+            return {}
+
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        result_icon = {"supports": "✅", "contradicts": "❌", "neutral": "➖"}[result]
+
+        evidence_entry = f"- **{now}** | [{hypothesis_id}] {result_icon} {result}: {evidence_text}\n"
+
+        # Insert into Evidence Log section
+        marker = "## Conclusion"
+        if marker in content:
+            content = content.replace(marker, f"{evidence_entry}\n{marker}")
+
+        # Update session status to EXPERIMENT
+        content = self._update_debug_status(content, "EXPERIMENT")
+
+        filepath.write_text(content, encoding="utf-8")
+
+        print(f"📝 Evidence logged for {bug_id}/{hypothesis_id}: {result_icon} {result}")
+        return {"bug_id": bug_id, "hypothesis_id": hypothesis_id,
+                "evidence": evidence_text, "result": result}
+
+    def get_evidence(self, bug_id: str, hypothesis_id: str = "") -> List[Dict[str, Any]]:
+        """Get evidence for a debug session, optionally filtered by hypothesis."""
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return []
+
+        content = self._safe_read(filepath)
+        evidence_list = []
+
+        # Parse evidence entries from Evidence Log section
+        evidence_section = ""
+        if "## Evidence Log" in content and "## Conclusion" in content:
+            evidence_section = content.split("## Evidence Log")[1].split("## Conclusion")[0]
+
+        pattern = r'- \*\*(.+?)\*\* \| \[(H\d+)\] (.+?) (supports|contradicts|neutral): (.+)'
+        for match in re.finditer(pattern, evidence_section):
+            entry = {
+                "timestamp": match.group(1).strip(),
+                "hypothesis_id": match.group(2).strip(),
+                "result": match.group(4).strip(),
+                "evidence": match.group(5).strip(),
+            }
+            if not hypothesis_id or entry["hypothesis_id"] == hypothesis_id:
+                evidence_list.append(entry)
+
+        return evidence_list
+
+    def end_debug(self, bug_id: str, resolution: str) -> Dict[str, Any]:
+        """End a debug session with a resolution.
+
+        The conclusion is automatically fed back into memory via
+        the agentic_search feedback loop, so future similar bugs
+        can find this debugging session's results.
+        """
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        # Update conclusion section
+        content = content.replace(
+            "## Conclusion\n(Pending)",
+            f"## Conclusion\n**Resolved:** {now}\n**Resolution:** {resolution}"
+        )
+
+        # Update status to CONCLUDE
+        content = self._update_debug_status(content, "CONCLUDE")
+
+        # Update resolution field
+        content = content.replace("**Resolution:** (pending)", f"**Resolution:** {resolution}")
+
+        content = self._append_debug_timeline(content, f"Debug session concluded: {resolution[:80]}")
+        filepath.write_text(content, encoding="utf-8")
+
+        # Feed back into memory for future searches
+        # Extract confirmed hypothesis for the feedback
+        hypotheses = self.get_hypotheses(bug_id)
+        confirmed = [h for h in hypotheses if h["status"] == "confirmed"]
+        rejected = [h for h in hypotheses if h["status"] == "rejected"]
+
+        print(f"🏁 Debug session {bug_id} concluded")
+        print(f"   Resolution: {resolution}")
+        print(f"   Hypotheses: {len(confirmed)} confirmed, {len(rejected)} rejected, {len(hypotheses) - len(confirmed) - len(rejected)} other")
+
+        return {
+            "bug_id": bug_id,
+            "status": "CONCLUDE",
+            "resolution": resolution,
+            "hypotheses_total": len(hypotheses),
+            "hypotheses_confirmed": len(confirmed),
+            "hypotheses_rejected": len(rejected),
+        }
+
+    def get_debug_status(self, bug_id: str) -> Dict[str, Any]:
+        """Get current status of a debug session."""
+        filepath = self._get_debug_file(bug_id)
+        if not filepath:
+            return {}
+
+        content = self._safe_read(filepath)
+        hypotheses = self.get_hypotheses(bug_id)
+
+        # Extract status
+        status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
+        status = status_match.group(1) if status_match else "UNKNOWN"
+
+        # Extract description
+        desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
+        description = desc_match.group(1).strip() if desc_match else ""
+
+        # Count evidence
+        evidence_count = len(re.findall(r'- \*\*.+?\*\* \| \[H\d+\]', content))
+
+        # Current testing hypothesis
+        testing = [h for h in hypotheses if h["status"] == "testing"]
+        confirmed = [h for h in hypotheses if h["status"] == "confirmed"]
+        rejected = [h for h in hypotheses if h["status"] == "rejected"]
+
+        result = {
+            "bug_id": bug_id,
+            "status": status,
+            "description": description,
+            "hypotheses_total": len(hypotheses),
+            "hypotheses_testing": len(testing),
+            "hypotheses_confirmed": len(confirmed),
+            "hypotheses_rejected": len(rejected),
+            "evidence_count": evidence_count,
+            "current_hypothesis": testing[-1]["hypothesis_id"] if testing else None,
+        }
+
+        print(f"🐛 {bug_id} — Status: {status}")
+        print(f"   Description: {description[:80]}")
+        print(f"   Hypotheses: {len(testing)} testing, {len(confirmed)} confirmed, {len(rejected)} rejected")
+        print(f"   Evidence entries: {evidence_count}")
+        if testing:
+            print(f"   Current: {testing[-1]['hypothesis_id']} — {testing[-1]['hypothesis'][:60]}")
+
+        return result
+
+    def debug_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """List past debug sessions."""
+        if not self.debug_dir.exists():
+            print("No debug sessions found.")
+            return []
+
+        sessions = []
+        for md in sorted(self.debug_dir.glob("DEBUG-*.md"), reverse=True)[:limit]:
+            content = self._safe_read(md)
+            status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
+            desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
+            resolution_match = re.search(r'\*\*Resolution:\*\* (.+)', content)
+
+            status = status_match.group(1) if status_match else "UNKNOWN"
+            description = desc_match.group(1).strip() if desc_match else ""
+            resolution = resolution_match.group(1).strip() if resolution_match else "(pending)"
+
+            sessions.append({
+                "bug_id": md.stem,
+                "status": status,
+                "description": description[:80],
+                "resolution": resolution[:80],
+            })
+
+        if sessions:
+            print(f"🐛 Debug History ({len(sessions)} sessions):")
+            for s in sessions:
+                icon = "✅" if s["status"] == "CONCLUDE" else "🔄" if s["status"] != "OBSERVE" else "👁️"
+                print(f"  {icon} {s['bug_id']}: {s['description']}")
+                if s["status"] == "CONCLUDE":
+                    print(f"     → {s['resolution']}")
+        else:
+            print("No debug sessions found.")
+
+        return sessions
+
+    def search_rejected_hypotheses(self, query: str) -> List[Dict[str, Any]]:
+        """Search rejected hypotheses to avoid repeating failed approaches.
+
+        This is the key anti-pattern detector: "we already tried X and it failed."
+        """
+        if not self.debug_dir.exists():
+            return []
+
+        query_lower = query.lower()
+        results = []
+
+        for md in self.debug_dir.glob("DEBUG-*.md"):
+            content = self._safe_read(md)
+            bug_id = md.stem
+
+            # Find rejected hypotheses matching query
+            pattern = r'### (H\d+): (.+?)\n- \*\*Status:\*\* ❌ REJECTED[^\n]*\n(?:- \*\*Rejected reason:\*\* ([^\n]+)\n)?'
+            for match in re.finditer(pattern, content):
+                h_id = match.group(1)
+                h_text = match.group(2).strip()
+                reason = match.group(3).strip() if match.group(3) else ""
+
+                # Check if query matches hypothesis or reason
+                if (query_lower in h_text.lower() or
+                    query_lower in reason.lower() or
+                    SequenceMatcher(None, query_lower, h_text.lower()).ratio() > 0.4):
+                    results.append({
+                        "bug_id": bug_id,
+                        "hypothesis_id": h_id,
+                        "hypothesis": h_text,
+                        "reason": reason,
+                        "status": "rejected",
+                    })
+
+        if results:
+            print(f"⚠️ Found {len(results)} rejected hypotheses matching '{query}':")
+            for r in results:
+                print(f"  ❌ [{r['bug_id']}/{r['hypothesis_id']}] {r['hypothesis'][:70]}")
+                if r["reason"]:
+                    print(f"     Reason: {r['reason'][:60]}")
+        else:
+            print(f"No rejected hypotheses found for '{query}'.")
+
+        return results
+
+    def search_debug_sessions(self, query: str) -> List[Dict[str, Any]]:
+        """Search past debug sessions by description, hypothesis, or resolution."""
+        if not self.debug_dir.exists():
+            return []
+
+        query_lower = query.lower()
+        results = []
+
+        for md in self.debug_dir.glob("DEBUG-*.md"):
+            content = self._safe_read(md)
+            content_lower = content.lower()
+
+            if query_lower in content_lower:
+                bug_id = md.stem
+                desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
+                status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
+                resolution_match = re.search(r'\*\*Resolution:\*\* (.+)', content)
+
+                results.append({
+                    "bug_id": bug_id,
+                    "description": desc_match.group(1).strip() if desc_match else "",
+                    "status": status_match.group(1) if status_match else "UNKNOWN",
+                    "resolution": resolution_match.group(1).strip() if resolution_match else "(pending)",
+                    "file": str(md.relative_to(self.base_dir)),
+                })
+
+        if results:
+            print(f"🔍 Found {len(results)} debug sessions matching '{query}':")
+            for r in results:
+                icon = "✅" if r["status"] == "CONCLUDE" else "🔄"
+                print(f"  {icon} {r['bug_id']}: {r['description'][:60]}")
+        else:
+            print(f"No debug sessions found for '{query}'.")
+
+        return results
+
+    def _get_debug_file(self, bug_id: str) -> Optional[Path]:
+        """Get the file path for a debug session."""
+        filepath = self.debug_dir / f"{bug_id}.md"
+        if not filepath.exists():
+            print(f"❌ Debug session '{bug_id}' not found")
+            return None
+        return filepath
+
+    def _update_debug_status(self, content: str, new_status: str) -> str:
+        """Update the status field in debug session content."""
+        return re.sub(
+            r'(\*\*Status:\*\* )(OBSERVE|HYPOTHESIZE|EXPERIMENT|CONCLUDE)',
+            rf'\g<1>{new_status}',
+            content,
+            count=1
+        )
+
+    def _append_debug_timeline(self, content: str, entry: str) -> str:
+        """Append an entry to the debug session timeline."""
+        now = datetime.now().strftime("%Y-%m-%d %H:%M")
+        timeline_entry = f"- **{now}** | {entry}\n"
+        # Find the last line of Timeline section and append
+        if "## Timeline\n" in content:
+            content = content.rstrip() + "\n" + timeline_entry
+        return content
+
     # ── Helpers ───────────────────────────────────────────────
     def _slugify(self, text: str) -> str:
         text = text.strip().lower()
@@ -2686,7 +3228,7 @@ class MemKraft:
         return content[start:end].strip()
 
     def _all_md_files(self):
-        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir]:
+        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir]:
             if subdir.exists():
                 yield from subdir.glob("*.md")
         # Include daily notes and base-dir markdown files (exclude system/auto-generated files)

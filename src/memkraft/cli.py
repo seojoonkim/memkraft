@@ -162,6 +162,59 @@ def main():
     rc_parser.add_argument("--strategy", default="newest", choices=["newest", "confidence", "keep-both", "prompt"], help="Resolution strategy")
     rc_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
 
+    # debug
+    debug_parser = subparsers.add_parser("debug", help="Debug hypothesis tracking")
+    debug_sub = debug_parser.add_subparsers(dest="debug_command", help="Debug subcommands")
+
+    # debug start
+    ds_parser = debug_sub.add_parser("start", help="Start a new debug session")
+    ds_parser.add_argument("description", help="Bug description")
+
+    # debug hypothesis
+    dh_parser = debug_sub.add_parser("hypothesis", help="Log a hypothesis")
+    dh_parser.add_argument("hypothesis", help="Hypothesis text")
+    dh_parser.add_argument("--bug-id", default="", help="Bug ID (default: latest active session)")
+    dh_parser.add_argument("--evidence", default="", help="Initial evidence")
+
+    # debug evidence
+    de_parser = debug_sub.add_parser("evidence", help="Log evidence")
+    de_parser.add_argument("evidence", help="Evidence text")
+    de_parser.add_argument("--bug-id", default="", help="Bug ID (default: latest active session)")
+    de_parser.add_argument("--hypothesis-id", default="", help="Hypothesis ID (default: latest testing hypothesis)")
+    de_parser.add_argument("--result", default="neutral", choices=["supports", "contradicts", "neutral"], help="Evidence result")
+
+    # debug reject
+    dr_parser = debug_sub.add_parser("reject", help="Reject current hypothesis")
+    dr_parser.add_argument("--bug-id", default="", help="Bug ID")
+    dr_parser.add_argument("--hypothesis-id", default="", help="Hypothesis ID")
+    dr_parser.add_argument("--reason", default="", help="Rejection reason")
+
+    # debug confirm
+    dc_parser = debug_sub.add_parser("confirm", help="Confirm current hypothesis")
+    dc_parser.add_argument("--bug-id", default="", help="Bug ID")
+    dc_parser.add_argument("--hypothesis-id", default="", help="Hypothesis ID")
+
+    # debug status
+    dst_parser = debug_sub.add_parser("status", help="Show debug session status")
+    dst_parser.add_argument("--bug-id", default="", help="Bug ID (default: latest)")
+
+    # debug history
+    dhist_parser = debug_sub.add_parser("history", help="List past debug sessions")
+    dhist_parser.add_argument("--limit", type=int, default=10, help="Max sessions to show")
+
+    # debug end
+    dend_parser = debug_sub.add_parser("end", help="End debug session")
+    dend_parser.add_argument("resolution", help="Resolution description")
+    dend_parser.add_argument("--bug-id", default="", help="Bug ID")
+
+    # debug search
+    dsearch_parser = debug_sub.add_parser("search", help="Search past debug sessions")
+    dsearch_parser.add_argument("query", help="Search query")
+
+    # debug search-rejected
+    dsr_parser = debug_sub.add_parser("search-rejected", help="Search rejected hypotheses")
+    dsr_parser.add_argument("query", help="Search query")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -249,8 +302,82 @@ def main():
         mc.health_check()
     elif args.command == "resolve-conflicts":
         mc.resolve_conflicts(strategy=args.strategy, dry_run=args.dry_run)
+    elif args.command == "debug":
+        if not args.debug_command:
+            debug_parser.print_help()
+            return 0
+        if args.debug_command == "start":
+            mc.start_debug(args.description)
+        elif args.debug_command == "hypothesis":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            if bug_id:
+                mc.log_hypothesis(bug_id, args.hypothesis, evidence=args.evidence)
+        elif args.debug_command == "evidence":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            h_id = args.hypothesis_id or _latest_testing_hypothesis(mc, bug_id)
+            if bug_id and h_id:
+                mc.log_evidence(bug_id, h_id, args.evidence, result=args.result)
+        elif args.debug_command == "reject":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            h_id = args.hypothesis_id or _latest_testing_hypothesis(mc, bug_id)
+            if bug_id and h_id:
+                mc.reject_hypothesis(bug_id, h_id, reason=args.reason)
+        elif args.debug_command == "confirm":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            h_id = args.hypothesis_id or _latest_testing_hypothesis(mc, bug_id)
+            if bug_id and h_id:
+                mc.confirm_hypothesis(bug_id, h_id)
+        elif args.debug_command == "status":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            if bug_id:
+                mc.get_debug_status(bug_id)
+        elif args.debug_command == "history":
+            mc.debug_history(limit=args.limit)
+        elif args.debug_command == "end":
+            bug_id = args.bug_id or _latest_debug_session(mc)
+            if bug_id:
+                mc.end_debug(bug_id, args.resolution)
+        elif args.debug_command == "search":
+            mc.search_debug_sessions(args.query)
+        elif args.debug_command == "search-rejected":
+            mc.search_rejected_hypotheses(args.query)
 
     return 0
+
+
+def _latest_debug_session(mc: MemKraft) -> str:
+    """Find the latest active (non-CONCLUDE) debug session."""
+    if not mc.debug_dir.exists():
+        print("\u274c No debug sessions found. Use 'memkraft debug start' first.")
+        return ""
+    active = []
+    concluded = []
+    for md in sorted(mc.debug_dir.glob("DEBUG-*.md"), reverse=True):
+        content = md.read_text(encoding="utf-8", errors="replace")
+        if "**Status:** CONCLUDE" not in content:
+            active.append(md.stem)
+        else:
+            concluded.append(md.stem)
+    if active:
+        return active[0]
+    if concluded:
+        return concluded[0]
+    print("\u274c No debug sessions found.")
+    return ""
+
+
+def _latest_testing_hypothesis(mc: MemKraft, bug_id: str) -> str:
+    """Find the latest testing hypothesis in a debug session."""
+    if not bug_id:
+        return ""
+    hypotheses = mc.get_hypotheses(bug_id)
+    testing = [h for h in hypotheses if h["status"] == "testing"]
+    if testing:
+        return testing[-1]["hypothesis_id"]
+    if hypotheses:
+        return hypotheses[-1]["hypothesis_id"]
+    print(f"\u274c No hypotheses found in {bug_id}. Use 'memkraft debug hypothesis' first.")
+    return ""
 
 
 if __name__ == "__main__":
