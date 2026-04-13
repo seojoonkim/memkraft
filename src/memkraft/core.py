@@ -27,6 +27,15 @@ class MemKraft:
     are implemented with stdlib only.
     """
 
+    # ── Korean Particle (조사) List ──────────────────────────
+    KOREAN_JOSA = [
+        # 긴 것부터 — endswith 순차 체크 시 부분 매칭 방지
+        '이라서', '한테서', '에게서', '으로서', '이라고',
+        '에서', '한테', '에게', '으로', '로서', '이라', '라서', '이랑', '라고',
+        '까지', '부터', '처럼', '보다', '마다', '밖에', '대로', '이나', '라도',
+        '와', '과', '도', '만', '은', '는', '이', '가', '을', '를', '의', '에', '로',
+    ]
+
     # ── Debug Session States ─────────────────────────────────
     DEBUG_STATES = ("OBSERVE", "HYPOTHESIZE", "EXPERIMENT", "CONCLUDE")
     HYPOTHESIS_STATUSES = ("testing", "rejected", "confirmed")
@@ -72,7 +81,7 @@ class MemKraft:
 
     # ── Track ─────────────────────────────────────────────────
     def track(self, name: str, entity_type: str = "person", source: str = "") -> Optional[Path]:
-        name = name.strip()
+        name = self._strip_korean_josa(name.strip())
         if not name:
             print("Error: Entity name cannot be empty.")
             return None
@@ -3063,9 +3072,8 @@ class MemKraft:
                 entities.append({"name": name, "type": "person", "context": "auto-detected"})
         for name in set(korean_names):
             if len(name) >= 2 and name not in korean_stopwords:
-                # 한국어 조사 제거: 이, 을, 를, 은, 는, 에, 에서, 로, 으로, 와, 과, 도, 만, 이라, 이라서
-                stripped = re.sub(r'([가-힣]+?)([이을를은는에로으와과도만이라서의]+)$', r'\1', name)
-                if stripped != name and len(stripped) >= 2 and stripped not in korean_stopwords:
+                stripped = self._strip_korean_josa(name)
+                if stripped != name and stripped not in korean_stopwords:
                     name = stripped
                 if name not in korean_stopwords and len(name) >= 2:
                     entities.append({"name": name, "type": "person", "context": "auto-detected (Korean)"})
@@ -3214,6 +3222,14 @@ class MemKraft:
 - **{now}** | Entity first detected [Source: {source}]
 """
         filepath.write_text(content, encoding="utf-8")
+
+    def _strip_korean_josa(self, name: str) -> str:
+        for josa in self.KOREAN_JOSA:
+            if name.endswith(josa):
+                stripped = name[:-len(josa)]
+                if len(stripped) >= 2:
+                    return stripped
+        return name
 
     def _extract_section(self, content: str, section_name: str) -> str:
         marker = f"## {section_name}"
