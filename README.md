@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.5.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory.**
+**v0.5.1** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory.**
 
 <div align="center">
 
@@ -204,7 +204,7 @@ memkraft debug search-rejected "timeout"  # avoid past mistakes
 |---------|-------------|
 | ✅ **Debug Hypothesis Tracking** | OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory. |
 
-### 📸 Memory Snapshots & Time Travel (v0.5.0)
+### 📸 Memory Snapshots & Time Travel (v0.5.1)
 
 | Feature | Description |
 |---------|-------------|
@@ -565,7 +565,7 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
-### v0.5.0 (2026-04-14)
+### v0.5.1 (2026-04-14)
 
 - **Memory Snapshots & Time Travel:** `mk.snapshot()` / `mk.snapshot_list()` / `mk.snapshot_diff()` / `mk.time_travel()` / `mk.snapshot_entity()` — create point-in-time snapshots of all memory files (hash, size, summary, sections, fact count, link count), compare any two snapshots to see what changed, search memory as it was at a past date, and track how individual entities evolved over time
 - **CLI snapshot commands:** `memkraft snapshot` / `snapshot-list` / `snapshot-diff` / `time-travel` / `snapshot-entity`
