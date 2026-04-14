@@ -204,6 +204,38 @@ memkraft debug search-rejected "timeout"  # avoid past mistakes
 |---------|-------------|
 | ✅ **Debug Hypothesis Tracking** | OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory. |
 
+### 📸 Memory Snapshots & Time Travel (v0.5.0)
+
+| Feature | Description |
+|---------|-------------|
+| **Snapshot** | Create a point-in-time manifest of all memory files (hash, size, summary, sections, fact count, link count). Optionally embed full content. |
+| **Snapshot List** | List all saved snapshots, newest first, with labels and metadata. |
+| **Snapshot Diff** | Compare two snapshots (or snapshot vs live state). Shows added, removed, modified, unchanged files with byte deltas. |
+| **Time Travel** | Search memory *as it was* at a past snapshot. Answer "what did I know about X on March 1st?" |
+| **Entity Timeline** | Track how a specific entity evolved across all snapshots — new, modified, unchanged, deleted states. |
+
+```python
+from memkraft import MemKraft
+
+mk = MemKraft("/path/to/memory")
+
+# Take a snapshot before a big operation
+snap = mk.snapshot(label="before-migration", include_content=True)
+
+# ... time passes, memory changes ...
+
+# What changed?
+diff = mk.snapshot_diff(snap["snapshot_id"])  # vs live state
+# → {added: [...], removed: [...], modified: [...], unchanged_count: 42}
+
+# Search memory as it was at that snapshot
+results = mk.time_travel("venture capital", snapshot_id=snap["snapshot_id"])
+
+# How did an entity evolve over time?
+timeline = mk.snapshot_entity("Simon Kim")
+# → [{snapshot_id, timestamp, fact_count, size, change_type: "new"}, ...]
+```
+
 <br>
 
 ## 🐛 Debugging is Memory
@@ -369,6 +401,16 @@ mk = MemKraft("/path/to/memory")
 | `search_debug_sessions(query)` | Search past sessions by description/hypothesis/resolution. |
 | `search_rejected_hypotheses(query)` | Search rejected hypotheses — anti-pattern detector. |
 
+### Memory Snapshots & Time Travel
+
+| Method | Description |
+|--------|-------------|
+| `snapshot(label="", include_content=False)` | Create a point-in-time snapshot of all memory files. Returns `{snapshot_id, timestamp, label, file_count, total_bytes, path}`. |
+| `snapshot_list()` | List all saved snapshots, newest first. |
+| `snapshot_diff(snapshot_a, snapshot_b="")` | Compare two snapshots, or a snapshot vs live state. Returns `{added, removed, modified, unchanged_count}`. |
+| `time_travel(query, snapshot_id="", date="")` | Search memory as it was at a past snapshot. Supports search by snapshot ID or date. |
+| `snapshot_entity(name)` | Track how a specific entity evolved across all snapshots (new/modified/unchanged/deleted). |
+
 <br>
 
 ## CLI Reference
@@ -420,6 +462,11 @@ memkraft <command> [options]
 | `debug end RESOLUTION [--bug-id ID]` | End debug session (CONCLUDE) |
 | `debug search QUERY` | Search past debug sessions |
 | `debug search-rejected QUERY` | Search rejected hypotheses (anti-patterns) |
+| `snapshot [--label L] [--include-content]` | Create a point-in-time memory snapshot |
+| `snapshot-list` | List all saved snapshots (newest first) |
+| `snapshot-diff SNAP_A [SNAP_B]` | Compare two snapshots or snapshot vs live state |
+| `time-travel QUERY [--snapshot ID] [--date YYYY-MM-DD]` | Search memory as it was at a past snapshot |
+| `snapshot-entity NAME` | Show how an entity evolved across snapshots |
 
 <br>
 
@@ -492,6 +539,9 @@ memory/
 | Memory tiers | ✅ | - | ✅ |
 | Type-aware decay | ✅ | - | - |
 | Debug hypothesis tracking | ✅ | - | - |
+| Memory snapshots & time travel | ✅ | ❌ | ❌ |
+| Entity evolution timeline | ✅ | ❌ | ❌ |
+| Snapshot diff | ✅ | ❌ | ❌ |
 | **Semantic search** | ❌ | ✅ | - |
 | **Graph memory** | ❌ | ✅ | - |
 | **Self-editing memory** | ❌ | - | ✅ |
@@ -514,6 +564,15 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.5.0 (2026-04-14)
+
+- **Memory Snapshots & Time Travel:** `mk.snapshot()` / `mk.snapshot_list()` / `mk.snapshot_diff()` / `mk.time_travel()` / `mk.snapshot_entity()` — create point-in-time snapshots of all memory files (hash, size, summary, sections, fact count, link count), compare any two snapshots to see what changed, search memory as it was at a past date, and track how individual entities evolved over time
+- **CLI snapshot commands:** `memkraft snapshot` / `snapshot-list` / `snapshot-diff` / `time-travel` / `snapshot-entity`
+- Snapshot manifests saved as JSON under `.memkraft/snapshots/` — zero-dependency, git-friendly
+- Optional `--include-content` flag embeds full file text in snapshots for richer time-travel queries
+- Date-based time travel: `time-travel "query" --date 2026-03-01` finds the closest snapshot on or before that date
+- Tests: 277 → 328 (51 new for Snapshots & Time Travel)
 
 ### v0.4.1 (2026-04-13)
 
