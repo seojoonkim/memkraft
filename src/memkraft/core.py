@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import sys
+import uuid
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -417,9 +418,12 @@ class MemKraft:
         print("   🔍 Scanning for thin entity pages...")
         if self.entities_dir.exists():
             for md in self.entities_dir.glob("*.md"):
-                if md.stat().st_size < 300:
-                    issues["thin_entities"] += 1
-                    details["thin_entities"].append(str(md.relative_to(self.base_dir)))
+                try:
+                    if md.stat().st_size < 300:
+                        issues["thin_entities"] += 1
+                        details["thin_entities"].append(str(md.relative_to(self.base_dir)))
+                except OSError:
+                    continue
 
         # Check for duplicate entities
         print("   🔍 Scanning for duplicate entities...")
@@ -446,7 +450,10 @@ class MemKraft:
             for md in self.inbox_dir.glob("*.md"):
                 if md.name.startswith("_") or md.name == "README.md":
                     continue
-                age_hours = (now_ts - md.stat().st_mtime) / 3600
+                try:
+                    age_hours = (now_ts - md.stat().st_mtime) / 3600
+                except OSError:
+                    continue
                 if age_hours > 48:
                     issues["inbox_overdue"] += 1
                     details["inbox_overdue"].append(f"{md.name} ({age_hours:.0f}h)")
@@ -456,7 +463,10 @@ class MemKraft:
         # bloated pages waste context window — flag for compaction
         print("   🔍 Scanning for bloated pages (auto-compact candidates)...")
         for md in self._all_md_files():
-            size = md.stat().st_size
+            try:
+                size = md.stat().st_size
+            except OSError:
+                continue
             if size > 4000:  # >4KB suggests Compiled Truth needs condensing
                 issues["bloated_pages"] += 1
                 rel = md.relative_to(self.base_dir)
@@ -1176,7 +1186,10 @@ class MemKraft:
 
         changes = []
         for md in self._all_md_files():
-            mtime = md.stat().st_mtime
+            try:
+                mtime = md.stat().st_mtime
+            except OSError:
+                continue
             if mtime > since:
                 # Use st_birthtime on macOS, st_ctime on Linux (neither is perfect)
                 try:
@@ -1391,7 +1404,10 @@ class MemKraft:
                 # Level 1: Index — date, first-line summary, tags (~50-100 tokens)
                 first_line = self._first_meaningful_line(content)
                 tags = self._extract_tags(content)
-                mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+                try:
+                    mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+                except OSError:
+                    mtime = "unknown"
                 tag_str = f" [{tags}]" if tags else ""
                 print(f"  {mtime} {rel}{tag_str}")
                 print(f"    {first_line[:100]}")
@@ -1497,8 +1513,11 @@ class MemKraft:
             since = 0.0
         changed_files = []
         for md in self._all_md_files():
-            if md.stat().st_mtime > since:
-                changed_files.append(str(md.relative_to(self.base_dir)))
+            try:
+                if md.stat().st_mtime > since:
+                    changed_files.append(str(md.relative_to(self.base_dir)))
+            except OSError:
+                continue
 
         # Build retrospective
         well = []
@@ -1633,7 +1652,10 @@ class MemKraft:
             for md in self.inbox_dir.glob("*.md"):
                 if md.name.startswith("_") or md.name == "README.md":
                     continue
-                age_days = (now_ts - md.stat().st_mtime) / 86400
+                try:
+                    age_days = (now_ts - md.stat().st_mtime) / 86400
+                except OSError:
+                    continue
                 if age_days > 7:
                     assertion_4["passed"] = False
                     assertion_4["failures"].append(f"{md.name} ({age_days:.0f} days old)")
@@ -1754,7 +1776,10 @@ class MemKraft:
         for md in self._all_md_files():
             content = self._safe_read(md)
             rel = str(md.relative_to(self.base_dir))
-            mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            try:
+                mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            except OSError:
+                mtime = "unknown"
             for line in content.split("\n"):
                 line_s = line.strip()
                 if not line_s or line_s.startswith("#"):
@@ -1795,13 +1820,18 @@ class MemKraft:
             summary = self._first_meaningful_line(content)
             tags = self._extract_tags(content)
             sections = [l.strip() for l in content.split("\n") if l.startswith("#")]
-            mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+            try:
+                mtime = datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+                size = md.stat().st_size
+            except OSError:
+                mtime = "unknown"
+                size = 0
             index[rel] = {
                 "date": mtime,
                 "summary": summary[:200],
                 "tags": tags,
                 "sections": sections[:20],
-                "size": md.stat().st_size,
+                "size": size,
             }
 
         # Write index
@@ -2018,8 +2048,11 @@ class MemKraft:
             # Summarize all bloated pages
             targets = []
             for md in self._all_md_files():
-                if md.stat().st_size > max_length * 3:
-                    targets.append(md.stem.replace("-", " "))
+                try:
+                    if md.stat().st_size > max_length * 3:
+                        targets.append(md.stem.replace("-", " "))
+                except OSError:
+                    continue
 
         results = []
         for target in targets:
@@ -3233,12 +3266,14 @@ class MemKraft:
     def _all_md_files(self):
         for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir]:
             if subdir.exists():
-                yield from subdir.glob("*.md")
+                for md in subdir.glob("*.md"):
+                    if not md.is_symlink():
+                        yield md
         # Include daily notes and base-dir markdown files (exclude system/auto-generated files)
         _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
         if self.base_dir.exists():
             for md in self.base_dir.glob("*.md"):
-                if md.name not in _system_files:
+                if md.name not in _system_files and not md.is_symlink():
                     yield md
 
     def _safe_read(self, path: Path) -> str:
@@ -3260,7 +3295,12 @@ class MemKraft:
                 unique.append(f)
         files = unique
         if recent > 0:
-            files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            def _safe_mtime(f: Path) -> float:
+                try:
+                    return f.stat().st_mtime
+                except OSError:
+                    return 0.0
+            files.sort(key=_safe_mtime, reverse=True)
             files = files[:recent]
         if date:
             files = [f for f in files if date in f.read_text(encoding="utf-8", errors="replace") or date in f.name]
@@ -3321,6 +3361,14 @@ class MemKraft:
     # Memory Snapshots & Time Travel (v0.5.0)
     # ══════════════════════════════════════════════════════════
 
+    def _get_version(self) -> str:
+        """Return the package version without circular imports."""
+        try:
+            from memkraft import __version__
+            return __version__
+        except Exception:
+            return "unknown"
+
     def _file_hash(self, path: Path) -> str:
         """SHA-256 of a file's content, truncated to 12 hex chars."""
         h = hashlib.sha256()
@@ -3349,7 +3397,8 @@ class MemKraft:
         """
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
         now = datetime.now()
-        snap_id = f"SNAP-{now.strftime('%Y%m%d-%H%M%S')}"
+        _uid = uuid.uuid4().hex[:6]
+        snap_id = f"SNAP-{now.strftime('%Y%m%d-%H%M%S')}-{_uid}"
         files: Dict[str, Any] = {}
         total_bytes = 0
 
@@ -3370,7 +3419,11 @@ class MemKraft:
                 "link_count": len(re.findall(r'\[\[[^\]]+\]\]', content)),
             }
             if include_content:
-                file_entry["content"] = content
+                # Guard: skip embedding content for very large files to avoid memory issues
+                if stat.st_size <= 1_048_576:  # 1 MB limit per file
+                    file_entry["content"] = content
+                else:
+                    file_entry["content"] = content[:4096] + f"\n\n[...truncated: {stat.st_size} bytes total...]"
             files[rel] = file_entry
             total_bytes += stat.st_size
 
@@ -3378,7 +3431,7 @@ class MemKraft:
             "snapshot_id": snap_id,
             "timestamp": now.isoformat(),
             "label": label,
-            "memkraft_version": "0.5.1",
+            "memkraft_version": self._get_version(),
             "file_count": len(files),
             "total_bytes": total_bytes,
             "files": files,
@@ -3488,9 +3541,13 @@ class MemKraft:
             files_b = {}
             for md in self._all_md_files():
                 rel = str(md.relative_to(self.base_dir))
+                try:
+                    size_b = md.stat().st_size
+                except OSError:
+                    size_b = 0
                 files_b[rel] = {
                     "hash": self._file_hash(md),
-                    "size": md.stat().st_size,
+                    "size": size_b,
                 }
             label_b = "LIVE"
 
@@ -3591,11 +3648,17 @@ class MemKraft:
                     try:
                         with open(snap_file, "r", encoding="utf-8") as f:
                             data = json.load(f)
-                        snap_dt = datetime.fromisoformat(data["timestamp"])
+                        ts_raw = data["timestamp"].replace("Z", "+00:00")
+                        snap_dt = datetime.fromisoformat(ts_raw)
+                        # Normalise to naive UTC for comparison
+                        if snap_dt.tzinfo is not None:
+                            snap_dt = snap_dt.replace(tzinfo=None)
                         if snap_dt.date() <= target_date.date():
                             delta = (target_date.date() - snap_dt.date()).days
+                            best_ts_raw = best["timestamp"].replace("Z", "+00:00") if best else ""
+                            best_dt = datetime.fromisoformat(best_ts_raw).replace(tzinfo=None) if best_ts_raw else datetime.min
                             if best_delta is None or delta < best_delta or (
-                                delta == best_delta and snap_dt > datetime.fromisoformat(best["timestamp"])
+                                delta == best_delta and snap_dt > best_dt
                             ):
                                 best = data
                                 best_delta = delta

@@ -16,7 +16,7 @@ from memkraft import __version__
 
 class TestVersion:
     def test_version_is_050(self):
-        assert __version__ == "0.5.1"
+        assert __version__ == "0.5.2"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ class TestSnapshot:
         assert data["snapshot_id"].startswith("SNAP-")
         assert "timestamp" in data
         assert data["label"] == "test-snap"
-        assert data["memkraft_version"] == "0.5.1"
+        assert data["memkraft_version"] == "0.5.2"
         assert "files" in data
         assert data["file_count"] >= 1
 
@@ -541,4 +541,4 @@ class TestSnapshotWorkflow:
         mk = _mk(tmp_path)
         result = mk.snapshot()
         # SNAP-YYYYMMDD-HHMMSS format
-        assert re.match(r'^SNAP-\d{8}-\d{6}$', result["snapshot_id"])
+        assert re.match(r'^SNAP-\d{8}-\d{6}(-[a-f0-9]+)?$', result["snapshot_id"])
