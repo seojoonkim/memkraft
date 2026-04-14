@@ -123,6 +123,7 @@ class MemKraft:
 """
             filepath.write_text(content, encoding="utf-8")
             print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
+            return filepath
         except OSError as e:
             print(f"❌ Error creating tracking file: {e}")
             return None

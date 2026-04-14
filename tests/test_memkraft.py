@@ -517,6 +517,12 @@ class TestR16DreamCycle:
 
 # ── R16: Duplicate Entities ─────────────────────────────────
 class TestR16DuplicateEntities:
+    def test_track_new_returns_path(self, mk):
+        result = mk.track("New Person", entity_type="person", source="test")
+        assert isinstance(result, Path)
+        assert result.exists()
+        assert result == mk.live_notes_dir / "new-person.md"
+
     def test_track_duplicate_returns_none(self, mk):
         mk.track("Test Person", entity_type="person", source="test")
         result = mk.track("Test Person", entity_type="person", source="test2")
