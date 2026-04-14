@@ -215,6 +215,29 @@ def main():
     dsr_parser = debug_sub.add_parser("search-rejected", help="Search rejected hypotheses")
     dsr_parser.add_argument("query", help="Search query")
 
+    # snapshot
+    snap_parser = subparsers.add_parser("snapshot", help="Create a point-in-time memory snapshot")
+    snap_parser.add_argument("--label", default="", help="Human-readable label (e.g. 'before-migration')")
+    snap_parser.add_argument("--include-content", action="store_true", help="Embed full file content (larger but enables richer time-travel)")
+
+    # snapshot-list
+    subparsers.add_parser("snapshot-list", help="List all saved snapshots")
+
+    # snapshot-diff
+    sdiff_parser = subparsers.add_parser("snapshot-diff", help="Compare two snapshots (or snapshot vs live)")
+    sdiff_parser.add_argument("snapshot_a", help="First snapshot ID (the 'before')")
+    sdiff_parser.add_argument("snapshot_b", nargs="?", default="", help="Second snapshot ID (default: compare to live state)")
+
+    # time-travel
+    tt_parser = subparsers.add_parser("time-travel", help="Search memory as it was at a past snapshot")
+    tt_parser.add_argument("query", help="Search query")
+    tt_parser.add_argument("--snapshot", default="", help="Specific snapshot ID")
+    tt_parser.add_argument("--date", default="", help="Date (YYYY-MM-DD) — uses closest snapshot on or before this date")
+
+    # snapshot-entity
+    se_parser = subparsers.add_parser("snapshot-entity", help="Show how an entity evolved across snapshots")
+    se_parser.add_argument("name", help="Entity name")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -341,6 +364,17 @@ def main():
             mc.search_debug_sessions(args.query)
         elif args.debug_command == "search-rejected":
             mc.search_rejected_hypotheses(args.query)
+    elif args.command == "snapshot":
+        mc.snapshot(label=args.label, include_content=getattr(args, 'include_content', False))
+    elif args.command == "snapshot-list":
+        mc.snapshot_list()
+    elif args.command == "snapshot-diff":
+        mc.snapshot_diff(args.snapshot_a, snapshot_b=args.snapshot_b)
+    elif args.command == "time-travel":
+        mc.time_travel(args.query, snapshot_id=getattr(args, 'snapshot', ''),
+                       date=getattr(args, 'date', ''))
+    elif args.command == "snapshot-entity":
+        mc.snapshot_entity(args.name)
 
     return 0
 

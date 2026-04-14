@@ -8,6 +8,7 @@ hybrid search (exact + IDF-weighted + fuzzy), and agentic multi-hop search.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -45,6 +46,7 @@ class MemKraft:
         self.tasks_dir = self.base_dir / "tasks"
         self.meetings_dir = self.base_dir / "meetings"
         self.debug_dir = self.base_dir / "debug"
+        self.snapshots_dir = self.base_dir / ".memkraft" / "snapshots"
 
     # ── Init ──────────────────────────────────────────────────
     def init(self, path: str = "") -> None:
@@ -55,6 +57,7 @@ class MemKraft:
         target.mkdir(parents=True, exist_ok=True)
         for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions", "debug"]:
             (target / subdir).mkdir(exist_ok=True)
+        (target / ".memkraft" / "snapshots").mkdir(parents=True, exist_ok=True)
 
         # RESOLVER.md
         resolver_path = target / "RESOLVER.md"
@@ -3313,3 +3316,460 @@ class MemKraft:
             else:
                 self._stopwords_cache = {"korean": [], "chinese": [], "japanese": []}
         return self._stopwords_cache
+
+    # ══════════════════════════════════════════════════════════
+    # Memory Snapshots & Time Travel (v0.5.0)
+    # ══════════════════════════════════════════════════════════
+
+    def _file_hash(self, path: Path) -> str:
+        """SHA-256 of a file's content, truncated to 12 hex chars."""
+        h = hashlib.sha256()
+        try:
+            h.update(path.read_bytes())
+        except OSError:
+            return "error"
+        return h.hexdigest()[:12]
+
+    def snapshot(self, label: str = "", include_content: bool = False) -> Dict[str, Any]:
+        """Create a point-in-time snapshot of all memory files.
+
+        Each snapshot records every Markdown file's path, size, hash,
+        last-modified time, first meaningful line (summary), and optionally
+        the full content.  Snapshots are saved as JSON under
+        ``.memkraft/snapshots/SNAP-<timestamp>.json``.
+
+        Args:
+            label: Human-readable label (e.g. "before-migration", "post-dream").
+            include_content: If True, embed each file's full text in the
+                snapshot (makes time-travel queries richer but larger).
+
+        Returns:
+            Snapshot metadata dict with ``snapshot_id``, ``timestamp``,
+            ``label``, ``file_count``, ``total_bytes``, and ``path``.
+        """
+        self.snapshots_dir.mkdir(parents=True, exist_ok=True)
+        now = datetime.now()
+        snap_id = f"SNAP-{now.strftime('%Y%m%d-%H%M%S')}"
+        files: Dict[str, Any] = {}
+        total_bytes = 0
+
+        for md in self._all_md_files():
+            rel = str(md.relative_to(self.base_dir))
+            try:
+                stat = md.stat()
+                content = self._safe_read(md)
+            except OSError:
+                continue
+            file_entry: Dict[str, Any] = {
+                "size": stat.st_size,
+                "hash": self._file_hash(md),
+                "mtime": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "summary": self._first_meaningful_line(content)[:200],
+                "sections": [l.strip() for l in content.split("\n") if l.startswith("#")][:15],
+                "fact_count": content.count("\n- "),
+                "link_count": len(re.findall(r'\[\[[^\]]+\]\]', content)),
+            }
+            if include_content:
+                file_entry["content"] = content
+            files[rel] = file_entry
+            total_bytes += stat.st_size
+
+        manifest = {
+            "snapshot_id": snap_id,
+            "timestamp": now.isoformat(),
+            "label": label,
+            "memkraft_version": "0.5.0",
+            "file_count": len(files),
+            "total_bytes": total_bytes,
+            "files": files,
+        }
+
+        snap_path = self.snapshots_dir / f"{snap_id}.json"
+        with open(snap_path, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+        print(f"📸 Snapshot created: {snap_id}")
+        if label:
+            print(f"   Label: {label}")
+        print(f"   Files: {len(files)} | Size: {total_bytes:,} bytes")
+        print(f"   Saved: {snap_path.relative_to(self.base_dir)}")
+
+        return {
+            "snapshot_id": snap_id,
+            "timestamp": now.isoformat(),
+            "label": label,
+            "file_count": len(files),
+            "total_bytes": total_bytes,
+            "path": str(snap_path.relative_to(self.base_dir)),
+        }
+
+    def snapshot_list(self) -> List[Dict[str, Any]]:
+        """List all saved snapshots, newest first."""
+        results: List[Dict[str, Any]] = []
+        if not self.snapshots_dir.exists():
+            print("No snapshots yet. Run `memkraft snapshot` to create one.")
+            return results
+
+        for snap_file in sorted(self.snapshots_dir.glob("SNAP-*.json"), reverse=True):
+            try:
+                with open(snap_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                results.append({
+                    "snapshot_id": data.get("snapshot_id", snap_file.stem),
+                    "timestamp": data.get("timestamp", ""),
+                    "label": data.get("label", ""),
+                    "file_count": data.get("file_count", 0),
+                    "total_bytes": data.get("total_bytes", 0),
+                })
+            except (json.JSONDecodeError, OSError):
+                continue
+
+        if not results:
+            print("No snapshots found.")
+        else:
+            print(f"📸 Snapshots ({len(results)}):")
+            for s in results:
+                label_str = f' "{s["label"]}"' if s["label"] else ""
+                print(f"  {s['snapshot_id']}{label_str} — {s['file_count']} files, {s['total_bytes']:,} bytes ({s['timestamp'][:19]})")
+        return results
+
+    def _load_snapshot(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
+        """Load a snapshot by ID or partial match."""
+        if not self.snapshots_dir.exists():
+            return None
+        # Exact match
+        exact = self.snapshots_dir / f"{snapshot_id}.json"
+        if exact.exists():
+            with open(exact, "r", encoding="utf-8") as f:
+                return json.load(f)
+        # Partial / label match
+        for snap_file in sorted(self.snapshots_dir.glob("SNAP-*.json"), reverse=True):
+            if snapshot_id in snap_file.stem:
+                with open(snap_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            try:
+                with open(snap_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if data.get("label", "") == snapshot_id:
+                    return data
+            except (json.JSONDecodeError, OSError):
+                continue
+        return None
+
+    def snapshot_diff(self, snapshot_a: str, snapshot_b: str = "") -> Dict[str, Any]:
+        """Compare two snapshots (or a snapshot vs current state).
+
+        Shows files added, removed, modified, and unchanged between two
+        points in time.
+
+        Args:
+            snapshot_a: Snapshot ID (the "before").
+            snapshot_b: Snapshot ID (the "after"). If empty, compares
+                against current live state.
+
+        Returns:
+            Dict with ``added``, ``removed``, ``modified``, ``unchanged``
+            counts and file lists.
+        """
+        data_a = self._load_snapshot(snapshot_a)
+        if not data_a:
+            print(f"❌ Snapshot not found: {snapshot_a}")
+            return {}
+
+        if snapshot_b:
+            data_b = self._load_snapshot(snapshot_b)
+            if not data_b:
+                print(f"❌ Snapshot not found: {snapshot_b}")
+                return {}
+            files_b = data_b["files"]
+            label_b = data_b.get("snapshot_id", snapshot_b)
+        else:
+            # Build live state
+            files_b = {}
+            for md in self._all_md_files():
+                rel = str(md.relative_to(self.base_dir))
+                files_b[rel] = {
+                    "hash": self._file_hash(md),
+                    "size": md.stat().st_size,
+                }
+            label_b = "LIVE"
+
+        files_a = data_a["files"]
+        label_a = data_a.get("snapshot_id", snapshot_a)
+
+        added = []
+        removed = []
+        modified = []
+        unchanged = []
+
+        all_paths = set(list(files_a.keys()) + list(files_b.keys()))
+        for path in sorted(all_paths):
+            in_a = path in files_a
+            in_b = path in files_b
+            if in_a and not in_b:
+                removed.append({"file": path, "size": files_a[path].get("size", 0)})
+            elif not in_a and in_b:
+                added.append({"file": path, "size": files_b[path].get("size", 0)})
+            elif in_a and in_b:
+                hash_a = files_a[path].get("hash", "")
+                hash_b = files_b[path].get("hash", "")
+                if hash_a != hash_b:
+                    size_a = files_a[path].get("size", 0)
+                    size_b = files_b[path].get("size", 0)
+                    delta = size_b - size_a
+                    modified.append({
+                        "file": path,
+                        "size_before": size_a,
+                        "size_after": size_b,
+                        "delta": delta,
+                        "summary_before": files_a[path].get("summary", "")[:80],
+                        "summary_after": files_b[path].get("summary", "")[:80] if isinstance(files_b[path], dict) else "",
+                    })
+                else:
+                    unchanged.append(path)
+
+        result = {
+            "snapshot_a": label_a,
+            "snapshot_b": label_b,
+            "added": added,
+            "removed": removed,
+            "modified": modified,
+            "unchanged_count": len(unchanged),
+        }
+
+        print(f"📊 Diff: {label_a} → {label_b}")
+        print(f"   ✅ Added: {len(added)} | ❌ Removed: {len(removed)} | ✏️ Modified: {len(modified)} | 📁 Unchanged: {len(unchanged)}")
+        if added:
+            print("\n   ✅ Added:")
+            for a in added[:10]:
+                print(f"      + {a['file']} ({a['size']:,} bytes)")
+        if removed:
+            print("\n   ❌ Removed:")
+            for r in removed[:10]:
+                print(f"      - {r['file']} ({r['size']:,} bytes)")
+        if modified:
+            print("\n   ✏️ Modified:")
+            for m in modified[:10]:
+                sign = "+" if m["delta"] >= 0 else ""
+                print(f"      ~ {m['file']} ({sign}{m['delta']:,} bytes)")
+
+        return result
+
+    def time_travel(self, query: str, snapshot_id: str = "",
+                    date: str = "") -> List[Dict[str, Any]]:
+        """Search memory *as it was* at a past snapshot.
+
+        Answers questions like "what did I know about X on March 1st?" by
+        searching against the snapshot's recorded summaries, sections, and
+        (if available) content.
+
+        Args:
+            query: Search query.
+            snapshot_id: Specific snapshot ID. If empty and ``date`` is
+                provided, the closest snapshot on or before that date is used.
+            date: Date string (YYYY-MM-DD). Used when ``snapshot_id`` is
+                not specified.
+
+        Returns:
+            List of matching file dicts from the historical snapshot.
+        """
+        target_snap = None
+
+        if snapshot_id:
+            target_snap = self._load_snapshot(snapshot_id)
+        elif date:
+            # Find closest snapshot on or before the given date
+            try:
+                target_date = datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                print(f"❌ Invalid date format: {date} (use YYYY-MM-DD)")
+                return []
+            best = None
+            best_delta = None
+            if self.snapshots_dir.exists():
+                for snap_file in self.snapshots_dir.glob("SNAP-*.json"):
+                    try:
+                        with open(snap_file, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        snap_dt = datetime.fromisoformat(data["timestamp"])
+                        if snap_dt.date() <= target_date.date():
+                            delta = (target_date.date() - snap_dt.date()).days
+                            if best_delta is None or delta < best_delta or (
+                                delta == best_delta and snap_dt > datetime.fromisoformat(best["timestamp"])
+                            ):
+                                best = data
+                                best_delta = delta
+                    except (json.JSONDecodeError, OSError, KeyError, ValueError):
+                        continue
+            target_snap = best
+        else:
+            # Use most recent snapshot
+            if self.snapshots_dir.exists():
+                snaps = sorted(self.snapshots_dir.glob("SNAP-*.json"), reverse=True)
+                if snaps:
+                    with open(snaps[0], "r", encoding="utf-8") as f:
+                        target_snap = json.load(f)
+
+        if not target_snap:
+            print("❌ No snapshot found. Create one first with `memkraft snapshot`.")
+            return []
+
+        snap_label = target_snap.get("snapshot_id", "unknown")
+        snap_time = target_snap.get("timestamp", "")[:19]
+        snap_files = target_snap.get("files", {})
+        query_lower = query.lower()
+        query_tokens = self._search_tokens(query_lower)
+
+        results: List[Dict[str, Any]] = []
+
+        for rel_path, fdata in snap_files.items():
+            score = 0.0
+            snippet = ""
+
+            # Search in content if available (full time-travel)
+            content = fdata.get("content", "")
+            if content:
+                content_lower = content.lower()
+                if query_lower in content_lower:
+                    score = 1.0
+                    # Extract snippet around match
+                    idx = content_lower.find(query_lower)
+                    start = max(0, idx - 60)
+                    end = min(len(content), idx + len(query) + 60)
+                    snippet = content[start:end].replace("\n", " ").strip()
+                elif query_tokens:
+                    content_tokens = set(self._search_tokens(content_lower))
+                    matched = sum(1 for t in query_tokens if t in content_tokens)
+                    if matched > 0:
+                        score = 0.5 * (matched / len(query_tokens))
+                        snippet = fdata.get("summary", "")[:100]
+            else:
+                # Search summary + sections + filename
+                summary = fdata.get("summary", "").lower()
+                sections_text = " ".join(fdata.get("sections", [])).lower()
+                filename = Path(rel_path).stem.lower().replace("-", " ")
+                searchable = f"{filename} {summary} {sections_text}"
+
+                if query_lower in searchable:
+                    score = 0.8
+                    snippet = fdata.get("summary", "")
+                elif query_tokens:
+                    searchable_tokens = set(self._search_tokens(searchable))
+                    matched = sum(1 for t in query_tokens if t in searchable_tokens)
+                    if matched > 0:
+                        score = 0.4 * (matched / len(query_tokens))
+                        snippet = fdata.get("summary", "")
+
+                # Filename exact match boost
+                if query_lower in filename:
+                    score = max(score, 0.7)
+                    snippet = snippet or fdata.get("summary", "")
+
+            if score > 0:
+                results.append({
+                    "file": rel_path,
+                    "score": round(score, 2),
+                    "match": Path(rel_path).stem,
+                    "snippet": snippet[:150],
+                    "fact_count": fdata.get("fact_count", 0),
+                    "hash": fdata.get("hash", ""),
+                    "snapshot": snap_label,
+                })
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+
+        if not results:
+            print(f"🕰️ Time Travel ({snap_label}, {snap_time}): no results for '{query}'")
+        else:
+            print(f"🕰️ Time Travel ({snap_label}, {snap_time}): {len(results)} results for '{query}'")
+            for r in results[:10]:
+                snippet_str = f"\n     {r['snippet'][:80]}" if r.get("snippet") else ""
+                print(f"  [{r['score']:.2f}] {r['file']}{snippet_str}")
+
+        return results
+
+    def snapshot_entity(self, name: str) -> List[Dict[str, Any]]:
+        """Show how an entity evolved across all snapshots.
+
+        Returns a timeline of changes for a specific entity, comparing
+        its state across every recorded snapshot.
+
+        Args:
+            name: Entity name.
+
+        Returns:
+            List of dicts with snapshot_id, timestamp, fact_count,
+            size, hash, and change_type for each snapshot.
+        """
+        slug = self._slugify(name)
+        possible_paths = [
+            f"entities/{slug}.md",
+            f"live-notes/{slug}.md",
+        ]
+
+        if not self.snapshots_dir.exists():
+            print("No snapshots yet.")
+            return []
+
+        timeline: List[Dict[str, Any]] = []
+        prev_hash = None
+
+        for snap_file in sorted(self.snapshots_dir.glob("SNAP-*.json")):
+            try:
+                with open(snap_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                continue
+
+            snap_id = data.get("snapshot_id", snap_file.stem)
+            snap_time = data.get("timestamp", "")
+            files = data.get("files", {})
+
+            found = None
+            for p in possible_paths:
+                if p in files:
+                    found = (p, files[p])
+                    break
+
+            if found:
+                rel_path, fdata = found
+                current_hash = fdata.get("hash", "")
+                change_type = "new" if prev_hash is None else (
+                    "modified" if current_hash != prev_hash else "unchanged"
+                )
+                timeline.append({
+                    "snapshot_id": snap_id,
+                    "timestamp": snap_time[:19],
+                    "file": rel_path,
+                    "fact_count": fdata.get("fact_count", 0),
+                    "size": fdata.get("size", 0),
+                    "hash": current_hash,
+                    "summary": fdata.get("summary", "")[:100],
+                    "change_type": change_type,
+                })
+                prev_hash = current_hash
+            else:
+                if prev_hash is not None:
+                    timeline.append({
+                        "snapshot_id": snap_id,
+                        "timestamp": snap_time[:19],
+                        "file": "",
+                        "fact_count": 0,
+                        "size": 0,
+                        "hash": "",
+                        "summary": "",
+                        "change_type": "deleted",
+                    })
+                    prev_hash = None
+
+        if not timeline:
+            print(f"🕰️ No history found for '{name}' across snapshots.")
+        else:
+            print(f"🕰️ Entity timeline for '{name}' ({len(timeline)} snapshots):")
+            for t in timeline:
+                icon = {"new": "🆕", "modified": "✏️", "unchanged": "📁", "deleted": "❌"}.get(t["change_type"], "?")
+                print(f"  {icon} {t['snapshot_id']} ({t['timestamp']}) — {t['fact_count']} facts, {t['size']:,} bytes")
+                if t.get("summary") and t["change_type"] != "unchanged":
+                    print(f"     {t['summary'][:80]}")
+
+        return timeline
