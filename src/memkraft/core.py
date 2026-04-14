@@ -3378,7 +3378,7 @@ class MemKraft:
             "snapshot_id": snap_id,
             "timestamp": now.isoformat(),
             "label": label,
-            "memkraft_version": "0.5.0",
+            "memkraft_version": "0.5.1",
             "file_count": len(files),
             "total_bytes": total_bytes,
             "files": files,
