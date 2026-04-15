@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.5.1** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory.**
+**v0.5.4** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory.**
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-328%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-377%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -213,6 +213,58 @@ memkraft debug search-rejected "timeout"  # avoid past mistakes
 | **Snapshot Diff** | Compare two snapshots (or snapshot vs live state). Shows added, removed, modified, unchanged files with byte deltas. |
 | **Time Travel** | Search memory *as it was* at a past snapshot. Answer "what did I know about X on March 1st?" |
 | **Entity Timeline** | Track how a specific entity evolved across all snapshots — new, modified, unchanged, deleted states. |
+
+### 🧠 Channel Context Memory + Task Continuity + Agent Working Memory (v0.5.4)
+
+| Feature | Description |
+|---------|-------------|
+| **Channel Context Memory** | Per-channel context persistence. Save/load/update context keyed by channel ID (e.g. `telegram-46291309`). Stored in `.memkraft/channels/{channel_id}.json`. |
+| **Task Continuity Register** | Task lifecycle tracking with full history. `task_start` → `task_update` → `task_complete` + `task_history` + `task_list`. Each update stores timestamp + status + note. Stored in `.memkraft/tasks/{task_id}.json`. |
+| **Agent Working Memory** | Per-agent persistent context. `agent_save` / `agent_load` any working memory dict. Stored in `.memkraft/agents/{agent_id}.json`. |
+| **`agent_inject()`** | **The key feature.** Merges agent working memory + channel context + task history into a single ready-to-inject prompt block. Use this to give sub-agents full situational awareness. |
+
+```python
+from memkraft import MemKraft
+
+mk = MemKraft("/path/to/memory")
+
+# Save channel context
+mk.channel_save("telegram-46291309", {
+    "summary": "DM with Simon",
+    "recent_tasks": ["vibekai deploy", "memkraft v0.5.4"],
+    "preferences": {"language": "ko"},
+})
+
+# Register a task
+mk.task_start("deploy-001", "Deploy vibekai to production",
+              channel_id="telegram-46291309", agent="zeon")
+mk.task_update("deploy-001", "active", "vercel build passed")
+
+# Save agent working memory
+mk.agent_save("zeon", {
+    "key_context": "Simon's AI assistant",
+    "active_tasks": ["deploy-001"],
+    "learned": ["always report completion", "no silence"],
+})
+
+# Inject merged context block into a sub-agent instruction
+block = mk.agent_inject("zeon",
+                        channel_id="telegram-46291309",
+                        task_id="deploy-001")
+print(block)
+# ## Agent Working Memory
+# - **key_context:** Simon's AI assistant
+# - **active_tasks:** deploy-001
+# ...
+# ## Channel Context
+# - **summary:** DM with Simon
+# ...
+# ## Task Context
+# - **Task:** Deploy vibekai to production
+# - **Status:** active
+# - **History:**
+#   - [2026-04-15T...] active: vercel build passed
+```
 
 ```python
 from memkraft import MemKraft
@@ -564,6 +616,15 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.5.4 (2026-04-15)
+
+- **Channel Context Memory:** `mk.channel_save()` / `mk.channel_load()` / `mk.channel_update()` — per-channel context persistence keyed by channel ID. Stored in `.memkraft/channels/{channel_id}.json`. Enables agents to recall channel-specific summaries, recent tasks, and preferences across sessions.
+- **Task Continuity Register:** `mk.task_start()` / `mk.task_update()` / `mk.task_complete()` / `mk.task_history()` / `mk.task_list()` — full task lifecycle with timestamped history. Stored in `.memkraft/tasks/{task_id}.json`.
+- **Agent Working Memory:** `mk.agent_save()` / `mk.agent_load()` / `mk.agent_inject()` — per-agent persistent working memory. The `agent_inject()` method merges agent memory + channel context + task history into a single ready-to-inject prompt block for sub-agent delegation.
+- **CLI commands:** `channel-save/load`, `task-start/update/list`, `agent-save/load/inject`
+- **zero-dependency maintained** (stdlib only: json, pathlib, datetime)
+- Tests: 328 → 377 (49 new in `test_v054_context.py`)
 
 ### v0.5.1 (2026-04-14)
 

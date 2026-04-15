@@ -48,6 +48,9 @@ class MemKraft:
         self.meetings_dir = self.base_dir / "meetings"
         self.debug_dir = self.base_dir / "debug"
         self.snapshots_dir = self.base_dir / ".memkraft" / "snapshots"
+        self.channels_dir = self.base_dir / ".memkraft" / "channels"
+        self.context_tasks_dir = self.base_dir / ".memkraft" / "tasks"
+        self.agents_dir = self.base_dir / ".memkraft" / "agents"
 
     # ── Init ──────────────────────────────────────────────────
     def init(self, path: str = "") -> None:
@@ -59,6 +62,9 @@ class MemKraft:
         for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions", "debug"]:
             (target / subdir).mkdir(exist_ok=True)
         (target / ".memkraft" / "snapshots").mkdir(parents=True, exist_ok=True)
+        (target / ".memkraft" / "channels").mkdir(parents=True, exist_ok=True)
+        (target / ".memkraft" / "tasks").mkdir(parents=True, exist_ok=True)
+        (target / ".memkraft" / "agents").mkdir(parents=True, exist_ok=True)
 
         # RESOLVER.md
         resolver_path = target / "RESOLVER.md"
@@ -3054,6 +3060,255 @@ class MemKraft:
         if "## Timeline\n" in content:
             content = content.rstrip() + "\n" + timeline_entry
         return content
+
+    # ── Channel Context Memory ─────────────────────────────────
+    def channel_save(self, channel_id: str, context_data: Dict[str, Any]) -> Path:
+        """Save context data for a channel.
+
+        Args:
+            channel_id: Channel identifier (e.g. 'telegram-46291309').
+            context_data: Arbitrary dict of context to persist.
+
+        Returns:
+            Path to the saved JSON file.
+        """
+        self.channels_dir.mkdir(parents=True, exist_ok=True)
+        filepath = self.channels_dir / f"{channel_id}.json"
+        # Merge with existing if present
+        existing = self._json_load(filepath)
+        existing.update(context_data)
+        existing["last_updated"] = datetime.now().isoformat()
+        self._json_save(filepath, existing)
+        return filepath
+
+    def channel_load(self, channel_id: str) -> Dict[str, Any]:
+        """Load context data for a channel.
+
+        Returns empty dict if channel has no saved context.
+        """
+        filepath = self.channels_dir / f"{channel_id}.json"
+        return self._json_load(filepath)
+
+    def channel_update(self, channel_id: str, key: str, value: Any) -> Dict[str, Any]:
+        """Update a single field in a channel's context.
+
+        Creates the channel context file if it doesn't exist.
+        Returns the updated context.
+        """
+        data = self.channel_load(channel_id)
+        data[key] = value
+        self.channel_save(channel_id, data)
+        return data
+
+    # ── Task Continuity Register ──────────────────────────────────
+    def task_start(self, task_id: str, description: str,
+                   channel_id: Optional[str] = None,
+                   agent: Optional[str] = None) -> Dict[str, Any]:
+        """Start a new task and persist its initial state.
+
+        Returns the initial task record.
+        """
+        self.context_tasks_dir.mkdir(parents=True, exist_ok=True)
+        now = datetime.now().isoformat()
+        record = {
+            "task_id": task_id,
+            "description": description,
+            "status": "active",
+            "channel_id": channel_id or "",
+            "agent": agent or "",
+            "created": now,
+            "history": [
+                {"timestamp": now, "status": "active", "note": f"Task started: {description}"}
+            ],
+        }
+        filepath = self.context_tasks_dir / f"{task_id}.json"
+        self._json_save(filepath, record)
+        return record
+
+    def task_update(self, task_id: str, status: str,
+                    progress_note: str = "") -> Dict[str, Any]:
+        """Update a task's status and add a history entry.
+
+        Returns the updated task record, or empty dict if task not found.
+        """
+        filepath = self.context_tasks_dir / f"{task_id}.json"
+        record = self._json_load(filepath)
+        if not record:
+            return {}
+        now = datetime.now().isoformat()
+        record["status"] = status
+        record["history"].append({
+            "timestamp": now,
+            "status": status,
+            "note": progress_note,
+        })
+        self._json_save(filepath, record)
+        return record
+
+    def task_complete(self, task_id: str,
+                     result_summary: str = "") -> Dict[str, Any]:
+        """Mark a task as completed.
+
+        Returns the final task record, or empty dict if task not found.
+        """
+        filepath = self.context_tasks_dir / f"{task_id}.json"
+        record = self._json_load(filepath)
+        if not record:
+            return {}
+        now = datetime.now().isoformat()
+        record["status"] = "completed"
+        record["completed"] = now
+        record["result_summary"] = result_summary
+        record["history"].append({
+            "timestamp": now,
+            "status": "completed",
+            "note": result_summary or "Task completed",
+        })
+        self._json_save(filepath, record)
+        return record
+
+    def task_history(self, task_id: str) -> List[Dict[str, Any]]:
+        """Get the full history of a task.
+
+        Returns list of history entries, or empty list if task not found.
+        """
+        filepath = self.context_tasks_dir / f"{task_id}.json"
+        record = self._json_load(filepath)
+        return record.get("history", [])
+
+    def task_list(self, status: str = "active") -> List[Dict[str, Any]]:
+        """List tasks filtered by status.
+
+        Args:
+            status: Filter by status ('active', 'completed', 'all').
+
+        Returns:
+            List of task records matching the filter.
+        """
+        self.context_tasks_dir.mkdir(parents=True, exist_ok=True)
+        tasks = []
+        for f in sorted(self.context_tasks_dir.glob("*.json")):
+            record = self._json_load(f)
+            if not record:
+                continue
+            if status == "all" or record.get("status") == status:
+                tasks.append(record)
+        return tasks
+
+    # ── Agent Working Memory ──────────────────────────────────────
+    def agent_save(self, agent_id: str,
+                   working_memory: Dict[str, Any]) -> Path:
+        """Save working memory for an agent.
+
+        Args:
+            agent_id: Agent identifier (e.g. 'zeon', 'sion').
+            working_memory: Arbitrary dict of agent context.
+
+        Returns:
+            Path to the saved JSON file.
+        """
+        self.agents_dir.mkdir(parents=True, exist_ok=True)
+        filepath = self.agents_dir / f"{agent_id}.json"
+        existing = self._json_load(filepath)
+        existing.update(working_memory)
+        existing["last_updated"] = datetime.now().isoformat()
+        self._json_save(filepath, existing)
+        return filepath
+
+    def agent_load(self, agent_id: str) -> Dict[str, Any]:
+        """Load working memory for an agent.
+
+        Returns empty dict if agent has no saved memory.
+        """
+        filepath = self.agents_dir / f"{agent_id}.json"
+        return self._json_load(filepath)
+
+    def agent_inject(self, agent_id: str,
+                     channel_id: Optional[str] = None,
+                     task_id: Optional[str] = None) -> str:
+        """Merge agent + channel + task context into a single prompt block.
+
+        This is the key integration method: it produces a ready-to-inject
+        context string that can be prepended to any sub-agent instruction.
+
+        Args:
+            agent_id: Agent identifier.
+            channel_id: Optional channel to include context from.
+            task_id: Optional task to include history from.
+
+        Returns:
+            A formatted context block string.
+        """
+        parts = []
+
+        # Agent working memory
+        agent_mem = self.agent_load(agent_id)
+        if agent_mem:
+            parts.append("## Agent Working Memory")
+            for k, v in agent_mem.items():
+                if k == "last_updated":
+                    continue
+                if isinstance(v, list):
+                    parts.append(f"- **{k}:** {', '.join(str(i) for i in v)}")
+                elif isinstance(v, dict):
+                    parts.append(f"- **{k}:**")
+                    for dk, dv in v.items():
+                        parts.append(f"  - {dk}: {dv}")
+                else:
+                    parts.append(f"- **{k}:** {v}")
+
+        # Channel context
+        if channel_id:
+            ch_data = self.channel_load(channel_id)
+            if ch_data:
+                parts.append("")
+                parts.append("## Channel Context")
+                for k, v in ch_data.items():
+                    if k == "last_updated":
+                        continue
+                    if isinstance(v, list):
+                        parts.append(f"- **{k}:** {', '.join(str(i) for i in v)}")
+                    elif isinstance(v, dict):
+                        parts.append(f"- **{k}:**")
+                        for dk, dv in v.items():
+                            parts.append(f"  - {dk}: {dv}")
+                    else:
+                        parts.append(f"- **{k}:** {v}")
+
+        # Task context
+        if task_id:
+            task_record = self._json_load(
+                self.context_tasks_dir / f"{task_id}.json"
+            )
+            if task_record:
+                parts.append("")
+                parts.append("## Task Context")
+                parts.append(f"- **Task:** {task_record.get('description', task_id)}")
+                parts.append(f"- **Status:** {task_record.get('status', 'unknown')}")
+                history = task_record.get("history", [])
+                if history:
+                    parts.append("- **History:**")
+                    for h in history[-5:]:  # Last 5 entries
+                        parts.append(f"  - [{h.get('timestamp', '')[:19]}] {h.get('status', '')}: {h.get('note', '')}")
+
+        return "\n".join(parts)
+
+    # ── JSON helpers (for channel/task/agent) ─────────────────────
+    def _json_load(self, filepath: Path) -> Dict[str, Any]:
+        """Load a JSON file, returning empty dict if missing or invalid."""
+        if not filepath.exists():
+            return {}
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+    def _json_save(self, filepath: Path, data: Dict[str, Any]) -> None:
+        """Save data to a JSON file."""
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
     # ── Helpers ───────────────────────────────────────────────
     def _slugify(self, text: str) -> str:

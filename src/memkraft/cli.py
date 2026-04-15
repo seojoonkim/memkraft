@@ -238,6 +238,49 @@ def main():
     se_parser = subparsers.add_parser("snapshot-entity", help="Show how an entity evolved across snapshots")
     se_parser.add_argument("name", help="Entity name")
 
+    # channel-save
+    cs_parser = subparsers.add_parser("channel-save", help="Save channel context")
+    cs_parser.add_argument("channel_id", help="Channel identifier (e.g. telegram-46291309)")
+    cs_parser.add_argument("--summary", default="", help="Channel summary")
+    cs_parser.add_argument("--data", default="", help="JSON string of context data")
+
+    # channel-load
+    cl_parser = subparsers.add_parser("channel-load", help="Load channel context")
+    cl_parser.add_argument("channel_id", help="Channel identifier")
+
+    # task-start
+    ts_parser = subparsers.add_parser("task-start", help="Start a new task")
+    ts_parser.add_argument("task_id", help="Task identifier")
+    ts_parser.add_argument("--desc", required=True, help="Task description")
+    ts_parser.add_argument("--channel", default="", help="Associated channel ID")
+    ts_parser.add_argument("--agent", default="", help="Associated agent ID")
+
+    # task-update
+    tu_parser = subparsers.add_parser("task-update", help="Update a task")
+    tu_parser.add_argument("task_id", help="Task identifier")
+    tu_parser.add_argument("--status", required=True, help="New status")
+    tu_parser.add_argument("--note", default="", help="Progress note")
+
+    # task-list
+    tl_parser = subparsers.add_parser("task-list", help="List tasks")
+    tl_parser.add_argument("--status", default="active", help="Filter by status (default: active)")
+
+    # agent-save
+    as_parser = subparsers.add_parser("agent-save", help="Save agent working memory")
+    as_parser.add_argument("agent_id", help="Agent identifier (e.g. zeon)")
+    as_parser.add_argument("--context", default="", help="Key context string")
+    as_parser.add_argument("--data", default="", help="JSON string of working memory")
+
+    # agent-load
+    al_parser = subparsers.add_parser("agent-load", help="Load agent working memory")
+    al_parser.add_argument("agent_id", help="Agent identifier")
+
+    # agent-inject
+    ai_parser = subparsers.add_parser("agent-inject", help="Inject merged context block")
+    ai_parser.add_argument("agent_id", help="Agent identifier")
+    ai_parser.add_argument("--channel", default="", help="Channel ID to include")
+    ai_parser.add_argument("--task", default="", help="Task ID to include")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -375,6 +418,83 @@ def main():
                        date=getattr(args, 'date', ''))
     elif args.command == "snapshot-entity":
         mc.snapshot_entity(args.name)
+    elif args.command == "channel-save":
+        import json as _json
+        data = {}
+        if args.data:
+            try:
+                data = _json.loads(args.data)
+            except _json.JSONDecodeError:
+                print("\u274c Invalid JSON in --data")
+                sys.exit(1)
+        if args.summary:
+            data["summary"] = args.summary
+        if not data:
+            print("\u274c Provide --summary or --data")
+            sys.exit(1)
+        path = mc.channel_save(args.channel_id, data)
+        print(f"\u2705 Channel context saved: {path}")
+    elif args.command == "channel-load":
+        import json as _json
+        data = mc.channel_load(args.channel_id)
+        if data:
+            print(_json.dumps(data, indent=2, ensure_ascii=False))
+        else:
+            print(f"No context found for channel '{args.channel_id}'.")
+    elif args.command == "task-start":
+        import json as _json
+        record = mc.task_start(args.task_id, args.desc,
+                               channel_id=args.channel or None,
+                               agent=args.agent or None)
+        print(f"\u2705 Task started: {args.task_id}")
+        print(_json.dumps(record, indent=2, ensure_ascii=False))
+    elif args.command == "task-update":
+        import json as _json
+        record = mc.task_update(args.task_id, args.status, progress_note=args.note)
+        if record:
+            print(f"\u2705 Task updated: {args.task_id} \u2192 {args.status}")
+        else:
+            print(f"\u274c Task '{args.task_id}' not found.")
+    elif args.command == "task-list":
+        import json as _json
+        tasks = mc.task_list(status=args.status)
+        if tasks:
+            print(f"\ud83d\udccb Tasks ({args.status}): {len(tasks)}")
+            for t in tasks:
+                print(f"  [{t.get('status', '?')}] {t['task_id']}: {t.get('description', '')[:60]}")
+        else:
+            print(f"No tasks with status '{args.status}'.")
+    elif args.command == "agent-save":
+        import json as _json
+        data = {}
+        if args.data:
+            try:
+                data = _json.loads(args.data)
+            except _json.JSONDecodeError:
+                print("\u274c Invalid JSON in --data")
+                sys.exit(1)
+        if args.context:
+            data["key_context"] = args.context
+        if not data:
+            print("\u274c Provide --context or --data")
+            sys.exit(1)
+        path = mc.agent_save(args.agent_id, data)
+        print(f"\u2705 Agent memory saved: {path}")
+    elif args.command == "agent-load":
+        import json as _json
+        data = mc.agent_load(args.agent_id)
+        if data:
+            print(_json.dumps(data, indent=2, ensure_ascii=False))
+        else:
+            print(f"No working memory found for agent '{args.agent_id}'.")
+    elif args.command == "agent-inject":
+        block = mc.agent_inject(args.agent_id,
+                                channel_id=args.channel or None,
+                                task_id=args.task or None)
+        if block:
+            print(block)
+        else:
+            print(f"No context available to inject for agent '{args.agent_id}'.")
 
     return 0
 
