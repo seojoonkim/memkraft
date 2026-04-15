@@ -10,7 +10,7 @@ from memkraft import MemKraft, __version__
 
 class TestVersion:
     def test_version_is_054(self):
-        assert __version__ == "0.6.0"
+        assert __version__ == "0.6.1"
 
 
 @pytest.fixture
