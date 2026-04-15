@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.5.4** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory.**
+**v0.7.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory.**
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-357%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-409%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -616,6 +616,17 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.7.0 (2026-04-15)
+
+- **`channel_update` modes:** `mode="append"` (list append) and `mode="merge"` (dict shallow merge) added. Default `mode="set"` unchanged — fully backward compatible.
+- **Task delegation tracking:** `mk.task_delegate(task_id, from_agent, to_agent, context_note)` — delegate a task between agents with delegation events in history. `task_start()` gains optional `delegated_by` param.
+- **`agent_inject` filters:** `max_history` (default 5) limits task history entries. `include_completed_tasks=True` includes completed channel tasks in the inject block.
+- **Agent handoff:** `mk.agent_handoff(from_agent, to_agent, task_id, context_note)` — transfers working memory context, records handoff in `to_agent` memory, and delegates the task. Returns an inject-ready context block.
+- **Channel task listing:** `mk.channel_tasks(channel_id, status, limit)` — filter tasks by channel and status (`active`/`completed`/`all`), sorted by creation time descending.
+- **Task cleanup:** `mk.task_cleanup(max_age_days, archive)` — archive or delete completed tasks older than threshold. Archive goes to `.memkraft/tasks/archive/`.
+- **New CLI commands:** `channel-update --mode`, `task-delegate`, `channel-tasks`, `agent-handoff`, `task-cleanup`
+- **Tests:** 357 → 409 (52 new in `test_v070_multiagent.py`)
 
 ### v0.5.4 (2026-04-15)
 

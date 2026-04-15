@@ -3089,39 +3089,126 @@ class MemKraft:
         filepath = self.channels_dir / f"{channel_id}.json"
         return self._json_load(filepath)
 
-    def channel_update(self, channel_id: str, key: str, value: Any) -> Dict[str, Any]:
+    def channel_update(self, channel_id: str, key: str, value: Any,
+                        mode: str = "set") -> Dict[str, Any]:
         """Update a single field in a channel's context.
 
         Creates the channel context file if it doesn't exist.
-        Returns the updated context.
+
+        Args:
+            channel_id: Channel identifier.
+            key: The field name to update.
+            value: The new value.
+            mode: Update mode:
+                - "set" (default): Replace the value.
+                - "append": If existing value is a list, append. If not a list,
+                  convert to list and append. If value itself is a list,
+                  extend the existing list.
+                - "merge": If existing value is a dict and value is a dict,
+                  shallow merge. Otherwise falls back to set.
+
+        Returns:
+            The updated context dict.
         """
         data = self.channel_load(channel_id)
-        data[key] = value
+        if mode == "append":
+            existing = data.get(key)
+            if existing is None:
+                # No existing value — set as list
+                data[key] = [value] if not isinstance(value, list) else value
+            elif isinstance(existing, list):
+                if isinstance(value, list):
+                    existing.extend(value)
+                else:
+                    existing.append(value)
+            else:
+                # Existing is not a list — convert to list
+                if isinstance(value, list):
+                    data[key] = [existing] + value
+                else:
+                    data[key] = [existing, value]
+        elif mode == "merge":
+            existing = data.get(key)
+            if isinstance(existing, dict) and isinstance(value, dict):
+                existing.update(value)
+            else:
+                data[key] = value
+        else:
+            # Default: set
+            data[key] = value
         self.channel_save(channel_id, data)
         return data
 
     # ── Task Continuity Register ──────────────────────────────────
     def task_start(self, task_id: str, description: str,
                    channel_id: Optional[str] = None,
-                   agent: Optional[str] = None) -> Dict[str, Any]:
+                   agent: Optional[str] = None,
+                   delegated_by: Optional[str] = None) -> Dict[str, Any]:
         """Start a new task and persist its initial state.
+
+        Args:
+            task_id: Unique task identifier.
+            description: Human-readable description.
+            channel_id: Optional associated channel.
+            agent: Optional assigned agent.
+            delegated_by: Optional agent who delegated this task.
 
         Returns the initial task record.
         """
         self.context_tasks_dir.mkdir(parents=True, exist_ok=True)
         now = datetime.now().isoformat()
+        note = f"Task started: {description}"
+        if delegated_by:
+            note += f" (delegated by {delegated_by})"
         record = {
             "task_id": task_id,
             "description": description,
             "status": "active",
             "channel_id": channel_id or "",
             "agent": agent or "",
+            "delegated_by": delegated_by or "",
             "created": now,
             "history": [
-                {"timestamp": now, "status": "active", "note": f"Task started: {description}"}
+                {"timestamp": now, "status": "active", "note": note}
             ],
         }
         filepath = self.context_tasks_dir / f"{task_id}.json"
+        self._json_save(filepath, record)
+        return record
+
+    def task_delegate(self, task_id: str, from_agent: str, to_agent: str,
+                      context_note: str = "") -> Dict[str, Any]:
+        """Delegate an existing task from one agent to another.
+
+        Records a delegation event in the task history.
+
+        Args:
+            task_id: The task to delegate.
+            from_agent: Agent delegating the task.
+            to_agent: Agent receiving the task.
+            context_note: Optional context for the receiving agent.
+
+        Returns:
+            The updated task record, or empty dict if task not found.
+        """
+        filepath = self.context_tasks_dir / f"{task_id}.json"
+        record = self._json_load(filepath)
+        if not record:
+            return {}
+        now = datetime.now().isoformat()
+        note = f"Delegated from {from_agent} to {to_agent}"
+        if context_note:
+            note += f": {context_note}"
+        record["agent"] = to_agent
+        record["delegated_by"] = from_agent
+        record["history"].append({
+            "timestamp": now,
+            "status": record.get("status", "active"),
+            "note": note,
+            "event": "delegation",
+            "from_agent": from_agent,
+            "to_agent": to_agent,
+        })
         self._json_save(filepath, record)
         return record
 
@@ -3225,7 +3312,9 @@ class MemKraft:
 
     def agent_inject(self, agent_id: str,
                      channel_id: Optional[str] = None,
-                     task_id: Optional[str] = None) -> str:
+                     task_id: Optional[str] = None,
+                     max_history: int = 5,
+                     include_completed_tasks: bool = False) -> str:
         """Merge agent + channel + task context into a single prompt block.
 
         This is the key integration method: it produces a ready-to-inject
@@ -3235,6 +3324,9 @@ class MemKraft:
             agent_id: Agent identifier.
             channel_id: Optional channel to include context from.
             task_id: Optional task to include history from.
+            max_history: Maximum number of task history entries to include (default 5).
+            include_completed_tasks: If True and channel_id is provided,
+                include completed tasks for that channel.
 
         Returns:
             A formatted context block string.
@@ -3275,6 +3367,15 @@ class MemKraft:
                     else:
                         parts.append(f"- **{k}:** {v}")
 
+            # Include completed tasks for this channel if requested
+            if include_completed_tasks:
+                completed = self.channel_tasks(channel_id, status="completed", limit=max_history)
+                if completed:
+                    parts.append("")
+                    parts.append("## Completed Tasks (Channel)")
+                    for t in completed:
+                        parts.append(f"- [{t.get('status', '')}] {t['task_id']}: {t.get('description', '')[:80]}")
+
         # Task context
         if task_id:
             task_record = self._json_load(
@@ -3288,10 +3389,177 @@ class MemKraft:
                 history = task_record.get("history", [])
                 if history:
                     parts.append("- **History:**")
-                    for h in history[-5:]:  # Last 5 entries
+                    for h in history[-max_history:]:
                         parts.append(f"  - [{h.get('timestamp', '')[:19]}] {h.get('status', '')}: {h.get('note', '')}")
 
         return "\n".join(parts)
+
+    def agent_handoff(self, from_agent: str, to_agent: str,
+                      task_id: Optional[str] = None,
+                      context_note: str = "") -> str:
+        """Hand off context from one agent to another.
+
+        Transfers from_agent's working memory and related task context
+        to to_agent. Records a handoff event in to_agent's working memory.
+
+        Args:
+            from_agent: Agent handing off.
+            to_agent: Agent receiving the handoff.
+            task_id: Optional specific task to include.
+            context_note: Optional note about the handoff.
+
+        Returns:
+            A formatted context block string ready for injection.
+        """
+        parts = []
+        now = datetime.now().isoformat()
+
+        # Get from_agent's working memory
+        from_mem = self.agent_load(from_agent)
+        if from_mem:
+            parts.append(f"## Handoff from {from_agent}")
+            parts.append(f"- **Handoff time:** {now[:19]}")
+            if context_note:
+                parts.append(f"- **Note:** {context_note}")
+            parts.append("")
+            parts.append("### Working Memory")
+            for k, v in from_mem.items():
+                if k == "last_updated":
+                    continue
+                if isinstance(v, list):
+                    parts.append(f"- **{k}:** {', '.join(str(i) for i in v)}")
+                elif isinstance(v, dict):
+                    parts.append(f"- **{k}:**")
+                    for dk, dv in v.items():
+                        parts.append(f"  - {dk}: {dv}")
+                else:
+                    parts.append(f"- **{k}:** {v}")
+
+        # Task context if specified
+        if task_id:
+            task_record = self._json_load(
+                self.context_tasks_dir / f"{task_id}.json"
+            )
+            if task_record:
+                parts.append("")
+                parts.append("### Task Context")
+                parts.append(f"- **Task:** {task_record.get('description', task_id)}")
+                parts.append(f"- **Status:** {task_record.get('status', 'unknown')}")
+                history = task_record.get("history", [])
+                if history:
+                    parts.append("- **History:**")
+                    for h in history[-5:]:
+                        parts.append(f"  - [{h.get('timestamp', '')[:19]}] {h.get('status', '')}: {h.get('note', '')}")
+
+                # Also delegate the task to the new agent
+                self.task_delegate(task_id, from_agent, to_agent, context_note)
+
+        # Record handoff in to_agent's working memory
+        to_mem = self.agent_load(to_agent)
+        handoff_record = {
+            "from": from_agent,
+            "timestamp": now,
+            "note": context_note,
+        }
+        if task_id:
+            handoff_record["task_id"] = task_id
+
+        existing_handoffs = to_mem.get("handoff_from", [])
+        if not isinstance(existing_handoffs, list):
+            existing_handoffs = [existing_handoffs]
+        existing_handoffs.append(handoff_record)
+        to_mem["handoff_from"] = existing_handoffs
+        self.agent_save(to_agent, to_mem)
+
+        return "\n".join(parts)
+
+    # ── Channel Tasks ──────────────────────────────────────────────
+    def channel_tasks(self, channel_id: str, status: str = "all",
+                      limit: int = 5) -> List[Dict[str, Any]]:
+        """List tasks associated with a channel.
+
+        Args:
+            channel_id: Channel identifier.
+            status: Filter by status ('active', 'completed', 'all').
+            limit: Maximum number of tasks to return (most recent first).
+
+        Returns:
+            List of task records matching the filter, sorted by creation time descending.
+        """
+        self.context_tasks_dir.mkdir(parents=True, exist_ok=True)
+        tasks = []
+        for f in self.context_tasks_dir.glob("*.json"):
+            record = self._json_load(f)
+            if not record:
+                continue
+            if record.get("channel_id") != channel_id:
+                continue
+            if status != "all" and record.get("status") != status:
+                continue
+            tasks.append(record)
+
+        # Sort by created timestamp descending
+        tasks.sort(key=lambda t: t.get("created", ""), reverse=True)
+        return tasks[:limit]
+
+    # ── Task Cleanup ──────────────────────────────────────────────
+    def task_cleanup(self, max_age_days: int = 30,
+                     archive: bool = True) -> Dict[str, int]:
+        """Clean up completed tasks older than max_age_days.
+
+        Args:
+            max_age_days: Age threshold in days for completed tasks.
+            archive: If True, move to .memkraft/tasks/archive/.
+                     If False, delete permanently.
+
+        Returns:
+            Dict with counts: {"archived": N, "deleted": N, "kept": N}
+        """
+        self.context_tasks_dir.mkdir(parents=True, exist_ok=True)
+        archive_dir = self.context_tasks_dir / "archive"
+        if archive:
+            archive_dir.mkdir(parents=True, exist_ok=True)
+
+        now = datetime.now()
+        result = {"archived": 0, "deleted": 0, "kept": 0}
+
+        for f in list(self.context_tasks_dir.glob("*.json")):
+            record = self._json_load(f)
+            if not record:
+                continue
+
+            # Only clean up completed tasks
+            if record.get("status") != "completed":
+                result["kept"] += 1
+                continue
+
+            # Check age
+            completed_ts = record.get("completed", record.get("created", ""))
+            if not completed_ts:
+                result["kept"] += 1
+                continue
+
+            try:
+                # Handle both ISO format with and without microseconds
+                completed_dt = datetime.fromisoformat(completed_ts)
+                age_days = (now - completed_dt).days
+            except (ValueError, TypeError):
+                result["kept"] += 1
+                continue
+
+            if age_days < max_age_days:
+                result["kept"] += 1
+                continue
+
+            if archive:
+                target = archive_dir / f.name
+                f.rename(target)
+                result["archived"] += 1
+            else:
+                f.unlink()
+                result["deleted"] += 1
+
+        return result
 
     # ── JSON helpers (for channel/task/agent) ─────────────────────
     def _json_load(self, filepath: Path) -> Dict[str, Any]:

@@ -280,6 +280,41 @@ def main():
     ai_parser.add_argument("agent_id", help="Agent identifier")
     ai_parser.add_argument("--channel", default="", help="Channel ID to include")
     ai_parser.add_argument("--task", default="", help="Task ID to include")
+    ai_parser.add_argument("--max-history", type=int, default=5, help="Max task history entries (default: 5)")
+    ai_parser.add_argument("--include-completed-tasks", action="store_true", help="Include completed tasks for the channel")
+
+    # channel-update (enhanced)
+    cu_parser = subparsers.add_parser("channel-update", help="Update a channel context field")
+    cu_parser.add_argument("channel_id", help="Channel identifier")
+    cu_parser.add_argument("key", help="Field name")
+    cu_parser.add_argument("value", help="Field value (JSON for complex types)")
+    cu_parser.add_argument("--mode", default="set", choices=["set", "append", "merge"], help="Update mode (default: set)")
+
+    # task-delegate
+    td_parser = subparsers.add_parser("task-delegate", help="Delegate a task between agents")
+    td_parser.add_argument("task_id", help="Task identifier")
+    td_parser.add_argument("from_agent", help="Delegating agent")
+    td_parser.add_argument("to_agent", help="Receiving agent")
+    td_parser.add_argument("--note", default="", help="Context note")
+
+    # channel-tasks
+    ct_parser = subparsers.add_parser("channel-tasks", help="List tasks for a channel")
+    ct_parser.add_argument("channel_id", help="Channel identifier")
+    ct_parser.add_argument("--status", default="all", choices=["active", "completed", "all"], help="Filter by status")
+    ct_parser.add_argument("--limit", type=int, default=5, help="Max results (default: 5)")
+
+    # agent-handoff
+    ah_parser = subparsers.add_parser("agent-handoff", help="Hand off context between agents")
+    ah_parser.add_argument("from_agent", help="Agent handing off")
+    ah_parser.add_argument("to_agent", help="Agent receiving")
+    ah_parser.add_argument("--task", default="", help="Task ID to include")
+    ah_parser.add_argument("--note", default="", help="Context note")
+
+    # task-cleanup
+    tc_parser = subparsers.add_parser("task-cleanup", help="Clean up old completed tasks")
+    tc_parser.add_argument("--max-age", type=int, default=30, help="Age threshold in days (default: 30)")
+    tc_parser.add_argument("--archive", action="store_true", default=True, help="Archive tasks (default)")
+    tc_parser.add_argument("--delete", action="store_true", help="Delete instead of archiving")
 
     args = parser.parse_args()
 
@@ -490,11 +525,53 @@ def main():
     elif args.command == "agent-inject":
         block = mc.agent_inject(args.agent_id,
                                 channel_id=args.channel or None,
-                                task_id=args.task or None)
+                                task_id=args.task or None,
+                                max_history=getattr(args, 'max_history', 5),
+                                include_completed_tasks=getattr(args, 'include_completed_tasks', False))
         if block:
             print(block)
         else:
             print(f"No context available to inject for agent '{args.agent_id}'.")
+    elif args.command == "channel-update":
+        import json as _json
+        value = args.value
+        # Try to parse value as JSON for complex types
+        try:
+            value = _json.loads(value)
+        except (_json.JSONDecodeError, ValueError):
+            pass  # Keep as string
+        result = mc.channel_update(args.channel_id, args.key, value, mode=args.mode)
+        print(f"\u2705 Channel '{args.channel_id}' updated: {args.key} ({args.mode})")
+        print(_json.dumps(result, indent=2, ensure_ascii=False))
+    elif args.command == "task-delegate":
+        import json as _json
+        result = mc.task_delegate(args.task_id, args.from_agent, args.to_agent,
+                                  context_note=args.note)
+        if result:
+            print(f"\u2705 Task '{args.task_id}' delegated: {args.from_agent} \u2192 {args.to_agent}")
+        else:
+            print(f"\u274c Task '{args.task_id}' not found.")
+    elif args.command == "channel-tasks":
+        import json as _json
+        tasks = mc.channel_tasks(args.channel_id, status=args.status, limit=args.limit)
+        if tasks:
+            print(f"\ud83d\udccb Tasks for channel '{args.channel_id}' ({args.status}): {len(tasks)}")
+            for t in tasks:
+                print(f"  [{t.get('status', '?')}] {t['task_id']}: {t.get('description', '')[:60]}")
+        else:
+            print(f"No tasks found for channel '{args.channel_id}' ({args.status}).")
+    elif args.command == "agent-handoff":
+        block = mc.agent_handoff(args.from_agent, args.to_agent,
+                                 task_id=args.task or None,
+                                 context_note=args.note)
+        if block:
+            print(block)
+        else:
+            print(f"No context to hand off from '{args.from_agent}' to '{args.to_agent}'.")
+    elif args.command == "task-cleanup":
+        archive = not args.delete
+        result = mc.task_cleanup(max_age_days=args.max_age, archive=archive)
+        print(f"\ud83e\uddf9 Task cleanup: {result['archived']} archived, {result['deleted']} deleted, {result['kept']} kept")
 
     return 0
 
