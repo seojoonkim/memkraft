@@ -16,7 +16,7 @@ from memkraft import __version__
 
 class TestVersion:
     def test_version_is_050(self):
-        assert __version__ == "0.7.0"
+        assert __version__ == "0.8.0"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ class TestSnapshot:
         assert data["snapshot_id"].startswith("SNAP-")
         assert "timestamp" in data
         assert data["label"] == "test-snap"
-        assert data["memkraft_version"] == "0.7.0"
+        assert data["memkraft_version"] == "0.8.0"
         assert "files" in data
         assert data["file_count"] >= 1
 

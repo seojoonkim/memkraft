@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.7.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory.**
+**v0.8.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
 
 <div align="center">
 
@@ -17,7 +17,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-409%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-492%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -616,6 +616,50 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.8.0 (2026-04-17)
+
+Four new subsystems — all zero-dep, all backward-compatible.
+
+**1. Bitemporal Fact Layer** — track facts with separate `valid_time` and `record_time`.
+```python
+mk.fact_add("Simon", "role", "CEO of Hashed", valid_from="2020-03-01")
+mk.fact_add("Simon", "role", "CTO", valid_from="2018-01-01", valid_to="2020-02-29")
+mk.fact_at("Simon", "role", as_of="2019-06-01")   # -> {"value": "CTO", ...}
+mk.fact_history("Simon")                           # full timeline, recorded-order
+mk.fact_invalidate("Simon", "role", invalid_at="2026-04-17")
+```
+Stored as inline Markdown markers in `memory/facts/<slug>.md` — human-readable, git-diffable.
+
+**2. Memory Tier Labels + Working Set** — Letta-style `core | recall | archival` via a single YAML frontmatter line.
+```python
+mk.tier_set(memory_id, tier="core")
+mk.tier_promote(memory_id)     # archival -> recall -> core
+mk.tier_demote(memory_id)
+mk.tier_list(tier="core")
+mk.working_set(limit=10)       # all core + recently-accessed recall
+```
+
+**3. Reversible Decay + Tombstone** — memories fade numerically instead of being deleted, and tombstoned files move to `.memkraft/tombstones/` (still restorable).
+```python
+mk.decay_apply(memory_id, decay_rate=0.5)     # weight 1.0 -> 0.5
+mk.decay_list(below_threshold=0.1)            # show faded memories
+mk.decay_run(criteria={"weight_gt": 0.5})     # batch decay (cron)
+mk.decay_tombstone(memory_id)                 # move to tombstones, still on disk
+mk.decay_restore(memory_id)                   # full undo — weight back to 1.0
+```
+
+**4. Cross-Entity Link Graph + Backlinks** — `[[Wiki Link]]` patterns become a bidirectional graph; the file system is the DB.
+```python
+mk.link_scan()                                # build/refresh index
+mk.link_backlinks("Simon")                    # files that mention [[Simon]]
+mk.link_forward("inbox/notes.md")             # entities referenced from a file
+mk.link_graph("Simon", hops=2)                # N-hop neighbourhood
+mk.link_orphans()                             # entities referenced but never defined
+```
+Index persisted at `.memkraft/links/backlinks.json` and `.memkraft/links/forward.json`.
+
+**Tests:** 409 → 492 (83 new across `test_v080_*`).
 
 ### v0.7.0 (2026-04-15)
 
