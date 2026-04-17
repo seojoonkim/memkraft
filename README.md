@@ -33,6 +33,11 @@
 
 <br>
 
+[![PyPI](https://img.shields.io/pypi/v/memkraft.svg)](https://pypi.org/project/memkraft/)
+[![Python](https://img.shields.io/pypi/pyversions/memkraft.svg)](https://pypi.org/project/memkraft/)
+[![Downloads](https://img.shields.io/pypi/dm/memkraft.svg)](https://pypi.org/project/memkraft/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## 30-Second Quickstart
 
 ```bash
@@ -40,6 +45,19 @@ pip install memkraft
 memkraft init                   # → creates ./memory/ with RESOLVER, TEMPLATES, entities/, ...
 memkraft agents-hint claude-code >> AGENTS.md   # your agent is now memory-aware
 ```
+
+### Or scaffold a full project
+
+```bash
+memkraft init --template claude-code   # CLAUDE.md + memory/ + examples
+memkraft init --template cursor        # .cursorrules + memory/
+memkraft init --template mcp           # claude_desktop_config snippet + memory/
+memkraft init --template rag           # retrieval-focused structure
+memkraft init --template minimal       # just memory/entities/
+memkraft templates list                # see all presets
+```
+
+Templates are **idempotent** — re-running `init --template X` never overwrites your edits.
 
 Or in Python:
 
@@ -100,7 +118,13 @@ memkraft init
 memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft brief "Simon Kim"
 memkraft doctor                          # 🟢/🟡/🔴 health check with fix hints
+memkraft doctor --fix --yes              # auto-repair missing structure (create-only, never deletes)
+memkraft stats --export json             # workspace stats for CI dashboards
+memkraft mcp doctor                      # validate MCP server readiness
+memkraft mcp test                        # remember→search→recall smoke test
 ```
+
+MCP (Claude Desktop / Cursor) setup: see [`docs/mcp-setup.md`](docs/mcp-setup.md).
 
 ### Python Usage
 

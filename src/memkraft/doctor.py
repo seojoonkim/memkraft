@@ -123,6 +123,114 @@ def _check_updates() -> Tuple[str, str]:
     return _OK, f"Up to date: {current}"
 
 
+# ── Auto-Fix ────────────────────────────────────────────────────
+_FIXABLE_DIRS = ["entities", "live-notes", "decisions", "inbox", "originals",
+                "tasks", "meetings", "sessions", "debug"]
+_INTERNAL_DIRS = [".memkraft/snapshots", ".memkraft/channels",
+                 ".memkraft/tasks", ".memkraft/agents"]
+
+
+def plan_fixes(mk: MemKraft) -> List[Dict[str, str]]:
+    """Return a list of fix actions WITHOUT executing them.
+
+    Each action is ``{"action": "mkdir", "path": "...", "reason": "..."}``.
+    Safety: only ``mkdir`` actions are ever emitted — no file deletions.
+    """
+    actions: List[Dict[str, str]] = []
+    bd = mk.base_dir
+    if not bd.exists():
+        actions.append({
+            "action": "mkdir",
+            "path": str(bd),
+            "reason": "base_dir missing",
+        })
+    for d in _FIXABLE_DIRS:
+        p = bd / d
+        if not p.exists():
+            actions.append({
+                "action": "mkdir",
+                "path": str(p),
+                "reason": f"missing required dir: {d}/",
+            })
+    for d in _INTERNAL_DIRS:
+        p = bd / d
+        if not p.exists():
+            actions.append({
+                "action": "mkdir",
+                "path": str(p),
+                "reason": f"missing internal dir: {d}/",
+            })
+    return actions
+
+
+def apply_fixes(actions: List[Dict[str, str]], dry_run: bool = False) -> Dict[str, object]:
+    """Execute a list of fix actions. Returns {applied: [...], skipped: [...]}."""
+    applied: List[str] = []
+    skipped: List[str] = []
+    for a in actions:
+        if a.get("action") != "mkdir":
+            skipped.append(f"unsupported action: {a.get('action')}")
+            continue
+        path = Path(a["path"])
+        if dry_run:
+            applied.append(f"(dry-run) mkdir -p {path}")
+            continue
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            applied.append(f"mkdir -p {path}")
+        except Exception as e:
+            skipped.append(f"failed to create {path}: {e}")
+    return {"applied": applied, "skipped": skipped}
+
+
+def run_fix(base_dir: str = "", dry_run: bool = False, yes: bool = False) -> Dict[str, object]:
+    """Run diagnostic + apply fixes. Prompts unless ``yes`` or ``dry_run``.
+
+    Returns a structured report.
+    """
+    mk = MemKraft(base_dir=base_dir) if base_dir else MemKraft()
+    actions = plan_fixes(mk)
+
+    print("🔧 MemKraft doctor --fix")
+    print()
+    if not actions:
+        print(f"  {_OK} nothing to fix — workspace is healthy")
+        return {"status": "nothing-to-do", "actions": [], "result": {"applied": [], "skipped": []}}
+
+    print(f"  {_WARN} {len(actions)} fix(es) planned:")
+    for a in actions:
+        print(f"     • {a['action']}: {a['path']}")
+        print(f"       └─ reason: {a['reason']}")
+    print()
+
+    if dry_run:
+        print(f"  {_TIP} --dry-run: no changes applied")
+        result = apply_fixes(actions, dry_run=True)
+        for line in result["applied"]:
+            print(f"     {line}")
+        return {"status": "dry-run", "actions": actions, "result": result}
+
+    if not yes:
+        try:
+            resp = input("  apply fixes? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            resp = ""
+        if resp not in ("y", "yes"):
+            print(f"  {_WARN} aborted (pass --yes to skip this prompt)")
+            return {"status": "aborted", "actions": actions, "result": {"applied": [], "skipped": []}}
+
+    result = apply_fixes(actions, dry_run=False)
+    print()
+    for line in result["applied"]:
+        print(f"  {_OK} {line}")
+    for line in result["skipped"]:
+        print(f"  {_ERR} {line}")
+    print()
+    status = "fixed" if not result["skipped"] else "partial"
+    print(f"  {_OK if status == 'fixed' else _WARN} {status}: {len(result['applied'])} applied, {len(result['skipped'])} skipped")
+    return {"status": status, "actions": actions, "result": result}
+
+
 def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
     """Run all checks. Returns a structured report dict."""
     mk = MemKraft(base_dir=base_dir) if base_dir else MemKraft()
@@ -211,6 +319,17 @@ def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
 
 
 def cmd(args) -> int:
+    # --fix mode takes precedence
+    if getattr(args, "fix", False):
+        result = run_fix(
+            base_dir=getattr(args, "base_dir", ""),
+            dry_run=getattr(args, "dry_run", False),
+            yes=getattr(args, "yes", False),
+        )
+        if result["status"] in ("aborted", "partial"):
+            return 1
+        return 0
+
     report = run(
         base_dir=getattr(args, "base_dir", ""),
         check_updates=getattr(args, "check_updates", False),

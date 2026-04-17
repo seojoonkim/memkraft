@@ -18,6 +18,12 @@ def main():
     # init
     init_parser = subparsers.add_parser("init", help="Initialize memory structure")
     init_parser.add_argument("--path", default=".", help="Target directory (default: current)")
+    init_parser.add_argument("--template", default="", help="Apply a project scaffolding template (see `memkraft templates list`)")
+
+    # templates
+    templates_parser = subparsers.add_parser("templates", help="Manage project scaffolding templates")
+    templates_sub = templates_parser.add_subparsers(dest="templates_command", help="Template subcommands")
+    templates_sub.add_parser("list", help="List available templates for `memkraft init --template`")
 
     # track
     track_parser = subparsers.add_parser("track", help="Start tracking an entity")
@@ -332,6 +338,22 @@ def main():
     doctor_parser = subparsers.add_parser("doctor", help="Health check for MemKraft install + memory structure")
     doctor_parser.add_argument("--check-updates", action="store_true", help="Also check PyPI for newer version (requires network)")
     doctor_parser.add_argument("--base-dir", default="", help="Override base directory")
+    doctor_parser.add_argument("--fix", action="store_true", help="Auto-repair missing structure (safe: create-only, never deletes)")
+    doctor_parser.add_argument("--dry-run", action="store_true", help="Preview fixes without applying (use with --fix)")
+    doctor_parser.add_argument("--yes", action="store_true", help="Skip confirmation prompt (use with --fix)")
+
+    # stats
+    stats_parser = subparsers.add_parser("stats", help="Workspace statistics (tier/type/link graph/decay)")
+    stats_parser.add_argument("--base-dir", default="", help="Override base directory")
+    stats_parser.add_argument("--export", default="", choices=["", "json", "csv", "human"], help="Output format (default: human)")
+    stats_parser.add_argument("--out", default="", help="Write output to file instead of stdout")
+
+    # mcp (admin)
+    mcp_parser = subparsers.add_parser("mcp", help="MCP server admin (doctor/test)")
+    mcp_sub = mcp_parser.add_subparsers(dest="mcp_command", help="MCP subcommands")
+    mcp_doctor = mcp_sub.add_parser("doctor", help="Check MCP server readiness (package, entry point, Claude Desktop config)")
+    mcp_test = mcp_sub.add_parser("test", help="Run a local remember→search→recall round-trip (uses temp workspace)")
+    mcp_test.add_argument("--base-dir", default="", help="Use a specific workspace instead of temp dir")
 
     # selfupdate
     su_parser = subparsers.add_parser("selfupdate", help="Self-upgrade MemKraft via pip (when newer version on PyPI)")
@@ -351,7 +373,41 @@ def main():
     mc = MemKraft()
 
     if args.command == "init":
-        mc.init(args.path)
+        # First, run normal init to lay down memory/ structure
+        result = mc.init(args.path)
+        # Then, if --template given, overlay it
+        tpl = getattr(args, "template", "") or ""
+        if tpl:
+            from . import templates_pkg as _tpl
+            try:
+                # Template target is the project root (not memory/). If --path given, use it.
+                project_root = args.path if args.path else "."
+                ar = _tpl.apply(tpl, project_root)
+                print()
+                print(f"📄 Template '{tpl}' applied at {ar.target}")
+                for f in ar.created:
+                    print(f"   + {f}")
+                if ar.skipped:
+                    print(f"   ({len(ar.skipped)} existing item(s) preserved)")
+            except ValueError as e:
+                print(f"❌ {e}")
+                return 2
+    elif args.command == "templates":
+        from . import templates_pkg as _tpl
+        sub = getattr(args, "templates_command", "") or ""
+        if sub == "list" or not sub:
+            items = _tpl.available()
+            if not items:
+                print("(no templates installed)")
+            else:
+                print("📄 Available templates:")
+                for it in items:
+                    print(f"   • {it['name']:15s} — {it['description']}")
+                print()
+                print("   Usage: memkraft init --template <name>")
+        else:
+            print(f"❌ unknown templates subcommand: {sub}")
+            return 2
     elif args.command == "track":
         if not args.name.strip():
             print("❌ Error: name cannot be empty")
@@ -610,6 +666,12 @@ def main():
     elif args.command == "watch":
         from . import watch as _watch
         return _watch.cmd(args)
+    elif args.command == "stats":
+        from . import stats as _stats
+        return _stats.cmd(args)
+    elif args.command == "mcp":
+        from . import mcp_admin as _mcp_admin
+        return _mcp_admin.cmd(args)
 
     return 0
 

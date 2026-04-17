@@ -1,0 +1,25 @@
+{
+  "name": "rag",
+  "description": "Retrieval-focused — memory/ + docs/ + retrieval examples",
+  "directories": [
+    "memory",
+    "memory/entities",
+    "memory/inbox",
+    "docs",
+    "retrieval"
+  ],
+  "files": [
+    {
+      "path": "retrieval/README.md",
+      "content": "# Retrieval\n\nDrop source documents into `docs/`, then run:\n```python\nfrom memkraft import MemKraft\nmk = MemKraft(base_dir=\"./memory\")\nresults = mk.search(\"your query\", fuzzy=True)\nfor r in results:\n    print(r.get('name'), r.get('score'))\n```\n\nFor agentic multi-hop retrieval:\n```bash\nmemkraft agentic-search \"your query\" --max-hops 2 --json\n```\n"
+    },
+    {
+      "path": "retrieval/example.py",
+      "content": "\"\"\"Minimal RAG loop using MemKraft search.\"\"\"\nfrom memkraft import MemKraft\n\nmk = MemKraft(base_dir=\"./memory\")\n\ndef retrieve(query: str, k: int = 5):\n    results = mk.search(query, fuzzy=True) or []\n    return results[:k]\n\nif __name__ == \"__main__\":\n    hits = retrieve(\"example query\")\n    for h in hits:\n        print(h)\n"
+    },
+    {
+      "path": "docs/.keep",
+      "content": ""
+    }
+  ]
+}

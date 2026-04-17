@@ -64,7 +64,7 @@ def test_doctor_check_updates_offline(tmp_base, capsys):
 
 def test_doctor_cmd_passes_flag(tmp_base):
     """cmd() should forward --check-updates from argparse Namespace."""
-    args = mock.MagicMock(base_dir=tmp_base, check_updates=False)
+    args = mock.MagicMock(base_dir=tmp_base, check_updates=False, fix=False)
     with mock.patch("memkraft.doctor.run") as run_mock:
         run_mock.return_value = {"status": "healthy"}
         doctor.cmd(args)

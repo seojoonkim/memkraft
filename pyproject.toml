@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memkraft"
-version = "0.8.2"
+version = "0.8.3"
 description = "The compound knowledge system for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -38,6 +38,9 @@ memkraft = "memkraft.cli:main"
 [project.urls]
 Homepage = "https://github.com/seojoonkim/memkraft"
 Repository = "https://github.com/seojoonkim/memkraft"
+Documentation = "https://github.com/seojoonkim/memkraft/tree/main/docs"
+"Bug Tracker" = "https://github.com/seojoonkim/memkraft/issues"
+Changelog = "https://github.com/seojoonkim/memkraft/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -47,4 +50,5 @@ memkraft = [
     "templates/*.md",
     "prompts/templates/*.md",
     "stopwords.json",
+    "templates_pkg/*.json",
 ]

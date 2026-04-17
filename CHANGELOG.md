@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## [0.8.3] - 2026-04-17
+
+### Added
+- **`memkraft init --template <name>`** — 5 presets: `claude-code`, `cursor`, `mcp`, `minimal`, `rag`. Idempotent: existing files are preserved on re-run.
+- **`memkraft templates list`** — browse available scaffolding templates.
+- **`memkraft agents-hint --format json`** — structured output for CI/automation. All 6 targets emit a stable envelope with `{target, version, base_dir, content}`.
+- **`memkraft doctor --fix [--dry-run] [--yes]`** — auto-repair missing `memory/` structure. **Create-only, never deletes.** Prompts for confirmation unless `--yes` or `--dry-run`.
+- **`memkraft stats`** — workspace dashboard. `--export json|csv` + `--out <path>` for CI.
+- **`memkraft mcp doctor`** / **`memkraft mcp test`** — production validation for the MCP server. `doctor` checks extras + entry point + tool schemas + Claude Desktop config location. `test` runs a remember→search→recall round-trip in a temp workspace.
+- **`docs/mcp-setup.md`** — Claude Desktop + Cursor integration guide, including troubleshooting.
+
+### Changed
+- `pyproject.toml` gains richer `project.urls` (Documentation, Bug Tracker, Changelog).
+- New package data: `templates_pkg/*.json` shipped in the wheel.
+
+### Compatibility
+- Fully backward-compatible with 0.8.2. All 538 existing tests still pass; 35 new tests added (573 total).
+
+---
+
 ## [0.8.2] - 2026-04-17
 
 ### Added

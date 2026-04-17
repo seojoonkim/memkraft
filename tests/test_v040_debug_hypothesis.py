@@ -670,7 +670,7 @@ class TestCLIDebug:
 class TestVersion:
     def test_version_is_042(self):
         from memkraft import __version__
-        assert __version__ == "0.8.2"
+        assert __version__ == "0.8.3"
 
     def test_memkraft_importable(self):
         from memkraft import MemKraft

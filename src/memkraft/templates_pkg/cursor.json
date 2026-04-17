@@ -1,0 +1,20 @@
+{
+  "name": "cursor",
+  "description": "Cursor project with .cursorrules + MemKraft memory structure",
+  "directories": [
+    "memory",
+    "memory/entities",
+    "memory/decisions",
+    "memory/inbox"
+  ],
+  "files": [
+    {
+      "path": ".cursorrules",
+      "content": "# Cursor rules for this project\n\n## Memory — MemKraft\n\nThis project uses MemKraft (https://pypi.org/project/memkraft/) for durable memory.\n\nBefore answering questions about people, orgs, or decisions:\n1. Run `memkraft search \"<query>\"` from the terminal.\n2. Check `memory/entities/` for matching files.\n3. Check `memory/decisions/` for past rationale.\n\nWhen the user shares durable information, persist it:\n- `memkraft track <name>` for new entities\n- `memkraft update <name> --info \"...\"` to append\n\nRun `memkraft doctor` weekly to check memory health.\n\n## Project\n(Describe your project here.)\n"
+    },
+    {
+      "path": "memory/README.md",
+      "content": "# memory/\n\nCompound memory for this project, managed by MemKraft.\n\nQuick commands:\n```bash\nmemkraft track \"Alice\" --type person\nmemkraft update \"Alice\" --info \"joined as CTO 2026-01\"\nmemkraft search \"CTO\"\nmemkraft doctor\n```\n"
+    }
+  ]
+}

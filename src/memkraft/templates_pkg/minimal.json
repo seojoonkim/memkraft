@@ -1,0 +1,14 @@
+{
+  "name": "minimal",
+  "description": "Minimal — memory/entities/ only",
+  "directories": [
+    "memory",
+    "memory/entities"
+  ],
+  "files": [
+    {
+      "path": "memory/entities/.keep",
+      "content": ""
+    }
+  ]
+}

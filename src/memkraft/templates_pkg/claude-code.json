@@ -1,0 +1,32 @@
+{
+  "name": "claude-code",
+  "description": "Claude Code project with CLAUDE.md + MemKraft memory structure + 3 example entries",
+  "directories": [
+    "memory",
+    "memory/entities",
+    "memory/decisions",
+    "memory/inbox",
+    "memory/live-notes",
+    "memory/originals",
+    "memory/tasks",
+    "memory/meetings"
+  ],
+  "files": [
+    {
+      "path": "CLAUDE.md",
+      "content": "# CLAUDE.md\n\nThis file guides Claude Code in this project.\n\n## Memory System\n\nThis project uses **MemKraft** (https://pypi.org/project/memkraft/) for compound memory.\n\n### Core rules\n1. Before answering questions about prior work, people, or decisions: run `memkraft search \"<query>\"` first.\n2. When the user shares durable information (a person, an org, a decision), store it:\n   - `memkraft track <name> --type person|company|concept`\n   - `memkraft update <name> --info \"...\"`\n3. For time-sensitive facts, use `memkraft fact-add` via the Python API.\n4. At the end of a session, run `memkraft dream` for memory maintenance (can be cronned).\n\n### Structure\n- `memory/entities/` — people, orgs, projects\n- `memory/decisions/` — why we did what we did\n- `memory/inbox/` — raw capture, processed later\n- `memory/live-notes/` — ongoing tracking pages\n\n### Doctor\nRun `memkraft doctor` periodically to check memory health.\nRun `memkraft doctor --fix` to auto-repair missing directories.\n"
+    },
+    {
+      "path": "memory/entities/_example-person.md",
+      "content": "---\ntier: core\ntype: person\nsource: example\n---\n\n# Example Person (example)\n\n## Compiled Truth\nShort, durable summary of who this person is and why they matter.\n\n## Timeline\n- 2026-01-01 — First contact. [Source: example]\n\n<!-- Links: [[Example Org]] -->\n"
+    },
+    {
+      "path": "memory/entities/_example-org.md",
+      "content": "---\ntier: core\ntype: company\nsource: example\n---\n\n# Example Org (example)\n\n## Compiled Truth\nWhat this org does and our relationship to it.\n\n## Timeline\n- 2026-01-01 — Met with [[Example Person]]. [Source: example]\n"
+    },
+    {
+      "path": "memory/decisions/_example-decision.md",
+      "content": "---\ntier: recall\ntype: decision\ndate: 2026-01-01\n---\n\n# Decision: Use MemKraft for compound memory\n\n## Context\nWe needed a zero-dependency, file-native memory layer for AI agents.\n\n## Decision\nAdopt MemKraft as the durable memory substrate.\n\n## Why\n- Markdown-first (human-readable + diffable)\n- Zero DB requirements for the core features\n- Works with Claude Code, Cursor, OpenAI, MCP\n\n## Alternatives considered\n- Pure vector DB (too heavy, no human-readable surface)\n- Plain text notes (no structure, no search)\n"
+    }
+  ]
+}

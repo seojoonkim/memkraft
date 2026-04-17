@@ -1,0 +1,20 @@
+{
+  "name": "mcp",
+  "description": "MCP integration — ships claude_desktop_config.json snippet + memory/",
+  "directories": [
+    "memory",
+    "memory/entities",
+    "memory/decisions",
+    "memory/inbox"
+  ],
+  "files": [
+    {
+      "path": "claude_desktop_config.snippet.json",
+      "content": "{\n  \"mcpServers\": {\n    \"memkraft\": {\n      \"command\": \"python3\",\n      \"args\": [\"-m\", \"memkraft.mcp\"],\n      \"env\": {\n        \"MEMKRAFT_DIR\": \"/ABSOLUTE/PATH/TO/YOUR/memory\"\n      }\n    }\n  }\n}\n"
+    },
+    {
+      "path": "MCP_SETUP.md",
+      "content": "# MCP setup for this project\n\n## 1. Install MemKraft with MCP extras\n```bash\npip install 'memkraft[mcp]'\n```\n\n## 2. Verify the server runs\n```bash\nmemkraft mcp doctor\nmemkraft mcp test\n```\n\n## 3. Wire into Claude Desktop\nMerge the contents of `claude_desktop_config.snippet.json` into:\n- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`\n- Windows: `%APPDATA%\\Claude\\claude_desktop_config.json`\n\nReplace `/ABSOLUTE/PATH/TO/YOUR/memory` with the absolute path to this project's `memory/` directory.\n\n## 4. Restart Claude Desktop\n\nThe `memkraft` server should now appear in the tools panel.\n\n## Tools exposed\n- `remember(name, info, source)` — append to entity timeline\n- `search(query, fuzzy)` — hybrid search\n- `recall(name)` — read entity page\n- `link(source, target)` — add wiki link\n\nSee `docs/mcp-setup.md` in the MemKraft repo for full troubleshooting.\n"
+    }
+  ]
+}
