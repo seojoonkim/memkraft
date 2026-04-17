@@ -37,7 +37,18 @@
 
 ```bash
 pip install memkraft
-python -c "from memkraft import MemKraft; mk = MemKraft(); mk.init(); mk.remember('Hello world')"
+memkraft init                   # → creates ./memory/ with RESOLVER, TEMPLATES, entities/, ...
+memkraft agents-hint claude-code >> AGENTS.md   # your agent is now memory-aware
+```
+
+Or in Python:
+
+```python
+from memkraft import MemKraft
+mk = MemKraft("./memory"); mk.init()
+mk.track("Simon Kim", entity_type="person", source="news")
+mk.update("Simon Kim", info="Launched MemKraft 0.8.1", source="PyPI")
+mk.search("MemKraft")
 ```
 
 That's it. Your agent now has persistent memory as plain markdown files.
