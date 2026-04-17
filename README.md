@@ -2,7 +2,7 @@
 
 # MemKraft 🧠
 
-**v0.8.1** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
+**v0.8.2** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
@@ -20,7 +20,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-515%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-525%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -520,6 +520,30 @@ memkraft <command> [options]
 | `snapshot-diff SNAP_A [SNAP_B]` | Compare two snapshots or snapshot vs live state |
 | `time-travel QUERY [--snapshot ID] [--date YYYY-MM-DD]` | Search memory as it was at a past snapshot |
 | `snapshot-entity NAME` | Show how an entity evolved across snapshots |
+| `selfupdate [--dry-run]` | Self-upgrade MemKraft via pip when newer version on PyPI |
+| `doctor [--check-updates]` | Health check; with `--check-updates` also reports PyPI version status |
+
+<br>
+
+## Staying Up To Date
+
+MemKraft ships an opt-in self-upgrade flow so agents (and humans) never silently drift behind PyPI:
+
+```bash
+memkraft doctor --check-updates   # 🟢 up to date / 🟡 update available / 🔴 PyPI unreachable
+memkraft selfupdate               # pip install -U memkraft when newer
+memkraft selfupdate --dry-run     # check only
+```
+
+Classic still works:
+
+```bash
+pip install -U memkraft
+```
+
+**For agents:** add `memkraft doctor --check-updates` to your weekly skill or heartbeat — if it reports 🟡, ask the human before running `memkraft selfupdate`. Never auto-upgrade without explicit consent.
+
+**For maintainers:** pushing a `vX.Y.Z` git tag triggers `.github/workflows/release.yml`, which builds, verifies (`twine check`), publishes to PyPI, and cuts a GitHub Release. Requires a `PYPI_API_TOKEN` repo secret — add it at `Settings → Secrets and variables → Actions`.
 
 <br>
 

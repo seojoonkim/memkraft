@@ -108,12 +108,28 @@ def _check_env() -> Tuple[str, str]:
     return _OK, "MEMKRAFT_DIR not set (using default cwd/memory)"
 
 
-def run(base_dir: str = "") -> Dict[str, object]:
+def _check_updates() -> Tuple[str, str]:
+    """Check PyPI for newer MemKraft version. Network call, may be slow/unreachable."""
+    try:
+        from .selfupdate import latest_version, installed_version, needs_update
+    except ImportError:
+        return _WARN, "update check unavailable (selfupdate module missing)"
+    current = installed_version() or __version__
+    latest = latest_version()
+    if latest is None:
+        return _ERR, "PyPI unreachable (offline or timeout)"
+    if needs_update(current, latest):
+        return _WARN, f"Update available: {current} → {latest}  (run `memkraft selfupdate`)"
+    return _OK, f"Up to date: {current}"
+
+
+def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
     """Run all checks. Returns a structured report dict."""
     mk = MemKraft(base_dir=base_dir) if base_dir else MemKraft()
 
     lines: List[str] = []
     status = "healthy"
+    update_info: Dict[str, object] = {}
 
     print("🩺 MemKraft doctor")
     print()
@@ -169,20 +185,36 @@ def run(base_dir: str = "") -> Dict[str, object]:
     for icon, msg in _check_extras():
         print(f"     {icon} {msg}")
 
+    # update check (opt-in, network)
+    if check_updates:
+        print()
+        print("  update check:")
+        u_icon, u_msg = _check_updates()
+        print(f"     {u_icon} {u_msg}")
+        update_info = {"icon": u_icon, "message": u_msg}
+        if u_icon == _WARN and status == "healthy":
+            status = "degraded"
+
     print()
     icon = {"healthy": _OK, "degraded": _WARN, "unhealthy": _ERR}[status]
     print(f"  {icon} overall: {status}")
 
-    return {
+    report = {
         "status": status,
         "version": __version__,
         "base_dir": str(mk.base_dir),
         "python": _py_version(),
     }
+    if check_updates:
+        report["update_check"] = update_info
+    return report
 
 
 def cmd(args) -> int:
-    report = run(base_dir=getattr(args, "base_dir", ""))
+    report = run(
+        base_dir=getattr(args, "base_dir", ""),
+        check_updates=getattr(args, "check_updates", False),
+    )
     if report["status"] == "unhealthy":
         return 1
     return 0

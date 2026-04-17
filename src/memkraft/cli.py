@@ -329,7 +329,13 @@ def main():
     ah_hint.add_argument("--format", default="markdown", choices=["markdown", "json"], help="Output format")
 
     # doctor
-    subparsers.add_parser("doctor", help="Health check for MemKraft install + memory structure")
+    doctor_parser = subparsers.add_parser("doctor", help="Health check for MemKraft install + memory structure")
+    doctor_parser.add_argument("--check-updates", action="store_true", help="Also check PyPI for newer version (requires network)")
+    doctor_parser.add_argument("--base-dir", default="", help="Override base directory")
+
+    # selfupdate
+    su_parser = subparsers.add_parser("selfupdate", help="Self-upgrade MemKraft via pip (when newer version on PyPI)")
+    su_parser.add_argument("--dry-run", action="store_true", help="Check only, do not install")
 
     # watch
     watch_parser = subparsers.add_parser("watch", help="Watch memory/ for changes and auto-reindex (requires memkraft[watch])")
@@ -598,6 +604,9 @@ def main():
     elif args.command == "doctor":
         from . import doctor as _doctor
         return _doctor.cmd(args)
+    elif args.command == "selfupdate":
+        from . import selfupdate as _selfupdate
+        return _selfupdate.cmd(args)
     elif args.command == "watch":
         from . import watch as _watch
         return _watch.cmd(args)
