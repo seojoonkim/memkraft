@@ -53,32 +53,79 @@ class MemKraft:
         self.agents_dir = self.base_dir / ".memkraft" / "agents"
 
     # ── Init ──────────────────────────────────────────────────
-    def init(self, path: str = "") -> None:
+    def init(self, path: str = "", force: bool = False, verbose: bool = True) -> Dict[str, Any]:
+        """Initialize memory structure in base_dir.
+
+        Args:
+            path: Optional target path. If given, creates ``<path>/memory/``.
+                  Otherwise uses ``self.base_dir``.
+            force: If True, recreates top-level template files (RESOLVER.md,
+                   TEMPLATES.md) even if they exist.
+            verbose: If True (default), prints a summary banner. Set False
+                     for quiet scripting.
+
+        Returns:
+            dict: ``{"created": [...], "exists": [...], "base_dir": "..."}``
+            — lists are relative path strings (e.g. ``"entities/"``).
+        """
         if path:
             target = Path(path) / "memory"
         else:
             target = self.base_dir
+
+        created: List[str] = []
+        exists: List[str] = []
+
+        if target.exists():
+            exists.append(str(target))
+        else:
+            created.append(str(target))
         target.mkdir(parents=True, exist_ok=True)
-        for subdir in ["entities", "live-notes", "decisions", "originals", "inbox", "tasks", "meetings", "sessions", "debug"]:
-            (target / subdir).mkdir(exist_ok=True)
-        (target / ".memkraft" / "snapshots").mkdir(parents=True, exist_ok=True)
-        (target / ".memkraft" / "channels").mkdir(parents=True, exist_ok=True)
-        (target / ".memkraft" / "tasks").mkdir(parents=True, exist_ok=True)
-        (target / ".memkraft" / "agents").mkdir(parents=True, exist_ok=True)
+
+        subdirs = ["entities", "live-notes", "decisions", "originals", "inbox",
+                   "tasks", "meetings", "sessions", "debug"]
+        for subdir in subdirs:
+            sd = target / subdir
+            if sd.exists():
+                exists.append(f"{subdir}/")
+            else:
+                created.append(f"{subdir}/")
+            sd.mkdir(exist_ok=True)
+
+        for inner in ["snapshots", "channels", "tasks", "agents"]:
+            p = target / ".memkraft" / inner
+            if p.exists():
+                exists.append(f".memkraft/{inner}/")
+            else:
+                created.append(f".memkraft/{inner}/")
+            p.mkdir(parents=True, exist_ok=True)
 
         # RESOLVER.md
         resolver_path = target / "RESOLVER.md"
-        if not resolver_path.exists():
+        if not resolver_path.exists() or force:
             shutil.copy2(Path(__file__).parent / "templates" / "RESOLVER.md", resolver_path)
+            created.append("RESOLVER.md")
+        else:
+            exists.append("RESOLVER.md")
 
         # TEMPLATES.md
         templates_path = target / "TEMPLATES.md"
-        if not templates_path.exists():
+        if not templates_path.exists() or force:
             shutil.copy2(Path(__file__).parent / "templates" / "TEMPLATES.md", templates_path)
+            created.append("TEMPLATES.md")
+        else:
+            exists.append("TEMPLATES.md")
 
-        print(f"✅ MemKraft initialized at {target}")
-        print("   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/, sessions/")
-        print("   Files: RESOLVER.md, TEMPLATES.md")
+        if verbose:
+            print(f"✅ MemKraft initialized at {target}")
+            print("   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/, sessions/")
+            print("   Files: RESOLVER.md, TEMPLATES.md")
+
+        return {
+            "created": created,
+            "exists": exists,
+            "base_dir": str(target),
+        }
 
     # ── Track ─────────────────────────────────────────────────
     def track(self, name: str, entity_type: str = "person", source: str = "") -> Optional[Path]:

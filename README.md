@@ -2,7 +2,10 @@
 
 # MemKraft 🧠
 
-**v0.8.0** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
+**v0.8.1** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
+
+> **Plain Markdown source-of-truth · zero deps · zero keys.**
+> In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
 
 <div align="center">
 
@@ -17,7 +20,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-492%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-515%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -31,6 +34,25 @@
 <br>
 
 ## Quick Start
+
+### 30-second quickstart
+
+```bash
+pipx install memkraft
+memkraft init                                 # creates ./memory/ structure
+memkraft agents-hint claude-code              # print a ready-to-paste AGENTS.md block
+memkraft doctor                               # sanity-check your setup
+```
+
+That's it. No API keys, no database, no config. Plain Markdown files you own.
+
+### Optional extras
+
+```bash
+pip install 'memkraft[mcp]'      # run `python -m memkraft.mcp` as an MCP server
+pip install 'memkraft[watch]'    # run `memkraft watch` for auto-reindex on file save
+pip install 'memkraft[all]'      # both of the above
+```
 
 ### Install
 
@@ -46,7 +68,27 @@ memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
 memkraft brief "Simon Kim"
 ```
 
-No API keys. No database. No config. Plain Markdown files you own.
+### Agent integration in one command (⭐ new in 0.8.1)
+
+`memkraft agents-hint` prints a copy-paste integration block for whichever
+agent framework you're using:
+
+```bash
+memkraft agents-hint claude-code       # AGENTS.md block for Claude Code
+memkraft agents-hint openclaw          # AGENTS.md block for ОpenClaw
+memkraft agents-hint openai            # OpenAI function-calling schemas + dispatcher
+memkraft agents-hint cursor            # .cursorrules block
+memkraft agents-hint mcp               # claude_desktop_config.json snippet
+memkraft agents-hint langchain         # LangChain StructuredTool wrappers
+```
+
+Pipe the output straight into your config:
+
+```bash
+memkraft agents-hint claude-code >> AGENTS.md
+```
+
+See [`examples/`](examples/) for runnable variants.
 
 ### Python Usage
 
@@ -54,7 +96,7 @@ No API keys. No database. No config. Plain Markdown files you own.
 from memkraft import MemKraft
 
 mk = MemKraft("/path/to/memory")
-mk.init()
+mk.init()  # returns {"created": [...], "exists": [...], "base_dir": "..."}
 
 # Extract entities & facts from text
 mk.extract_conversations("Simon Kim is the CEO of Hashed.", source="news")
@@ -616,6 +658,18 @@ PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Changelog
+
+### v0.8.1 (2026-04-17)
+
+The "connect-any-agent-in-30-seconds" release. **Fully backward-compatible.**
+
+- **`mk.init()` now returns a dict** (`{"created": [...], "exists": [...], "base_dir": "..."}`) so scripts and tests can branch on it without parsing stdout.
+- **`memkraft agents-hint <target>` CLI** — paste-ready integration blocks for `claude-code`, `openclaw`, `openai`, `cursor`, `mcp`, `langchain`. Supports `--format json` and `--base-dir`.
+- **`examples/` folder** — drop-in AGENTS.md, OpenAI function-calling, 10-line RAG loop.
+- **`python -m memkraft.mcp`** — MCP stdio server exposing `remember / search / recall / link`. Extras: `pip install 'memkraft[mcp]'`.
+- **`memkraft watch`** — filesystem auto-reindex. Extras: `pip install 'memkraft[watch]'`.
+- **`memkraft doctor`** — health check with 🟢/🟡/🔴 icons and fix hints.
+- 515 tests passing (was 492, +23 new).
 
 ### v0.8.0 (2026-04-17)
 

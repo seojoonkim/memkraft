@@ -316,6 +316,26 @@ def main():
     tc_parser.add_argument("--archive", action="store_true", default=True, help="Archive tasks (default)")
     tc_parser.add_argument("--delete", action="store_true", help="Delete instead of archiving")
 
+    # agents-hint
+    ah_hint = subparsers.add_parser(
+        "agents-hint",
+        help="Print a copy-paste integration block for a popular agent framework",
+    )
+    ah_hint.add_argument(
+        "target",
+        help="Target framework: claude-code, openclaw, openai, cursor, mcp, langchain",
+    )
+    ah_hint.add_argument("--base-dir", default="", help="Override MEMKRAFT_DIR for the rendered snippet")
+    ah_hint.add_argument("--format", default="markdown", choices=["markdown", "json"], help="Output format")
+
+    # doctor
+    subparsers.add_parser("doctor", help="Health check for MemKraft install + memory structure")
+
+    # watch
+    watch_parser = subparsers.add_parser("watch", help="Watch memory/ for changes and auto-reindex (requires memkraft[watch])")
+    watch_parser.add_argument("--path", default="", help="Path to watch (default: base_dir)")
+    watch_parser.add_argument("--once", action="store_true", help="Run one index pass and exit (debug)")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -572,6 +592,15 @@ def main():
         archive = not args.delete
         result = mc.task_cleanup(max_age_days=args.max_age, archive=archive)
         print(f"\ud83e\uddf9 Task cleanup: {result['archived']} archived, {result['deleted']} deleted, {result['kept']} kept")
+    elif args.command == "agents-hint":
+        from . import agents_hint as _ah
+        return _ah.cmd(args)
+    elif args.command == "doctor":
+        from . import doctor as _doctor
+        return _doctor.cmd(args)
+    elif args.command == "watch":
+        from . import watch as _watch
+        return _watch.cmd(args)
 
     return 0
 

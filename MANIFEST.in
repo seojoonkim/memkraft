@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+recursive-include examples *.md *.py
+recursive-include src/memkraft/prompts/templates *.md
+recursive-include src/memkraft/templates *.md
+include src/memkraft/stopwords.json

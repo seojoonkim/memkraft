@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memkraft"
-version = "0.8.0"
+version = "0.8.1"
 description = "The compound knowledge system for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 authors = [
     {name = "Seojun Kim", email = "simonkim.nft@gmail.com"},
 ]
-keywords = ["ai", "agents", "memory", "knowledge-graph", "compound", "cli", "pipx"]
+keywords = ["ai", "agents", "memory", "knowledge-graph", "compound", "cli", "pipx", "mcp"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -27,6 +27,11 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+watch = ["watchdog>=3.0"]
+all = ["mcp>=1.0", "watchdog>=3.0"]
+
 [project.scripts]
 memkraft = "memkraft.cli:main"
 
@@ -38,4 +43,8 @@ Repository = "https://github.com/seojoonkim/memkraft"
 where = ["src"]
 
 [tool.setuptools.package-data]
-memkraft = ["templates/*.md", "stopwords.json"]
+memkraft = [
+    "templates/*.md",
+    "prompts/templates/*.md",
+    "stopwords.json",
+]
