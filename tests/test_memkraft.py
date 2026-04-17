@@ -721,3 +721,68 @@ class TestR16EdgeCases:
         types = set(e["type"] for e in entities)
         assert "person" in types
         assert "location" in types
+
+
+# ── Korean Josa Stripping ─────────────────────────────────
+class TestStripKoreanJosa:
+    def test_subject_marker_eun(self, mk):
+        """Topic marker '은' is stripped from a Korean name."""
+        assert mk._strip_korean_josa("홍길동은") == "홍길동"
+
+    def test_subject_marker_i(self, mk):
+        """Subject marker '이' is stripped from a Korean name."""
+        assert mk._strip_korean_josa("홍길동이") == "홍길동"
+
+    def test_object_marker_eul(self, mk):
+        """Object marker '을' is stripped from a Korean name."""
+        assert mk._strip_korean_josa("홍길동을") == "홍길동"
+
+    def test_object_marker_reul(self, mk):
+        """Object marker '를' is stripped from a Korean name."""
+        assert mk._strip_korean_josa("홍길동를") == "홍길동"
+
+    def test_possessive_eui(self, mk):
+        """Possessive marker '의' is stripped from a Korean name."""
+        assert mk._strip_korean_josa("홍길동의") == "홍길동"
+
+    def test_locative_eseo(self, mk):
+        """Compound locative '에서' is stripped as a whole unit."""
+        assert mk._strip_korean_josa("홍길동에서") == "홍길동"
+
+    def test_compound_hanteseo(self, mk):
+        """Compound particle '한테서' is stripped as a whole unit."""
+        assert mk._strip_korean_josa("홍길동한테서") == "홍길동"
+
+    def test_compound_euroseo(self, mk):
+        """Compound particle '로서' is stripped as a whole unit."""
+        assert mk._strip_korean_josa("홍길동로서") == "홍길동"
+
+    def test_until_kkaji(self, mk):
+        """Particle '까지' is stripped from a Korean word."""
+        assert mk._strip_korean_josa("서울까지") == "서울"
+
+    def test_from_buteo(self, mk):
+        """Particle '부터' is stripped from a Korean word."""
+        assert mk._strip_korean_josa("어제부터") == "어제"
+
+    def test_no_josa_unchanged(self, mk):
+        """Name without a particle is returned unchanged."""
+        assert mk._strip_korean_josa("홍길동") == "홍길동"
+
+    def test_short_name_guard(self, mk):
+        """Stripping is skipped when the result would be shorter than 2 chars."""
+        assert mk._strip_korean_josa("이은") == "이은"
+
+    def test_track_strips_josa(self, mk):
+        """track() saves the name without trailing josa."""
+        mk.track("홍길동은", entity_type="person", source="test")
+        names = [md.stem for md in (mk.live_notes_dir).glob("*.md")]
+        assert any("홍길동" in n for n in names)
+        assert not any("홍길동은" in n for n in names)
+
+    def test_detect_regex_strips_josa(self, mk):
+        """Auto-detected Korean entities have josa stripped before being returned."""
+        entities = mk._detect_regex("홍길동은 오늘 회의에 참석했다.")
+        names = [e["name"] for e in entities if e["type"] == "person"]
+        assert "홍길동" in names
+        assert "홍길동은" not in names
