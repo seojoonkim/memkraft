@@ -251,11 +251,47 @@ class TestPromote:
 # ── Brief ────────────────────────────────────────────────
 class TestBrief:
     def test_brief_nonexistent(self, mk):
-        mk.brief("Nobody")
+        # Missing entities still yield a dossier string — the text carries
+        # a "not found" notice rather than returning None.
+        out = mk.brief("Nobody")
+        assert isinstance(out, str)
+        assert "Nobody" in out
 
     def test_brief_existing(self, mk):
         mk.track("Test Person", entity_type="person", source="test")
-        mk.brief("Test Person")
+        out = mk.brief("Test Person")
+        assert isinstance(out, str)
+        assert "Test Person" in out
+
+    def test_brief_returns_dossier_with_stored_facts(self, mk):
+        # Regression: brief() used to return None while printing to stdout,
+        # which made the MCP ``recall`` tool report successful lookups as
+        # ``found: False``. Callers must receive the dossier as a string.
+        mk.track("NVDA", entity_type="org", source="test")
+        mk.update("NVDA", "fact about earnings", source="test")
+        out = mk.brief("NVDA")
+        assert isinstance(out, str) and out
+        assert "fact about earnings" in out
+
+    def test_brief_does_not_write_to_stdout(self, mk, capsys):
+        # brief() is a library method — presentation is the caller's job.
+        # MCP stdio transport uses ``stdout`` for JSON-RPC, so any stray
+        # print from brief() would corrupt the transport stream.
+        mk.track("Quiet Co", entity_type="org", source="test")
+        capsys.readouterr()  # drain track() notifications
+        mk.brief("Quiet Co")
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_brief_save_status_goes_to_stderr(self, mk, capsys):
+        # ``save=True`` still confirms the write — but on stderr so that
+        # ``stdout`` stays reserved for the dossier / MCP JSON-RPC payload.
+        mk.track("Saved Co", entity_type="org", source="test")
+        capsys.readouterr()  # drain track() notifications
+        mk.brief("Saved Co", save=True)
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "💾 Saved" in captured.err
 
 
 # ── Dream ────────────────────────────────────────────────
