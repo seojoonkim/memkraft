@@ -33,62 +33,63 @@
 
 <br>
 
-## Quick Start
-
-### 30-second quickstart
+## 30-Second Quickstart
 
 ```bash
-pipx install memkraft
-memkraft init                                 # creates ./memory/ structure
-memkraft agents-hint claude-code              # print a ready-to-paste AGENTS.md block
-memkraft doctor                               # sanity-check your setup
+pip install memkraft
+python -c "from memkraft import MemKraft; mk = MemKraft(); mk.init(); mk.remember('Hello world')"
 ```
 
-That's it. No API keys, no database, no config. Plain Markdown files you own.
+That's it. Your agent now has persistent memory as plain markdown files.
+No API keys. No database. No config. Just `.md` files you own.
 
 ### Optional extras
 
 ```bash
-pip install 'memkraft[mcp]'      # run `python -m memkraft.mcp` as an MCP server
-pip install 'memkraft[watch]'    # run `memkraft watch` for auto-reindex on file save
-pip install 'memkraft[all]'      # both of the above
+pip install 'memkraft[mcp]'      # + MCP server  (`python -m memkraft.mcp`)
+pip install 'memkraft[watch]'    # + auto-reindex on save (`memkraft watch`)
+pip install 'memkraft[all]'      # everything
 ```
 
-### Install
+## Connect Any Agent in 30 Seconds
+
+`memkraft agents-hint <target>` prints copy-paste-ready integration snippets:
 
 ```bash
-pipx install memkraft
+memkraft agents-hint claude-code   # → CLAUDE.md / AGENTS.md block
+memkraft agents-hint openclaw      # → AGENTS.md block for ОpenClaw
+memkraft agents-hint cursor        # → .cursorrules block
+memkraft agents-hint openai        # → Custom GPT / function-calling schema
+memkraft agents-hint mcp           # → claude_desktop_config.json snippet
+memkraft agents-hint langchain     # → LangChain StructuredTool wrappers
 ```
 
-### CLI Usage
-
-```bash
-memkraft init
-memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
-memkraft brief "Simon Kim"
-```
-
-### Agent integration in one command (⭐ new in 0.8.1)
-
-`memkraft agents-hint` prints a copy-paste integration block for whichever
-agent framework you're using:
-
-```bash
-memkraft agents-hint claude-code       # AGENTS.md block for Claude Code
-memkraft agents-hint openclaw          # AGENTS.md block for ОpenClaw
-memkraft agents-hint openai            # OpenAI function-calling schemas + dispatcher
-memkraft agents-hint cursor            # .cursorrules block
-memkraft agents-hint mcp               # claude_desktop_config.json snippet
-memkraft agents-hint langchain         # LangChain StructuredTool wrappers
-```
-
-Pipe the output straight into your config:
+Paste the output. Done. Or pipe it straight into your config:
 
 ```bash
 memkraft agents-hint claude-code >> AGENTS.md
 ```
 
 See [`examples/`](examples/) for runnable variants.
+
+## What Makes MemKraft Different
+
+|                        | **MemKraft**   | Mem0        | Letta    |
+|------------------------|----------------|-------------|----------|
+| Dependencies           | **0**          | many        | many     |
+| API key required       | **No**         | Yes         | Yes      |
+| Source of truth        | Plain `.md`    | Cloud/DB    | DB       |
+| Local-first            | ✅             | —           | —        |
+| Git-friendly           | ✅             | —           | —        |
+
+## More CLI & Python Usage
+
+```bash
+memkraft init
+memkraft extract "Simon Kim is the CEO of Hashed in Seoul." --source "news"
+memkraft brief "Simon Kim"
+memkraft doctor                          # 🟢/🟡/🔴 health check with fix hints
+```
 
 ### Python Usage
 
@@ -355,59 +356,6 @@ OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
 - `mk.end_debug(bug_id, "resolution")` - close session, feed back to memory
 
 **Why it matters:** rejected hypotheses are permanent memory. Next time you hit a similar bug, MemKraft surfaces what you already tried - no more repeating the same failed approaches.
-
-<br>
-
-## API Reference
-
-### 🧠 Debugging is Memory
-
-> **"Debugging is Memory"** — The reasoning chain matters as much as the fix. Every hypothesis, every piece of evidence, every rejection is permanently recorded. Future you (or your agent) can search past sessions to avoid repeating failed approaches.
-
-```
-OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
-   │           │             │           │
-   │     log_hypothesis  log_evidence  end_debug
-   │           │             │           │
-   │     reject/confirm   supports/     │
-   │           │          contradicts    │
-   │           │             │           │
-   │     ⚠️ 2 failures      │      feedback loop
-   │     → switch approach   │      → memory
-   │                         │
-   └─── search_rejected ─────┘
-         "we already tried X"
-```
-
-**Key insights:**
-- **2-fail auto-switch**: After 2 rejected hypotheses, warns "consider fundamentally different approach"
-- **Anti-pattern detection**: `search_rejected_hypotheses("regex")` finds past failed approaches
-- **Preserved failure memory**: All rejected hypotheses permanently searchable
-- **Feedback loop**: Confirmed hypotheses auto-feed into entity timelines
-
-```python
-# Start a debug session
-session = mk.start_debug("API returns 500 on POST /users")
-bug_id = session["bug_id"]  # "DEBUG-20260413-120000"
-
-# Hypothesis 1: test and reject
-mk.log_hypothesis(bug_id, "Database connection timeout")
-mk.log_evidence(bug_id, "H1", "DB pool healthy", result="contradicts")
-mk.reject_hypothesis(bug_id, "H1", reason="DB is fine")
-
-# Hypothesis 2: test and confirm
-mk.log_hypothesis(bug_id, "Request validation missing")
-mk.log_evidence(bug_id, "H2", "Empty POST triggers 500", result="supports")
-mk.confirm_hypothesis(bug_id, "H2")
-
-# End session — auto-feeds back into memory
-mk.end_debug(bug_id, "Added request body validation middleware")
-
-# Search past sessions to avoid repeating mistakes
-mk.search_rejected_hypotheses("timeout")  # → "we already tried this and it failed"
-mk.search_debug_sessions("POST /users")   # → find related past debugging
-mk.debug_history(limit=10)                 # → recent sessions overview
-```
 
 <br>
 
