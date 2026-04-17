@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [0.8.4] - 2026-04-18
+
+### Fixed
+- `brief()` now returns text from MCP recall path (critical bug: existing entities reported as `found: False`) (#3)
+- `track()` correctly returns `Path` matching `Optional[Path]` signature (#2)
+
+### Improved
+- Korean josa (조사) stripping with longest-match for complex particles (`에서`, `한테서`, `로서`) + 2-char guard for names like "이은" (#1)
+
+### Tests
+- 594 passed, 1 skipped (+21 from 0.8.3)
+
+---
+
 ## [0.8.3] - 2026-04-17
 
 ### Added
