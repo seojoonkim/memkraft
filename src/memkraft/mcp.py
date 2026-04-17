@@ -103,9 +103,18 @@ def dispatch(mk, name: str, args: Dict[str, Any]) -> Any:
         return mk.search(args["query"], fuzzy=args.get("fuzzy", True))
     if name == "recall":
         brief = getattr(mk, "brief", None)
-        if callable(brief):
-            return brief(args["name"]) or {"found": False, "name": args["name"]}
-        return {"found": False, "name": args["name"]}
+        if not callable(brief):
+            return {"found": False, "name": args["name"]}
+        text = brief(args["name"]) or ""
+        # Existence is decided by file presence, not by truthiness of the brief
+        # text. ``brief()`` always returns a non-empty dossier (even a
+        # "not found" notice), so relying on the old ``or`` fallback masked
+        # successful lookups as ``found: False``.
+        slug = mk._slugify(args["name"])
+        found = (mk.entities_dir / f"{slug}.md").exists() or (
+            mk.live_notes_dir / f"{slug}.md"
+        ).exists()
+        return {"found": found, "name": args["name"], "text": text}
     if name == "link":
         link_add = getattr(mk, "link_add", None)
         if callable(link_add):

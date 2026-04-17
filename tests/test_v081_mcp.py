@@ -47,6 +47,40 @@ def test_dispatch_unknown_tool_raises(mk):
         mcp_mod.dispatch(mk, "not-a-tool", {})
 
 
+def test_dispatch_recall_returns_dossier_for_known_entity(mk):
+    # Regression for the v0.8.3 bug where brief() returned ``None`` while
+    # printing to stdout, so dispatch fell through to the ``or`` fallback and
+    # reported existing entities as ``{'found': False}``.
+    mk.track("NVDA", entity_type="org", source="test")
+    mcp_mod.dispatch(mk, "remember",
+                     {"name": "NVDA", "info": "fact about earnings beat", "source": "test"})
+    result = mcp_mod.dispatch(mk, "recall", {"name": "NVDA"})
+    assert result["found"] is True
+    assert result["name"] == "NVDA"
+    assert "fact about earnings beat" in result["text"]
+
+
+def test_dispatch_recall_reports_missing_entity(mk):
+    result = mcp_mod.dispatch(mk, "recall", {"name": "Never Heard Of"})
+    assert result["found"] is False
+    assert result["name"] == "Never Heard Of"
+    # ``text`` is always present so tool adapters can surface a helpful
+    # "not found" notice without a second round-trip.
+    assert "text" in result
+
+
+def test_dispatch_recall_does_not_pollute_stdout(mk, capsys):
+    # MCP stdio transport reuses process stdout for JSON-RPC framing; brief()
+    # must not emit anything to stdout during dispatch.
+    mk.track("Silent Co", entity_type="org", source="test")
+    mcp_mod.dispatch(mk, "remember",
+                     {"name": "Silent Co", "info": "no noise please", "source": "test"})
+    capsys.readouterr()  # drain track/update notifications
+    mcp_mod.dispatch(mk, "recall", {"name": "Silent Co"})
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
 def test_require_mcp_hint_when_missing(monkeypatch, capsys):
     """If `mcp` is not installed, _require_mcp should exit with a hint."""
     # Simulate absence by blocking the import path

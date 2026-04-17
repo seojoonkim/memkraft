@@ -418,7 +418,9 @@ def main():
     elif args.command == "list":
         mc.list_entities()
     elif args.command == "brief":
-        mc.brief(args.name, save=args.save, file_back=getattr(args, 'file_back', False))
+        # brief() returns the dossier as text so programmatic callers (MCP
+        # recall, tool adapters) can consume it. CLI prints it here.
+        print(mc.brief(args.name, save=args.save, file_back=getattr(args, 'file_back', False)))
     elif args.command == "detect":
         mc.detect(args.text, args.source, dry_run=args.dry_run)
     elif args.command == "dream":
