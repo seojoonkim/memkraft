@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "0.9.0-rc1"
+__version__ = "0.9.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
