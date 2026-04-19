@@ -465,6 +465,8 @@ class TestIntegration:
         assert isinstance(result["total"], int)
 
     def test_version_030(self):
-        """Version should be 0.4.2."""
+        """v0.3 features should exist in current release (version >= 0.3)."""
+        import re
         from memkraft import __version__
-        assert __version__ == "0.8.3"
+        parts = tuple(int(re.match(r"(\d+)", p).group(1)) for p in __version__.split(".")[:3])
+        assert parts >= (0, 3, 0), f"expected >= 0.3.0, got {__version__}"

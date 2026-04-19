@@ -16,7 +16,9 @@ from memkraft import __version__
 
 class TestVersion:
     def test_version_is_050(self):
-        assert __version__ == "0.8.3"
+        import re
+        parts = tuple(int(re.match(r"(\d+)", p).group(1)) for p in __version__.split(".")[:3])
+        assert parts >= (0, 5, 0), f"expected >= 0.5.0, got {__version__}"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,7 +91,7 @@ class TestSnapshot:
         assert data["snapshot_id"].startswith("SNAP-")
         assert "timestamp" in data
         assert data["label"] == "test-snap"
-        assert data["memkraft_version"] == "0.8.3"
+        assert data["memkraft_version"] == __version__
         assert "files" in data
         assert data["file_count"] >= 1
 

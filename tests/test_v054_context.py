@@ -10,7 +10,9 @@ from memkraft import MemKraft, __version__
 
 class TestVersion:
     def test_version_is_054(self):
-        assert __version__ == "0.8.3"
+        import re
+        parts = tuple(int(re.match(r"(\d+)", p).group(1)) for p in __version__.split(".")[:3])
+        assert parts >= (0, 5, 4), f"expected >= 0.5.4, got {__version__}"
 
 
 @pytest.fixture
