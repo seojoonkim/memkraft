@@ -15,7 +15,12 @@ def _mk(tmp_path) -> MemKraft:
 
 class TestVersion:
     def test_version_is_091_or_newer(self):
-        parts = tuple(int(x) for x in __version__.split(".")[:3])
+        # Strip any PEP 440 pre/post/dev suffix (e.g. ``0.9.2a1`` → ``0.9.2``)
+        # so alpha/beta releases still parse cleanly.
+        import re
+
+        raw_parts = __version__.split(".")[:3]
+        parts = tuple(int(re.match(r"(\d+)", p).group(1)) for p in raw_parts)
         assert parts >= (0, 9, 1), f"expected >= 0.9.1, got {__version__}"
 
 
