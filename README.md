@@ -2,10 +2,32 @@
 
 # MemKraft 🧠
 
-**v0.8.2** · Ultimate zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, and maintain memory in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs.**
+> **Bitemporal memory × empirical tuning: the first self-improvement ledger for AI agents.**
+> Your agent's accountable past, in plain Markdown.
 
-> **Plain Markdown source-of-truth · zero deps · zero keys.**
+**v1.0.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+
+> **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
+
+### API overview (12 public methods)
+
+| API | Since | Role |
+|-----|-------|------|
+| `track` | 0.5 | Start tracking an entity |
+| `update` | 0.5 | Append information to an entity |
+| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy) |
+| `tier_set` | 0.8 | Set tier: `core` / `recall` / `archival` |
+| `fact_add` | 0.8 | Record a bitemporal fact |
+| `log_event` | 0.8 | Log a timestamped event |
+| `decision_record` | 0.9 | Capture a decision with rationale |
+| `evidence_first` | 0.9 | Retrieve evidence before acting |
+| `prompt_register` | **1.0** | Register a prompt/skill as an entity |
+| `prompt_eval` | **1.0** | Record one tuning iteration |
+| `prompt_evidence` | **1.0** | Cite past tuning results |
+| `convergence_check` | **1.0** | Auto-judge convergence |
+
+Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
 <div align="center">
 
@@ -20,7 +42,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-525%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-731%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE

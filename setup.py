@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="memkraft",
-    version="0.4.1",
+    version="1.0.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"memkraft": ["templates/*.md"]},

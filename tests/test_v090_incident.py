@@ -16,8 +16,12 @@ def _mk(tmp_path) -> MemKraft:
 
 
 class TestVersion:
-    def test_version_is_090(self):
-        assert __version__.startswith("0.9.")
+    def test_version_is_090_or_newer(self):
+        # Incident Memory Layer shipped in 0.9.0; must exist in every newer
+        # release (including 1.0.0+).
+        import re
+        parts = tuple(int(re.match(r"(\d+)", p).group(1)) for p in __version__.split(".")[:3])
+        assert parts >= (0, 9, 0), f"expected >= 0.9.0, got {__version__}"
 
 
 class TestIncidentRecord:
