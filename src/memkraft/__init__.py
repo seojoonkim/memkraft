@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -10,6 +10,7 @@ from .tiers import TiersMixin
 from .incident import IncidentMixin
 from .runbook import RunbookMixin
 from .rca import RCAMixin
+from .decision_store import DecisionStoreMixin
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -26,6 +27,7 @@ for _mixin in (
     IncidentMixin,
     RunbookMixin,
     RCAMixin,
+    DecisionStoreMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
