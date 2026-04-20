@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## [1.0.1] — 2026-04-21
+
+### Polish & Bug Fixes
+
+First patch after 1.0.0. Zero breaking changes; all fixes are additive
+or opt-in.
+
+- **README:** Added the hero "1.0 Self-Improvement Loop" quickstart
+  block covering `prompt_register` → `prompt_eval` → `prompt_evidence`
+  → `convergence_check`. Verified end-to-end.
+- **`prompt_register`:** Now emits a `UserWarning` when `path` points to
+  a non-existent file (silent typo fix). Pass `validate_path=True` to
+  promote the warning to `FileNotFoundError` for stricter pipelines.
+- **`prompt_eval`:** Rejects calls with *both* empty `scenarios` and
+  empty `results` (`ValueError`) — recording an empty iteration polluted
+  the ledger without analytical value.
+- **`prompt_eval`:** Emits a `UserWarning` when a result references a
+  scenario name not declared in `scenarios`, catching copy-paste drift
+  that previously persisted as bad data.
+- **`convergence_check`:** The `insufficient-iters` response now surfaces
+  the iteration numbers that *were* found (previously always `[]`).
+  When no iterations exist, `suggested_next` is `"first-iteration"`
+  instead of the misleading `"patch-and-iterate"`.
+- **Tests:** +10 (total 741 passing, 1 skipped).
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
 ## [1.0.0] — 2026-04-21
 
 ### Philosophy

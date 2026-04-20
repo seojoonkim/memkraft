@@ -42,7 +42,7 @@ Self-improvement loop: **register → tune → recall → decide**, every step a
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-731%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/badge/tests-741%20passed-brightgreen?style=for-the-badge
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -93,6 +93,58 @@ mk.search("MemKraft")
 
 That's it. Your agent now has persistent memory as plain markdown files.
 No API keys. No database. No config. Just `.md` files you own.
+
+### The 1.0 Self-Improvement Loop
+
+Register a prompt/skill, record iterations, cite past evidence, and let
+MemKraft auto-judge when to stop tuning — all in plain Markdown, no LLM
+calls inside MemKraft:
+
+```python
+from memkraft import MemKraft
+mk = MemKraft("./memory")
+
+# 1. register a prompt/skill as a first-class entity
+mk.prompt_register(
+    "my-skill",
+    path="skills/my-skill/SKILL.md",
+    owner="zeon",
+    tags=["tuning"],
+)
+
+# 2. record each empirical iteration (host agent dispatches the run
+#    — MemKraft only persists the report)
+mk.prompt_eval(
+    "my-skill",
+    iteration=1,
+    scenarios=[{
+        "name": "parallel-dispatch",
+        "description": "3 subagents at once",
+        "requirements": [{"item": "all return", "critical": True}],
+    }],
+    results=[{
+        "scenario": "parallel-dispatch",
+        "success": True, "accuracy": 85,
+        "tool_uses": 5, "duration_ms": 2000,
+        "unclear_points": ["schema missing"],
+        "discretion": [],
+    }],
+)
+
+# 3. cite past iterations before the next run
+mk.prompt_evidence("my-skill", "accuracy regression")
+
+# 4. stop when the last N iterations stabilise
+verdict = mk.convergence_check("my-skill", window=2)
+# -> {"converged": False, "reason": "insufficient-iters",
+#     "iterations_checked": [1],
+#     "suggested_next": "patch-and-iterate", ...}
+```
+
+Each call leaves an auditable trail on disk: a decision record per
+iteration, an incident when unclear points pile up, and wiki-links
+between iterations. Upgrade is zero-breaking from 0.9.x — see
+[MIGRATION.md](./MIGRATION.md).
 
 ### Optional extras
 
