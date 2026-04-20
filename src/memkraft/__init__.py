@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "0.9.2a1"
+__version__ = "0.9.2a2"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -12,6 +12,8 @@ from .runbook import RunbookMixin
 from .rca import RCAMixin
 from .decision_store import DecisionStoreMixin
 from .prompt_tune import PromptTuneMixin  # v0.9.2 M1 alpha
+from .prompt_evidence import PromptEvidenceMixin  # v0.9.2 M2 alpha
+from .convergence import ConvergenceMixin  # v0.9.2 M2 alpha
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -23,6 +25,8 @@ from .prompt_tune import PromptTuneMixin  # v0.9.2 M1 alpha
 # v0.9.2 M1: prompt_tune mixin added here (additive; implements
 # ``prompt_register`` + ``prompt_eval`` on top of decision_store +
 # incident + tier + link primitives).
+# v0.9.2 M2: prompt_evidence + convergence_check mixins — additive;
+# built on decision_search + decision_get + tier.
 for _mixin in (
     BitemporalMixin,
     DecayMixin,
@@ -33,6 +37,8 @@ for _mixin in (
     RCAMixin,
     DecisionStoreMixin,
     PromptTuneMixin,
+    PromptEvidenceMixin,
+    ConvergenceMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
