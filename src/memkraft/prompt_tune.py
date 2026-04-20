@@ -172,6 +172,7 @@ class PromptTuneMixin:
         tags: Optional[List[str]] = None,
         critical_requirements: Optional[List[str]] = None,
         description: str = "",
+        validate_path: bool = False,
     ) -> Dict[str, Any]:
         """Register a prompt/skill as a first-class MemKraft entity.
 
@@ -184,6 +185,15 @@ class PromptTuneMixin:
         ``prompt_id`` raises :class:`ValueError`. Use
         ``mk.update(prompt_id, ...)`` or future ``prompt_update`` APIs to
         edit an existing registration.
+
+        Parameters
+        ----------
+        validate_path : bool, default False
+            If True, raise :class:`FileNotFoundError` when ``path``
+            does not resolve to an existing file. When False (default,
+            1.0 behaviour) a warning is emitted via
+            :mod:`warnings` so the caller can still register forward-
+            referenced skills without breaking change.
 
         Returns
         -------
@@ -201,6 +211,20 @@ class PromptTuneMixin:
         if not path or not str(path).strip():
             raise ValueError("path must be a non-empty string")
         path_str = str(path).strip()
+
+        # 1.0.1: path validation — opt-in to preserve backward compat.
+        # Still warn by default so silent typos surface in logs.
+        if not Path(path_str).expanduser().exists():
+            if validate_path:
+                raise FileNotFoundError(
+                    f"prompt path does not exist: {path_str}"
+                )
+            import warnings as _w
+            _w.warn(
+                f"prompt path does not exist: {path_str!r} "
+                f"(registering anyway; pass validate_path=True to enforce)",
+                stacklevel=2,
+            )
 
         tag_list = list(tags or [])
         crit_list = [str(x).strip() for x in (critical_requirements or []) if str(x).strip()]
@@ -356,6 +380,42 @@ class PromptTuneMixin:
 
         scenarios = list(scenarios or [])
         results = list(results or [])
+
+        # 1.0.1: reject empty iteration — recording a decision with 0
+        # scenarios and 0 results produces no analytical signal and only
+        # pollutes the ledger. Callers that want "placeholder" runs
+        # should record a decision directly via ``decision_record``.
+        if not scenarios and not results:
+            raise ValueError(
+                "prompt_eval requires at least one scenario or result; "
+                "got empty scenarios and results. "
+                "Use mk.decision_record(...) directly to log placeholder events."
+            )
+
+        # 1.0.1: warn on scenario/result name mismatch — silent mismatch
+        # previously allowed typos to persist as bad data in the ledger.
+        scenario_names = {
+            str(sc.get("name") or sc.get("scenario") or "").strip()
+            for sc in scenarios
+            if isinstance(sc, dict)
+        }
+        scenario_names.discard("")
+        if scenario_names:
+            orphan_results = [
+                str(r.get("scenario") or "").strip()
+                for r in results
+                if isinstance(r, dict)
+                and str(r.get("scenario") or "").strip()
+                and str(r.get("scenario") or "").strip() not in scenario_names
+            ]
+            if orphan_results:
+                import warnings as _w
+                _w.warn(
+                    f"prompt_eval: result(s) reference undeclared scenarios "
+                    f"{sorted(set(orphan_results))!r}; declared scenarios are "
+                    f"{sorted(scenario_names)!r}. Recording anyway.",
+                    stacklevel=2,
+                )
 
         summary = _summarise_results(results)
         recorded_at = now_iso()

@@ -232,7 +232,17 @@ class ConvergenceMixin:
         }
 
         if len(iter_records) < window:
-            return base_response
+            # 1.0.1: surface the iterations that *were* found so callers
+            # can tell "no iters" from "1 iter, needs window=2" without
+            # re-querying. Empty list previously made the two cases
+            # indistinguishable.
+            found_iters = [n for n, _ in iter_records]
+            nxt = "first-iteration" if not found_iters else "patch-and-iterate"
+            return {
+                **base_response,
+                "iterations_checked": found_iters,
+                "suggested_next": nxt,
+            }
 
         selected = iter_records[:window]
 
