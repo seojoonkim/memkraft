@@ -164,12 +164,295 @@ None.
 
 ---
 
-## [0.8.0] - 2026-04-16
+## [0.8.0] — 2026-04-16
 
-Bitemporal validity, tier system (core/recall/archival), decay mechanics, wiki-link graph. See README for details.
+### The Memory Foundation
+
+0.8.0 establishes the four subsystems that every later release builds on:
+bitemporal facts, tier-based attention, reversible decay, and a wiki-link
+graph. All four ship zero-dep and fully backward-compatible with 0.7.x.
+
+### Added
+
+- **Bitemporal Fact Layer** (`src/memkraft/bitemporal.py`) — facts carry
+  a `valid_from` + optional `valid_to`, so entity memory becomes a
+  time-travel ledger. Inline Markdown markers in
+  `memory/facts/<slug>.md` keep the store git-diffable.
+  - APIs: `fact_add`, `fact_at`, `fact_history`, `fact_invalidate`,
+    `fact_list`, `fact_keys`.
+- **Memory Tier Labels + Working Set** (`src/memkraft/tiers.py`) — three
+  tiers drive retrieval priority: `core` (always recalled), `recall`
+  (recalled on relevance), `archival` (cold storage). `working_set`
+  assembles `core` + recently-accessed `recall` entities into an
+  attention budget.
+  - APIs: `tier_set`, `tier_of`, `tier_list`, `tier_promote`,
+    `tier_demote`, `tier_touch`, `working_set`.
+- **Reversible Decay + Tombstone** (`src/memkraft/decay.py`) —
+  exponential weight decay for long-unaccessed entities, with
+  tombstones that move stale files to `.memkraft/tombstones/` but keep
+  them restorable. Accessing an entity restores weight; deletion is
+  never destructive.
+  - APIs: `decay_apply`, `decay_list`, `decay_restore`, `decay_run`,
+    `decay_tombstone`.
+- **Cross-Entity Link Graph + Backlinks** (`src/memkraft/links.py`) —
+  `[[Wiki Link]]` patterns in any markdown file are parsed into a
+  bidirectional graph. The filesystem is the database; rebuild with
+  `link_scan`.
+  - APIs: `link_scan`, `link_backlinks`, `link_forward`, `link_graph`,
+    `link_orphans`.
+
+### API surface added in 0.8.0
+
+| API | Role |
+|-----|------|
+| `fact_add` | Bitemporal fact with `valid_from` / `valid_to` |
+| `fact_at` | Query facts as of a given timestamp |
+| `fact_history` | Full history of a fact key |
+| `tier_set` | Set retrieval tier (`core` / `recall` / `archival`) |
+| `working_set` | Build attention budget from core + recent recall |
+| `decay_apply` | Apply reversible exponential decay |
+| `decay_tombstone` | Soft-delete to `.memkraft/tombstones/` |
+| `link_scan` | Rebuild the `[[wiki-link]]` graph index |
+| `link_backlinks` | Query incoming links for an entity |
+
+### Tests
+
+409 → **492 passed** (+83 new in `tests/test_v080_bitemporal.py`).
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+### Compatibility
+
+Fully backward-compatible with 0.7.x. No storage migration required:
+all bitemporal state lives in frontmatter + inline Markdown markers in
+the same plain files introduced in 0.5. Zero new dependencies.
 
 ---
 
-## Older versions
+## [0.7.0] — 2026-04-15
 
-See README §Changelog for v0.7.x and earlier.
+### Multi-Agent Auto Integration
+
+0.7.0 turns MemKraft from a single-agent memory into a substrate for
+coordinated multi-agent workflows. Channel context, task continuity,
+and agent working memory (introduced in 0.6) become interoperable:
+tasks can be delegated, working memory can be handed off, and context
+injection is now tunable per-call.
+
+### Added
+
+- **`channel_update` modes** — `set` / `append` / `merge` for flexible
+  channel-context updates without clobbering prior state.
+- **`task_delegate()`** — track agent-to-agent task delegation with
+  full history (who delegated what, to whom, when).
+- **`agent_handoff()`** — transfer working memory + context between
+  agents as a first-class operation.
+- **`channel_tasks()`** — query recent tasks per channel with status
+  filtering (e.g. `pending`, `in_progress`, `completed`).
+- **`task_cleanup()`** — auto-archive completed tasks older than N
+  days, keeping the active task set lean.
+- **`agent_inject()` enhancements** — new `max_history` and
+  `include_completed_tasks` options to shape the injected context
+  block per sub-agent.
+
+### API surface added in 0.7.0
+
+| API | Role |
+|-----|------|
+| `task_delegate` | Record agent → agent task delegation |
+| `agent_handoff` | Transfer working memory between agents |
+| `channel_tasks` | Query tasks by channel + status |
+| `task_cleanup` | Archive old completed tasks |
+
+### Tests
+
+357 → **409 passed** (+52 new in `tests/test_v070_multiagent.py`).
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+### Compatibility
+
+Fully backward-compatible with 0.6.x. Zero new dependencies; all
+multi-agent state reuses the `.memkraft/channels/`, `.memkraft/tasks/`,
+and `.memkraft/agents/` directories introduced in 0.6.
+
+---
+
+## [0.6.1] — 2026-04-15
+
+### Added
+
+- **`agent_inject()`** promoted into the 0.6 public API surface,
+  merging channel + task + agent context into a single prompt block.
+- Documentation tightened around the channel / task / agent trio.
+
+### Tests
+
+**357 passed** (same as 0.6.0 — patch release).
+
+### Compatibility
+
+Fully backward-compatible with 0.6.0. Zero-dependency maintained.
+
+---
+
+## [0.6.0] — 2026-04-15
+
+### Channel Context + Task Continuity + Agent Working Memory
+
+0.6.0 introduces the three substrates that 0.7's multi-agent features
+build on:
+
+1. **Channel Context** — persistent per-channel state (e.g. one
+   Telegram chat, one Slack thread) in `.memkraft/channels/`.
+2. **Task Continuity** — a lifecycle register for work units
+   (`start` → `update` → `complete`) in `.memkraft/tasks/`.
+3. **Agent Working Memory** — per-agent persistent scratchpad in
+   `.memkraft/agents/`, injectable into sub-agent prompts.
+
+### Added
+
+- **`channel_save` / `channel_load` / `channel_update`** — per-channel
+  context persistence.
+- **`task_start` / `task_update` / `task_complete` / `task_history` /
+  `task_list`** — full task lifecycle tracking.
+- **`agent_save` / `agent_load`** — per-agent persistent working
+  memory.
+- **`agent_inject()`** — merges channel + task + agent context into a
+  single prompt-ready block.
+- **CLI** — `channel-save` / `channel-load`, `task-start` /
+  `task-update` / `task-list`, `agent-save` / `agent-load` /
+  `agent-inject`.
+
+### API surface added in 0.6.0
+
+| API | Role |
+|-----|------|
+| `channel_save` / `channel_load` / `channel_update` | Channel state |
+| `task_start` / `task_update` / `task_complete` | Task lifecycle |
+| `task_history` / `task_list` | Task queries |
+| `agent_save` / `agent_load` | Agent working memory |
+| `agent_inject` | Merge channel + task + agent context |
+
+### Tests
+
+328 → **357 passed** (+29 new in `tests/test_v054_context.py`).
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+### Compatibility
+
+Fully backward-compatible with 0.5.x. Zero-dependency maintained.
+
+> 0.5.4 and 0.5.5 shipped the same channel/task/agent features as
+> pre-release iterations before the feature set was frozen and
+> re-tagged as 0.6.0.
+
+---
+
+## [0.5.1] — 2026-04-14
+
+### Robustness Pass
+
+0.5.1 hardens the Snapshots & Time Travel engine introduced in 0.5.0
+for multi-agent usage (OpenClaw 2026-04 compatibility).
+
+### Fixed
+
+- **Symlink safety** — `_all_md_files()` skips symlinks to prevent
+  circular traversal.
+- **Race-safe `stat()` calls** — `OSError` guards across
+  `health_check`, `diff`, `retro`, `open_loops`, `build_index`,
+  `summarize`, `snapshot_diff`.
+- **Collision-free snapshot IDs** — snapshot IDs now include a
+  microsecond + UUID suffix
+  (`SNAP-YYYYMMDD-HHMMSS-xxxxxx`), eliminating collisions when
+  multiple agents snapshot within the same second.
+- **Dynamic version in manifests** — snapshot manifests read
+  `__version__` at runtime instead of a hardcoded string.
+- **Snapshot memory cap** — per-file embedding in `include_content`
+  is capped at 1 MB to prevent memory exhaustion on large workspaces.
+- **Timezone normalisation** — `time_travel` normalises timezone-aware
+  ISO timestamps to naive for cross-platform datetime comparison.
+
+### Tests
+
+**328 passed** (unchanged — stabilisation release, PyPI-deployed).
+
+### Compatibility
+
+Fully backward-compatible with 0.5.0. Zero-dependency maintained.
+
+> 0.5.2 and 0.5.3 shipped the same robustness fixes as pre-release
+> iterations; the consolidated, PyPI-tagged release is **0.5.1**.
+
+---
+
+## [0.5.0] — 2026-04-14
+
+### Memory Snapshots & Time Travel
+
+The foundational release. 0.5.0 turns a MemKraft workspace into a
+point-in-time–queryable ledger: every memory state can be snapshotted,
+diffed, and searched as of any past moment.
+
+### Added
+
+- **`snapshot()`** — point-in-time memory snapshots covering the full
+  `memory/` tree.
+- **`snapshot_list()`** — enumerate all snapshots.
+- **`snapshot_diff()`** — compare two snapshots (added / removed /
+  modified entities).
+- **`time_travel()`** — search past memory states as of a given
+  timestamp.
+- **`snapshot_entity()`** — per-entity evolution tracking across
+  snapshots.
+
+### API surface added in 0.5.0
+
+| API | Role |
+|-----|------|
+| `snapshot` | Create a point-in-time snapshot |
+| `snapshot_list` | List snapshots |
+| `snapshot_diff` | Diff two snapshots |
+| `snapshot_entity` | Per-entity evolution timeline |
+| `time_travel` | Query memory as of a past timestamp |
+
+### Tests
+
+277 → **328 passed** (+51 new in `tests/test_v050_snapshots.py`).
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+### Architecture note
+
+0.5.0 cemented the design choice that every subsequent release
+inherits: **the filesystem is the database.** Snapshots are plain
+Markdown + manifest files, diffable with `git`, portable across
+agents, and readable without MemKraft installed.
+
+---
+
+## Pre-0.5 history
+
+0.2 – 0.4 were exploratory releases (Goal-Weighted Reconstructive
+Memory, Feedback Loop + Confidence Levels + Applicability Conditions,
+Debug Hypothesis Tracking). They are preserved in git history
+(`git log --grep='v0\.[234]'`) but are not part of the 1.0 API
+contract. 0.5.0 is the first version whose APIs still exist in 1.0.
