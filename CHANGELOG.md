@@ -1,5 +1,66 @@
 # CHANGELOG
 
+## [1.0.0] — 2026-04-21
+
+### Philosophy
+
+> Bitemporal memory × empirical tuning: the first self-improvement ledger for AI agents.
+
+Your agent's accountable past, in plain Markdown.
+
+### New in 1.0.0
+
+- **`prompt_register`** — Register any prompt/skill as a tracked entity with tier + metadata.
+- **`prompt_eval`** — Record one empirical tuning iteration (scenarios + results) as a bitemporal decision + incident (on regression).
+- **`prompt_evidence`** — Cite past tuning results via bitemporal decision search. As-of-then view, not a rewrite.
+- **`convergence_check`** — Auto-judge mizchi-style convergence with decay-weighted pass-rate trend.
+
+Together these four APIs close the loop that began in 0.5: **register → tune → recall → decide**, every step auditable and time-travelable in plain Markdown.
+
+### Upgrade from 0.9.x
+
+**Zero breaking changes.** All 0.9.x public APIs keep their exact signatures. Storage layout unchanged. See [MIGRATION.md](./MIGRATION.md).
+
+```bash
+pip install --upgrade memkraft
+```
+
+### Architecture
+
+1.0.0 is an **integration release**, not a new-backend release.
+
+- ✅ No new storage engines. Pure Markdown + frontmatter, as always.
+- ✅ No new required dependencies. Core stays zero-dep.
+- ✅ No LLM calls inside MemKraft. The ledger is data; the agent is the LLM.
+- ✅ Every 0.9.x primitive now composes into the full self-improvement loop.
+
+### API surface (total: 12 public methods)
+
+| API | Since | Role |
+|-----|-------|------|
+| `track` | 0.5 | Start tracking an entity |
+| `update` | 0.5 | Append information to an entity |
+| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy) |
+| `tier_set` | 0.8 | Set tier: `core` / `recall` / `archival` |
+| `fact_add` | 0.8 | Record a bitemporal fact |
+| `log_event` | 0.8 | Log a timestamped event |
+| `decision_record` | 0.9 | Capture a decision with rationale |
+| `evidence_first` | 0.9 | Retrieve evidence before acting |
+| `prompt_register` | **1.0** | Register a prompt/skill as an entity |
+| `prompt_eval` | **1.0** | Record one tuning iteration |
+| `prompt_evidence` | **1.0** | Cite past tuning results |
+| `convergence_check` | **1.0** | Auto-judge convergence |
+
+### Tests
+
+731 passed, 1 skipped (same as 0.9.2a2 — 1.0.0 adds zero new test code; it's a stabilization + docs release).
+
+### Deprecations
+
+None.
+
+---
+
 ## [0.8.4] - 2026-04-18
 
 ### Fixed
