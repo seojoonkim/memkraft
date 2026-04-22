@@ -241,4 +241,6 @@ class TestBackwardCompat:
 
     def test_version_bumped(self):
         import memkraft
-        assert memkraft.__version__ == "1.0.2"
+        # v1.0.2 introduced SearchMixin; later versions must keep it.
+        parts = tuple(int(p) for p in memkraft.__version__.split(".")[:3])
+        assert parts >= (1, 0, 2)

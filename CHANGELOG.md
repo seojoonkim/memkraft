@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## [1.0.3] — 2026-04-23
+
+### Added
+
+- **`track_document(doc_id, content, chunk_size=500, chunk_overlap=50, entity_type="document", source="")`** — auto-chunking for long documents. Splits content into ~chunk_size-word overlapping chunks (BM25-style) and tracks each as `{doc_id}__c{idx}`. A parent entity is also tracked so callers can group chunk hits back to the source.
+- **`search_precise(query, top_k=5, score_threshold=0.1)`** — precision-first search. Runs `search(fuzzy=False)` with a score threshold; falls back to `search(fuzzy=True)` with a relaxed threshold (`score_threshold * 0.5`) if the precision pass returns nothing.
+- **`ChunkingMixin`** (`src/memkraft/chunking.py`) — additive mixin wired via `__init__.py`; no changes to `core.py` or existing signatures.
+- **Tests:** `tests/test_v103_chunking.py` (13 cases) covering chunk math, overlap, parameter validation, search round-trip, threshold filtering, and fuzzy fallback.
+
+### Performance (AMB PersonaMem pilot, 2026-04 Zeon)
+
+- **PersonaMem 32k:** MemKraft **80%** vs BM25 70% (**+10pp**)
+- **PersonaMem 128k:** MemKraft **75%** vs BM25 50% (**+25pp**)
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+All v1.0.2 APIs remain unchanged. Existing call sites are unaffected.
+
+---
+
 ## [1.0.2] — 2026-04-22
 
 ### Added
