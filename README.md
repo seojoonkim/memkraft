@@ -6,7 +6,7 @@
 > Your agent's accountable past, in plain Markdown.
 
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
-_(Surpasses MemPalace 96.6%, MEMENTO/MS 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
+_(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
 **v1.0.2** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
