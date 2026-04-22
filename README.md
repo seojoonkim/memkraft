@@ -5,7 +5,10 @@
 > **Bitemporal memory × empirical tuning: the first self-improvement ledger for AI agents.**
 > Your agent's accountable past, in plain Markdown.
 
-**v1.0.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**🏆 LongMemEval 98.0% — 오픈소스 에이전트 장기 기억 벤치마크 현재 1위**
+_(MemPalace 96.6%, MEMENTO/MS 90.8% 상회 · LLM-as-judge · oracle 50 · 3-run semantic majority)_
+
+**v1.0.2** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
