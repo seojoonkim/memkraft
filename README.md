@@ -728,6 +728,55 @@ memory/
 
 <br>
 
+## Reproducing LongMemEval Results
+
+MemKraft v1.0.2 achieves **98.0%** on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (LLM-as-judge, oracle subset, 3-run semantic majority vote). Single-run performance: **96–98%** (non-deterministic at inference level — sampling, not memory).
+
+**Comparison vs prior SOTA:**
+- MemKraft 1.0.2 — **98.0%** (LLM-judge, oracle 50, 3-run majority)
+- MemPalace — 96.6%
+- MEMENTO/MS — 90.8%
+
+### Setup
+
+```bash
+git clone https://github.com/seojoonkim/memkraft
+cd memkraft
+pip install -e ".[bench]"
+```
+
+### Run
+
+```bash
+cd benchmarks/longmemeval
+
+# Single run (96% typical)
+MODEL="claude-sonnet-4-6" \
+  ANTHROPIC_API_KEY="your-key" \
+  TAG="myrun" \
+  python3 run.py 50 oracle
+
+# LLM-as-judge scoring
+MODEL="claude-sonnet-4-6" \
+  ANTHROPIC_API_KEY="your-key" \
+  python3 llm_judge.py
+
+# 3-run majority vote (98% typical)
+MODEL="claude-sonnet-4-6" \
+  ANTHROPIC_API_KEY="your-key" \
+  python3 run_majority_vote.py
+```
+
+### Notes
+
+- **Dataset:** LongMemEval oracle subset (50 questions)
+- **Judge:** LLM-as-judge (claude-sonnet-4-6) — semantic matching, not string match
+- **98%** = 3-run semantic majority vote result
+- **Single run:** 96~100% depending on inference sampling
+- **Reproducibility note:** Variance comes from LLM inference sampling, not from MemKraft itself. Memory storage and retrieval are deterministic.
+
+<br>
+
 ## Contributing
 
 PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memkraft"
-version = "1.0.1"
+version = "1.0.2"
 description = "The compound knowledge system for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -30,7 +30,8 @@ classifiers = [
 [project.optional-dependencies]
 mcp = ["mcp>=1.0"]
 watch = ["watchdog>=3.0"]
-all = ["mcp>=1.0", "watchdog>=3.0"]
+bench = ["anthropic>=0.18.0"]
+all = ["mcp>=1.0", "watchdog>=3.0", "anthropic>=0.18.0"]
 
 [project.scripts]
 memkraft = "memkraft.cli:main"

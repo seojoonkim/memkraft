@@ -1,0 +1,371 @@
+"""v1.0.2 Search enhancements — additive, non-breaking.
+
+Adds three new methods to MemKraft without touching core.py:
+
+- ``search_v2(query, top_k=20, expand_query=False, fuzzy=False)`` —
+  thin wrapper over the core ``search`` that supports top_k limiting
+  and optional query expansion (keyword-only variants) for better
+  recall on natural-language questions.
+
+- ``search_expand(query, top_k=20, fuzzy=False)`` — convenience alias
+  for ``search_v2(query, expand_query=True)``.
+
+- ``search_temporal(query, date_hint=None, top_k=20, fuzzy=False)`` —
+  same as ``search_v2`` but boosts results whose content contains the
+  given date hint (YYYY-MM-DD) or a nearby date.  Falls back to
+  ``search_v2`` when no hint is provided.
+
+Design constraints honoured:
+  * Does NOT modify core.py or the existing ``search`` signature.
+  * Builds on public primitives only (``self.search`` + simple I/O
+    helpers already exposed by MemKraft).
+  * Silent by default — no stdout noise (unlike the legacy ``search``).
+"""
+from __future__ import annotations
+
+import contextlib
+import io
+import re
+from datetime import datetime, timedelta
+from typing import Any, Iterable
+
+
+# Lightweight multilingual stopword set.  Intentionally small — stop
+# list is used only to *generate additional* query variants, the
+# original query is always tried first and kept in the merged pool.
+_STOPWORDS: set[str] = {
+    # English — interrogative / function / filler
+    "how", "what", "when", "where", "which", "who", "why", "whom", "whose",
+    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+    "do", "did", "does", "doing", "done",
+    "have", "had", "has", "having",
+    "i", "my", "me", "mine", "myself",
+    "you", "your", "yours", "yourself", "yourselves",
+    "we", "our", "ours", "ourselves",
+    "they", "their", "theirs", "them", "themselves",
+    "he", "she", "his", "her", "hers", "him", "it", "its",
+    "this", "that", "these", "those",
+    "to", "of", "in", "on", "at", "for", "with", "about", "from", "by",
+    "as", "if", "or", "and", "but", "not", "no", "yes",
+    "can", "could", "would", "will", "should", "may", "might", "must", "shall",
+    "there", "here", "then", "than", "so", "too", "very", "much", "many",
+    "some", "any", "all", "every", "each", "few", "more", "most", "other",
+    "ago", "since", "before", "after", "during", "while", "until", "till",
+    "regularly", "currently", "recently", "often", "still", "already",
+    "remind", "tell", "remember", "know", "knew", "think", "thought",
+    "please", "also", "just", "now", "only", "ever", "never",
+    "last", "first", "next", "previous",
+    # Korean — common particles / endings
+    "이", "가", "은", "는", "을", "를", "의", "에", "에서", "로", "으로",
+    "와", "과", "도", "만", "까지", "부터", "에게", "한테",
+    "했다", "한다", "해요", "합니다", "입니다", "있다", "없다", "같다",
+    "그리고", "그러나", "그런데", "하지만", "또한", "또는", "혹은",
+}
+
+
+class SearchMixin:
+    """v1.0.2 additive search API.  Attach via ``__init__.py`` mixin loop."""
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+    def _v102_keyword_variants(self, query: str, max_variants: int = 3) -> list[str]:
+        """Derive keyword-only variants of ``query`` for recall expansion.
+
+        Returns up to ``max_variants`` additional queries, never
+        including the original query itself.  Variants are constructed
+        from non-stopword tokens (length >= 3) to capture the topical
+        content of the question.
+        """
+        if not query or not query.strip():
+            return []
+
+        # Grab alphanumeric tokens (preserve apostrophes / hyphens mid-word)
+        tokens = re.findall(r"[\w][\w'\-]*", query.lower(), flags=re.UNICODE)
+        keywords: list[str] = []
+        seen: set[str] = set()
+        for t in tokens:
+            if len(t) < 3:
+                continue
+            if t in _STOPWORDS:
+                continue
+            if t in seen:
+                continue
+            seen.add(t)
+            keywords.append(t)
+
+        variants: list[str] = []
+        if not keywords:
+            return variants
+
+        # Variant 1: all meaningful keywords joined (up to 6 — captures
+        # the topical skeleton of the question without single-token
+        # noise).
+        joined = " ".join(keywords[:6])
+        if joined and joined != query.lower():
+            variants.append(joined)
+
+        # Variant 2: top 3 keywords — captures short phrases like
+        # "sugar factory icon", "summer nights".
+        if len(keywords) >= 3:
+            top = " ".join(keywords[:3])
+            if top not in variants and top != query.lower():
+                variants.append(top)
+
+        # Deliberately NOT adding single-token variants: empirically
+        # they lower precision on natural-language questions by
+        # matching unrelated sessions.  Callers that want aggressive
+        # recall can pass their own keywords directly.
+
+        return variants[:max_variants]
+
+    def _v102_run_search(self, query: str, fuzzy: bool = False) -> list[dict]:
+        """Run the core ``search`` while suppressing its stdout side
+        effects.  Returns the result list verbatim (may be empty)."""
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                # ``self.search`` here is the legacy core method —
+                # SearchMixin is attached AFTER the class exists, so
+                # the base ``search`` is still reachable as the class
+                # method defined in core.py.
+                out = self.search(query, fuzzy=fuzzy)
+        except Exception:
+            return []
+        return out if isinstance(out, list) else []
+
+    def _v102_merge(self, batches: Iterable[list[dict]]) -> list[dict]:
+        """Merge multiple result batches, keeping the max score per file."""
+        merged: dict[str, dict] = {}
+        for batch in batches:
+            for r in batch:
+                if not isinstance(r, dict):
+                    continue
+                fpath = r.get("file")
+                if not fpath:
+                    continue
+                prev = merged.get(fpath)
+                if prev is None or r.get("score", 0) > prev.get("score", 0):
+                    merged[fpath] = r
+        return sorted(
+            merged.values(),
+            key=lambda x: x.get("score", 0),
+            reverse=True,
+        )
+
+    # ------------------------------------------------------------------
+    # Public API (v1.0.2)
+    # ------------------------------------------------------------------
+    def search_v2(
+        self,
+        query: str,
+        top_k: int = 20,
+        expand_query: bool = False,
+        fuzzy: bool = False,
+    ) -> list[dict]:
+        """Enhanced search with top_k limiting and optional expansion.
+
+        Parameters
+        ----------
+        query:
+            Natural-language query.
+        top_k:
+            Maximum number of results to return (default 20, vs 10 in
+            the legacy ``search``).
+        expand_query:
+            When True, also runs keyword-only variants of the query
+            and merges the result sets (keeping the max score per
+            file).  Improves recall on verbose / conversational
+            questions at a small latency cost.
+        fuzzy:
+            Forwarded to the underlying ``search``.
+        """
+        if not isinstance(query, str) or not query.strip():
+            return []
+        if not isinstance(top_k, int) or top_k <= 0:
+            top_k = 20
+
+        batches: list[list[dict]] = [self._v102_run_search(query, fuzzy=fuzzy)]
+        if expand_query:
+            for variant in self._v102_keyword_variants(query):
+                batches.append(self._v102_run_search(variant, fuzzy=fuzzy))
+
+        merged = self._v102_merge(batches)
+        return merged[:top_k]
+
+    def search_expand(
+        self,
+        query: str,
+        top_k: int = 20,
+        fuzzy: bool = False,
+    ) -> list[dict]:
+        """Convenience: ``search_v2(query, top_k, expand_query=True)``."""
+        return self.search_v2(query, top_k=top_k, expand_query=True, fuzzy=fuzzy)
+
+    # ------------------------------------------------------------------
+    # v1.0.2 Phase 2 — Score-based ranking + per-query-type strategy
+    # ------------------------------------------------------------------
+    _TEMPORAL_KW = (
+        "when", "date", "year", "month", "week", "day", "days",
+        "how long", "ago", "since", "before", "after",
+        "언제", "며칠", "얼마나",
+    )
+    _PREFERENCE_KW = (
+        "favorite", "prefer", "like", "enjoy", "love", "hate", "best",
+        "suggest", "recommend",
+        "좋아하", "선호", "추천",
+    )
+    _COUNT_KW = (
+        "how many", "count", "number of", "total",
+        "몇", "얼마",
+    )
+
+    def _v102_classify(self, query: str) -> str:
+        """Classify a natural-language query into a retrieval strategy bucket.
+
+        Returns one of: ``temporal``, ``preference``, ``count``, ``fact``.
+        Heuristic — never raises.
+        """
+        if not isinstance(query, str) or not query.strip():
+            return "fact"
+        q = query.lower()
+        if any(kw in q for kw in self._COUNT_KW):
+            return "count"
+        if any(kw in q for kw in self._TEMPORAL_KW):
+            return "temporal"
+        if any(kw in q for kw in self._PREFERENCE_KW):
+            return "preference"
+        return "fact"
+
+    def search_ranked(
+        self,
+        query: str,
+        top_k: int = 20,
+        min_score: float = 0.0,
+        fuzzy: bool = False,
+    ) -> list[dict]:
+        """Core search with an explicit score floor.
+
+        Unlike ``search_expand`` this does NOT fire keyword variants —
+        the goal is precision, not recall.  Results below ``min_score``
+        are dropped *only* when at least one result clears the floor;
+        otherwise the original result list is returned verbatim so the
+        caller never ends up with an empty hand when the corpus is
+        small (e.g. LongMemEval oracle with 1-3 sessions total).
+        """
+        if not isinstance(query, str) or not query.strip():
+            return []
+        if not isinstance(top_k, int) or top_k <= 0:
+            top_k = 20
+
+        base = self._v102_run_search(query, fuzzy=fuzzy)
+        base.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        if min_score <= 0:
+            return base[:top_k]
+
+        above = [r for r in base if r.get("score", 0) >= min_score]
+        if above:
+            return above[:top_k]
+        # Do not starve the caller — small corpora may have all scores
+        # below an aggressive floor.
+        return base[:top_k]
+
+    def search_smart(
+        self,
+        query: str,
+        top_k: int = 20,
+        date_hint: str | None = None,
+        fuzzy: bool = False,
+    ) -> list[dict]:
+        """Strategy-dispatch search.
+
+        - **temporal** questions → ``search_temporal`` (date-aware)
+        - **count**/multi-session questions → ``search_expand`` with a
+          larger ``top_k`` to capture every relevant session
+        - **preference** questions → ``search_expand`` (recall matters
+          more than precision when the target is a style, not a fact)
+        - **fact** questions → ``search_ranked`` (precision-first, no
+          variant expansion to avoid topic drift)
+        """
+        strategy = self._v102_classify(query)
+        if strategy == "temporal":
+            return self.search_temporal(
+                query, date_hint=date_hint, top_k=top_k, fuzzy=fuzzy
+            )
+        if strategy == "count":
+            # Multi-item questions benefit from wider recall.
+            return self.search_expand(query, top_k=max(top_k, 30), fuzzy=fuzzy)[:top_k]
+        if strategy == "preference":
+            return self.search_expand(query, top_k=top_k, fuzzy=fuzzy)
+        # fact
+        return self.search_ranked(query, top_k=top_k, min_score=0.0, fuzzy=fuzzy)
+
+    def search_temporal(
+        self,
+        query: str,
+        date_hint: str | None = None,
+        top_k: int = 20,
+        fuzzy: bool = False,
+        window_days: int = 30,
+    ) -> list[dict]:
+        """Search with an optional date hint.
+
+        Results whose content (or filename) contains ``date_hint`` or a
+        date within ``window_days`` of it get a boost in the returned
+        score.  When ``date_hint`` is None or malformed, behaves
+        exactly like ``search_v2(..., expand_query=True)``.
+        """
+        base = self.search_v2(
+            query,
+            top_k=max(top_k * 2, top_k),
+            expand_query=True,
+            fuzzy=fuzzy,
+        )
+        if not date_hint:
+            return base[:top_k]
+
+        try:
+            hint_dt = datetime.strptime(date_hint[:10], "%Y-%m-%d")
+        except ValueError:
+            return base[:top_k]
+
+        date_re = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+        boosted: list[dict] = []
+        for r in base:
+            score = float(r.get("score", 0) or 0)
+            fpath = r.get("file", "") or ""
+            snippet = r.get("snippet", "") or ""
+
+            # Try to read a larger chunk for date detection
+            content_for_date = f"{fpath}\n{snippet}"
+            try:
+                abs_path = self.base_dir / fpath if fpath else None
+                if abs_path and abs_path.exists():
+                    content_for_date = abs_path.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+            boost = 0.0
+            if date_hint[:10] in content_for_date:
+                boost = 0.15
+            else:
+                # Look for any date within window_days of the hint
+                for m in date_re.findall(content_for_date):
+                    try:
+                        d = datetime.strptime(m, "%Y-%m-%d")
+                    except ValueError:
+                        continue
+                    delta = abs((d - hint_dt).days)
+                    if delta <= window_days:
+                        # Linear falloff: closer → bigger boost
+                        boost = max(boost, 0.10 * (1 - delta / max(window_days, 1)))
+
+            new = dict(r)
+            new["score"] = round(min(1.0, score + boost), 3)
+            if boost:
+                new["_temporal_boost"] = round(boost, 3)
+            boosted.append(new)
+
+        boosted.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return boosted[:top_k]

@@ -26,3 +26,9 @@ env/
 
 # MemCraft runtime
 memory/
+
+# LongMemEval benchmark artifacts (too large / reproducible)
+benchmarks/longmemeval/data/
+benchmarks/longmemeval/results/*.json
+benchmarks/longmemeval/results/*.jsonl
+benchmarks/longmemeval/*.bak

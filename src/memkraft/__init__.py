@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -14,6 +14,7 @@ from .decision_store import DecisionStoreMixin
 from .prompt_tune import PromptTuneMixin  # v0.9.2 M1 alpha
 from .prompt_evidence import PromptEvidenceMixin  # v0.9.2 M2 alpha
 from .convergence import ConvergenceMixin  # v0.9.2 M2 alpha
+from .search import SearchMixin  # v1.0.2 search enhancements
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -39,6 +40,7 @@ for _mixin in (
     PromptTuneMixin,
     PromptEvidenceMixin,
     ConvergenceMixin,
+    SearchMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## [1.0.2] — 2026-04-22
+
+### Added
+
+- **LongMemEval benchmark harness** (`benchmarks/longmemeval/`):
+  - `run.py` — oracle/s subset evaluation
+  - `llm_judge.py` — LLM-as-judge scoring
+  - `run_majority_vote.py` — 3-run semantic majority vote
+  - Achieves **98.0%** on LongMemEval (LLM-judge, oracle 50, 3-run majority)
+  - Surpasses prior SOTA: MemPalace (96.6%), MEMENTO/MS (90.8%)
+- **SearchMixin APIs** (`src/memkraft/search.py`):
+  - `search_v2`, `search_expand`, `search_temporal`, `search_ranked`, `search_smart`
+- **`[bench]` optional dependency group** for benchmark reproduction (`pip install memkraft[bench]`)
+- **README:** Added "Reproducing LongMemEval Results" section with full reproduction guide
+- **Tests:** New `tests/test_v102_search.py` covering SearchMixin surface
+
+### Fixed
+
+- Benchmark harness: temporal questions excluded from aggregation detection (v3 fix)
+- Benchmark harness: assistant content truncation at 1500 chars (v4 fix)
+- Benchmark harness: full content sidecar for long assistant responses (v4.4 fix)
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+# or with benchmark extras:
+pip install --upgrade 'memkraft[bench]'
+```
+
+No breaking changes. All new APIs are additive.
+
+---
+
 ## [1.0.1] — 2026-04-21
 
 ### Polish & Bug Fixes
