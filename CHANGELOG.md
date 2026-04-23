@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## [1.1.0] — 2026-04-23
+
+### Added
+
+- **`flush(source_path, strategy='auto')`** — Import external markdown file → MemKraft structured data. Supports `auto` (section-aware), `events` (list items), and `facts` (table rows) strategies.
+- **`compact(max_chars=15000, dry_run=False)`** — Automatically move old/low-importance entities to archival tier. Supports `dry_run` preview mode.
+- **`digest(output_path, max_chars=15000)`** — Render MemKraft state → MEMORY.md, always ≤ `max_chars`. Guaranteed no overflow.
+- **`health()`** — Diagnose memory health: total size, tier distribution, entity count, recommendations, and status (`healthy` / `warning` / `critical`).
+- **`LifecycleMixin`** (`src/memkraft/lifecycle.py`) — additive mixin; no changes to existing APIs.
+- **Tests:** `tests/test_v110_lifecycle.py` (20 cases) covering flush/compact/digest/health with edge cases.
+
+### Motivation
+
+MEMORY.md grew to 153KB due to add-only pattern + broken nightly cleanup. MemKraft 1.1.0 makes this impossible: memory manages itself.
+
+### Total APIs: 16 (12 existing + 4 new lifecycle APIs)
+
+```bash
+pip install --upgrade memkraft
+```
+
+All v1.0.3 APIs remain unchanged. Existing call sites are unaffected.
+
+---
+
 ## [1.0.3] — 2026-04-23
 
 ### Added
