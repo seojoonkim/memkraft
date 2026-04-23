@@ -275,3 +275,126 @@ def test_health_critical_on_large_memory(mk):
 
     assert result["status"] == "critical"
     assert any("compact" in r.lower() for r in result["recommendations"])
+
+
+# ---------------------------------------------------------------------------
+# watch / unwatch / schedule tests  (M2)
+# ---------------------------------------------------------------------------
+
+
+def test_watch_starts_thread(tmp_path):
+    """watch() starts a background daemon thread and sets _watching=True."""
+    import time
+    from memkraft import MemKraft
+
+    mk = MemKraft(base_dir=str(tmp_path))
+    test_file = tmp_path / "test.md"
+    test_file.write_text("# Test\n- item1", encoding="utf-8")
+
+    mk.watch(str(test_file), on_change="flush", interval=60)
+
+    assert mk._watching is True
+    assert hasattr(mk, "_watch_thread")
+    assert mk._watch_thread.is_alive()
+
+    mk.unwatch()
+    # Give thread time to notice the flag
+    time.sleep(0.1)
+
+
+def test_unwatch_stops_flag(tmp_path):
+    """unwatch() sets _watching=False."""
+    from memkraft import MemKraft
+
+    mk = MemKraft(base_dir=str(tmp_path))
+    test_file = tmp_path / "test.md"
+    test_file.write_text("# Test", encoding="utf-8")
+
+    mk.watch(str(test_file), interval=60)
+    assert mk._watching is True
+
+    mk.unwatch()
+    assert mk._watching is False
+
+
+def test_watch_callable_on_change(tmp_path):
+    """watch() calls a custom callable when file changes."""
+    import time
+    from memkraft import MemKraft
+
+    mk = MemKraft(base_dir=str(tmp_path))
+    test_file = tmp_path / "watch_test.md"
+    test_file.write_text("# Initial", encoding="utf-8")
+
+    fired: list = []
+
+    def on_file_change(path: str) -> None:
+        fired.append(path)
+
+    # Short interval to detect change quickly
+    mk.watch(str(test_file), on_change=on_file_change, interval=0.1)
+
+    # Modify the file so the watcher picks it up
+    time.sleep(0.3)
+    test_file.write_text("# Updated", encoding="utf-8")
+    time.sleep(0.5)
+
+    mk.unwatch()
+    assert len(fired) >= 1
+    assert fired[0] == str(test_file)
+
+
+def test_schedule_requires_apscheduler(tmp_path, monkeypatch):
+    """schedule() raises ImportError when apscheduler is not installed."""
+    import builtins
+    import pytest
+    from memkraft import MemKraft
+
+    mk = MemKraft(base_dir=str(tmp_path))
+
+    real_import = builtins.__import__
+
+    def mock_import(name, *args, **kwargs):
+        if name.startswith("apscheduler"):
+            raise ImportError("mocked missing apscheduler")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+
+    with pytest.raises(ImportError, match="apscheduler"):
+        mk.schedule(["compact"], "0 23 * * *")
+
+
+def test_schedule_invalid_cron(tmp_path):
+    """schedule() raises ValueError for bad cron expressions."""
+    import pytest
+    from memkraft import MemKraft
+
+    mk = MemKraft(base_dir=str(tmp_path))
+
+    try:
+        import apscheduler  # noqa: F401 — only run if apscheduler available
+    except ImportError:
+        pytest.skip("apscheduler not installed")
+
+    with pytest.raises(ValueError, match="Invalid cron"):
+        mk.schedule(["compact"], "bad cron expr here")
+
+
+def test_schedule_creates_scheduler(tmp_path):
+    """schedule() attaches a running _scheduler to the instance."""
+    import pytest
+    from memkraft import MemKraft
+
+    try:
+        import apscheduler  # noqa: F401
+    except ImportError:
+        pytest.skip("apscheduler not installed")
+
+    mk = MemKraft(base_dir=str(tmp_path))
+    mk.schedule([lambda: None], "0 23 * * *")
+
+    assert hasattr(mk, "_scheduler")
+    assert mk._scheduler.running
+
+    mk._scheduler.shutdown(wait=False)

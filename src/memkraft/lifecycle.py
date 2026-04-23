@@ -504,3 +504,130 @@ class LifecycleMixin:
         if not entities_dir.exists():
             return 0
         return len(list(entities_dir.glob("*.md")))
+
+    # ------------------------------------------------------------------
+    # watch / unwatch / schedule  (M2 Lifecycle API)
+    # ------------------------------------------------------------------
+
+    def watch(self, path: str, on_change: str = "flush", interval: int = 300) -> None:
+        """Watch a file/directory for changes and trigger action automatically.
+
+        Runs a background daemon thread that polls ``path`` every ``interval``
+        seconds.  When a modification is detected the chosen ``on_change``
+        action is executed.
+
+        Args:
+            path: File or directory path to monitor.
+            on_change: Action to trigger on change.
+                ``"flush"`` — call :py:meth:`flush` on the changed file.
+                ``"compact"`` — call :py:meth:`compact`.
+                ``"digest"`` — call :py:meth:`digest` on the changed file.
+                Any callable — called with ``(changed_path: str)``.
+            interval: Poll interval in seconds (default: 300).
+        """
+        import threading
+        import os
+        import time
+
+        path = str(path)
+
+        def _watch_loop() -> None:
+            last_mtime: dict = {}
+            while getattr(self, "_watching", False):
+                try:
+                    if os.path.isfile(path):
+                        mtime = os.path.getmtime(path)
+                        if path in last_mtime and mtime != last_mtime[path]:
+                            try:
+                                if on_change == "flush":
+                                    self.flush(path)
+                                elif on_change == "compact":
+                                    self.compact()
+                                elif on_change == "digest":
+                                    self.digest(path)
+                                elif callable(on_change):
+                                    on_change(path)
+                            except Exception:
+                                pass  # best-effort
+                        last_mtime[path] = mtime
+                    elif os.path.isdir(path):
+                        for root, _dirs, files in os.walk(path):
+                            for fname in files:
+                                if not fname.endswith(".md"):
+                                    continue
+                                fpath = os.path.join(root, fname)
+                                try:
+                                    mtime = os.path.getmtime(fpath)
+                                except OSError:
+                                    continue
+                                if fpath in last_mtime and mtime != last_mtime[fpath]:
+                                    try:
+                                        if on_change == "flush":
+                                            self.flush(fpath)
+                                        elif callable(on_change):
+                                            on_change(fpath)
+                                    except Exception:
+                                        pass
+                                last_mtime[fpath] = mtime
+                except Exception:
+                    pass
+                time.sleep(interval)
+
+        self._watching = True
+        self._watch_thread = threading.Thread(target=_watch_loop, daemon=True, name="mk-watcher")
+        self._watch_thread.start()
+
+    def unwatch(self) -> None:
+        """Stop the background file watcher started by :py:meth:`watch`."""
+        self._watching = False
+
+    def schedule(self, pipeline, cron_expr: str) -> None:
+        """Schedule a memory-management pipeline using a cron expression.
+
+        Args:
+            pipeline: Ordered list of actions to run.  Each item may be:
+                ``"compact"`` — run :py:meth:`compact`.
+                Any zero-argument callable.
+            cron_expr: Standard 5-field cron expression, e.g. ``"0 23 * * *"``
+                (nightly at 23:00).
+
+        Note:
+            Requires the ``apscheduler`` package.  Install with::
+
+                pip install "memkraft[schedule]"
+        """
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+            from apscheduler.triggers.cron import CronTrigger
+        except ImportError:
+            raise ImportError(
+                "schedule() requires 'apscheduler'. "
+                "Install with: pip install \"memkraft[schedule]\""
+            )
+
+        def _run_pipeline() -> None:
+            for action in pipeline:
+                try:
+                    if action == "compact":
+                        self.compact()
+                    elif callable(action):
+                        action()
+                except Exception:
+                    pass  # best-effort; one failing step must not abort the rest
+
+        parts = cron_expr.strip().split()
+        if len(parts) != 5:
+            raise ValueError(f"Invalid cron expression (expected 5 fields): {cron_expr!r}")
+        minute, hour, day, month, day_of_week = parts
+        trigger = CronTrigger(
+            minute=minute,
+            hour=hour,
+            day=day,
+            month=month,
+            day_of_week=day_of_week,
+        )
+
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(_run_pipeline, trigger)
+        scheduler.start()
+        self._scheduler = scheduler
