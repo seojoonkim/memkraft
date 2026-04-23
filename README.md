@@ -922,6 +922,58 @@ Index persisted at `.memkraft/links/backlinks.json` and `.memkraft/links/forward
 
 [GitHub](https://github.com/seojoonkim/memkraft) · [PyPI](https://pypi.org/project/memkraft/) · [Issues](https://github.com/seojoonkim/memkraft/issues)
 
+## 🤖 Autonomous Memory Management (v1.1.0)
+
+> *"Memory should manage itself."*
+
+Memory tends to grow without limit — agents add entries but rarely clean up.
+MemKraft 1.1.0 solves this with a self-managing lifecycle.
+
+### The Problem
+- **Add-only pattern**: agents append to MEMORY.md every session, never prune
+- **Silent maintenance failures**: nightly cleanup crons fail without notice
+- **No lifecycle**: every memory entry treated equally, forever
+
+### The Solution: flush → compact → digest
+
+```python
+from memkraft import MemKraft
+mk = MemKraft(base_dir="memory/")
+
+# 1. Import existing MEMORY.md → structured MemKraft data
+mk.flush("MEMORY.md")
+
+# 2. Auto-archive old/low-priority items
+result = mk.compact(max_chars=15000)
+# → {"moved": 47, "freed_chars": 89400, ...}
+
+# 3. Re-render MEMORY.md — always ≤ 15KB
+mk.digest("MEMORY.md")
+# → {"chars": 11700, "truncated": False}
+
+# 4. Check memory health
+health = mk.health()
+# → {"status": "healthy", "total_chars": 11700, "recommendations": [...]}
+```
+
+### Real-world result
+Our MEMORY.md grew to **153KB** (1,862 lines) over weeks of agent sessions.
+After `flush → compact → digest`: **11.7KB** (170 lines). **92% reduction.**
+
+### Nightly self-cleanup recipe
+```python
+# Watch for real-time sync
+mk.watch("memory/", on_change="flush", interval=300)
+
+# Or set a nightly schedule (requires: pip install memkraft[schedule])
+mk.schedule([
+    lambda: mk.compact(max_chars=15000),
+    lambda: mk.digest("MEMORY.md"),
+], cron_expr="0 23 * * *")
+```
+
+---
+
 ## Appendix: Inspirations & Credits
 
 MemKraft stands on the shoulders of giants. These projects and ideas shaped our approach:
