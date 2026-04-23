@@ -178,3 +178,112 @@ class ChunkingMixin:
 
         filtered.sort(key=_score, reverse=True)
         return filtered[:top_k]
+
+    # ------------------------------------------------------------------
+    # search_with_entity_filter — entity-aware retrieval (v1.1.2)
+    # ------------------------------------------------------------------
+    def search_with_entity_filter(
+        self,
+        query: str,
+        top_k: int = 5,
+        entity_names: "List[str] | None" = None,
+        auto_extract: bool = True,
+    ) -> "List[dict]":
+        """Entity-aware search: filter memory by entity before attribute search.
+
+        Algorithm:
+        1. If ``auto_extract=True``, extract candidate entity names from query
+           using a lightweight regex NER (capitalised words, stop-word filtered).
+        2. Score every hit from ``search_precise`` by whether the entity names
+           appear in the matched text — hits that mention a detected entity
+           bubble to the top.
+        3. If no entities are detected, falls back transparently to
+           ``search_precise``.
+
+        This significantly improves recall for persona-style queries like
+        "What does Sarah like to eat?" because the entity (Sarah) is used to
+        re-rank hits before returning them.
+
+        Args:
+            query: Natural-language search query.
+            top_k: Maximum number of hits to return (default 5).
+            entity_names: Explicit list of entity names to filter by. When
+                provided, ``auto_extract`` is ignored.
+            auto_extract: If True and ``entity_names`` is None, extract entity
+                names from ``query`` automatically.
+
+        Returns:
+            list[dict]: Up to ``top_k`` hits, entity-boosted score first.
+        """
+        import re
+
+        if not query or not str(query).strip():
+            return []
+        if top_k <= 0:
+            return []
+
+        # ------------------------------------------------------------------ #
+        # Step 1 — determine entity names
+        # ------------------------------------------------------------------ #
+        entities: List[str] = list(entity_names) if entity_names else []
+        if auto_extract and not entities:
+            # Simple capitalised-word NER (works well for person names)
+            candidates = re.findall(r"\b[A-Z][a-z]+\b", query)
+            _STOPWORDS = {
+                "What", "Who", "Where", "When", "How", "Why",
+                "The", "Is", "Are", "Did", "Does", "Has", "Have",
+                "Can", "Could", "Would", "Should", "Tell", "Me",
+                "About", "Which", "With", "From", "User", "Some",
+                "You", "Your", "My", "Please", "This", "That",
+            }
+            entities = [c for c in candidates if c not in _STOPWORDS]
+
+        # No entities detected → plain precision search
+        if not entities:
+            return self.search_precise(query, top_k=top_k)
+
+        # ------------------------------------------------------------------ #
+        # Step 2 — retrieve candidates via search_precise (wider net)
+        # ------------------------------------------------------------------ #
+        search_k = max(top_k * 3, 15)  # cast a wider net
+        candidates_hits = self.search_precise(query, top_k=search_k)
+
+        if not candidates_hits:
+            return []
+
+        # ------------------------------------------------------------------ #
+        # Step 3 — re-rank: hits that mention an entity get a score boost
+        # ------------------------------------------------------------------ #
+        entities_lower = [e.lower() for e in entities]
+
+        def _score(hit: dict) -> float:
+            for key in ("score", "relevance", "rank"):
+                val = hit.get(key)
+                if val is not None:
+                    try:
+                        return float(val)
+                    except (TypeError, ValueError):
+                        continue
+            return 0.0
+
+        def _entity_boost(hit: dict) -> float:
+            """1.0 if the entity appears in any hit field, else 0.0."""
+            text = " ".join([
+                str(hit.get("match") or ""),
+                str(hit.get("content") or ""),
+                str(hit.get("entity") or ""),
+                str(hit.get("snippet") or ""),
+                str(hit.get("file") or ""),
+                str(hit.get("text") or ""),
+            ]).lower()
+            if any(e in text for e in entities_lower):
+                return 1.0
+            return 0.0
+
+        # Composite sort key: entity match first, then original score
+        ranked = sorted(
+            candidates_hits,
+            key=lambda h: (_entity_boost(h), _score(h)),
+            reverse=True,
+        )
+        return ranked[:top_k]
