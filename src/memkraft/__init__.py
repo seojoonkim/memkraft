@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -21,6 +21,8 @@ from .graph import GraphMixin  # v2.0.0 SQLite graph layer
 from .multimodal import MultimodalMixin  # v2.1 multimodal attachments
 from .multi_pass import MultiPassMixin  # v2.2 multi-pass retrieval
 from .routing import RoutingMixin  # v2.2 question-type routing
+from .rrf import RRFMixin  # v2.3 reciprocal rank fusion
+from .consolidation import ConsolidationMixin  # v2.3 sleep consolidation
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -53,6 +55,8 @@ for _mixin in (
     MultimodalMixin,
     MultiPassMixin,
     RoutingMixin,
+    RRFMixin,
+    ConsolidationMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

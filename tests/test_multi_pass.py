@@ -173,7 +173,10 @@ class TestPass3Temporal:
 # ---------------------------------------------------------------------------
 class TestScoreBlending:
     def test_blend_weights(self, mk_corpus):
-        results = mk_corpus.search_multi("Sarah Google", passes=3, top_k=10)
+        # v2.3: legacy weighted blend is opt-in via use_rrf=False.
+        results = mk_corpus.search_multi(
+            "Sarah Google", passes=3, top_k=10, use_rrf=False
+        )
         for r in results:
             ps = r["pass_scores"]
             expected = round(0.5 * ps["p1"] + 0.3 * ps["p2"] + 0.2 * ps["p3"], 4)

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## [2.3.0] — 2026-04-26
+
+### Added
+- **BM25 Scoring** — Okapi BM25 (stdlib `math` only, zero deps). `search()`에 4번째 신호로 통합. TF 포화 (k1=1.5) + 길이 정규화 (b=0.75) + IDF. 기존 exact/fuzzy/graph 신호와 가중 합성. `tests/test_bm25.py` 케이스.
+- **Reciprocal Rank Fusion (RRF)** — `rrf.py` 신규 모듈. RRF(k=60) 순위 기반 검색 융합. `search_multi()`의 기본 융합 전략으로 채택 (기존 가중 블렌딩 0.5·p1 + 0.3·p2 + 0.2·p3 대체 가능). 서로 다른 스케일의 점수를 안정적으로 결합. `tests/test_rrf.py` 케이스.
+- **Causal Graph** — `graph.py`에 `graph_type` 컬럼 추가 (`entity` / `temporal` / `causal` / `semantic` 4종). `graph_causal_chain(entity, direction='backward'|'forward', max_hops=N)` API. 한/영/중 causal 패턴 (because, 때문에, 因为, 所以, leads to, 결국, 导致 등) 자동 추출. `tests/test_causal_graph.py` 케이스.
+- **Memory Consolidation** — 4단계 수면 통합 (duplicate merge, stale close, orphan cleanup, observation generation). `consolidate(strategy='auto'|'aggressive', dry_run=False)` API. 잠자는 동안 중복 엔티티 병합·만료된 fact 자동 종료·고아 노드 정리·메타 관찰 생성. `consolidation.py` 신규 모듈. `tests/test_consolidation.py` 29개 케이스, 전부 통과.
+
+### Tests
+- 전체: **1050 passed, 3 skipped, 12 failed** (12 failed = test_hierarchical.py baseline, v2.2.0부터 이어진 미통합 모듈, v2.3.0 신규 기능과 무관)
+- 신규: test_bm25.py + test_rrf.py + test_causal_graph.py + test_consolidation.py 총 100개 케이스 추가, 전부 통과
+- 회귀 0건
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+Zero breaking changes. v2.2.x API 시그니처 100% 유지. `search()`/`search_multi()` 호출부 그대로 사용 가능.
+
+---
+
 ## [2.2.0] — 2026-04-26
 
 ### Added

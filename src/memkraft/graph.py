@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS edges (
     weight REAL DEFAULT 1.0,
     valid_from TEXT,
     valid_until TEXT,
-    created_at TEXT
+    created_at TEXT,
+    graph_type TEXT DEFAULT 'entity'
 );
+CREATE INDEX IF NOT EXISTS idx_edges_graph_type ON edges(graph_type);
 CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_id);
 CREATE INDEX IF NOT EXISTS idx_edges_relation ON edges(relation);
@@ -60,6 +62,31 @@ _RELATION_PATTERNS = [
     (r'\b(\w+)\s+(?:married|dating)\s+([A-Z]\w+)', 'partner_of'),
     (r'\b(\w+)\'s\s+(?:hobby|hobbies)\s+(?:is|are|include)\s+(\w+(?:\s+\w+)?)', 'hobby_is'),
     (r'\b(\w+)\s+(?:born|grew up)\s+in\s+([A-Z]\w+)', 'born_in'),
+]
+
+# ====================================================================
+# Causal patterns (v2.3) — 인과 관계 자동 추출
+# ====================================================================
+# 매치 결과: (cause, effect) — 항상 cause --caused_by-- effect 가 아니라
+# effect --caused_by--> cause 로 저장 ("effect는 cause 때문에 발생").
+# resulted_in 은 반대 방향: cause --resulted_in--> effect.
+#
+# 패턴 형식: (regex, relation, direction)
+#   direction="effect_caused_by_cause": group(1)=effect, group(2)=cause → effect --caused_by--> cause
+#   direction="cause_resulted_in_effect": group(1)=cause, group(2)=effect → cause --resulted_in--> effect
+#   direction="cause_caused_effect":     group(1)=cause, group(2)=effect → effect --caused_by--> cause
+_CAUSAL_PATTERNS = [
+    # 한국어 — "X 때문에/덕분에/으로 인해/탓에 Y" : X가 원인, Y가 결과
+    # 매치 그룹: (1)=cause, (2)=effect
+    (r'([가-힯\w]+)\s*(?:때문에|덕분에|으로\s*인해|로\s*인해|탓에)\s+([가-힯\w]+)', 'caused_by', 'cause_caused_effect'),
+    # 중국어 — "X 导致/引起/造成 Y" : X가 원인, Y가 결과
+    (r'([\u4e00-\u9fff\w]+)\s*(?:导致|引起|造成)\s*([\u4e00-\u9fff\w]+)', 'caused_by', 'cause_caused_effect'),
+    # 영어 — "X caused Y" : X가 원인, Y가 결과
+    (r'\b([A-Za-z][\w]*)\s+caused\s+([A-Za-z][\w]*)', 'caused_by', 'cause_caused_effect'),
+    # 영어 — "X led to Y" : X가 원인, Y가 결과
+    (r'\b([A-Za-z][\w]*)\s+led\s+to\s+([A-Za-z][\w]*)', 'caused_by', 'cause_caused_effect'),
+    # 영어 — "X resulted in Y" : X가 원인, Y가 결과
+    (r'\b([A-Za-z][\w]*)\s+resulted\s+in\s+([A-Za-z][\w]*)', 'resulted_in', 'cause_resulted_in_effect'),
 ]
 
 _STOPWORDS = {
@@ -254,11 +281,31 @@ class GraphMixin:
                     pass
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
+            # Pre-migration: 구버전 DB(graph_type 없는 edges 테이블) 대응.
+            # _SCHEMA에 graph_type 관련 INDEX가 있어서, ALTER 먼저 해야 executescript가 깨지지 않음.
+            self._migrate_edges_graph_type(conn)
             conn.executescript(_SCHEMA)
             conn.commit()
             self._graph_conn = conn
             self._graph_db_path = db_path
         return self._graph_conn
+
+    def _migrate_edges_graph_type(self, conn: sqlite3.Connection) -> None:
+        """Add graph_type column to existing edges tables (idempotent).
+
+        v2.3+: edges.graph_type ∈ {entity, temporal, causal, semantic}.
+        Old rows default to 'entity'.
+        """
+        try:
+            cols = [row[1] for row in conn.execute("PRAGMA table_info(edges)").fetchall()]
+            if "graph_type" not in cols:
+                conn.execute("ALTER TABLE edges ADD COLUMN graph_type TEXT DEFAULT 'entity'")
+                conn.execute("UPDATE edges SET graph_type='entity' WHERE graph_type IS NULL")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_edges_graph_type ON edges(graph_type)")
+                conn.commit()
+        except Exception:
+            # 마이그레이션 실패 시에도 graph 자체는 동작해야 함
+            pass
 
     def _now(self) -> str:
         return datetime.now(timezone.utc).isoformat()
@@ -297,25 +344,32 @@ class GraphMixin:
         weight: float = 1.0,
         valid_from: Optional[str] = None,
         valid_until: Optional[str] = None,
+        *,
+        graph_type: str = "entity",
     ) -> None:
-        """Add an edge between two nodes. Auto-creates nodes if missing."""
+        """Add an edge between two nodes. Auto-creates nodes if missing.
+
+        graph_type: 'entity' | 'temporal' | 'causal' | 'semantic' (v2.3+).
+        Default 'entity' preserves backward compatibility.
+        """
         from_id = from_id.lower().strip()
         to_id = to_id.lower().strip()
         relation = relation.lower().strip()
+        graph_type = (graph_type or "entity").lower().strip()
         # auto-create nodes
         self.graph_node(from_id)
         self.graph_node(to_id)
         now = self._now()
         with self._graph_db() as conn:
-            # avoid exact duplicates
+            # avoid exact duplicates (same triple + same graph_type)
             dup = conn.execute(
-                "SELECT id FROM edges WHERE from_id=? AND relation=? AND to_id=?",
-                (from_id, relation, to_id),
+                "SELECT id FROM edges WHERE from_id=? AND relation=? AND to_id=? AND graph_type=?",
+                (from_id, relation, to_id, graph_type),
             ).fetchone()
             if not dup:
                 conn.execute(
-                    "INSERT INTO edges(from_id,relation,to_id,weight,valid_from,valid_until,created_at) VALUES(?,?,?,?,?,?,?)",
-                    (from_id, relation, to_id, weight, valid_from, valid_until, now),
+                    "INSERT INTO edges(from_id,relation,to_id,weight,valid_from,valid_until,created_at,graph_type) VALUES(?,?,?,?,?,?,?,?)",
+                    (from_id, relation, to_id, weight, valid_from, valid_until, now, graph_type),
                 )
 
     def graph_neighbors(
@@ -400,6 +454,105 @@ class GraphMixin:
 
         return graph_results[:top_k]
 
+    def graph_causal_chain(
+        self,
+        event_id: str,
+        direction: str = "backward",
+        max_hops: int = 5,
+    ) -> List[dict]:
+        """Trace a causal chain from `event_id`.
+
+        direction="backward": event ← caused_by ← cause ← root_cause
+            (follow caused_by edges OUT from event)
+        direction="forward":  event → resulted_in → effect → consequence
+            (follow resulted_in edges OUT from event,
+             plus reverse caused_by edges INTO event's causes' siblings)
+
+        Returns list of dicts: [{id, relation, depth, graph_type, from_id, to_id}].
+        Cycle-safe (visited set) and bounded by max_hops.
+        """
+        event_id = event_id.lower().strip()
+        direction = (direction or "backward").lower().strip()
+        if direction not in ("backward", "forward"):
+            raise ValueError(f"direction must be 'backward' or 'forward', got {direction!r}")
+        if max_hops < 1:
+            return []
+
+        results: List[dict] = []
+        visited: set = {event_id}
+        # frontier item: (current_node_id, depth)
+        frontier: List[tuple] = [(event_id, 0)]
+
+        with self._graph_db() as conn:
+            while frontier:
+                cur, depth = frontier.pop(0)
+                if depth >= max_hops:
+                    continue
+
+                if direction == "backward":
+                    # follow caused_by from cur (cur --caused_by--> cause)
+                    rows = conn.execute(
+                        "SELECT from_id, relation, to_id, graph_type FROM edges "
+                        "WHERE from_id=? AND relation='caused_by' AND graph_type='causal'",
+                        (cur,),
+                    ).fetchall()
+                    for row in rows:
+                        nxt = row["to_id"]
+                        results.append({
+                            "id": nxt,
+                            "from_id": row["from_id"],
+                            "to_id": nxt,
+                            "relation": row["relation"],
+                            "depth": depth + 1,
+                            "graph_type": row["graph_type"],
+                        })
+                        if nxt not in visited:
+                            visited.add(nxt)
+                            frontier.append((nxt, depth + 1))
+                else:  # forward
+                    # follow resulted_in from cur (cur --resulted_in--> effect)
+                    # AND reverse caused_by INTO cur (effect --caused_by--> cur means cur caused effect)
+                    rows_resulted = conn.execute(
+                        "SELECT from_id, relation, to_id, graph_type FROM edges "
+                        "WHERE from_id=? AND relation='resulted_in' AND graph_type='causal'",
+                        (cur,),
+                    ).fetchall()
+                    rows_reverse = conn.execute(
+                        "SELECT from_id, relation, to_id, graph_type FROM edges "
+                        "WHERE to_id=? AND relation='caused_by' AND graph_type='causal'",
+                        (cur,),
+                    ).fetchall()
+                    # resulted_in: nxt = to_id
+                    for row in rows_resulted:
+                        nxt = row["to_id"]
+                        results.append({
+                            "id": nxt,
+                            "from_id": row["from_id"],
+                            "to_id": nxt,
+                            "relation": row["relation"],
+                            "depth": depth + 1,
+                            "graph_type": row["graph_type"],
+                        })
+                        if nxt not in visited:
+                            visited.add(nxt)
+                            frontier.append((nxt, depth + 1))
+                    # reverse caused_by: nxt = from_id (the effect)
+                    for row in rows_reverse:
+                        nxt = row["from_id"]
+                        results.append({
+                            "id": nxt,
+                            "from_id": row["from_id"],
+                            "to_id": row["to_id"],
+                            "relation": row["relation"],
+                            "depth": depth + 1,
+                            "graph_type": row["graph_type"],
+                        })
+                        if nxt not in visited:
+                            visited.add(nxt)
+                            frontier.append((nxt, depth + 1))
+
+        return results
+
     def graph_extract(self, text: str) -> dict:
         """Auto-extract entities and relations from text.
 
@@ -461,6 +614,46 @@ class GraphMixin:
                 self.graph_node(subject)
                 self.graph_node(obj)
                 self.graph_edge(subject, relation, obj)
+                nodes_added += 1
+                edges_added += 1
+
+        # Causal patterns (v2.3) — 인과 관계 자동 추출
+        for pattern, relation, direction in _CAUSAL_PATTERNS:
+            for match in re.finditer(pattern, text):
+                try:
+                    raw_a = match.group(1)
+                    raw_b = match.group(2)
+                except IndexError:
+                    continue
+                a = _strip_josa(raw_a).lower().strip()
+                b = _strip_josa(raw_b).lower().strip()
+                if not a or not b or a == b:
+                    continue
+                # 길이 가드 (English/CJK 혼합)
+                if not _HANGUL_RE.search(a) and not re.search(r'[\u4e00-\u9fff]', a) and len(a) < 2:
+                    continue
+                if not _HANGUL_RE.search(b) and not re.search(r'[\u4e00-\u9fff]', b) and len(b) < 2:
+                    continue
+                if a in _STOPWORDS or b in _STOPWORDS:
+                    continue
+                if a in _KO_STOPWORDS or b in _KO_STOPWORDS:
+                    continue
+                # direction 해석:
+                #   cause_caused_effect: a=cause, b=effect → effect --caused_by--> cause
+                #   cause_resulted_in_effect: a=cause, b=effect → cause --resulted_in--> effect
+                if direction == "cause_caused_effect":
+                    from_id, to_id = b, a  # effect --caused_by--> cause
+                elif direction == "cause_resulted_in_effect":
+                    from_id, to_id = a, b  # cause --resulted_in--> effect
+                else:
+                    from_id, to_id = a, b
+                key = (from_id, relation, to_id, "causal")
+                if key in seen_edges:
+                    continue
+                seen_edges.add(key)
+                self.graph_node(from_id)
+                self.graph_node(to_id)
+                self.graph_edge(from_id, relation, to_id, graph_type="causal")
                 nodes_added += 1
                 edges_added += 1
 

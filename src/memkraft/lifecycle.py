@@ -378,6 +378,18 @@ class LifecycleMixin:
             if status == "healthy":
                 status = "warning"
 
+        # v2.3 — suggest consolidate() when duplicates accumulate
+        try:
+            dup_count = self._count_duplicate_facts()  # type: ignore[attr-defined]
+        except Exception:
+            dup_count = 0
+        if dup_count > 10:
+            recommendations.append(
+                f"{dup_count} duplicate facts detected — run mk.consolidate() to merge"
+            )
+            if status == "healthy":
+                status = "warning"
+
         if not recommendations:
             recommendations.append("Memory is healthy ✅")
 

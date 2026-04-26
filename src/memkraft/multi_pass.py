@@ -300,6 +300,116 @@ class MultiPassMixin:
         results.sort(key=lambda x: x.get("_recorded_at", ""), reverse=True)
         return results[: max(top_k * 3, top_k)]
 
+    def _mp_rrf_blend(
+        self,
+        pass1: list[dict],
+        pass2: list[dict],
+        pass3: list[dict],
+        k: int = 60,
+    ) -> list[dict]:
+        """v2.3 — Combine the three passes via Reciprocal Rank Fusion.
+
+        Each pass list is assumed to be already sorted (it is — they
+        come from ``_mp_pass1/2/3`` which sort by their own scores).
+        RRF fuses by *rank* only, so we don't need score normalisation.
+
+        The resulting entries preserve the legacy ``pass_scores`` and
+        ``source_passes`` fields so existing callers that introspect
+        them keep working.  The new ``rrf_score`` / ``rrf_ranks``
+        fields surface the fusion details.
+        """
+        # Tag every input row so we can recover per-pass info after
+        # fusion (RRF only knows about ranks, not which pass).
+        def _tag(rows: list[dict], pass_id: int) -> list[dict]:
+            tagged: list[dict] = []
+            for r in rows or []:
+                if not isinstance(r, dict):
+                    continue
+                copy = dict(r)
+                copy["_mp_pass_id"] = pass_id
+                tagged.append(copy)
+            return tagged
+
+        # Use the same dedup logic as ``_mp_blend`` so RRF and weighted
+        # blend produce comparable membership.
+        def _key_for(r: dict) -> tuple:
+            f = r.get("file")
+            if f:
+                return ("file", f)
+            if r.get("_entity") is not None or r.get("_key") is not None:
+                return (
+                    "fact",
+                    (r.get("_entity") or r.get("match") or "").lower(),
+                    r.get("_key", ""),
+                    r.get("_value", ""),
+                )
+            if r.get("_relation") is not None:
+                return (
+                    "graph",
+                    (r.get("match") or "").lower(),
+                    r.get("_relation", ""),
+                    r.get("_neighbor_of", ""),
+                )
+            return ("entity", (r.get("match") or "").lower())
+
+        # Lazy import so the multi_pass module stays self-contained
+        # even if rrf hasn't been registered for some reason.
+        from .rrf import rrf_fuse
+
+        fused = rrf_fuse(
+            _tag(pass1, 1),
+            _tag(pass2, 2),
+            _tag(pass3, 3),
+            k=k,
+            key_fn=_key_for,
+        )
+
+        # Recover per-pass score components for backwards compat.  We
+        # walk the original lists once to look up the best per-pass
+        # score for every (key, pass) pair encountered.
+        def _scores_by_key(rows: list[dict]) -> dict:
+            best: dict[tuple, float] = {}
+            for r in rows or []:
+                if not isinstance(r, dict):
+                    continue
+                kkey = _key_for(r)
+                # Prefer existing _pN_score, else `score`.
+                cand = float(
+                    r.get("_p1_score") or r.get("_p2_score") or r.get("_p3_score")
+                    or r.get("score") or 0
+                )
+                if cand > best.get(kkey, -1.0):
+                    best[kkey] = cand
+            return best
+
+        p1_by_key = _scores_by_key(pass1)
+        p2_by_key = _scores_by_key(pass2)
+        p3_by_key = _scores_by_key(pass3)
+
+        out: list[dict] = []
+        for r in fused:
+            # Strip the temporary tag.
+            r.pop("_mp_pass_id", None)
+            kkey = _key_for(r)
+            p1 = p1_by_key.get(kkey, 0.0)
+            p2 = p2_by_key.get(kkey, 0.0)
+            p3 = p3_by_key.get(kkey, 0.0)
+            r["_p1_score"] = round(p1, 4)
+            r["_p2_score"] = round(p2, 4)
+            r["_p3_score"] = round(p3, 4)
+            r["pass_scores"] = {
+                "p1": round(p1, 4),
+                "p2": round(p2, 4),
+                "p3": round(p3, 4),
+            }
+            # Reflect which passes contributed (rrf_ranks tells us).
+            ranks = r.get("rrf_ranks") or [None, None, None]
+            r["source_passes"] = sorted(
+                i + 1 for i, rk in enumerate(ranks) if rk is not None
+            )
+            out.append(r)
+        return out
+
     def _mp_blend(
         self,
         pass1: list[dict],
@@ -398,6 +508,8 @@ class MultiPassMixin:
         query: str,
         top_k: int = 5,
         passes: int = 3,
+        use_rrf: bool = True,
+        rrf_k: int = 60,
     ) -> list[dict]:
         """Multi-pass retrieval for higher accuracy.
 
@@ -413,18 +525,32 @@ class MultiPassMixin:
             * 2 — Pass 1 + graph neighbour expansion (Pass 2).
             * 3 — Pass 1 + 2 + bitemporal fact timeline (Pass 3).
             Out-of-range values are clamped to [1, 3].
+        use_rrf:
+            When True (default, v2.3+) the per-pass results are fused
+            with **Reciprocal Rank Fusion** instead of the legacy
+            weighted blend.  RRF is score-scale agnostic and degrades
+            gracefully when one pass returns nothing — generally
+            preferred.  Set ``False`` to fall back to the v2.2
+            weighted blend (``0.5·p1 + 0.3·p2 + 0.2·p3``).
+        rrf_k:
+            RRF smoothing constant (default 60).  Only used when
+            ``use_rrf=True``.
 
         Returns
         -------
         list[dict]
             Ranked, deduplicated hits.  Each entry contains:
 
-            * ``score`` — blended score (0.5·p1 + 0.3·p2 + 0.2·p3)
-            * ``pass_scores`` — per-pass component scores
-            * ``source_passes`` — which passes contributed
-            * ``file`` — markdown file path (if a filesystem hit)
-            * ``match`` — best textual handle for the hit
-            * ``snippet`` — context snippet
+            * ``score`` — blended score.  When ``use_rrf=True`` this
+              equals ``rrf_score``; otherwise it's the weighted blend
+              ``0.5·p1 + 0.3·p2 + 0.2·p3``.
+            * ``pass_scores`` — per-pass component scores (legacy).
+            * ``source_passes`` — which passes contributed.
+            * ``rrf_score`` / ``rrf_ranks`` — present iff
+              ``use_rrf=True``.
+            * ``file`` — markdown file path (if a filesystem hit).
+            * ``match`` — best textual handle for the hit.
+            * ``snippet`` — context snippet.
         """
         if not isinstance(query, str) or not query.strip():
             return []
@@ -465,5 +591,8 @@ class MultiPassMixin:
             timeline_entities = list({*seed_entities, *expanded_entities})
             pass3 = self._mp_pass3(timeline_entities, top_k=top_k)
 
-        merged = self._mp_blend(pass1, pass2, pass3)
+        if use_rrf:
+            merged = self._mp_rrf_blend(pass1, pass2, pass3, k=rrf_k)
+        else:
+            merged = self._mp_blend(pass1, pass2, pass3)
         return merged[:top_k]

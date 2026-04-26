@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -1291,18 +1292,30 @@ class MemKraft:
         query_lower = query.lower()
         query_tokens = self._search_tokens(query_lower)
 
-        # Compute IDF (Inverse Document Frequency) for BM25-style scoring
+        # Compute IDF (Inverse Document Frequency) for BM25-style scoring.
+        # v2.3: also compute per-doc term frequencies + corpus length stats
+        # for full BM25 (Okapi) scoring as a 4th retrieval signal.
         all_files = list(self._all_md_files())
         doc_count = max(len(all_files), 1)
-        token_doc_freq = {}  # How many docs contain each token
+        token_doc_freq: Dict[str, int] = {}  # How many docs contain each token
+        doc_token_freqs: Dict[Path, Dict[str, int]] = {}  # Per-doc TF map
+        doc_lengths: Dict[Path, int] = {}  # Per-doc length in tokens
+        total_tokens = 0
         for md in all_files:
             try:
                 doc_text = md.read_text(encoding="utf-8", errors="replace").lower()
             except OSError:
                 continue
-            doc_tokens = set(self._search_tokens(doc_text))
-            for t in doc_tokens:
+            doc_tok_list = self._search_tokens(doc_text)
+            tf_map: Dict[str, int] = {}
+            for t in doc_tok_list:
+                tf_map[t] = tf_map.get(t, 0) + 1
+            doc_token_freqs[md] = tf_map
+            doc_lengths[md] = len(doc_tok_list)
+            total_tokens += len(doc_tok_list)
+            for t in tf_map:
                 token_doc_freq[t] = token_doc_freq.get(t, 0) + 1
+        avg_doc_len = (total_tokens / doc_count) if doc_count > 0 else 0.0
 
         for md in all_files:
             try:
@@ -1317,6 +1330,7 @@ class MemKraft:
             lines_orig = content.split("\n")
             exact_score = 0.0
             token_score = 0.0
+            bm25_score = 0.0
             fuzzy_score = 0.0
             phrase_bonus = 0.0
             heading_bonus = 0.0
@@ -1351,6 +1365,31 @@ class MemKraft:
                 token_score = matched_weight / total_idf
                 if token_score and not best_snippet:
                     best_snippet = self._best_token_snippet(query_tokens, lines, lines_orig)
+
+                # v2.3: BM25 (Okapi) scoring — a 4th retrieval signal that
+                # rewards term frequency with saturation (k1) and length
+                # normalisation (b), which the simple IDF-weighted overlap
+                # above does not.  Filename tokens count as TF=1 if absent
+                # from the body so single-token entity files still score.
+                tf_map = doc_token_freqs.get(md, {})
+                doc_len = doc_lengths.get(md, 0)
+                bm25_raw = self._bm25_score(
+                    query_tokens=query_tokens,
+                    doc_tf=tf_map,
+                    doc_length=doc_len,
+                    avg_doc_length=avg_doc_len,
+                    doc_count=doc_count,
+                    token_doc_freq=token_doc_freq,
+                    filename_tokens=filename_tokens,
+                )
+                # Normalise BM25 to roughly [0, 1]: divide by an upper
+                # bound estimate (each query token contributing ~ idf_max
+                # * (k1+1)).  We re-use the same idf weights computed
+                # above so blend coefficients stay scale-aligned with
+                # the existing token_score.
+                idf_max_sum = sum(idf_weights) if idf_weights else 1.0
+                norm = idf_max_sum * 2.5  # k1+1 with default k1=1.5
+                bm25_score = min(1.0, bm25_raw / norm) if norm > 0 else 0.0
 
                 # Phrase matching: consecutive bigrams get a bonus
                 if len(query_tokens) >= 2:
@@ -1398,13 +1437,25 @@ class MemKraft:
                 if fuzzy_score >= 0.3 and not best_snippet:
                     best_snippet = best_fuzzy_snippet
 
-            # Composite scoring with phrase, heading, and recency bonuses
+            # Composite scoring with phrase, heading, and recency bonuses.
+            # v2.3: BM25 added as a 4th signal.  Weights are tuned to keep
+            # behaviour close to v2.2 on existing tests while letting BM25
+            # tip rankings on TF-heavy or length-disparate corpora.
             if exact_score:
-                final_score = max(exact_score, min(1.0, (exact_score * 0.65) + (token_score * 0.3)))
+                # Exact match dominates; BM25 helps tie-break across multiple
+                # exact matches by rewarding TF and shorter docs.
+                final_score = max(
+                    exact_score,
+                    min(1.0, (exact_score * 0.55) + (token_score * 0.25) + (bm25_score * 0.20)),
+                )
             else:
-                final_score = min(1.0, (token_score * 0.6) + (fuzzy_score * 0.4))
+                # No exact: blend IDF-overlap, BM25, and fuzzy.
+                final_score = min(
+                    1.0,
+                    (token_score * 0.45) + (bm25_score * 0.30) + (fuzzy_score * 0.25),
+                )
             final_score = min(1.0, final_score + phrase_bonus + heading_bonus + recency_bonus)
-            if exact_score or token_score or (fuzzy and fuzzy_score >= 0.3):
+            if exact_score or token_score or bm25_score or (fuzzy and fuzzy_score >= 0.3):
                 results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
         results.sort(key=lambda x: x["score"], reverse=True)
@@ -3908,6 +3959,108 @@ class MemKraft:
     def _search_tokens(self, text: str) -> list:
         """Tokenize search text for dependency-free hybrid matching."""
         return [t for t in re.findall(r'[\w\uAC00-\uD7AF\u4E00-\u9FFF]+', text.lower()) if len(t) > 1]
+
+    # ── BM25 scoring (v2.3) ───────────────────────────────────
+    def _get_corpus_stats(self) -> Tuple[int, float]:
+        """Return ``(doc_count, avg_doc_len)`` for the markdown corpus.
+
+        ``doc_count`` counts all markdown files reachable from
+        :py:meth:`_all_md_files`.  ``avg_doc_len`` is the average length
+        in tokens (using the same tokenizer as the rest of the search
+        pipeline).  Returns ``(0, 0.0)`` if the corpus is empty.
+        """
+        total_tokens = 0
+        n = 0
+        for md in self._all_md_files():
+            try:
+                text = md.read_text(encoding="utf-8", errors="replace").lower()
+            except OSError:
+                continue
+            total_tokens += len(self._search_tokens(text))
+            n += 1
+        if n == 0:
+            return 0, 0.0
+        return n, total_tokens / n
+
+    def _bm25_score(
+        self,
+        query_tokens: List[str],
+        doc_tf: Dict[str, int],
+        doc_length: int,
+        avg_doc_length: float,
+        doc_count: int,
+        token_doc_freq: Dict[str, int],
+        filename_tokens: Optional[set] = None,
+        k1: float = 1.5,
+        b: float = 0.75,
+    ) -> float:
+        """Compute Okapi BM25 score for a single (query, document) pair.
+
+        Pure stdlib (uses :pymod:`math` only).  Does not depend on any
+        external retrieval library.  When the corpus is empty or all
+        inputs are zero, returns ``0.0`` rather than raising.
+
+        Formula::
+
+            BM25(q, d) = Σ_{q_i ∈ q} IDF(q_i) *
+                         tf(q_i, d) * (k1 + 1) /
+                         (tf(q_i, d) + k1 * (1 - b + b * |d| / avgdl))
+
+        Standard BM25 IDF (Robertson-Sparck-Jones, smoothed)::
+
+            IDF(q_i) = log( (N - n(q_i) + 0.5) / (n(q_i) + 0.5) + 1 )
+
+        Parameters
+        ----------
+        query_tokens:
+            Tokenised query (lowercased, len>1 — same shape as
+            :py:meth:`_search_tokens`).
+        doc_tf:
+            Mapping ``token -> raw count`` for the document body.
+        doc_length:
+            Number of tokens in the document body.
+        avg_doc_length:
+            Corpus average document length in tokens.
+        doc_count:
+            Total number of documents in the corpus (``N``).
+        token_doc_freq:
+            Mapping ``token -> document frequency`` across the corpus.
+        filename_tokens:
+            Optional set of tokens drawn from the filename / entity
+            slug.  Each member contributes a synthetic TF=1 if it is
+            absent from the body so single-token entity files still
+            score on lookup.
+        k1, b:
+            Standard BM25 hyperparameters (defaults match Lucene).
+        """
+        if not query_tokens or doc_count <= 0:
+            return 0.0
+        # Avoid division-by-zero when the corpus is degenerate.
+        avgdl = avg_doc_length if avg_doc_length and avg_doc_length > 0 else 1.0
+        # Length normalisation factor (B in BM25 papers); uses doc_length
+        # so longer-than-average docs are penalised, shorter ones boosted.
+        length_norm = (1.0 - b) + b * (doc_length / avgdl)
+        score = 0.0
+        fname = filename_tokens or set()
+        for qi in query_tokens:
+            tf = doc_tf.get(qi, 0)
+            # Filename match bumps TF to at least 1 — critical for entity
+            # files where the slug is the only place the term appears.
+            if tf == 0 and qi in fname:
+                tf = 1
+            if tf == 0:
+                continue
+            n_qi = token_doc_freq.get(qi, 0)
+            # Standard BM25 IDF; +1 inside log keeps it non-negative
+            # even for very common terms (n_qi > N/2).
+            idf = math.log(((doc_count - n_qi + 0.5) / (n_qi + 0.5)) + 1.0)
+            if idf <= 0:
+                continue
+            denom = tf + k1 * length_norm
+            if denom <= 0:
+                continue
+            score += idf * (tf * (k1 + 1.0)) / denom
+        return score
 
     def _best_token_snippet(self, query_tokens: list, lines: list, lines_orig: list) -> str:
         best_idx = 0
