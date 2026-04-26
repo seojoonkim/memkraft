@@ -1,0 +1,109 @@
+{
+  "split": "32k",
+  "model": "minpeter/gpt-5.4",
+  "variants": [
+    "baseline",
+    "validator"
+  ],
+  "n_questions": 30,
+  "n_completed": 30,
+  "max_sessions": 5,
+  "concurrency": 5,
+  "run_stats": {
+    "ingestions": 9,
+    "total_statements": 4052,
+    "total_preferences": 1028,
+    "total_facts": 3060,
+    "graph_edges_added": 5677,
+    "graph_synced_personas": 9
+  },
+  "validator_stats": {
+    "revisions_triggered": 0,
+    "revisions_changed_answer": 0,
+    "avg_sessions_selected": 3.3,
+    "_session_sum": 99,
+    "_session_n": 30
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 30,
+      "correct": 25,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 5,
+          "correct": 4,
+          "accuracy": 80.0
+        },
+        "aligned_recommendation": {
+          "total": 5,
+          "correct": 3,
+          "accuracy": 60.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 5,
+          "accuracy": 83.33333333333334
+        },
+        "preference_reasons": {
+          "total": 7,
+          "correct": 7,
+          "accuracy": 100.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 3,
+          "accuracy": 100.0
+        },
+        "cross_domain_transfer": {
+          "total": 4,
+          "correct": 3,
+          "accuracy": 75.0
+        }
+      },
+      "errors": [],
+      "accuracy": 83.33333333333334
+    },
+    "validator": {
+      "variant": "validator",
+      "total": 30,
+      "correct": 24,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 5,
+          "correct": 4,
+          "accuracy": 80.0
+        },
+        "aligned_recommendation": {
+          "total": 5,
+          "correct": 3,
+          "accuracy": 60.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 4,
+          "accuracy": 66.66666666666666
+        },
+        "preference_reasons": {
+          "total": 7,
+          "correct": 7,
+          "accuracy": 100.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 3,
+          "accuracy": 100.0
+        },
+        "cross_domain_transfer": {
+          "total": 4,
+          "correct": 3,
+          "accuracy": 75.0
+        }
+      },
+      "errors": [],
+      "accuracy": 80.0
+    }
+  },
+  "elapsed_seconds": 30.22431516647339,
+  "memkraft_dir": "/tmp/personamem-validator-32k-1777124843"
+}

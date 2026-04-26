@@ -1,0 +1,96 @@
+{
+  "split": "32k",
+  "model": "gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "validator"
+  ],
+  "n_questions": 10,
+  "n_completed": 10,
+  "max_sessions": 5,
+  "run_stats": {
+    "ingestions": 6,
+    "total_statements": 2828,
+    "total_preferences": 671,
+    "total_facts": 2187
+  },
+  "validator_stats": {
+    "revisions_triggered": 0,
+    "revisions_changed_answer": 0,
+    "avg_sessions_selected": 2.0,
+    "_session_sum": 20,
+    "_session_n": 10
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 10,
+      "correct": 5,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 1,
+          "accuracy": 100.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 50.0
+        },
+        "preference_reasons": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 50.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 2,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 50.0
+    },
+    "validator": {
+      "variant": "validator",
+      "total": 10,
+      "correct": 4,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 1,
+          "accuracy": 100.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 50.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 2,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 40.0
+    }
+  },
+  "elapsed_seconds": 33.168737173080444,
+  "memkraft_dir": "/tmp/personamem-validator-32k-1777005910"
+}

@@ -1,0 +1,138 @@
+{
+  "split": "32k",
+  "model": "gpt-5.4",
+  "variants": [
+    "baseline",
+    "hybrid",
+    "memkraft"
+  ],
+  "n_questions": 589,
+  "n_completed": 589,
+  "run_stats": {
+    "ingestions": 222,
+    "total_statements": 88345,
+    "total_preferences": 24572,
+    "total_facts": 64361
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 589,
+      "correct": 404,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 88,
+          "accuracy": 60.273972602739725
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 35,
+          "accuracy": 63.63636363636363
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 40,
+          "accuracy": 43.01075268817204
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 92,
+          "accuracy": 92.92929292929293
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 118,
+          "accuracy": 84.89208633093526
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 31,
+          "accuracy": 54.385964912280706
+        }
+      },
+      "errors": [],
+      "accuracy": 68.59083191850594
+    },
+    "hybrid": {
+      "variant": "hybrid",
+      "total": 589,
+      "correct": 422,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 108,
+          "accuracy": 73.97260273972603
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 41,
+          "accuracy": 74.54545454545455
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 37,
+          "accuracy": 39.784946236559136
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 91,
+          "accuracy": 91.91919191919192
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 107,
+          "accuracy": 76.97841726618705
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 38,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 71.64685908319186
+    },
+    "memkraft": {
+      "variant": "memkraft",
+      "total": 589,
+      "correct": 401,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 107,
+          "accuracy": 73.28767123287672
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 39,
+          "accuracy": 70.9090909090909
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 33,
+          "accuracy": 35.483870967741936
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 89,
+          "accuracy": 89.8989898989899
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 99,
+          "accuracy": 71.22302158273382
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 34,
+          "accuracy": 59.64912280701754
+        }
+      },
+      "errors": [],
+      "accuracy": 68.08149405772495
+    }
+  },
+  "elapsed_seconds": 3876.9325761795044,
+  "memkraft_dir": "/tmp/personamem-v3-32k-1777003476"
+}

@@ -1,0 +1,212 @@
+{
+  "split": "32k",
+  "model": "gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "hybrid",
+    "memkraft"
+  ],
+  "n_questions": 589,
+  "n_completed": 589,
+  "run_stats": {
+    "ingestions": 28,
+    "total_statements": 11109,
+    "total_preferences": 2830,
+    "total_facts": 8384
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 589,
+      "correct": 264,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 51,
+          "accuracy": 34.93150684931507
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 29,
+          "accuracy": 52.72727272727272
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 11,
+          "accuracy": 11.827956989247312
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 76,
+          "accuracy": 76.76767676767676
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 80,
+          "accuracy": 57.55395683453237
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 17,
+          "accuracy": 29.82456140350877
+        }
+      },
+      "errors": [],
+      "accuracy": 44.821731748726656
+    },
+    "hybrid": {
+      "variant": "hybrid",
+      "total": 589,
+      "correct": 271,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 63,
+          "accuracy": 43.15068493150685
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 26,
+          "accuracy": 47.27272727272727
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 14,
+          "accuracy": 15.053763440860216
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 80,
+          "accuracy": 80.8080808080808
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 71,
+          "accuracy": 51.07913669064749
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 17,
+          "accuracy": 29.82456140350877
+        }
+      },
+      "errors": [
+        {
+          "question_id": "8a9b6111-b02d-4b1c-91c6-709dce04ed32",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 132129 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "d0a587cb-1cdb-4da8-a1d9-0da95ea20692",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 156479 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "9492b5c4-d599-44bf-841b-984df1980afb",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 162159 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "5117e665-5204-44ae-9946-0c984965c04e",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 167424 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "505211c2-1447-48b7-8996-216cbb7074cc",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 173398 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "565d9692-1304-4f6e-b972-9a45acab7526",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 179535 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "ddfcb0a4-e359-48ef-8aa5-ad8114c33e24",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 138948 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "d5793edd-353a-4693-97f8-3e62ff136a58",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 144846 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "e8a47456-4f95-4230-9a98-0abd824dc3cb",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 150681 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "e3f5e3eb-81b1-4095-a268-b8768eacf667",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 156714 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "609d3e48-48b8-4cfd-bb2c-7d242d97144f",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 132433 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "3e613d48-6538-43c5-87a1-9c4a142df571",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 139631 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        }
+      ],
+      "accuracy": 46.01018675721562
+    },
+    "memkraft": {
+      "variant": "memkraft",
+      "total": 589,
+      "correct": 304,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 146,
+          "correct": 84,
+          "accuracy": 57.534246575342465
+        },
+        "aligned_recommendation": {
+          "total": 55,
+          "correct": 31,
+          "accuracy": 56.36363636363636
+        },
+        "novel_suggestion": {
+          "total": 93,
+          "correct": 13,
+          "accuracy": 13.978494623655912
+        },
+        "preference_reasons": {
+          "total": 99,
+          "correct": 77,
+          "accuracy": 77.77777777777779
+        },
+        "preference_evolution": {
+          "total": 139,
+          "correct": 66,
+          "accuracy": 47.482014388489205
+        },
+        "cross_domain_transfer": {
+          "total": 57,
+          "correct": 33,
+          "accuracy": 57.89473684210527
+        }
+      },
+      "errors": [
+        {
+          "question_id": "d0a587cb-1cdb-4da8-a1d9-0da95ea20692",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 133970 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "9492b5c4-d599-44bf-841b-984df1980afb",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 139236 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "5117e665-5204-44ae-9946-0c984965c04e",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 144204 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "505211c2-1447-48b7-8996-216cbb7074cc",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 149617 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "565d9692-1304-4f6e-b972-9a45acab7526",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 155120 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        },
+        {
+          "question_id": "e3f5e3eb-81b1-4095-a268-b8768eacf667",
+          "error": "Error code: 400 - {'error': {'message': \"This model's maximum context length is 128000 tokens. However, your messages resulted in 129439 tokens. Please reduce the length of the messages.\", 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded'}}"
+        }
+      ],
+      "accuracy": 51.61290322580645
+    }
+  },
+  "elapsed_seconds": 763.8569102287292,
+  "memkraft_dir": "/tmp/personamem-v3-32k-1776999717"
+}

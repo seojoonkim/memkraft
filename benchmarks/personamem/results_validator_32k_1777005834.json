@@ -1,0 +1,86 @@
+{
+  "split": "32k",
+  "model": "gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "validator"
+  ],
+  "n_questions": 5,
+  "n_completed": 5,
+  "max_sessions": 5,
+  "run_stats": {
+    "ingestions": 1,
+    "total_statements": 501,
+    "total_preferences": 122,
+    "total_facts": 384
+  },
+  "validator_stats": {
+    "revisions_triggered": 5,
+    "revisions_changed_answer": 5,
+    "avg_sessions_selected": 2.0,
+    "_session_sum": 10,
+    "_session_n": 5
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 5,
+      "correct": 2,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 1,
+          "accuracy": 100.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 50.0
+        },
+        "preference_reasons": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [],
+      "accuracy": 40.0
+    },
+    "validator": {
+      "variant": "validator",
+      "total": 5,
+      "correct": 1,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 50.0
+        },
+        "preference_reasons": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [],
+      "accuracy": 20.0
+    }
+  },
+  "elapsed_seconds": 57.95191287994385,
+  "memkraft_dir": "/tmp/personamem-validator-32k-1777005777"
+}

@@ -154,6 +154,65 @@ class BitemporalMixin:
 
     # --- public API --------------------------------------------------------
 
+    # --- internal helpers (v2.2) ------------------------------------------
+
+    def _close_stale_facts(
+        self,
+        entity: str,
+        key: str,
+        new_valid_from: Optional[str],
+        *,
+        recorded_at: Optional[str] = None,
+    ) -> int:
+        """Auto-close any open-ended fact(s) for ``entity.key`` (v2.2).
+
+        Sets ``valid_to`` on every existing fact for ``key`` whose
+        ``valid_to`` is ``None``. The closing date is ``new_valid_from``
+        when provided, otherwise today.
+
+        Only facts with ``valid_from <= new_valid_from`` are closed; a
+        future-dated existing fact is left untouched (cannot retroactively
+        close something that hasn't started yet).
+
+        Returns the number of facts modified.
+        """
+        path = self._fact_file(entity)
+        if not path.exists():
+            return 0
+
+        close_at = _normalise_date(new_valid_from) or _now_iso().split("T")[0]
+        rec = _normalise_date(recorded_at) or _now_iso()
+
+        modified = 0
+        new_lines: List[str] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            parsed = parse_line(line)
+            should_close = (
+                parsed is not None
+                and parsed["key"] == key
+                and parsed["valid_to"] is None
+                and (
+                    parsed["valid_from"] is None
+                    or parsed["valid_from"] <= close_at
+                )
+            )
+            if should_close:
+                new_line = format_line(
+                    parsed["key"],
+                    parsed["value"],
+                    parsed["valid_from"],
+                    close_at,
+                    rec,
+                )
+                new_lines.append(new_line)
+                modified += 1
+            else:
+                new_lines.append(line)
+
+        if modified:
+            path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        return modified
+
     def fact_add(
         self,
         entity: str,
@@ -163,12 +222,26 @@ class BitemporalMixin:
         valid_from: Optional[str] = None,
         valid_to: Optional[str] = None,
         recorded_at: Optional[str] = None,
+        auto_close_stale: bool = True,
     ) -> Dict[str, Any]:
         """Append a new fact to ``entity``'s fact file.
 
         Parameters are keyword-only (except the three positional ones) so we
         can add new optional parameters later without breaking callers.
         Returns the stored fact as a dict.
+
+        v2.2 — Knowledge Update auto-detect
+        ------------------------------------
+        When ``auto_close_stale=True`` (default) and the new fact is
+        open-ended (``valid_to is None``), any existing open-ended fact for
+        the same ``entity.key`` will be automatically closed: its
+        ``valid_to`` is set to the new fact's ``valid_from`` (or today, if
+        ``valid_from`` is also None). This implements the
+        ``role: CEO -> role: CTO`` pattern without requiring an explicit
+        ``fact_invalidate`` call.
+
+        Pass ``auto_close_stale=False`` to opt out (e.g. when backfilling
+        historical facts that should coexist with the currently-open fact).
         """
         if not entity or not entity.strip():
             raise ValueError("entity must be a non-empty string")
@@ -184,6 +257,18 @@ class BitemporalMixin:
         if vf and vt and vf > vt:
             raise ValueError(
                 f"valid_from ({vf}) must be <= valid_to ({vt})"
+            )
+
+        # v2.2: auto-close any stale open-ended fact for the same key.
+        # Only triggered when the new fact itself is open-ended; backfilling
+        # a closed historical fact (valid_to set) should not retroactively
+        # close the currently-open fact.
+        if auto_close_stale and vt is None:
+            self._close_stale_facts(
+                entity,
+                key.strip(),
+                vf,
+                recorded_at=rec,
             )
 
         path = self._fact_file(entity)

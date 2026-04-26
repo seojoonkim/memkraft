@@ -1,0 +1,349 @@
+{
+  "split": "32k",
+  "model": "openai/gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "validator"
+  ],
+  "n_questions": 30,
+  "n_completed": 30,
+  "max_sessions": 5,
+  "concurrency": 5,
+  "run_stats": {
+    "ingestions": 0,
+    "total_statements": 0,
+    "total_preferences": 0,
+    "total_facts": 0
+  },
+  "validator_stats": {
+    "revisions_triggered": 0,
+    "revisions_changed_answer": 0,
+    "avg_sessions_selected": 0.0,
+    "_session_sum": 0,
+    "_session_n": 0
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 30,
+      "correct": 0,
+      "by_type": {
+        "aligned_recommendation": {
+          "total": 5,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 7,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "static_fact_recall": {
+          "total": 5,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "cross_domain_transfer": {
+          "total": 4,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39104 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38989 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b3588797-acdf-40d3-bcc5-951f81896f95",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39040 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "5370f186-0028-41f4-b436-c48575899fca",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39152 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "acd74206-37dc-4756-94a8-b99a395d9a21",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38819 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 36657 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2cef53ac-c165-41b5-a31f-c3064106471f",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 34520 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "fd81b480-5723-43fe-9fb1-d3efa0df8e49",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38929 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "4afc48ca-e6a7-4467-abd2-911915199315",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 36389 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 36999 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39151 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "ce9c7c39-c600-4971-9a7d-51a46e6c915c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39263 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "60023d63-4f11-47dc-8cef-82e3ca665a68",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39215 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "217481b7-ad97-45d8-988f-abb3f9cf9b34",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39100 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b4812983-2c33-48ae-8955-1a19f78f7f54",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38873 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "344ea859-e70d-48d2-8a97-7b68a104c6ae",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39557 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c6d22f3d-282f-4e11-b9fd-39e2a687ef18",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 39220 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c2d3daad-6d3b-4852-8830-39f830f6cd01",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37070 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "96589b76-f0fa-4214-a110-c6f13ef15e83",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37489 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37584 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b449e614-d27f-4df4-9fb2-b4726a3423d8",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37373 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "d71b360e-da59-480b-823e-a83e8c320b9c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37282 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "7a4ed201-4f7e-4d9c-a3f3-c5a2b8d424b3",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37086 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "7957ef21-86bb-4641-8a06-4ee2272f1c32",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37224 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "3952f3c2-d810-4fd9-a461-8753406142a3",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37425 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "221c8369-8ac4-447e-a13c-6088536f9abf",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 36273 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "afd724f4-8174-48d7-b9cd-34421c581550",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37448 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "346a304a-4371-46ac-a8f7-021f25812b52",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37212 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "32b03409-0710-4afd-89c1-9af72c339b4c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 37265 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "848b2923-33da-4ebc-86b5-e70374311fd2",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 33948 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    },
+    "validator": {
+      "variant": "validator",
+      "total": 30,
+      "correct": 0,
+      "by_type": {
+        "aligned_recommendation": {
+          "total": 5,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 7,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "static_fact_recall": {
+          "total": 5,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "cross_domain_transfer": {
+          "total": 4,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38360 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38246 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b3588797-acdf-40d3-bcc5-951f81896f95",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38296 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "5370f186-0028-41f4-b436-c48575899fca",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38408 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "acd74206-37dc-4756-94a8-b99a395d9a21",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38075 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 35913 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2cef53ac-c165-41b5-a31f-c3064106471f",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 33776 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "fd81b480-5723-43fe-9fb1-d3efa0df8e49",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38186 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "4afc48ca-e6a7-4467-abd2-911915199315",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 35645 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 36255 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38407 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "ce9c7c39-c600-4971-9a7d-51a46e6c915c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38519 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "60023d63-4f11-47dc-8cef-82e3ca665a68",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38471 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "217481b7-ad97-45d8-988f-abb3f9cf9b34",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38356 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b4812983-2c33-48ae-8955-1a19f78f7f54",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38129 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "344ea859-e70d-48d2-8a97-7b68a104c6ae",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38813 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c6d22f3d-282f-4e11-b9fd-39e2a687ef18",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 38476 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "c2d3daad-6d3b-4852-8830-39f830f6cd01",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29616 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "96589b76-f0fa-4214-a110-c6f13ef15e83",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 30400 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 30495 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b449e614-d27f-4df4-9fb2-b4726a3423d8",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29920 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "d71b360e-da59-480b-823e-a83e8c320b9c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 30194 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "7a4ed201-4f7e-4d9c-a3f3-c5a2b8d424b3",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29632 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "7957ef21-86bb-4641-8a06-4ee2272f1c32",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 30136 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "3952f3c2-d810-4fd9-a461-8753406142a3",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29972 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "221c8369-8ac4-447e-a13c-6088536f9abf",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 28819 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "afd724f4-8174-48d7-b9cd-34421c581550",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29995 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "346a304a-4371-46ac-a8f7-021f25812b52",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 30123 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "32b03409-0710-4afd-89c1-9af72c339b4c",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 29812 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "848b2923-33da-4ebc-86b5-e70374311fd2",
+          "error": "APIStatusError: Error code: 402 - {'error': {'message': 'Prompt tokens limit exceeded: 33188 > 7976. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    }
+  },
+  "elapsed_seconds": 62.41710424423218,
+  "memkraft_dir": "/tmp/personamem-validator-32k-1777121981"
+}

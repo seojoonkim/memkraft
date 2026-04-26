@@ -1,0 +1,66 @@
+{
+  "split": "128k",
+  "model": "openai/gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "validator"
+  ],
+  "n_questions": 1,
+  "n_completed": 1,
+  "max_sessions": 5,
+  "run_stats": {
+    "ingestions": 1,
+    "total_statements": 1711,
+    "total_preferences": 448,
+    "total_facts": 1268
+  },
+  "validator_stats": {
+    "revisions_triggered": 0,
+    "revisions_changed_answer": 0,
+    "avg_sessions_selected": 0.0,
+    "_session_sum": 0,
+    "_session_n": 0
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 1,
+      "correct": 0,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "a5239a59-3d52-4b96-a7a6-e2fb00af973b",
+          "error": "BadRequestError: Error code: 400 - {'error': {'message': \"This endpoint's maximum context length is 128000 tokens. However, you requested about 167126 tokens (166102 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.\", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    },
+    "validator": {
+      "variant": "validator",
+      "total": 1,
+      "correct": 0,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "a5239a59-3d52-4b96-a7a6-e2fb00af973b",
+          "error": "BadRequestError: Error code: 400 - {'error': {'message': \"This endpoint's maximum context length is 128000 tokens. However, you requested about 163325 tokens (162301 of text input, 1024 in the output). Please reduce the length of either one, or use the context-compression plugin to compress your prompt automatically.\", 'code': 400, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    }
+  },
+  "elapsed_seconds": 17.26040506362915,
+  "memkraft_dir": "/tmp/personamem-validator-128k-1777074996"
+}

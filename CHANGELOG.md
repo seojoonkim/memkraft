@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## [2.2.0] — 2026-04-26
+
+### Added
+- **Knowledge Update Auto-Close** — `fact_add()`에서 같은 entity+key의 기존 open-ended fact를 자동 종료. `auto_close_stale=True` (기본값). CEO→CTO 전환 시 이전 role 자동 종료. `tests/test_knowledge_update.py` 20 케이스.
+- **Multi-Pass Retrieval** — `search_multi(passes=3)`: Pass 1 (exact+fuzzy) → Pass 2 (graph expansion) → Pass 3 (temporal timeline). 0.5·p1 + 0.3·p2 + 0.2·p3 블렌딩. `tests/test_multi_pass.py` 21 케이스.
+- **Question-Type Routing** — `search_smart_v2(query)`: 5가지 질문 유형 자동 분류 + 유형별 검색 전략 (single_session / multi_session / knowledge_update / temporal_reasoning / preference). `tests/test_question_routing.py` 32 케이스.
+
+### Tests
+- 전체: **950 passed, 3 skipped** (신규 회귀 0)
+- 신규: test_knowledge_update.py (20), test_multi_pass.py (21), test_question_routing.py (32) — 총 73개
+- 주의: test_hierarchical.py 12개 실패는 기존 baseline (별도 hierarchical 모듈 통합 미완료, v2.2.0 신규 기능과 무관)
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+Zero breaking changes. v2.1.x API 시그니처 100% 유지.
+
+---
+
 ## [2.1.0] — 2026-04-26
 
 ### Added
