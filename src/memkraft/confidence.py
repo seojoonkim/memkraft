@@ -277,6 +277,112 @@ class ConfidenceMixin:
         )
 
     # ------------------------------------------------------------------
+    # v2.5 — Temporal annotation + integrated context formatter.
+    # ------------------------------------------------------------------
+    def _annotate_temporal(self, result: dict) -> dict:
+        """Tag a result's snippet with ``[valid_from ~ valid_until]``.
+
+        Returns the *same* dict (mutates in place) for ergonomic
+        chaining.  Idempotent — if the snippet already begins with a
+        ``[... ~ ...]`` tag the function leaves it alone.
+        """
+        if not isinstance(result, dict):
+            return result
+        snippet = result.get("snippet") or ""
+        if isinstance(snippet, str) and snippet.lstrip().startswith("["):
+            # Already annotated — bail out (idempotency).
+            existing = snippet.lstrip()
+            if " ~ " in existing.split("]", 1)[0]:
+                return result
+        valid_from = result.get("valid_from")
+        valid_until = result.get("valid_until")
+        recorded_at = result.get("recorded_at") or result.get("asserted_at")
+        if not (valid_from or recorded_at):
+            return result
+        # Build the temporal tag.
+        vu = valid_until if valid_until else "present"
+        if valid_from:
+            if recorded_at and recorded_at != valid_from:
+                tag = f"[recorded: {recorded_at}, valid: {valid_from} ~ {vu}]"
+            else:
+                tag = f"[{valid_from} ~ {vu}]"
+        else:
+            tag = f"[recorded: {recorded_at}]"
+        result["_temporal_tag"] = tag
+        if snippet:
+            result["snippet"] = f"{tag} {snippet}".strip()
+        else:
+            result["snippet"] = tag
+        return result
+
+    def format_context_for_llm(
+        self,
+        results: list[dict] | None,
+        query: str = "",
+        question_type: str | None = None,
+        *,
+        max_chars: int = 5000,
+        max_lines: int | None = None,
+        max_snippet_chars: int = 220,
+        include_low: bool = True,
+    ) -> str:
+        """v2.5 integrated context formatter.
+
+        Pipeline:
+          1. Re-rank by question type (uses ``RerankMixin`` if attached).
+          2. Annotate each result with its temporal range.
+          3. Compress into ``max_chars`` (uses ``ContextCompressMixin`` if
+             attached) — picks the highest-priority unique facts.
+          4. Render with confidence tags (low-conf section is preserved
+             when ``include_low=True``).
+
+        Falls back gracefully when any optional mixin is missing — the
+        method always returns a non-``None`` string.
+        """
+        if not results:
+            return ""
+
+        rows: list[dict] = [r for r in results if isinstance(r, dict)]
+        if not rows:
+            return ""
+
+        # 1. Re-rank.
+        rerank = getattr(self, "rerank_for_question_type", None)
+        if callable(rerank) and question_type:
+            try:
+                rows = rerank(rows, question_type)
+            except Exception:
+                pass  # never let re-ranking break formatting.
+
+        # 2. Temporal annotation.
+        for r in rows:
+            self._annotate_temporal(r)
+
+        # 3. Compression.
+        compress_select = getattr(self, "_compress_select", None)
+        if callable(compress_select):
+            try:
+                rows = compress_select(
+                    rows,
+                    query=query,
+                    max_chars=max_chars,
+                    max_lines=max_lines,
+                    max_line_chars=max_snippet_chars,
+                )
+            except Exception:
+                pass
+
+        # 4. Render with confidence tags.
+        text = _format_results_for_llm(
+            rows,
+            include_low=include_low,
+            max_snippet_chars=max_snippet_chars,
+        )
+        if len(text) > max_chars:
+            text = text[:max_chars]
+        return text
+
+    # ------------------------------------------------------------------
     # Convenience entry point that always emits confidence labels.
     # ------------------------------------------------------------------
     def search_with_confidence(

@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.3.2"
+__version__ = "2.3.3"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -28,6 +28,8 @@ from .confidence import (  # v2.4 confidence + implicit-acquisition
     ConfidenceMixin,
     install_confidence_wrappers,
 )
+from .context_compress import ContextCompressMixin  # v2.5 context compression
+from .rerank import RerankMixin  # v2.5 question-type-aware re-ranking
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -62,6 +64,8 @@ for _mixin in (
     RoutingMixin,
     RRFMixin,
     ConsolidationMixin,
+    ContextCompressMixin,
+    RerankMixin,
     ConfidenceMixin,
     TemporalChainMixin,
 ):

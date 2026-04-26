@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [2.3.3] — 2026-04-27
+
+### Added
+- **Context Compression** — `compress_context()` 신규. 핵심 facts만 추출해 LLM 컨텍스트를 18K → 3~5K 까지 압축. 쿼리 토큰 오버랩 relevance 점수 + (entity, key) 기반 dedup + temporal 메타(`valid_from` / `recorded_at` / 본문 날짜) 가중치. 결정론적·idempotent — 같은 입력은 항상 같은 출력. `context_compress.py` 신규 모듈.
+- **Re-ranking by Question Type** — `rerank_for_question_type()` 신규. 라우팅이 고른 전략 위에 질문 유형별(counting / knowledge_update / temporal_reasoning / preference / multi_session) 정밀 재정렬을 얹어 가장 유용한 근거를 컨텍스트 앞쪽으로 부유시킴. 보너스는 ≤ +0.30 으로 캡 — 강한 base score 가 깨지지 않음. `rerank.py` 신규 모듈.
+- **Temporal Annotation** — `_annotate_temporal()` 신규. 결과에 `[YYYY-MM-DD ~ present]` 류 시간 태그를 명시적으로 부착해 LLM 이 "언제부터 유효한 사실인지" 즉시 식별. `confidence.py` 에 통합.
+- **format_context_for_llm** — 통합 파이프라인. `rerank_for_question_type` → `_annotate_temporal` → `compress_context` → confidence 태깅 순으로 한 번에 처리. 단일 호출로 LLM-ready 컨텍스트 블록 생성. `confidence.py` 에 추가.
+
+### Tests
+- 신규: `test_context_boost.py` — 26 케이스 전부 통과 (compress_context 9 + rerank 11 + temporal_annotation 3 + format_context_for_llm 3).
+- 누적: 1141 passed (회귀 0건. test_hierarchical 12 baseline failure 는 v2.2.0 부터 이어진 미통합 모듈, 본 릴리즈 무관).
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
 ## [2.3.2] — 2026-04-27
 
 ### Added
