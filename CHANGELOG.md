@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [2.3.1] — 2026-04-26
+
+### Patch
+- **PyPI 재업로드** — 버전 메타데이터 정정을 위한 패치 릴리즈. 기능 변경 없음. v2.3.0과 코드 동일.
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
 ## [2.3.0] — 2026-04-26
 
 ### Added
