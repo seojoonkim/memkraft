@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -18,6 +18,7 @@ from .search import SearchMixin  # v1.0.2 search enhancements
 from .chunking import ChunkingMixin  # v1.0.3 chunking + precision search
 from .lifecycle import LifecycleMixin  # v1.1.0 autonomous memory management
 from .graph import GraphMixin  # v2.0.0 SQLite graph layer
+from .multimodal import MultimodalMixin  # v2.1 multimodal attachments
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -47,6 +48,7 @@ for _mixin in (
     ChunkingMixin,
     LifecycleMixin,
     GraphMixin,
+    MultimodalMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

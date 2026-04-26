@@ -1,5 +1,98 @@
 # CHANGELOG
 
+## [2.1.0] — 2026-04-26
+
+### Added
+- **Korean Graph Extraction** — `graph.py`에 한국어 관계 패턴 37개 추가 (14개 relation 타입). 조사(strip_josa) 처리, 2-char guard, 한국어 stopwords. `tests/test_korean_graph.py` 37 케이스.
+- **Multimodal Memory** — `multimodal.py` (MultimodalMixin) 4개 API: `attach`, `attachments`, `detach`, `search_multimodal`. 확장자 기반 modality 자동 감지, 텍스트/코드 직접 읽기, 오디오/이미지 `transcribe_fn` 콜백. `tests/test_multimodal.py` 22 케이스.
+- **Core Refactor Plan** — `docs/V21_CORE_REFACTOR_PLAN.md` (4,435줄 → 9개 모듈 분해 설계)
+- **Multi-Agent v2 Spec** — `docs/V21_MULTIAGENT_V2_SPEC.md` (Model A: Shared base_dir + Namespace, 6개 API)
+- **Benchmark Diversification** — `docs/V21_BENCHMARK_DIVERSIFICATION.md` (7개 벤치마크 분석, Top3: LoCoMo/MemoryBench/PersonaMem)
+
+### Changed
+- **CHANGELOG v1.1.1 + v2.0.0 섹션 복원** — 이전에 누락된 변경내역 추가 (watch/unwatch/schedule 3 API + graph 6 API)
+- **Total public APIs: 25+ (기존 16 → graph 6 + multimodal 4 + lifecycle 3)**
+
+### Tests
+- 전체: **877 passed, 3 skipped** (회귀 0)
+- 신규: test_korean_graph.py (37 cases), test_multimodal.py (22 cases)
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+Zero breaking changes. 모든 v2.0.x API 시그니처 유지.
+
+---
+
+## [2.0.0] — 2026-04-23
+
+### Added
+
+- **`GraphMixin`** (`src/memkraft/graph.py`) — SQLite-backed knowledge graph layer. Zero external dependencies (Python built-in `sqlite3`). Additive mixin; no changes to existing APIs.
+- **`graph_node(node_id, node_type='entity', label=None, metadata=None)`** — Add or update a node in the graph. Upserts: re-calling with the same `node_id` updates attributes.
+- **`graph_edge(from_id, relation, to_id, weight=1.0, valid_from=None, valid_until=None)`** — Add a directed, optionally time-scoped edge. Auto-creates missing nodes. Deduplicates exact (from, relation, to) triples.
+- **`graph_neighbors(node_id, hops=2, relation=None)`** — BFS traversal up to N hops. Returns a list of path dicts with `path`, `depth`, `target`, `relation`, `text` fields. Optional `relation` filter.
+- **`graph_search(query, top_k=5)`** — Natural-language → graph paths. Extracts capitalized entities from query, traverses via `graph_neighbors`, falls back to `search_precise` if graph results are sparse.
+- **`graph_extract(text)`** — Pattern-based (no LLM) auto-extraction of entities and relations from free text. Returns `{nodes_added, edges_added}`.
+- **`graph_stats()`** — Returns node/edge counts, node-type breakdown, and top-10 relations by frequency.
+- **Connection pooling** — Single cached SQLite connection per instance for performance.
+- **Hybrid search** — `graph_search` chains: graph (exact) → entity fallback → `search_precise` (document fallback).
+- **Tests:** `tests/test_graph_mixin.py` (8 cases): `test_graph_node_basic`, `test_graph_edge_basic`, `test_graph_neighbors`, `test_graph_extract`, `test_graph_search`, `test_multihop_reasoning`, `test_graph_stats`, `test_no_duplicate_edges`.
+
+### Motivation
+
+Flat entity bags can't express *relationships*. GraphMixin adds a persistent, queryable knowledge graph so MemKraft can answer multi-hop questions (e.g. "Who does Simon work with at Hashed?") without an external graph database.
+
+### Performance (AMB PersonaMem, 2026-04 Zeon)
+
+- **PersonaMem 128k:** 56% (±8% LLM variance, retrieval-bound)
+- **PersonaMem 1M:** 52% (±4% LLM variance)
+
+### Total APIs: 25 (19 existing + 6 new graph APIs: `graph_node`, `graph_edge`, `graph_neighbors`, `graph_search`, `graph_extract`, `graph_stats`)
+
+### Breaking Changes
+
+None. All v1.1.1 APIs remain unchanged. `GraphMixin` is additive.
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
+## [1.1.1] — 2026-04-23
+
+### Added
+
+- **`watch(path, on_change='flush', interval=300)`** — Start a background daemon thread that polls `path` every `interval` seconds. On modification, triggers `on_change`: `"flush"` (re-import file), `"compact"`, `"digest"`, or any callable `(changed_path: str)`. Supports both file and directory watching (`.md` files only for directories).
+- **`unwatch()`** — Stop the background watcher thread started by `watch()`. Sets the internal `_watching` flag to `False`.
+- **`schedule(pipeline, cron_expr)`** — Built-in cron scheduler. Runs an ordered list of memory-management actions (`"compact"` or any zero-arg callable) on a 5-field cron expression. Requires optional dep: `pip install "memkraft[schedule]"` (`apscheduler`).
+- **`memkraft[schedule]` extra** — New optional dependency group added to `pyproject.toml`.
+- **Tests:** `tests/test_v110_lifecycle.py` (6 new cases): `test_watch_starts_thread`, `test_unwatch_stops_flag`, `test_watch_callable_on_change`, `test_schedule_requires_apscheduler`, `test_schedule_invalid_cron`, `test_schedule_creates_scheduler`.
+
+### Motivation
+
+MemKraft 1.1.0 introduced self-managing lifecycle APIs (flush/compact/digest/health) but they still required explicit calls. v1.1.1 makes memory management truly autonomous: `watch()` triggers flush automatically when files change; `schedule()` runs compact nightly via cron — no manual intervention needed.
+
+### Total APIs: 19 (16 existing + 3 new: `watch`, `unwatch`, `schedule`)
+
+### Breaking Changes
+
+None. All v1.1.0 APIs remain unchanged. `watch`, `unwatch`, `schedule` are additive.
+
+### Upgrade
+
+```bash
+pip install --upgrade memkraft
+# optional: cron scheduler support
+pip install "memkraft[schedule]"
+```
+
+---
+
 ## [1.1.0] — 2026-04-23
 
 ### Added
