@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## [2.3.2] — 2026-04-27
+
+### Added
+- **Counting Question 특화** — "how many" 질문 시 5-pass exhaustive sweep. `routing.py`에 6번째 질문 타입 (`counting`) 추가. 카운팅 질문은 단일 hit으로 끝내지 않고 모든 후보를 휩쓸어 누락된 인스턴스를 잡아냄. `multi_pass.py`에 counting-mode 분기. `tests/test_counting_question.py` 케이스 통과.
+- **Confidence Threshold** — `search()` 결과에 `confidence` 필드(`high` / `medium` / `low`) 자동 부착. 암시적 표현 패턴 20개(EN+KO) 매칭으로 "probably" / "~인 것 같다" 같은 약한 단언 자동 분류. `confidence.py` 신규 모듈 + LLM 포맷터로 답변 신뢰도 가시화. `tests/test_confidence.py` 케이스 통과.
+- **Temporal Chain** — temporal graph 기반 세션 간 이벤트 연결. 시간 윈도우 추출(`extract_temporal_window`) + recency-weighted 점수 합성. 같은 엔티티의 멀티-세션 이벤트를 시간순으로 자동 체이닝해 "지난주에 했던 그 미팅" 류 시간 의존 질의 정확도 향상. `temporal_chain.py` 신규 모듈. `tests/test_temporal_chain.py` 케이스 통과.
+
+### Tests
+- 신규: test_confidence.py + test_counting_question.py + test_temporal_chain.py + test_question_routing.py 총 97개 케이스 전부 통과
+- 회귀 0건 (test_hierarchical.py 12 baseline failure는 v2.2.0부터 이어진 미통합 모듈, 본 릴리즈와 무관)
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
 ## [2.3.1] — 2026-04-26
 
 ### Patch

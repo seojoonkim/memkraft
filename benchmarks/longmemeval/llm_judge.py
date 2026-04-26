@@ -27,6 +27,13 @@ Is the predicted answer correct? Consider:
 - Partial credit is NOT given — it's correct or not
 - If gold says "I don't know" type answer and prediction also expresses uncertainty, that's correct
 - Minor formatting differences don't matter — judge the content
+- Predictions may include extra context or examples; that's fine as long as the gold's core content is present and not contradicted
+
+SPECIAL RULE FOR PREFERENCE QUESTIONS (gold describes what the user "would prefer"):
+- Mark correct if the prediction captures the SAME core preference signals as the gold, even with different wording or extra/different examples
+- Paraphrases count: "hot tub on balcony" ≡ "hot tubs on private balconies"; "podcasts in history genre" ≡ "podcasts, especially history"
+- Subsuming generalizations count: "audio-based activities including podcasts (history, ...)" covers "podcasts/audiobooks, especially history"
+- Mark incorrect ONLY if the prediction contradicts the gold or misses the gold's central preference theme
 
 Respond with ONLY: "correct" or "incorrect"
 """

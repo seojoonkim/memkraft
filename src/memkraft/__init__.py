@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -23,6 +23,11 @@ from .multi_pass import MultiPassMixin  # v2.2 multi-pass retrieval
 from .routing import RoutingMixin  # v2.2 question-type routing
 from .rrf import RRFMixin  # v2.3 reciprocal rank fusion
 from .consolidation import ConsolidationMixin  # v2.3 sleep consolidation
+from .temporal_chain import TemporalChainMixin  # v2.3+ multi-session temporal chain
+from .confidence import (  # v2.4 confidence + implicit-acquisition
+    ConfidenceMixin,
+    install_confidence_wrappers,
+)
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -57,6 +62,8 @@ for _mixin in (
     RoutingMixin,
     RRFMixin,
     ConsolidationMixin,
+    ConfidenceMixin,
+    TemporalChainMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
@@ -68,6 +75,12 @@ for _mixin in (
                 continue
         setattr(_BaseMemKraft, _name, _attr)
 
+
+# v2.4 — wrap public search methods so every result list gains a
+# ``confidence`` field.  Must run AFTER all mixins are attached so the
+# wrappers see the final method bodies (search_multi from MultiPassMixin,
+# search_v2 from SearchMixin, etc.).
+install_confidence_wrappers(_BaseMemKraft)
 
 MemKraft = _BaseMemKraft
 

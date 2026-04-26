@@ -84,7 +84,8 @@ def mk_seeded(tmp_path):
     ("언제 Hashed 합류했어?",              "single_session"),
     # multi_session -------------------------------------------------------
     ("Compare Sarah and John performance", "multi_session"),
-    ("How often does she travel?",         "multi_session"),
+    # NOTE: "how often" was reclassified to ``counting`` in the v2.3+
+    # routing layer — see test_counting_question.py for coverage.
     ("Sarah와 John 비교해줘",               "multi_session"),
     # knowledge_update ----------------------------------------------------
     ("What is the current CEO?",   "knowledge_update"),

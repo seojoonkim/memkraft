@@ -3,12 +3,14 @@
 Adds a single new public method ``search_smart_v2()`` plus five helpers to
 MemKraft without touching ``core.py``, ``search.py``, or ``graph.py``.
 
-Five question types (LongMemEval-aligned):
+Six question types (LongMemEval-aligned):
   * ``single_session``    — direct factual lookup ("when did X happen?")
-  * ``multi_session``     — cross-session aggregation ("how often", "compare")
+  * ``multi_session``     — cross-session aggregation ("compare", "between")
   * ``knowledge_update``  — current-state queries ("what is X *now*?")
   * ``temporal_reasoning``— ordering / before-after questions
   * ``preference``        — likes / dislikes / favourites
+  * ``counting``          — "how many / how much / how often / 몇 / 얼마나"
+                            — exhaustive sweep that should NOT miss items
 
 Each type is dispatched to a different retrieval strategy.  All strategies
 fall back to ``self.search(query, fuzzy=True)`` when they return empty so
@@ -36,10 +38,23 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 _QUESTION_TYPE_KEYWORDS: dict[str, tuple[str, ...]] = {
-    # Cross-session aggregation — checked first so "compare current X vs Y"
+    # Counting / quantification — checked FIRST so "how many X" doesn't
+    # get swallowed by 'multi_session' (which also lists 'how often' as a
+    # frequency cue).  Counting questions need an exhaustive sweep —
+    # missing one item is the failure mode we optimise against.
+    "counting": (
+        "how many", "how much", "how often", "how long",
+        "count of", "number of", "total number", "total count",
+        # Korean: '몇 ' (with trailing space) covers '몇 개 / 몇 명 / 몇 권 /
+        # 몇 번 / 몇 차례 …' generically.  The CJK matcher uses substring
+        # search so this works as a robust prefix.
+        "몇 ", "몇개", "몇명", "몇번", "몇천", "몇만", "몇백",
+        "얼마나 많은", "얼마나",
+    ),
+    # Cross-session aggregation — checked next so "compare current X vs Y"
     # routes here rather than to ``knowledge_update``.
     "multi_session": (
-        "compare", "comparison", "how often", "both", "all sessions",
+        "compare", "comparison", "both", "all sessions",
         "across", "between", "versus", " vs ", " vs.", "frequency",
         "비교", "얼마나 자주", "전부", "모든", "각각",
     ),
@@ -74,12 +89,19 @@ _QUESTION_TYPE_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 # Order in which buckets are tested — earlier wins.
 _TYPE_ORDER: tuple[str, ...] = (
+    "counting",
     "multi_session",
     "temporal_reasoning",
     "knowledge_update",
     "preference",
     "single_session",
 )
+
+# Counting strategy tunables — exhaustive sweep parameters.
+_COUNTING_TOP_K_MULTIPLIER = 2     # double the candidate pool
+_COUNTING_PASSES_TARGET = 5        # logical passes (3 native + fuzzy + temporal-graph)
+_COUNTING_MIN_TOP_K = 30           # never sweep narrower than this
+_COUNTING_MAX_TOP_K = 200          # safety cap on candidate pool size
 
 # Used by ``_search_temporal_timeline`` to find dates in result content.
 _DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
@@ -308,6 +330,125 @@ class RoutingMixin:
         boosted.sort(key=lambda x: x.get("score", 0), reverse=True)
         return boosted
 
+    def _search_counting(self, query: str, top_k: int = 5) -> list[dict]:
+        """Exhaustive sweep for counting questions ("how many / 몇").
+
+        The failure mode for counting is **under-recall**: missing even
+        one item makes the answer wrong.  So this strategy widens the
+        candidate pool aggressively and merges across multiple
+        retrieval surfaces:
+
+          * Pass A — exact-match search (precision anchor)
+          * Pass B — fuzzy search (recall expansion)
+          * Pass C — keyword-variant fan-out (synonyms / casing)
+          * Pass D — ``search_multi(passes=3)`` — already covers the
+            bitemporal-fact + graph-neighbour passes
+          * Pass E — ``search_expand`` recall-favouring sweep
+
+        Five logical passes total → satisfies the task brief's
+        ``passes=5`` extension while leaving ``search_multi``'s native
+        cap of 3 untouched (we orchestrate the extra passes here).
+
+        Returns a merged, deduped list with ``_counting_passes`` set on
+        each hit so callers can introspect which passes contributed.
+        """
+        # Determine the candidate pool size — at least 30, capped at 200,
+        # but always 2x the caller's requested ``top_k``.
+        pool = max(top_k * _COUNTING_TOP_K_MULTIPLIER, _COUNTING_MIN_TOP_K)
+        pool = min(pool, _COUNTING_MAX_TOP_K)
+
+        # ----- Pass A: exact match -----------------------------------
+        pass_a = self._r22_run_search(query, fuzzy=False)
+
+        # ----- Pass B: fuzzy ------------------------------------------
+        pass_b = self._r22_run_search(query, fuzzy=True)
+
+        # ----- Pass C: keyword-variant fan-out ------------------------
+        pass_c: list[dict] = []
+        gen_variants = getattr(self, "_v102_keyword_variants", None)
+        if callable(gen_variants):
+            try:
+                variants = gen_variants(query) or []
+            except Exception:
+                variants = []
+            seen_v: set[str] = {query.lower().strip()}
+            for v in variants:
+                vk = (v or "").lower().strip()
+                if not vk or vk in seen_v:
+                    continue
+                seen_v.add(vk)
+                pass_c.extend(self._r22_run_search(v, fuzzy=True))
+
+        # ----- Pass D: search_multi (passes=3) ------------------------
+        pass_d: list[dict] = []
+        smulti = getattr(self, "search_multi", None)
+        if callable(smulti):
+            try:
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    pd = smulti(query, top_k=pool, passes=3)
+                if isinstance(pd, list):
+                    pass_d = pd
+            except Exception:
+                pass_d = []
+
+        # ----- Pass E: search_expand (recall-favouring) ---------------
+        pass_e: list[dict] = []
+        expand = getattr(self, "search_expand", None)
+        if callable(expand):
+            try:
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    pe = expand(query, top_k=pool, fuzzy=True)
+                if isinstance(pe, list):
+                    pass_e = pe
+            except Exception:
+                pass_e = []
+
+        # ----- Merge with provenance tracking -------------------------
+        # Use the same dedup-by-file rule as ``_r22_merge`` but also
+        # accumulate which passes each surviving hit came from.
+        provenance: dict[str, set[str]] = {}
+        labelled: list[tuple[str, list[dict]]] = [
+            ("A", pass_a),
+            ("B", pass_b),
+            ("C", pass_c),
+            ("D", pass_d),
+            ("E", pass_e),
+        ]
+        for label, batch in labelled:
+            for r in batch or []:
+                if not isinstance(r, dict):
+                    continue
+                fpath = r.get("file")
+                if not fpath:
+                    continue
+                provenance.setdefault(fpath, set()).add(label)
+
+        merged = self._r22_merge([pass_a, pass_b, pass_c, pass_d, pass_e])
+
+        # Annotate hits with their pass provenance + a small recall boost
+        # for items that surfaced in multiple passes (likely true positives).
+        annotated: list[dict] = []
+        for r in merged:
+            new = dict(r)
+            fpath = new.get("file") or ""
+            passes_hit = sorted(provenance.get(fpath, set()))
+            new["_counting_passes"] = passes_hit
+            new["_counting_pass_count"] = len(passes_hit)
+            score = float(new.get("score", 0) or 0)
+            # Multi-pass corroboration boost: 0.02 per extra pass beyond
+            # the first, capped at +0.08 (4 extra passes max).
+            extra = max(0, len(passes_hit) - 1)
+            boost = min(0.08, 0.02 * extra)
+            if boost > 0:
+                new["score"] = round(min(1.0, score + boost), 3)
+                new["_counting_boost"] = round(boost, 3)
+            annotated.append(new)
+
+        annotated.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return annotated
+
     def _search_multi_session(self, query: str) -> list[dict]:
         """Aggregate hits across multiple keyword variants.
 
@@ -350,13 +491,15 @@ class RoutingMixin:
         self,
         query: str,
         top_k: int = 5,
+        *,
+        exhaustive: bool | None = None,
     ) -> dict:
         """Question-type aware retrieval.
 
         Returns a dict with three keys:
           * ``question_type`` — one of ``single_session``,
             ``multi_session``, ``knowledge_update``, ``temporal_reasoning``,
-            ``preference``, or ``general`` (no keyword matched).
+            ``preference``, ``counting``, or ``general``.
           * ``results`` — at most ``top_k`` result dicts (same shape as
             ``self.search`` returns).
           * ``strategy`` — a short string describing the retrieval path
@@ -367,6 +510,12 @@ class RoutingMixin:
             'results': [], 'strategy': 'empty_query'}``.
           * Falls back to ``self.search(query, fuzzy=True)`` when the
             primary strategy returns nothing.
+          * ``exhaustive=True`` forces the counting/exhaustive strategy
+            regardless of the classified question type — useful for
+            programmatic callers that already know they need full recall.
+            ``exhaustive=False`` opts out of the counting bucket and
+            re-routes to the next-best strategy.  ``None`` (default)
+            respects the classifier.
         """
         if not isinstance(top_k, int) or top_k <= 0:
             top_k = 5
@@ -379,6 +528,19 @@ class RoutingMixin:
             }
 
         q_type = self._classify_question(query)
+
+        # Honour explicit ``exhaustive=`` override.
+        if exhaustive is True and q_type != "counting":
+            q_type = "counting"
+        elif exhaustive is False and q_type == "counting":
+            # Re-classify ignoring the counting bucket.
+            saved = _QUESTION_TYPE_KEYWORDS.get("counting", ())
+            try:
+                _QUESTION_TYPE_KEYWORDS["counting"] = ()
+                q_type = self._classify_question(query)
+            finally:
+                _QUESTION_TYPE_KEYWORDS["counting"] = saved
+
         results: list[dict] = []
         strategy = ""
 
@@ -405,6 +567,13 @@ class RoutingMixin:
         elif q_type == "preference":
             results = self._search_preference(query)
             strategy = "preference-keyword boost (preference)"
+
+        elif q_type == "counting":
+            results = self._search_counting(query, top_k=top_k)
+            strategy = (
+                "exhaustive 5-pass sweep (counting; "
+                "exact+fuzzy+variants+search_multi+expand)"
+            )
 
         else:  # general fallback
             results = self._r22_run_search(query, fuzzy=True)

@@ -591,6 +591,46 @@ class MultiPassMixin:
             timeline_entities = list({*seed_entities, *expanded_entities})
             pass3 = self._mp_pass3(timeline_entities, top_k=top_k)
 
+        # Multi-session temporal chain (v2.3+) — additive.
+        # When the query looks multi-session and a TemporalChainMixin is
+        # available, walk temporal-typed graph edges within the
+        # query-derived time window and append the resulting facts/edges
+        # into Pass 3. We piggy-back on Pass 3 instead of introducing a
+        # new fusion slot so the existing weighted/RRF blends keep their
+        # tuned weights.
+        if (
+            passes >= 3
+            and hasattr(self, "_is_multi_session_query")
+            and hasattr(self, "_get_temporal_chain")
+        ):
+            try:
+                if self._is_multi_session_query(query):
+                    temporal_rows = self._get_temporal_chain(
+                        query, top_k=max(top_k * 2, top_k)
+                    )
+                else:
+                    temporal_rows = []
+            except Exception:
+                temporal_rows = []
+            if temporal_rows:
+                # Dedup against existing Pass 3 hits on (match, snippet).
+                seen_p3 = {
+                    (r.get("match", ""), r.get("snippet", ""))
+                    for r in pass3
+                }
+                for r in temporal_rows:
+                    key = (r.get("match", ""), r.get("snippet", ""))
+                    if key in seen_p3:
+                        continue
+                    seen_p3.add(key)
+                    # Mirror Pass 3's score key so blend/RRF treat it
+                    # as a Pass-3 contribution.
+                    if "_p3_score" not in r:
+                        r["_p3_score"] = r.get("score", 0.0)
+                    pass3.append(r)
+                # Re-sort so Pass 3 stays newest-first.
+                pass3.sort(key=lambda x: x.get("score", 0), reverse=True)
+
         if use_rrf:
             merged = self._mp_rrf_blend(pass1, pass2, pass3, k=rrf_k)
         else:
