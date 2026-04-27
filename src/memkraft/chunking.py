@@ -177,4 +177,14 @@ class ChunkingMixin:
             filtered = [h for h in fallback if _score(h) >= relaxed]
 
         filtered.sort(key=_score, reverse=True)
-        return filtered[:top_k]
+        result = filtered[:top_k]
+        # v2.4.0: decay reset for search hits
+        now_str = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for r in result:
+            fpath = r.get("file") if isinstance(r, dict) else None
+            if fpath and hasattr(self, "_touch_last_accessed"):
+                try:
+                    self._touch_last_accessed(fpath, now_str)
+                except Exception:
+                    pass
+        return result

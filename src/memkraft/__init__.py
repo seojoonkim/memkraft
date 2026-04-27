@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.3.3"
+__version__ = "2.4.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -30,6 +30,8 @@ from .confidence import (  # v2.4 confidence + implicit-acquisition
 )
 from .context_compress import ContextCompressMixin  # v2.5 context compression
 from .rerank import RerankMixin  # v2.5 question-type-aware re-ranking
+from .hierarchical import HierarchicalMixin  # v1.1.2 hierarchical retrieval
+from .alias import AliasMixin  # v2.4 entity alias support
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -68,6 +70,8 @@ for _mixin in (
     RerankMixin,
     ConfidenceMixin,
     TemporalChainMixin,
+    HierarchicalMixin,
+    AliasMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

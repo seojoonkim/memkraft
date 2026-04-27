@@ -1292,6 +1292,33 @@ class MemKraft:
         query_lower = query.lower()
         query_tokens = self._search_tokens(query_lower)
 
+        # ── v2.4: Alias expansion — enrich query with canonical names ──
+        expanded_tokens = list(query_tokens)
+        try:
+            if hasattr(self, 'alias_resolve') and hasattr(self, 'alias_list'):
+                for token in list(query_tokens):
+                    canonical = self.alias_resolve(token)
+                    if canonical != token:
+                        expanded_tokens.append(canonical)
+                        # Also add all aliases of the canonical
+                        for alias in self.alias_list(canonical):
+                            if alias not in expanded_tokens:
+                                expanded_tokens.append(alias)
+                # Also try resolving the full query as a phrase
+                canonical_phrase = self.alias_resolve(query_lower.strip())
+                if canonical_phrase != query_lower.strip():
+                    expanded_tokens.append(canonical_phrase)
+        except Exception:
+            pass  # alias expansion is best-effort
+        # Deduplicate while preserving order
+        seen_tok: set = set()
+        unique_tokens: list = []
+        for t in expanded_tokens:
+            if t not in seen_tok:
+                seen_tok.add(t)
+                unique_tokens.append(t)
+        query_tokens = unique_tokens
+
         # Compute IDF (Inverse Document Frequency) for BM25-style scoring.
         # v2.3: also compute per-doc term frequencies + corpus length stats
         # for full BM25 (Okapi) scoring as a 4th retrieval signal.
@@ -1459,6 +1486,25 @@ class MemKraft:
                 results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
         results.sort(key=lambda x: x["score"], reverse=True)
+
+        # ── v2.4: Search dedup — group by entity slug, keep highest score ──
+        seen_entities: Dict[str, Dict[str, Any]] = {}
+        deduped: List[Dict[str, Any]] = []
+        for r in results:
+            entity_key = r.get("match", "")
+            if entity_key in seen_entities:
+                # Keep the higher score
+                if r["score"] > seen_entities[entity_key]["score"]:
+                    seen_entities[entity_key] = r
+            else:
+                seen_entities[entity_key] = r
+        deduped = sorted(seen_entities.values(), key=lambda x: x["score"], reverse=True)
+        results = deduped
+
+        # ── v2.4: Search hit decay reset — update last_accessed_at ──
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for r in results[:20]:
+            self._touch_last_accessed(r.get("file", ""), now_str)
 
         if not results:
             print(f"No results for '{query}'.")
@@ -1814,6 +1860,34 @@ class MemKraft:
             "assertions": assertions,
         }
 
+        # ── v2.4.0: Graph / entity stats ─────────────────────────
+        entity_count = 0
+        for _dir in [self.entities_dir, self.live_notes_dir]:
+            if _dir.exists():
+                entity_count += sum(1 for f in _dir.glob("*.md") if f.name != "README.md")
+
+        edge_count = 0
+        top_entities: list[dict] = []
+        try:
+            import sqlite3 as _sqlite3
+            db_path = os.path.join(str(self.base_dir), "graph.db")
+            if os.path.exists(db_path):
+                conn = _sqlite3.connect(db_path)
+                row = conn.execute("SELECT COUNT(*) FROM edges").fetchone()
+                edge_count = row[0] if row else 0
+                rows = conn.execute(
+                    "SELECT to_id, COUNT(*) as cnt FROM edges "
+                    "GROUP BY to_id ORDER BY cnt DESC LIMIT 5"
+                ).fetchall()
+                top_entities = [{"name": r[0], "count": r[1]} for r in rows]
+                conn.close()
+        except Exception:
+            pass
+
+        result["entity_count"] = entity_count
+        result["edge_count"] = edge_count
+        result["top_entities"] = top_entities
+
         # Print report
         print(f"🏥 Memory Health Check")
         print(f"   Score: {health_score} ({pass_rate}% pass rate, {passed_checks}/{total_checks})")
@@ -1826,7 +1900,17 @@ class MemKraft:
                 if len(a["failures"]) > 5:
                     print(f"      ... and {len(a['failures']) - 5} more")
 
+        # v2.4.0: print graph stats
+        print(f"   📊 Entities: {entity_count} | Edges: {edge_count}")
+        if top_entities:
+            top_str = ", ".join(f"{e['name']}({e['count']})" for e in top_entities)
+            print(f"   🏆 Top entities: {top_str}")
+
         return result
+
+    def health(self) -> Dict[str, Any]:
+        """Alias for health_check() — returns entity_count, edge_count, top_entities, etc."""
+        return self.health_check()
 
     # ── Ensure Daily Note ───────────────────────────────────────
     def ensure_daily_note(self):
@@ -2549,22 +2633,35 @@ class MemKraft:
         filed_count = 0
         for r in results[:5]:  # Top 5 results only to avoid noise
             md_path = self.base_dir / r["file"]
-            if not md_path.exists():
-                continue
-            content = self._safe_read(md_path)
             snippet = r.get("snippet", "")[:120]
             if not snippet:
                 continue
 
             feedback_entry = f"- **{now}** | [Filed back] Query: '{query[:60]}' — {snippet} [Source: agentic_search | Confidence: experimental]"
 
-            # Append to timeline
-            for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
-                if marker in content:
-                    content = content.replace(marker, f"{marker}{feedback_entry}\n")
-                    md_path.write_text(content, encoding="utf-8")
-                    filed_count += 1
-                    break
+            # Prefer writing to live-notes if it exists (richer context)
+            slug = md_path.stem
+            live_path = self.base_dir / "live-notes" / f"{slug}.md"
+            wrote = False
+            if live_path.exists():
+                live_content = self._safe_read(live_path)
+                for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
+                    if marker in live_content:
+                        live_content = live_content.replace(marker, f"{marker}{feedback_entry}\n")
+                        live_path.write_text(live_content, encoding="utf-8")
+                        filed_count += 1
+                        wrote = True
+                        break
+
+            # Fall back to entities file if no live-notes
+            if not wrote and md_path.exists():
+                content = self._safe_read(md_path)
+                for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
+                    if marker in content:
+                        content = content.replace(marker, f"{marker}{feedback_entry}\n")
+                        md_path.write_text(content, encoding="utf-8")
+                        filed_count += 1
+                        break
 
         if filed_count:
             print(f"📂 Filed back {filed_count} results into entity timelines")
@@ -3930,6 +4027,44 @@ class MemKraft:
             return path.read_text(encoding="utf-8", errors="replace")
         except (OSError, ValueError):
             return ""
+
+    def _touch_last_accessed(self, rel_path: str, timestamp: str) -> None:
+        """Update 'Last Accessed' timestamp in an entity/note file.
+
+        v2.4: search hit decay reset — refreshes access time so recently
+        searched entities don't decay away.
+        """
+        if not rel_path:
+            return
+        try:
+            full_path = self.base_dir / rel_path
+            if not full_path.exists() or not full_path.is_file():
+                return
+            content = full_path.read_text(encoding="utf-8", errors="replace")
+            # Check if "Last Accessed" line exists
+            import re as _re
+            pattern = r'\*\*Last Accessed:\*\*\s*.*'
+            replacement = f'**Last Accessed:** {timestamp}'
+            if _re.search(pattern, content):
+                content = _re.sub(pattern, replacement, content)
+            else:
+                # Insert after "Last Update" line if present, else after "Tracking Config" heading
+                last_update_pattern = r'(\*\*Last Update:\*\*\s*[^\n]+)'
+                m = _re.search(last_update_pattern, content)
+                if m:
+                    insert_pos = m.end()
+                    content = content[:insert_pos] + f'\n- **Last Accessed:** {timestamp}' + content[insert_pos:]
+                else:
+                    # Insert after "## Tracking Config" heading
+                    tc_pattern = r'(## Tracking Config\n)'
+                    m2 = _re.search(tc_pattern, content)
+                    if m2:
+                        insert_pos = m2.end()
+                        content = content[:insert_pos] + f'- **Last Accessed:** {timestamp}\n' + content[insert_pos:]
+            full_path.write_text(content, encoding="utf-8")
+        except Exception:
+            pass  # best-effort, don't break search
+
 
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""

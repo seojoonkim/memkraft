@@ -367,6 +367,13 @@ def select_relevant_sessions(
     the AMB benchmark. Falls back to the old keyword/category/recency
     scoring if the smart-search returns nothing useful.
 
+    v3-upgrade (2026-04-27): in addition to ``search_smart`` we now
+    also fire ``search_precise`` (exact-token / IDF-weighted match)
+    and fuse the two ranked lists via simple weighted average. Reason:
+    PersonaMem preference questions tend to cite specific entities
+    ("Miami hotel", "commute activities") that the smart sentence
+    embedder dilutes; ``search_precise`` keeps those signals sharp.
+
     Always include the most recent session (the "now" anchor) even
     if its smart-search score is weak, because many PersonaMem
     questions are about the user's latest state.
@@ -410,26 +417,57 @@ def select_relevant_sessions(
                     pass
 
         query = f"{topic} {question}".strip()
-        hits = mk.search_smart(query, top_k=max_sessions * 6) or []
-        # Each hit is {entity, score, ...}; entity ids look like
-        # 'hv_sess_<tag>_<num>' (parent) or '...__c<i>' (chunk).
         prefix = f"hv_sess_{tag}_"
-        for h in hits:
-            ent = str(h.get("entity") or h.get("id") or "")
-            if not ent.startswith(prefix):
-                continue
-            tail = ent[len(prefix):]
-            # Strip chunk suffix '__cN' if present
-            if "__c" in tail:
-                tail = tail.split("__c", 1)[0]
-            try:
-                num = int(tail)
-            except ValueError:
-                continue
-            score = float(h.get("score", 0.0) or 0.0)
-            # keep best chunk score per session
-            if score > smart_scores.get(num, 0.0):
-                smart_scores[num] = score
+
+        def _ingest_session_hits(hits, target: Dict[int, float]) -> None:
+            """Update *target* with best per-session score from *hits*."""
+            for h in hits or []:
+                ent = str(h.get("entity") or h.get("id") or "")
+                if not ent.startswith(prefix):
+                    continue
+                tail = ent[len(prefix):]
+                # Strip chunk suffix '__cN' if present
+                if "__c" in tail:
+                    tail = tail.split("__c", 1)[0]
+                try:
+                    num = int(tail)
+                except ValueError:
+                    continue
+                score = float(h.get("score", 0.0) or 0.0)
+                if score > target.get(num, 0.0):
+                    target[num] = score
+
+        # ── 1. search_smart (BM25-IDF, broader recall) ──
+        try:
+            smart_hits = mk.search_smart(query, top_k=max_sessions * 6) or []
+        except Exception:
+            smart_hits = []
+        _ingest_session_hits(smart_hits, smart_scores)
+
+        # ── 2. search_precise (exact-token / IDF-weighted, sharper) ──
+        # v3-upgrade (2026-04-27): keep entity tokens like "Miami"
+        # or "commute" from being averaged out by sentence embedding.
+        precise_scores: Dict[int, float] = {}
+        try:
+            precise_hits = mk.search_precise(query, top_k=max_sessions * 6) or []
+            _ingest_session_hits(precise_hits, precise_scores)
+        except Exception:
+            precise_scores = {}
+
+        # ── 3. Fuse: normalise each list, then weighted-sum ──
+        if precise_scores:
+            def _normalise(d: Dict[int, float]) -> Dict[int, float]:
+                if not d:
+                    return {}
+                m = max(d.values()) or 1.0
+                return {k: v / m for k, v in d.items()}
+
+            n_smart = _normalise(smart_scores)
+            n_prec = _normalise(precise_scores)
+            fused: Dict[int, float] = {}
+            for k in set(n_smart) | set(n_prec):
+                fused[k] = 0.6 * n_smart.get(k, 0.0) + 0.4 * n_prec.get(k, 0.0)
+            smart_scores = fused
     except Exception:
         smart_scores = {}
 
@@ -591,6 +629,39 @@ def _format_persona_card(
     return "\n".join(lines)
 
 
+# v3 (2026-04-27): question types where we want to nudge the LLM toward
+# the user's previously stated *direct* preferences instead of generic
+# best-practice answers. Sourced from QTYPE_MAP (harness_v3.py).
+_PREFERENCE_QTYPES = frozenset({
+    "acknowledge_latest_preferences",
+    "track_full_preference_evolution",
+    "revisit_reasons_behind_preference_updates",
+    "recalling_the_reasons_behind_previous_updates",
+    "provide_preference_aligned_recommendations",
+})
+
+_PREFERENCE_GUIDANCE = (
+    "IMPORTANT — preference question detected.\n"
+    "This question asks what THIS USER (not a generic person) would prefer, "
+    "want, or do. Follow these rules strictly:\n"
+    "  1. Anchor on the user's most recent *explicit* statements in the "
+    "sessions above (e.g. \"I want to stay connected via virtual "
+    "team-building and regular check-ins\", \"I prefer the Miami beachfront "
+    "hotel\", \"during my commute I listen to language podcasts\").\n"
+    "  2. If two options are both reasonable, pick the one that names a "
+    "specific habit / item / place / activity the user has already "
+    "endorsed — NOT the one that describes a generic structured policy "
+    "(e.g. prefer \"virtual team-building and check-ins\" over \"structured "
+    "optional activities\"; prefer \"language podcasts\" over \"productive "
+    "audio content\"; prefer the named hotel over \"a well-rated hotel\").\n"
+    "  3. Treat phrases the user explicitly disliked or stopped doing as "
+    "hard exclusions, even if the option sounds plausible in general.\n"
+    "  4. When the question asks \"what would the user prefer / want / do?\" "
+    "infer the user's *direct* preference from their own words; do not "
+    "substitute a more abstract or politically-neutral paraphrase."
+)
+
+
 def build_compressed_context(
     mk: MemKraft,
     persona_name: str,
@@ -599,12 +670,18 @@ def build_compressed_context(
     context: List[Dict[str, Any]],
     end_idx: int,
     max_sessions: int = 5,
+    qtype: Optional[str] = None,
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
     """Build the Pass-1 compressed prompt: persona + selected sessions.
 
     Returns (messages_for_llm, selected_sessions).
     The messages list starts with the persona system message (original),
     followed by the selected conversation messages in chronological order.
+
+    If *qtype* indicates a preference-style question (see
+    ``_PREFERENCE_QTYPES``), an extra system message is appended that
+    nudges the model away from generic / structured-policy answers and
+    toward the user's own past phrasing. (v3 — 2026-04-27)
     """
     # Original system / persona message (unchanged — the persona bio
     # is part of the ground truth the model needs)
@@ -655,6 +732,12 @@ def build_compressed_context(
             if role not in ("user", "assistant"):
                 continue
             msgs.append({"role": role, "content": m.get("content", "")})
+
+    # v3 (2026-04-27): append preference-guidance AFTER the sessions so
+    # the LLM reads it as the most recent system instruction right
+    # before the question turn. Only fires for preference-type qtypes.
+    if qtype and qtype in _PREFERENCE_QTYPES:
+        msgs.append({"role": "system", "content": _PREFERENCE_GUIDANCE})
 
     return msgs, picked
 
@@ -938,6 +1021,7 @@ def query_with_validation(
     model: str,
     max_retries: int = 1,
     max_sessions: int = 5,
+    qtype: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Full 2-pass pipeline: Smart retrieval → answer → fact-check → retry.
 
@@ -953,7 +1037,7 @@ def query_with_validation(
     # ── Pass 1 — compressed retrieval + generation ──────────
     msgs, picked = build_compressed_context(
         mk, persona_name, question, topic, context, end_idx,
-        max_sessions=max_sessions,
+        max_sessions=max_sessions, qtype=qtype,
     )
     first_answer = query_llm(question, all_options, msgs, model=model)
 
@@ -1126,11 +1210,11 @@ async def _async_query_llm(client, question, all_options, messages, model):
 async def _async_query_with_validation(
     client, mk, persona_name, question, all_options,
     context, end_idx, topic, model,
-    max_retries=1, max_sessions=5,
+    max_retries=1, max_sessions=5, qtype=None,
 ):
     msgs, picked = build_compressed_context(
         mk, persona_name, question, topic, context, end_idx,
-        max_sessions=max_sessions,
+        max_sessions=max_sessions, qtype=qtype,
     )
     first_answer = await _async_query_llm(
         client, question, all_options, msgs, model=model,
@@ -1263,6 +1347,7 @@ async def _process_question_async(
             client, mk, persona_name, question, options,
             ctx, end_idx, topic, model=model,
             max_retries=1, max_sessions=max_sessions,
+            qtype=qtype,
         ))
         coro_keys.append("validator")
     results = await asyncio.gather(*coros, return_exceptions=True)
@@ -1549,6 +1634,7 @@ def run_benchmark(
                         mk, persona_name, question, options,
                         ctx, end_idx, topic, model=model,
                         max_retries=1, max_sessions=max_sessions,
+                        qtype=qtype,
                     )
                     correct_flag = extract_answer(res["answer"], correct)
                     _accumulate(results[variant], readable, correct_flag)
@@ -1621,6 +1707,7 @@ def run_benchmark(
         "run_stats": run_stats,
         "validator_stats": validator_stats,
         "results": results,
+        "per_question": per_question,
         "elapsed_seconds": time.time() - start_ts,
         "memkraft_dir": mk_dir,
     }

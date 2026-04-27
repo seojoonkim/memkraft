@@ -67,6 +67,35 @@ class SearchMixin:
     """v1.0.2 additive search API.  Attach via ``__init__.py`` mixin loop."""
 
     # ------------------------------------------------------------------
+    # v2.4.0 helpers — decay reset + dedup
+    # ------------------------------------------------------------------
+    def _reset_decay(self, results: list[dict]) -> None:
+        """Touch last_accessed for every hit so decay score stays fresh."""
+        now_str = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for r in results:
+            fpath = r.get("file") if isinstance(r, dict) else None
+            if fpath and hasattr(self, "_touch_last_accessed"):
+                try:
+                    self._touch_last_accessed(fpath, now_str)
+                except Exception:
+                    pass
+
+    @staticmethod
+    def _dedup_by_key(results: list[dict]) -> list[dict]:
+        """Deduplicate results by entity key, keeping the highest score."""
+        seen: dict[str, dict] = {}
+        for r in results:
+            if not isinstance(r, dict):
+                continue
+            key = r.get("match") or r.get("file") or ""
+            if key in seen:
+                if r.get("score", 0) > seen[key].get("score", 0):
+                    seen[key] = r
+            else:
+                seen[key] = r
+        return sorted(seen.values(), key=lambda x: x.get("score", 0), reverse=True)
+
+    # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
     def _v102_keyword_variants(self, query: str, max_variants: int = 3) -> list[str]:
@@ -191,7 +220,9 @@ class SearchMixin:
                 batches.append(self._v102_run_search(variant, fuzzy=fuzzy))
 
         merged = self._v102_merge(batches)
-        return merged[:top_k]
+        result = merged[:top_k]
+        self._reset_decay(result)
+        return result
 
     def search_expand(
         self,
@@ -262,14 +293,20 @@ class SearchMixin:
         base.sort(key=lambda x: x.get("score", 0), reverse=True)
 
         if min_score <= 0:
-            return base[:top_k]
+            result = base[:top_k]
+            self._reset_decay(result)
+            return result
 
         above = [r for r in base if r.get("score", 0) >= min_score]
         if above:
-            return above[:top_k]
+            result = above[:top_k]
+            self._reset_decay(result)
+            return result
         # Do not starve the caller — small corpora may have all scores
         # below an aggressive floor.
-        return base[:top_k]
+        result = base[:top_k]
+        self._reset_decay(result)
+        return result
 
     def search_smart(
         self,
@@ -368,4 +405,6 @@ class SearchMixin:
             boosted.append(new)
 
         boosted.sort(key=lambda x: x.get("score", 0), reverse=True)
-        return boosted[:top_k]
+        result = boosted[:top_k]
+        self._reset_decay(result)
+        return result

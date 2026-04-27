@@ -345,6 +345,10 @@ class LifecycleMixin:
                 "total_chars": N,
                 "tier_distribution": {"core": N, "recall": N, "archival": N},
                 "entity_count": N,
+                "entity_types": {"person": N, ...},
+                "edge_counts": {"works_at": N, ...},
+                "decay_distribution": {"fresh": N, "stale": N, "archival": N},
+                "recent_hits_7d": N,
                 "recommendations": [...],
                 "status": "healthy" | "warning" | "critical"
             }
@@ -358,6 +362,18 @@ class LifecycleMixin:
         entity_count = self._count_all_entities()
         recommendations = []
         status = "healthy"
+
+        # ── v2.4: Entity types from graph DB ──
+        entity_types = self._health_entity_types()
+
+        # ── v2.4: Edge counts by relation ──
+        edge_counts = self._health_edge_counts()
+
+        # ── v2.4: Decay distribution ──
+        decay_dist = self._health_decay_distribution()
+
+        # ── v2.4: Recent 7-day hit count ──
+        recent_hits_7d = self._health_recent_hits(7)
 
         if total_chars > 100_000:
             recommendations.append(
@@ -393,10 +409,20 @@ class LifecycleMixin:
         if not recommendations:
             recommendations.append("Memory is healthy ✅")
 
+        # v2.4: convenience scalars for edge_count and top_entities
+        edge_count = sum(edge_counts.values()) if isinstance(edge_counts, dict) else 0
+        top_entities = self._health_top_entities()
+
         return {
             "total_chars": total_chars,
             "tier_distribution": tier_dist,
             "entity_count": entity_count,
+            "entity_types": entity_types,
+            "edge_counts": edge_counts,
+            "edge_count": edge_count,
+            "top_entities": top_entities,
+            "decay_distribution": decay_dist,
+            "recent_hits_7d": recent_hits_7d,
             "recommendations": recommendations,
             "status": status,
         }
@@ -516,6 +542,122 @@ class LifecycleMixin:
         if not entities_dir.exists():
             return 0
         return len(list(entities_dir.glob("*.md")))
+
+    def _health_entity_types(self) -> dict:
+        """Count entities by type from graph DB nodes table."""
+        try:
+            import sqlite3
+            db_path = Path(self.base_dir) / "graph.db"
+            if not db_path.exists():
+                return {}
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT node_type, COUNT(*) as cnt FROM nodes GROUP BY node_type"
+            ).fetchall()
+            conn.close()
+            return {row["node_type"]: row["cnt"] for row in rows}
+        except Exception:
+            return {}
+
+    def _health_edge_counts(self) -> dict:
+        """Count edges by relation type from graph DB."""
+        try:
+            import sqlite3
+            db_path = Path(self.base_dir) / "graph.db"
+            if not db_path.exists():
+                return {}
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT relation, COUNT(*) as cnt FROM edges GROUP BY relation ORDER BY cnt DESC"
+            ).fetchall()
+            conn.close()
+            return {row["relation"]: row["cnt"] for row in rows}
+        except Exception:
+            return {}
+
+    def _health_decay_distribution(self) -> dict:
+        """Compute decay distribution: fresh (<7d), stale (7-30d), archival (>30d).
+
+        Based on mtime of entity files in live-notes/.
+        """
+        entities_dir = Path(self.base_dir) / "live-notes"
+        if not entities_dir.exists():
+            return {"fresh": 0, "stale": 0, "archival": 0}
+        import time
+        now = time.time()
+        fresh = stale = archival = 0
+        for f in entities_dir.glob("*.md"):
+            try:
+                age_days = (now - f.stat().st_mtime) / 86400
+                if age_days < 7:
+                    fresh += 1
+                elif age_days < 30:
+                    stale += 1
+                else:
+                    archival += 1
+            except Exception:
+                pass
+        return {"fresh": fresh, "stale": stale, "archival": archival}
+
+    def _health_top_entities(self, limit: int = 5) -> list:
+        """Return top N entities by reference count (from graph DB or entity files)."""
+        try:
+            import sqlite3
+            db_path = Path(self.base_dir) / "graph.db"
+            if db_path.exists():
+                conn = sqlite3.connect(str(db_path))
+                rows = conn.execute(
+                    "SELECT to_id, COUNT(*) as cnt FROM edges "
+                    "GROUP BY to_id ORDER BY cnt DESC LIMIT ?",
+                    (limit,)
+                ).fetchall()
+                conn.close()
+                if rows:
+                    return [{"name": r[0], "count": r[1]} for r in rows]
+        except Exception:
+            pass
+        # Fallback: top entities by file size (proxy for richness)
+        try:
+            entities_dir = Path(self.base_dir) / "entities"
+            if entities_dir.exists():
+                files = sorted(entities_dir.glob("*.md"), key=lambda f: f.stat().st_size, reverse=True)
+                return [{"name": f.stem, "count": f.stat().st_size} for f in files[:limit]]
+        except Exception:
+            pass
+        return []
+
+    def _health_recent_hits(self, days: int = 7) -> int:
+        """Count entities accessed within the last N days.
+
+        Uses 'Last Accessed' field added by search hit decay reset (v2.4).
+        Falls back to mtime if 'Last Accessed' not found.
+        """
+        entities_dir = Path(self.base_dir) / "live-notes"
+        if not entities_dir.exists():
+            return 0
+        import time
+        now = time.time()
+        cutoff = now - (days * 86400)
+        count = 0
+        for f in entities_dir.glob("*.md"):
+            try:
+                content = f.read_text(encoding="utf-8", errors="replace")
+                # Look for 'Last Accessed: YYYY-MM-DD HH:MM:SS' pattern
+                m = re.search(r'\*\*Last Accessed:\*\*\s*(\d{4}-\d{2}-\d{2})', content)
+                if m:
+                    from datetime import datetime as _dt
+                    access_dt = _dt.strptime(m.group(1), "%Y-%m-%d")
+                    if access_dt.timestamp() >= cutoff:
+                        count += 1
+                else:
+                    # Fallback: use mtime
+                    if f.stat().st_mtime >= cutoff:
+                        count += 1
+            except Exception:
+                pass
+        return count
 
     # ------------------------------------------------------------------
     # watch / unwatch / schedule  (M2 Lifecycle API)

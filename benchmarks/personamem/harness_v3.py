@@ -315,6 +315,12 @@ def run_benchmark(
     run_stats = {"ingestions": 0, "total_statements": 0,
                  "total_preferences": 0, "total_facts": 0}
 
+    # v3 majority-vote support (2026-04-27): track per-question outcome
+    # per variant so an outer driver (e.g. run_full.py --majority-vote)
+    # can fuse multiple runs. Additive only — the existing aggregate
+    # `results[v]['correct']` / `accuracy` numbers are unchanged.
+    per_question: Dict[str, Dict[str, bool]] = {v: {} for v in variants}
+
     for i, q in enumerate(questions):
         qid = q.get("question_id", str(i))
         if qid in completed_ids:
@@ -386,11 +392,13 @@ def run_benchmark(
                 answer = query_llm(question, options, msgs, model=model)
                 correct_flag = extract_answer(answer, correct)
                 _accumulate(results[variant], readable, correct_flag)
+                per_question[variant][qid] = bool(correct_flag)
             except Exception as e:  # noqa: BLE001
                 results[variant]["errors"].append({
                     "question_id": qid, "error": str(e),
                 })
                 _accumulate(results[variant], readable, False)
+                per_question[variant][qid] = False
 
         completed_ids.add(qid)
 
@@ -437,6 +445,7 @@ def run_benchmark(
         "n_completed": len(completed_ids),
         "run_stats": run_stats,
         "results": results,
+        "per_question": per_question,
         "elapsed_seconds": time.time() - start_ts,
         "memkraft_dir": mk_dir,
     }

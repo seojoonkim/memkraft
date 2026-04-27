@@ -256,6 +256,27 @@ _KO_RELATION_PATTERNS = [
 
     # === advised_by ===
     (rf'({_KO_NAME})[의]\s+(?:멘토|스승|지도교수)는\s+({_KO_NAME})', 'advised_by'),
+
+    # ====================================================================
+    # 사전형(어근형) 패턴 — v2.4 추가
+    # 동사 활용 없이 "~한다" 사전형만으로 매치
+    # ====================================================================
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*좋아한다', 'likes'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})\s*에서\s*근무한다', 'works_at'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})\s*에\s*산다', 'lives_in'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})이다', 'is_a'),
+    (rf'({_EN_OR_KO})[와과]\s+({_EN_OR_KO})[은는]?\s*친구이다', 'knows'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*공부한다', 'studied_at'),
+    # v2.4.0 추가 사전형 패턴 (11개)
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[에에]\s*참여한다', 'participates_in'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*담당한다', 'manages'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*개발한다', 'develops'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*운영한다', 'operates'),
+    (rf'({_KO_NAME})[은는이가]?\s+({_EN_OR_KO})[을를]\s*설립했다', 'founded'),
+    (rf'({_KO_NAME})[은는이가]?\s+({_EN_OR_KO})[에에]\s*합류했다', 'joined'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*이끈다', 'leads'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})[을를]\s*대표한다', 'represents'),
+    (rf'({_KO_NAME})[은는]\s+({_EN_OR_KO})\s*소속이다', 'part_of'),
 ]
 
 
