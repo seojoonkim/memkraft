@@ -697,3 +697,130 @@ class GraphMixin:
             "node_types": {r["node_type"]: r["cnt"] for r in types},
             "top_relations": {r["relation"]: r["cnt"] for r in rels},
         }
+
+    # ── v2.5.0 — graph_viz + graph_similar ────────────────────────────
+
+    def graph_viz(self, max_nodes: int = 20) -> str:
+        """ASCII text graph visualization.
+
+        Renders edges as ``source → RELATION → target`` lines.
+        At most ``max_nodes`` source nodes are shown (most-connected
+        first).
+
+        Args:
+            max_nodes: Maximum source nodes to display (default 20).
+
+        Returns:
+            str: Multi-line text representation.
+        """
+        if max_nodes <= 0:
+            max_nodes = 20
+
+        with self._graph_db() as conn:
+            # Get most-connected source nodes
+            rows = conn.execute(
+                "SELECT from_id, COUNT(*) as cnt FROM edges "
+                "GROUP BY from_id ORDER BY cnt DESC LIMIT ?",
+                (max_nodes,),
+            ).fetchall()
+            if not rows:
+                return "(empty graph)"
+
+            top_ids = [r["from_id"] for r in rows]
+            placeholders = ",".join("?" for _ in top_ids)
+            edges = conn.execute(
+                f"SELECT from_id, relation, to_id FROM edges "
+                f"WHERE from_id IN ({placeholders}) "
+                f"ORDER BY from_id, relation",
+                top_ids,
+            ).fetchall()
+
+        lines: List[str] = []
+        for row in edges:
+            lines.append(f"{row['from_id']} → {row['relation'].upper()} → {row['to_id']}")
+
+        return "\n".join(lines) if lines else "(empty graph)"
+
+    def graph_similar(self, entity: str, top_k: int = 5) -> List[dict]:
+        """Find graph nodes most similar to *entity* via character n-gram TF-IDF.
+
+        Computes 2-char (bigram) TF-IDF vectors over all node labels in
+        the graph DB and returns the ``top_k`` most similar nodes by
+        cosine similarity.
+
+        Args:
+            entity: Query entity name.
+            top_k: Number of results (default 5).
+
+        Returns:
+            list[dict]: ``[{"name": str, "similarity": float}]``
+        """
+        if not entity or not isinstance(entity, str):
+            return []
+        if top_k <= 0:
+            top_k = 5
+
+        q = entity.strip().lower()
+
+        with self._graph_db() as conn:
+            rows = conn.execute("SELECT id, label FROM nodes").fetchall()
+
+        if not rows:
+            return []
+
+        doc_names = [(r["id"], (r["label"] or r["id"]).lower()) for r in rows]
+
+        # --- character bigram TF-IDF ---
+        def _bigrams(s: str) -> List[str]:
+            return [s[i : i + 2] for i in range(len(s) - 1)] if len(s) >= 2 else [s]
+
+        q_bigrams = _bigrams(q)
+        if not q_bigrams:
+            return []
+
+        # Build vocabulary from all docs + query
+        all_bigrams: set = set(q_bigrams)
+        doc_bg_list: List[List[str]] = []
+        for _, label in doc_names:
+            bgs = _bigrams(label)
+            doc_bg_list.append(bgs)
+            all_bigrams.update(bgs)
+
+        vocab = sorted(all_bigrams)
+        vocab_idx = {b: i for i, b in enumerate(vocab)}
+        V = len(vocab)
+
+        # IDF: document frequency (each node label = one document)
+        df: Dict[str, int] = {}
+        for bgs in doc_bg_list:
+            for b in set(bgs):
+                df[b] = df.get(b, 0) + 1
+        n_docs = len(doc_names) + 1  # +1 for query
+        import math
+        idf = {b: math.log((n_docs + 1) / (c + 1)) + 1 for b, c in df.items()}
+
+        def _tfidf_vec(tokens: List[str]) -> List[float]:
+            tf: Dict[str, int] = {}
+            for t in tokens:
+                tf[t] = tf.get(t, 0) + 1
+            vec = [0.0] * V
+            for t, cnt in tf.items():
+                if t in vocab_idx:
+                    vec[vocab_idx[t]] = cnt * idf.get(t, 1.0)
+            # L2 normalize
+            norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+            return [v / norm for v in vec]
+
+        q_vec = _tfidf_vec(q_bigrams)
+
+        # Cosine similarity (dot product since already L2-normalized)
+        scored: List[dict] = []
+        for i, (name, label) in enumerate(doc_names):
+            if name == q:
+                continue
+            d_vec = _tfidf_vec(doc_bg_list[i])
+            sim = sum(a * b for a, b in zip(q_vec, d_vec))
+            scored.append({"name": name, "similarity": round(sim, 4)})
+
+        scored.sort(key=lambda x: x["similarity"], reverse=True)
+        return scored[:top_k]

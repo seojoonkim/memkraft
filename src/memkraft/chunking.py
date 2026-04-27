@@ -56,17 +56,48 @@ def _chunk_text(text: str, size: int = 500, overlap: int = 50) -> List[str]:
     return chunks or [text]
 
 
+def _dynamic_chunk_size(text: str) -> int:
+    """Choose chunk size based on document length.
+
+    - Short docs (<500 chars):  chunk_size=128
+    - Medium docs (500-2000):   chunk_size=256
+    - Long docs (>2000 chars):  chunk_size=512
+    """
+    n = len(text)
+    if n < 500:
+        return 128
+    if n <= 2000:
+        return 256
+    return 512
+
+
 class ChunkingMixin:
     """v1.0.3 additive chunking + precision search API."""
 
     # ------------------------------------------------------------------
     # track_document — auto-chunking for long documents
     # ------------------------------------------------------------------
+    @staticmethod
+    def dynamic_chunk_size(text: str) -> int:
+        """Choose chunk size based on document length.
+
+        - Short docs (<500 chars):  128
+        - Medium docs (500-2000):   256  
+        - Long docs (>2000 chars):  512
+
+        Args:
+            text: Document text.
+
+        Returns:
+            int: Recommended chunk size.
+        """
+        return _dynamic_chunk_size(text)
+
     def track_document(
         self,
         doc_id: str,
         content: str,
-        chunk_size: int = 500,
+        chunk_size: Any = "auto",
         chunk_overlap: int = 50,
         entity_type: str = "document",
         source: str = "",
@@ -83,7 +114,9 @@ class ChunkingMixin:
         Args:
             doc_id: Stable identifier for the source document.
             content: Full document text.
-            chunk_size: Target chunk size in words (default 500).
+            chunk_size: Target chunk size in words (default ``"auto"``).
+                When ``"auto"``, picks 128/256/512 based on document
+                length.  Pass an explicit integer to override.
             chunk_overlap: Overlap between consecutive chunks (default 50).
             entity_type: Type stored on the parent entity (default
                 ``"document"``). Chunks are always typed as ``"chunk"``.
@@ -92,7 +125,9 @@ class ChunkingMixin:
         Returns:
             int: number of chunks created.
         """
-        if chunk_size <= 0:
+        if chunk_size == "auto":
+            chunk_size = _dynamic_chunk_size(content or "")
+        if not isinstance(chunk_size, int) or chunk_size <= 0:
             raise ValueError("chunk_size must be > 0")
         if chunk_overlap < 0 or chunk_overlap >= chunk_size:
             raise ValueError("chunk_overlap must be in [0, chunk_size)")

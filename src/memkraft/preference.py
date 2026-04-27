@@ -207,8 +207,37 @@ class PreferenceMixin:
 
         return conflicts
 
+    def pref_conflicts_all(self) -> List[Dict[str, Any]]:
+        """Detect preference conflicts across ALL entities.
+
+        Scans every preference file and reports cases where the same
+        entity has the same preference key mapped to different values.
+
+        Returns:
+            list[dict]: Each entry has ``entity``, ``conflict``
+            (descriptive string), and ``facts`` (list of the
+            conflicting value dicts).
+        """
+        pref_dir = self.base_dir / "preferences"
+        if not pref_dir.exists():
+            return []
+
+        results: List[Dict[str, Any]] = []
+        for pref_file in sorted(pref_dir.glob("*.md")):
+            entity = pref_file.stem
+            entity_conflicts = self.pref_conflicts(entity)
+            for c in entity_conflicts:
+                values = [v["value"] for v in c.get("values", [])]
+                results.append({
+                    "entity": entity,
+                    "conflict": f"{c['key']}: {' vs '.join(values)}",
+                    "facts": c.get("values", []),
+                })
+
+        return results
+
     def _slugify(self, name: str) -> str:
-        return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+        return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:80]
 
     def _close_preference(self, pref_file: Path, key: str,
                           before_date: str) -> bool:

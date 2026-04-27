@@ -660,6 +660,76 @@ class LifecycleMixin:
         return count
 
     # ------------------------------------------------------------------
+    # cleanup_orphans (v2.5.0)
+    # ------------------------------------------------------------------
+
+    def cleanup_orphans(self, dry_run: bool = True) -> dict:
+        """Detect (and optionally archive) entity files with zero references.
+
+        An entity is considered "orphaned" if no other file in the
+        memory directory references its slug (via wiki-link ``[[slug]]``
+        or plain text mention).
+
+        Args:
+            dry_run:
+                If True (default), returns the orphan list without
+                modifying anything.  If False, moves orphaned files to
+                ``archival`` tier.
+
+        Returns:
+            dict: ``{"orphans": [...], "moved": int}``
+        """
+        entities_dir = Path(self.base_dir) / "live-notes"
+        if not entities_dir.exists():
+            return {"orphans": [], "moved": 0}
+
+        # 1. Collect all entity slugs
+        entity_files = list(entities_dir.glob("*.md"))
+        if not entity_files:
+            return {"orphans": [], "moved": 0}
+
+        slugs: dict[str, Path] = {}
+        for f in entity_files:
+            slug = f.stem.lower()
+            slugs[slug] = f
+
+        # 2. Scan all .md files for references to each slug
+        all_md = list(Path(self.base_dir).rglob("*.md"))
+        # Exclude the entity file itself from the reference search
+        referenced: set = set()
+
+        for md_file in all_md:
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="replace").lower()
+            except Exception:
+                continue
+            for slug in slugs:
+                if slug in referenced:
+                    continue
+                # Wiki-link: [[slug]] or [[slug|alias]]
+                if f"[[{slug}]]" in content or f"[[{slug}|" in content:
+                    referenced.add(slug)
+                    continue
+                # Plain text mention (word boundary check for short slugs)
+                if len(slug) >= 4 and slug in content:
+                    referenced.add(slug)
+
+        # 3. Orphans = slugs not referenced by any other file
+        orphans = [s for s in slugs if s not in referenced]
+
+        # 4. If not dry_run, archive orphans
+        moved = 0
+        if not dry_run:
+            for slug in orphans:
+                try:
+                    self.tier_set(slug, tier="archival")
+                    moved += 1
+                except Exception:
+                    pass
+
+        return {"orphans": orphans, "moved": moved}
+
+    # ------------------------------------------------------------------
     # watch / unwatch / schedule  (M2 Lifecycle API)
     # ------------------------------------------------------------------
 

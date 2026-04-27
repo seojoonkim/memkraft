@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -32,6 +32,7 @@ from .context_compress import ContextCompressMixin  # v2.5 context compression
 from .rerank import RerankMixin  # v2.5 question-type-aware re-ranking
 from .hierarchical import HierarchicalMixin  # v1.1.2 hierarchical retrieval
 from .alias import AliasMixin  # v2.4 entity alias support
+# PreferenceMixin NOT registered — would overwrite core._slugify
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -88,6 +89,92 @@ for _mixin in (
 # ``confidence`` field.  Must run AFTER all mixins are attached so the
 # wrappers see the final method bodies (search_multi from MultiPassMixin,
 # search_v2 from SearchMixin, etc.).
+# v2.5.0 — pref_conflicts_all (not via PreferenceMixin to avoid _slugify collision)
+
+def _pref_conflicts_all(self) -> list:
+    """Detect preference conflicts across ALL entities.
+
+    Scans every preference file and reports cases where the same
+    entity has the same preference key mapped to different values.
+
+    Returns:
+        list[dict]: Each entry has ``entity``, ``conflict``
+        (descriptive string), and ``facts`` (list of the
+        conflicting value dicts).
+    """
+    from pathlib import Path as _Path
+    import re as _re
+
+    pref_dir = self.base_dir / "preferences"
+    if not pref_dir.exists():
+        return []
+
+    # Import preference helpers
+    from .preference import _PREF_RE, _SIMPLE_PREF_RE
+
+    def _parse(pref_file):
+        content = pref_file.read_text(encoding="utf-8")
+        results = []
+        for raw_line in content.split("\n"):
+            line = raw_line.strip()
+            if not line.startswith("- "):
+                continue
+            stripped_key = line[2:].split(":", 1)[0].strip().lower() if ":" in line[2:] else ""
+            if stripped_key == "reason" and results:
+                _, _, rest = line.partition(":")
+                reason_val = rest.strip()
+                if reason_val and not results[-1].get("reason"):
+                    results[-1]["reason"] = reason_val
+                continue
+            m = _PREF_RE.search(line)
+            if m:
+                key_val = line.split("<!--")[0].strip()
+                parts = key_val.split(":", 1)
+                if len(parts) == 2:
+                    results.append({
+                        "key": parts[0].lstrip("- ").strip(),
+                        "value": parts[1].strip(),
+                        "valid_from": m.group("vfrom") or None,
+                        "valid_to": m.group("vto") or None,
+                        "strength": float(m.group("strength")),
+                    })
+                continue
+            m = _SIMPLE_PREF_RE.search(line)
+            if m:
+                key_val = line.split("<!--")[0].strip()
+                parts = key_val.split(":", 1)
+                if len(parts) == 2:
+                    results.append({
+                        "key": parts[0].lstrip("- ").strip(),
+                        "value": parts[1].strip(),
+                        "valid_from": m.group("vfrom") or None,
+                        "valid_to": m.group("vto") or None,
+                        "strength": 1.0,
+                    })
+        return results
+
+    all_results = []
+    for pref_file in sorted(pref_dir.glob("*.md")):
+        entity = pref_file.stem
+        prefs = _parse(pref_file)
+        by_key: dict = {}
+        for p in prefs:
+            by_key.setdefault(p["key"], []).append(p)
+        for key, key_prefs in by_key.items():
+            if len(key_prefs) > 1:
+                values = set(p["value"] for p in key_prefs)
+                if len(values) > 1:
+                    all_results.append({
+                        "entity": entity,
+                        "conflict": f"{key}: {' vs '.join(values)}",
+                        "facts": key_prefs,
+                    })
+    return all_results
+
+
+setattr(_BaseMemKraft, "pref_conflicts_all", _pref_conflicts_all)
+setattr(_BaseMemKraft, "pref_conflicts", _pref_conflicts_all)  # convenience alias
+
 install_confidence_wrappers(_BaseMemKraft)
 
 MemKraft = _BaseMemKraft

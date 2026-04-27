@@ -27,7 +27,7 @@ import contextlib
 import io
 import re
 from datetime import datetime, timedelta
-from typing import Any, Iterable
+from typing import Any, Dict, Iterable, List
 
 
 # Lightweight multilingual stopword set.  Intentionally small — stop
@@ -337,6 +337,121 @@ class SearchMixin:
             return self.search_expand(query, top_k=top_k, fuzzy=fuzzy)
         # fact
         return self.search_ranked(query, top_k=top_k, min_score=0.0, fuzzy=fuzzy)
+
+    # ------------------------------------------------------------------
+    # v2.5.0 — Multi-query RRF fusion + Context budget check
+    # ------------------------------------------------------------------
+
+    def search_multi_query(
+        self,
+        queries: List[str],
+        top_k: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Multi-query RRF fusion search.
+
+        Runs each query through ``search_smart`` and fuses the results
+        using Reciprocal Rank Fusion (RRF).  Useful when a single
+        phrasing may miss relevant results — multiple formulations
+        increase recall without sacrificing precision (RRF handles
+        the ranking).
+
+        Parameters
+        ----------
+        queries:
+            List of query strings.
+        top_k:
+            Maximum number of results to return (default 10).
+
+        Returns
+        -------
+        list[dict]
+            Deduplicated, RRF-ranked results.
+        """
+        if not queries:
+            return []
+        if not isinstance(top_k, int) or top_k <= 0:
+            top_k = 10
+
+        batches: List[List[Dict[str, Any]]] = []
+        for q in queries:
+            if isinstance(q, str) and q.strip():
+                batches.append(self.search_smart(q, top_k=top_k))
+
+        if not batches:
+            return []
+
+        if len(batches) == 1:
+            return batches[0][:top_k]
+
+        # Use RRF fusion (self._rrf_fusion from RRFMixin)
+        if hasattr(self, "_rrf_fusion"):
+            fused = self._rrf_fusion(*batches)
+        else:
+            # Fallback: simple score-max merge
+            fused = self._v102_merge(batches)
+
+        return fused[:top_k]
+
+    @staticmethod
+    def context_budget_check(
+        results: List[Dict[str, Any]],
+        max_tokens: int = 4000,
+    ) -> Dict[str, Any]:
+        """Check whether search results fit within a token budget.
+
+        Estimates total tokens (chars / 4 ≈ tokens) for all result
+        snippets.  If the total exceeds ``max_tokens``, truncates the
+        list to fit.
+
+        Parameters
+        ----------
+        results:
+            List of search result dicts (each may have ``snippet``
+            and/or ``file`` keys).
+        max_tokens:
+            Maximum allowed tokens (default 4000).
+
+        Returns
+        -------
+        dict
+            ``{"total_tokens": N, "over_budget": bool,
+              "truncated_results": [...]}``
+        """
+        if not results:
+            return {"total_tokens": 0, "over_budget": False, "truncated_results": []}
+
+        def _estimate_tokens(text: str) -> int:
+            """Estimate token count from character count (chars / 4)."""
+            return max(1, len(text) // 4) if text else 0
+
+        truncated: List[Dict[str, Any]] = []
+        total_tokens = 0
+        over_budget = False
+
+        for r in results:
+            # Combine snippet + file path for estimation
+            snippet = r.get("snippet", "") or ""
+            file_path = r.get("file", "") or ""
+            match = r.get("match", "") or ""
+            text = f"{match} {snippet} {file_path}".strip()
+
+            est = _estimate_tokens(text)
+
+            if total_tokens + est > max_tokens:
+                over_budget = True
+                # Still add if we haven't added anything yet
+                if not truncated:
+                    truncated.append(r)
+                break
+
+            total_tokens += est
+            truncated.append(r)
+
+        return {
+            "total_tokens": total_tokens,
+            "over_budget": over_budget,
+            "truncated_results": truncated,
+        }
 
     def search_temporal(
         self,

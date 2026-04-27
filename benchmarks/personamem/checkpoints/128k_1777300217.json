@@ -1,40 +1,84 @@
 {
   "completed_ids": [
+    "02a40908-3105-4bb6-bae4-f076c042eed1",
     "02aa3e0b-347f-4f4c-a620-90634c20ee9c",
+    "08b1ef60-234a-4db8-9cc1-01fdf6802a3b",
+    "115e988d-4b5d-410c-aace-53cac4167952",
+    "158a2184-1846-4114-9c74-a713faca8185",
+    "1747d6ed-aece-4638-952d-0feeca1e609b",
+    "17e68aa3-46e9-4a2c-b5c1-0ae2c3aadd9f",
     "18c40af3-71da-4c75-8781-930bbf7270d7",
     "2025806d-166e-40de-b4c2-5a4f34b5a044",
     "24c2f7fe-bb06-441c-9aa6-292b399f3262",
+    "251c6a30-a89f-433f-aebe-ff26efa4b679",
     "253e75d2-f2bd-4242-a3ca-3e7129910516",
+    "268ed5cc-80f3-4e8f-b347-0bc78e321805",
     "2b1885fa-5728-4e2f-8011-1b4413e9ee00",
+    "2b18b28c-6195-420d-88de-f287a896ec53",
+    "2c43ed29-4414-43dd-8c0d-fdbc9eafb448",
+    "2ccf9bf9-fe15-4401-afeb-44c23121e10f",
     "2ce0d1c2-2c79-47de-afad-a9ff84389cb1",
     "2f1615fd-e5d1-4f78-9142-7907bbb97408",
+    "317fec09-bf51-4ba7-94d8-958242daa3ff",
     "32711a76-4655-471b-88df-61fa6ee627ef",
+    "376c827e-7379-4373-bd23-dce5c073f571",
+    "3f786c7a-fc32-46fb-b342-3979690d1caf",
+    "4a292fbf-98c9-4924-837e-f22c88a49d9e",
+    "54c70a1f-1453-42ee-99bc-ec780f5be378",
     "57283a51-2abb-4948-bc57-ae3c3dd66ae5",
+    "5764f552-417b-4a6c-94b2-86f24a9ab676",
     "5b116d8d-24fb-4205-be99-e61b962dcac1",
+    "5bf359b3-89f1-47ef-a4c2-54b2112af08a",
     "61fe426c-e029-4c76-9a8d-155cfdf739a7",
     "6422f9b6-72ce-4d29-860f-a63c52004b31",
+    "6a9cb7f4-122c-47e0-ab5a-2ef6404c09c4",
     "6b7a2c83-37c2-4acb-9b9d-feba00ff044b",
     "6c389814-307b-42bb-aeaa-6a8bfb889dd1",
     "6cd46bb6-629c-4e76-af70-76746d8570cc",
+    "6daa0709-30e6-4f05-b360-c50d788451be",
     "6fca83c1-db84-4091-ba32-d0fe261340da",
+    "70f65aea-18c6-4f68-b189-03fa5797f488",
     "769e0673-763c-4f36-8943-aba17deaa97a",
     "77e0a8ea-7c1f-45a5-a2da-729314343677",
+    "783309ec-14bd-4b6e-9b1b-eed95c6f879f",
+    "7937154c-802d-47c4-9fcd-c3643d40997a",
+    "7e701928-491f-49a6-9566-a6cf693bc4f9",
     "8581a182-bc2f-4219-85da-29e8304ccf76",
+    "87724cfe-e676-4702-80e4-bd86c6bfc371",
     "87f81165-c81a-4905-8de5-17b3f8d27606",
     "8b7b7e75-6795-47e8-9869-cc0a278e2fa6",
     "8bc67d7a-4ba6-4c8c-a962-004643d0fc9f",
+    "8bf0a2e7-96bb-4639-b880-c11783db8cbf",
     "8c6cd21c-535f-4726-83a9-53e48d5ca809",
+    "8dd29ea9-4f85-41a2-add2-01627b8701ab",
     "90bc310e-f074-40d6-88e8-446429f16f8b",
     "93a80e5a-a9cc-4837-a34e-2ff73084e1bf",
+    "956f75c3-307a-4914-af59-d5b0649a6dce",
     "996167ed-4179-4006-adcb-b179ed097d5d",
     "9d4674d3-1d8e-44f7-9716-287e08f1cde0",
+    "9d8aa572-82d2-48bd-b918-c98330c3a15c",
     "a213006d-f595-46cf-98dd-8301a5dd24a5",
+    "a2de3d01-ef09-4fd9-ab0f-cc60f9f7a453",
+    "a39dbbbb-8d51-40ca-b2bb-520311be0952",
     "a5239a59-3d52-4b96-a7a6-e2fb00af973b",
+    "a5fe4822-f1d4-4d2e-9716-cfaa66bd1f9f",
+    "a76cc856-a01f-46e7-93a8-787302b5a114",
+    "accc7506-49b4-48f0-bba7-2cf796c11b9b",
     "adec2613-7126-48dc-8c37-2816e269af0a",
+    "ae9debd7-64f7-425d-9b6a-894aee8084dc",
+    "afa14f39-beb6-48d4-b05a-0df347b129a1",
     "b0cc5474-b50f-433c-8be9-ac624c076c88",
+    "b1eb80b8-c302-4c63-9b77-19e6ae189b79",
+    "b40712b3-ea86-4204-9e0e-e410fbe10ac4",
+    "b511a02c-762b-42a2-b05b-8e02b8aea710",
     "b57b4d50-1894-4f23-b263-f6a6ddcd760c",
+    "b7c04b44-01cd-4304-b431-4908201f39cc",
+    "b82ec327-d15b-47e1-9fa0-dd21174df00d",
+    "bb482cac-abe0-4e46-a7f9-d03a62b51e4d",
     "bb73c37e-c0fb-4ff6-8019-48bdf4237ee9",
+    "bee06b92-0857-4f92-94ee-543ee90cdb66",
     "c060c686-4b3c-4bfc-be85-2cca1cc14f1c",
+    "c1117890-b167-428d-a8c0-13098e73eecc",
     "c50df5f0-0796-4b94-ad55-a28d7d0d147c",
     "c53e9d1a-b784-4299-9d4e-fee756710222",
     "c6cb0235-6f11-4222-b4d9-5a3d6ec4368d",
@@ -42,47 +86,63 @@
     "c91c8a5a-f2ee-446a-8ae7-f93db968e211",
     "cb2a8925-5ecb-4f6b-9f68-671afd76eec3",
     "cb51df14-f1ca-49e9-bcf4-358192494197",
+    "cc26c8aa-ab40-44be-b0ee-ed5112aa7b86",
+    "ce5316fc-e87f-4b32-bc68-9d9a21b75602",
     "ce7fe397-8e01-4b0f-8cdc-f6a758f7a17e",
     "cfa22c83-14ca-4dc9-b7f8-f15ccc191cc0",
     "d2c0f47a-ffb4-4a4c-84ca-a2b26ae1eb74",
+    "d34207d6-e95c-4447-946d-6238b1a2568f",
+    "d4243163-2179-4f8a-956e-dca3486d437c",
+    "e0a7ad38-24d2-4aef-9abc-e5a9e8b3b8e5",
+    "e0d71b71-6e09-466c-85d4-40793c7263cc",
+    "e5468703-72bb-4bc5-a048-b3d847d58e2c",
+    "e61537df-2746-4832-9fb9-784d94b51d07",
     "e9312faa-54c0-4556-bcde-87f100c6ee9b",
     "e96f24c1-06dc-4195-a58d-9e53f8064770",
+    "eadf4845-80cf-4fd0-bc3f-5adbc0c58a78",
+    "ed321ccf-49d8-4b16-8a19-1aadbe0f6e61",
+    "ee270cc9-f6cb-4be7-9f12-b103e6bfc65a",
     "ef08a447-bbfc-4291-ab50-e386bb18f12b",
     "ef7ed344-8776-4d57-bd92-27b7e571cdac",
-    "fc2b1425-dc60-470f-81fa-f5b09d71de03"
+    "f590ad83-136a-4926-b1a2-254d1b635aa2",
+    "f7267a15-ecbc-401a-8347-271030470c4a",
+    "fb304556-e175-43a9-956c-61d178272872",
+    "fba09e33-5435-4c2b-bda1-47f823a34756",
+    "fc2b1425-dc60-470f-81fa-f5b09d71de03",
+    "fdaf2183-ece3-4a1e-aec1-3a15f60412d3"
   ],
   "results": {
     "baseline": {
       "variant": "baseline",
-      "total": 50,
+      "total": 110,
       "correct": 0,
       "by_type": {
         "static_fact_recall": {
-          "total": 6,
+          "total": 12,
           "correct": 0
         },
         "novel_suggestion": {
-          "total": 15,
+          "total": 30,
           "correct": 0
         },
         "aligned_recommendation": {
-          "total": 4,
+          "total": 8,
           "correct": 0
         },
         "acknowledge_latest_user_preferences": {
-          "total": 15,
+          "total": 34,
           "correct": 0
         },
         "generalize_to_new_scenarios": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_reasons": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_evolution": {
-          "total": 2,
+          "total": 12,
           "correct": 0
         }
       },
@@ -285,41 +345,281 @@
         },
         {
           "question_id": "02aa3e0b-347f-4f4c-a620-90634c20ee9c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "783309ec-14bd-4b6e-9b1b-eed95c6f879f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b7c04b44-01cd-4304-b431-4908201f39cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7937154c-802d-47c4-9fcd-c3643d40997a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "87724cfe-e676-4702-80e4-bd86c6bfc371",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ae9debd7-64f7-425d-9b6a-894aee8084dc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a76cc856-a01f-46e7-93a8-787302b5a114",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "9d8aa572-82d2-48bd-b918-c98330c3a15c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "70f65aea-18c6-4f68-b189-03fa5797f488",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ed321ccf-49d8-4b16-8a19-1aadbe0f6e61",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "376c827e-7379-4373-bd23-dce5c073f571",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "02a40908-3105-4bb6-bae4-f076c042eed1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fdaf2183-ece3-4a1e-aec1-3a15f60412d3",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "4a292fbf-98c9-4924-837e-f22c88a49d9e",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fba09e33-5435-4c2b-bda1-47f823a34756",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bb482cac-abe0-4e46-a7f9-d03a62b51e4d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a39dbbbb-8d51-40ca-b2bb-520311be0952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "cc26c8aa-ab40-44be-b0ee-ed5112aa7b86",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b511a02c-762b-42a2-b05b-8e02b8aea710",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8dd29ea9-4f85-41a2-add2-01627b8701ab",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "317fec09-bf51-4ba7-94d8-958242daa3ff",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fb304556-e175-43a9-956c-61d178272872",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "afa14f39-beb6-48d4-b05a-0df347b129a1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b1eb80b8-c302-4c63-9b77-19e6ae189b79",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e61537df-2746-4832-9fb9-784d94b51d07",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8bf0a2e7-96bb-4639-b880-c11783db8cbf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "158a2184-1846-4114-9c74-a713faca8185",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "c1117890-b167-428d-a8c0-13098e73eecc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5bf359b3-89f1-47ef-a4c2-54b2112af08a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f7267a15-ecbc-401a-8347-271030470c4a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "eadf4845-80cf-4fd0-bc3f-5adbc0c58a78",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "3f786c7a-fc32-46fb-b342-3979690d1caf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0d71b71-6e09-466c-85d4-40793c7263cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "accc7506-49b4-48f0-bba7-2cf796c11b9b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "956f75c3-307a-4914-af59-d5b0649a6dce",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "17e68aa3-46e9-4a2c-b5c1-0ae2c3aadd9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2ccf9bf9-fe15-4401-afeb-44c23121e10f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b40712b3-ea86-4204-9e0e-e410fbe10ac4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2c43ed29-4414-43dd-8c0d-fdbc9eafb448",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5764f552-417b-4a6c-94b2-86f24a9ab676",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0a7ad38-24d2-4aef-9abc-e5a9e8b3b8e5",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e5468703-72bb-4bc5-a048-b3d847d58e2c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bee06b92-0857-4f92-94ee-543ee90cdb66",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "54c70a1f-1453-42ee-99bc-ec780f5be378",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f590ad83-136a-4926-b1a2-254d1b635aa2",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a5fe4822-f1d4-4d2e-9716-cfaa66bd1f9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7e701928-491f-49a6-9566-a6cf693bc4f9",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ee270cc9-f6cb-4be7-9f12-b103e6bfc65a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a2de3d01-ef09-4fd9-ab0f-cc60f9f7a453",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "115e988d-4b5d-410c-aace-53cac4167952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d4243163-2179-4f8a-956e-dca3486d437c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2b18b28c-6195-420d-88de-f287a896ec53",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "268ed5cc-80f3-4e8f-b347-0bc78e321805",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6daa0709-30e6-4f05-b360-c50d788451be",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "251c6a30-a89f-433f-aebe-ff26efa4b679",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ce5316fc-e87f-4b32-bc68-9d9a21b75602",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "1747d6ed-aece-4638-952d-0feeca1e609b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b82ec327-d15b-47e1-9fa0-dd21174df00d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "08b1ef60-234a-4db8-9cc1-01fdf6802a3b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6a9cb7f4-122c-47e0-ab5a-2ef6404c09c4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d34207d6-e95c-4447-946d-6238b1a2568f",
           "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
         }
       ]
     },
     "hybrid": {
       "variant": "hybrid",
-      "total": 50,
+      "total": 110,
       "correct": 0,
       "by_type": {
         "static_fact_recall": {
-          "total": 6,
+          "total": 12,
           "correct": 0
         },
         "novel_suggestion": {
-          "total": 15,
+          "total": 30,
           "correct": 0
         },
         "aligned_recommendation": {
-          "total": 4,
+          "total": 8,
           "correct": 0
         },
         "acknowledge_latest_user_preferences": {
-          "total": 15,
+          "total": 34,
           "correct": 0
         },
         "generalize_to_new_scenarios": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_reasons": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_evolution": {
-          "total": 2,
+          "total": 12,
           "correct": 0
         }
       },
@@ -522,41 +822,281 @@
         },
         {
           "question_id": "02aa3e0b-347f-4f4c-a620-90634c20ee9c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "783309ec-14bd-4b6e-9b1b-eed95c6f879f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b7c04b44-01cd-4304-b431-4908201f39cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7937154c-802d-47c4-9fcd-c3643d40997a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "87724cfe-e676-4702-80e4-bd86c6bfc371",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ae9debd7-64f7-425d-9b6a-894aee8084dc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a76cc856-a01f-46e7-93a8-787302b5a114",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "9d8aa572-82d2-48bd-b918-c98330c3a15c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "70f65aea-18c6-4f68-b189-03fa5797f488",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ed321ccf-49d8-4b16-8a19-1aadbe0f6e61",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "376c827e-7379-4373-bd23-dce5c073f571",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "02a40908-3105-4bb6-bae4-f076c042eed1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fdaf2183-ece3-4a1e-aec1-3a15f60412d3",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "4a292fbf-98c9-4924-837e-f22c88a49d9e",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fba09e33-5435-4c2b-bda1-47f823a34756",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bb482cac-abe0-4e46-a7f9-d03a62b51e4d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a39dbbbb-8d51-40ca-b2bb-520311be0952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "cc26c8aa-ab40-44be-b0ee-ed5112aa7b86",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b511a02c-762b-42a2-b05b-8e02b8aea710",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8dd29ea9-4f85-41a2-add2-01627b8701ab",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "317fec09-bf51-4ba7-94d8-958242daa3ff",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fb304556-e175-43a9-956c-61d178272872",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "afa14f39-beb6-48d4-b05a-0df347b129a1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b1eb80b8-c302-4c63-9b77-19e6ae189b79",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e61537df-2746-4832-9fb9-784d94b51d07",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8bf0a2e7-96bb-4639-b880-c11783db8cbf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "158a2184-1846-4114-9c74-a713faca8185",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "c1117890-b167-428d-a8c0-13098e73eecc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5bf359b3-89f1-47ef-a4c2-54b2112af08a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f7267a15-ecbc-401a-8347-271030470c4a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "eadf4845-80cf-4fd0-bc3f-5adbc0c58a78",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "3f786c7a-fc32-46fb-b342-3979690d1caf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0d71b71-6e09-466c-85d4-40793c7263cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "accc7506-49b4-48f0-bba7-2cf796c11b9b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "956f75c3-307a-4914-af59-d5b0649a6dce",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "17e68aa3-46e9-4a2c-b5c1-0ae2c3aadd9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2ccf9bf9-fe15-4401-afeb-44c23121e10f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b40712b3-ea86-4204-9e0e-e410fbe10ac4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2c43ed29-4414-43dd-8c0d-fdbc9eafb448",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5764f552-417b-4a6c-94b2-86f24a9ab676",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0a7ad38-24d2-4aef-9abc-e5a9e8b3b8e5",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e5468703-72bb-4bc5-a048-b3d847d58e2c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bee06b92-0857-4f92-94ee-543ee90cdb66",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "54c70a1f-1453-42ee-99bc-ec780f5be378",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f590ad83-136a-4926-b1a2-254d1b635aa2",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a5fe4822-f1d4-4d2e-9716-cfaa66bd1f9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7e701928-491f-49a6-9566-a6cf693bc4f9",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ee270cc9-f6cb-4be7-9f12-b103e6bfc65a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a2de3d01-ef09-4fd9-ab0f-cc60f9f7a453",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "115e988d-4b5d-410c-aace-53cac4167952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d4243163-2179-4f8a-956e-dca3486d437c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2b18b28c-6195-420d-88de-f287a896ec53",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "268ed5cc-80f3-4e8f-b347-0bc78e321805",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6daa0709-30e6-4f05-b360-c50d788451be",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "251c6a30-a89f-433f-aebe-ff26efa4b679",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ce5316fc-e87f-4b32-bc68-9d9a21b75602",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "1747d6ed-aece-4638-952d-0feeca1e609b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b82ec327-d15b-47e1-9fa0-dd21174df00d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "08b1ef60-234a-4db8-9cc1-01fdf6802a3b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6a9cb7f4-122c-47e0-ab5a-2ef6404c09c4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d34207d6-e95c-4447-946d-6238b1a2568f",
           "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
         }
       ]
     },
     "memkraft": {
       "variant": "memkraft",
-      "total": 50,
+      "total": 110,
       "correct": 0,
       "by_type": {
         "static_fact_recall": {
-          "total": 6,
+          "total": 12,
           "correct": 0
         },
         "novel_suggestion": {
-          "total": 15,
+          "total": 30,
           "correct": 0
         },
         "aligned_recommendation": {
-          "total": 4,
+          "total": 8,
           "correct": 0
         },
         "acknowledge_latest_user_preferences": {
-          "total": 15,
+          "total": 34,
           "correct": 0
         },
         "generalize_to_new_scenarios": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_reasons": {
-          "total": 4,
+          "total": 7,
           "correct": 0
         },
         "preference_evolution": {
-          "total": 2,
+          "total": 12,
           "correct": 0
         }
       },
@@ -759,6 +1299,246 @@
         },
         {
           "question_id": "02aa3e0b-347f-4f4c-a620-90634c20ee9c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "783309ec-14bd-4b6e-9b1b-eed95c6f879f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b7c04b44-01cd-4304-b431-4908201f39cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7937154c-802d-47c4-9fcd-c3643d40997a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "87724cfe-e676-4702-80e4-bd86c6bfc371",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ae9debd7-64f7-425d-9b6a-894aee8084dc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a76cc856-a01f-46e7-93a8-787302b5a114",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "9d8aa572-82d2-48bd-b918-c98330c3a15c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "70f65aea-18c6-4f68-b189-03fa5797f488",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ed321ccf-49d8-4b16-8a19-1aadbe0f6e61",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "376c827e-7379-4373-bd23-dce5c073f571",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "02a40908-3105-4bb6-bae4-f076c042eed1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fdaf2183-ece3-4a1e-aec1-3a15f60412d3",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "4a292fbf-98c9-4924-837e-f22c88a49d9e",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fba09e33-5435-4c2b-bda1-47f823a34756",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bb482cac-abe0-4e46-a7f9-d03a62b51e4d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a39dbbbb-8d51-40ca-b2bb-520311be0952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "cc26c8aa-ab40-44be-b0ee-ed5112aa7b86",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b511a02c-762b-42a2-b05b-8e02b8aea710",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8dd29ea9-4f85-41a2-add2-01627b8701ab",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "317fec09-bf51-4ba7-94d8-958242daa3ff",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "fb304556-e175-43a9-956c-61d178272872",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "afa14f39-beb6-48d4-b05a-0df347b129a1",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b1eb80b8-c302-4c63-9b77-19e6ae189b79",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e61537df-2746-4832-9fb9-784d94b51d07",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "8bf0a2e7-96bb-4639-b880-c11783db8cbf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "158a2184-1846-4114-9c74-a713faca8185",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "c1117890-b167-428d-a8c0-13098e73eecc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5bf359b3-89f1-47ef-a4c2-54b2112af08a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f7267a15-ecbc-401a-8347-271030470c4a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "eadf4845-80cf-4fd0-bc3f-5adbc0c58a78",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "3f786c7a-fc32-46fb-b342-3979690d1caf",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0d71b71-6e09-466c-85d4-40793c7263cc",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "accc7506-49b4-48f0-bba7-2cf796c11b9b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "956f75c3-307a-4914-af59-d5b0649a6dce",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "17e68aa3-46e9-4a2c-b5c1-0ae2c3aadd9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2ccf9bf9-fe15-4401-afeb-44c23121e10f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b40712b3-ea86-4204-9e0e-e410fbe10ac4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2c43ed29-4414-43dd-8c0d-fdbc9eafb448",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "5764f552-417b-4a6c-94b2-86f24a9ab676",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e0a7ad38-24d2-4aef-9abc-e5a9e8b3b8e5",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "e5468703-72bb-4bc5-a048-b3d847d58e2c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "bee06b92-0857-4f92-94ee-543ee90cdb66",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "54c70a1f-1453-42ee-99bc-ec780f5be378",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "f590ad83-136a-4926-b1a2-254d1b635aa2",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a5fe4822-f1d4-4d2e-9716-cfaa66bd1f9f",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "7e701928-491f-49a6-9566-a6cf693bc4f9",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ee270cc9-f6cb-4be7-9f12-b103e6bfc65a",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "a2de3d01-ef09-4fd9-ab0f-cc60f9f7a453",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "115e988d-4b5d-410c-aace-53cac4167952",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d4243163-2179-4f8a-956e-dca3486d437c",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "2b18b28c-6195-420d-88de-f287a896ec53",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "268ed5cc-80f3-4e8f-b347-0bc78e321805",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6daa0709-30e6-4f05-b360-c50d788451be",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "251c6a30-a89f-433f-aebe-ff26efa4b679",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "ce5316fc-e87f-4b32-bc68-9d9a21b75602",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "1747d6ed-aece-4638-952d-0feeca1e609b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "b82ec327-d15b-47e1-9fa0-dd21174df00d",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "08b1ef60-234a-4db8-9cc1-01fdf6802a3b",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "6a9cb7f4-122c-47e0-ab5a-2ef6404c09c4",
+          "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+        },
+        {
+          "question_id": "d34207d6-e95c-4447-946d-6238b1a2568f",
           "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
         }
       ]
@@ -777,5 +1557,5 @@
     "hybrid",
     "memkraft"
   ],
-  "elapsed_seconds": 2018.0366008281708
+  "elapsed_seconds": 4448.236176967621
 }
