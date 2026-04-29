@@ -24,11 +24,17 @@ schema, or any existing behaviour. Use ``dry_run=True`` to preview.
 from __future__ import annotations
 
 import datetime as _dt
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .bitemporal import _LINE_RE, _now_iso, format_line, parse_line
+
+# Module-level logger for contradiction warnings (Stage 5). The host
+# application configures handlers; this just emits structured warnings
+# whenever a contradictory fact is detected during consolidation.
+_logger = logging.getLogger("memkraft.consolidation")
 
 
 # Heuristic: assume ~4 chars per token. Used only for estimation.
@@ -128,11 +134,18 @@ class ConsolidationMixin:
             max_facts=max_obs_facts, dry_run=dry_run, details=details
         )
 
+        # Stage 5
+        contradictions, c5 = self._consolidate_contradictions(
+            dry_run=dry_run, details=details
+        )
+        chars_saved += c5
+
         return {
             "duplicates_merged": merged,
             "stale_closed": closed,
             "orphans_removed": orphans,
             "observations_generated": observations,
+            "contradictions_detected": contradictions,
             "tokens_saved_estimate": chars_saved // _CHARS_PER_TOKEN,
             "chars_saved": chars_saved,
             "details": details,
@@ -455,6 +468,178 @@ class ConsolidationMixin:
                 details.append(f"observation: {slug} ({len(picked)} facts)")
 
         return generated
+
+    # ------------------------------------------------------------------
+    # Stage 5 — Contradiction Detection
+    # ------------------------------------------------------------------
+
+    def _consolidate_contradictions(
+        self,
+        *,
+        dry_run: bool,
+        details: List[str],
+    ) -> Tuple[int, int]:
+        """Detect contradictions in fact files.
+
+        A contradiction is when the same entity has the same ``key`` mapped
+        to different ``value``’s and the facts overlap in valid_time (both
+        are currently valid, or their intervals intersect).
+
+        For each contradiction:
+        - The newest fact (by ``recorded_at``) is kept as canonical.
+        - A warning is logged.
+        - The older conflicting fact’s ``valid_to`` is set to the newer
+          fact’s ``valid_from`` (or today) to close the conflict, unless
+          ``dry_run`` is True.
+
+        Returns ``(contradiction_count, chars_saved)``.
+        """
+        facts_dir = self._safe_facts_dir()
+        if facts_dir is None:
+            return 0, 0
+
+        today = _today_iso()
+        now_rec = _now_iso()
+        total_contradictions = 0
+        chars_saved = 0
+
+        for fact_file in sorted(facts_dir.glob("*.md")):
+            try:
+                text = fact_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+
+            # Group facts by key
+            key_facts: Dict[str, List[Dict[str, Any]]] = {}
+            for line in text.splitlines():
+                parsed = parse_line(line)
+                if parsed is None:
+                    continue
+                key_facts.setdefault(parsed["key"], []).append(parsed)
+
+            # Find contradictions: same key, different value, overlapping validity
+            for key, facts in key_facts.items():
+                if len(facts) < 2:
+                    continue
+
+                # Compare all pairs
+                seen_pairs: set = set()
+                for i, f1 in enumerate(facts):
+                    for j, f2 in enumerate(facts):
+                        if j <= i:
+                            continue
+                        # Different value?
+                        if f1["value"] == f2["value"]:
+                            continue
+                        # Overlapping validity?
+                        if not self._facts_overlap(f1, f2, today):
+                            continue
+                        pair_key = (
+                            min(f1["value"], f2["value"]),
+                            max(f1["value"], f2["value"]),
+                            f1.get("valid_from", ""),
+                            f2.get("valid_from", ""),
+                        )
+                        if pair_key in seen_pairs:
+                            continue
+                        seen_pairs.add(pair_key)
+
+                        total_contradictions += 1
+
+                        # Newest wins — sort by recorded_at
+                        newer = f1 if (f1["recorded_at"] or "") >= (f2["recorded_at"] or "") else f2
+                        older = f2 if newer is f1 else f1
+
+                        msg = (
+                            f"contradiction: {fact_file.stem} "
+                            f"{key}={older['value']!r} vs {newer['value']!r} "
+                            f"(newer recorded at {newer['recorded_at']})"
+                        )
+                        if details is not None:
+                            details.append(msg)
+                        # Always emit a warning log so callers running
+                        # consolidate() outside dream-cycle still see the
+                        # conflict surface.
+                        _logger.warning("⚠️ %s", msg)
+
+                        if not dry_run:
+                            # Close the older fact: set valid_to to
+                            # newer's valid_from or today.
+                            close_at = newer.get("valid_from") or today
+                            if older["valid_to"] is None:
+                                self._close_contradiction(
+                                    fact_file, older, close_at, now_rec
+                                )
+                                # Replaced open interval with closed.
+                                chars_saved += 20
+
+        return total_contradictions, chars_saved
+
+    @staticmethod
+    def _facts_overlap(
+        f1: Dict[str, Any],
+        f2: Dict[str, Any],
+        today: str,
+    ) -> bool:
+        """Check whether two facts’ validity intervals overlap.
+
+        Handles open-ended intervals (valid_to=None = ongoing).
+        """
+        # Effective start: use valid_from or treat as −∞
+        start1 = f1.get("valid_from") or "0000"
+        start2 = f2.get("valid_from") or "0000"
+        # Effective end: use valid_to or treat as +∞ (today for ongoing)
+        end1 = f1.get("valid_to") or "9999"
+        end2 = f2.get("valid_to") or "9999"
+
+        # Standard interval overlap: start1 <= end2 AND start2 <= end1
+        return start1 <= end2 and start2 <= end1
+
+    def _close_contradiction(
+        self,
+        fact_file: Path,
+        older_fact: Dict[str, Any],
+        close_at: str,
+        recorded_at: str,
+    ) -> None:
+        """Close an older contradictory fact by setting its valid_to."""
+        try:
+            text = fact_file.read_text(encoding="utf-8")
+        except Exception:
+            return
+
+        lines = text.splitlines()
+        new_lines = []
+        changed = False
+
+        for line in lines:
+            parsed = parse_line(line)
+            if (
+                parsed is not None
+                and parsed["key"] == older_fact["key"]
+                and parsed["value"] == older_fact["value"]
+                and parsed["valid_from"] == older_fact.get("valid_from")
+                and parsed["recorded_at"] == older_fact.get("recorded_at")
+                and parsed["valid_to"] is None
+            ):
+                new_line = format_line(
+                    parsed["key"],
+                    parsed["value"],
+                    parsed["valid_from"],
+                    close_at,
+                    recorded_at,
+                    fact_type=parsed.get("type"),
+                )
+                new_lines.append(new_line)
+                changed = True
+            else:
+                new_lines.append(line)
+
+        if changed:
+            new_text = "\n".join(new_lines)
+            if not new_text.endswith("\n"):
+                new_text += "\n"
+            fact_file.write_text(new_text, encoding="utf-8")
 
     # ------------------------------------------------------------------
     # Helpers

@@ -24,11 +24,17 @@ Zero dependencies — stdlib only.
 
 from __future__ import annotations
 
+import logging
 import re
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Module logger for auto_tier changes. Host applications configure
+# handlers; this just emits a structured INFO line for every promotion
+# or demotion.
+_logger = logging.getLogger("memkraft.decay")
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 
@@ -347,3 +353,184 @@ class DecayMixin:
             return any(f.stem == Path(memory_id).stem for f in tomb.rglob("*.md"))
         fm = self._read_decay_fm(path)
         return bool(fm.get("tombstoned", False))
+
+    # ------------------------------------------------------------------
+    # auto_tier — recency + frequency + importance based tier management
+    # ------------------------------------------------------------------
+
+    def auto_tier(
+        self,
+        memory_id: Optional[str] = None,
+        *,
+        recency_weight: float = 0.4,
+        frequency_weight: float = 0.3,
+        importance_weight: float = 0.3,
+        core_threshold: float = 0.7,
+        archival_threshold: float = 0.25,
+        dry_run: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Automatically set tiers based on recency, access frequency, and importance.
+
+        Each memory gets a composite score in [0, 1]:
+
+        - **recency** (``recency_weight``): exponential decay from
+          ``last_accessed`` (search hits and ``tier_touch`` calls both
+          refresh this stamp). 0 days = 1.0, ~180d = 0.5, 365+d → 0.
+        - **frequency** (``frequency_weight``): ``access_count`` (the
+          search/touch counter maintained by ``tier_touch``) normalised
+          to [0, 1] — 0 = 0.0, 20+ = 1.0.
+        - **importance** (``importance_weight``): derived from existing
+          tier + ``decay_weight`` — core=1.0, recall=0.5, archival=0.1,
+          then multiplied by ``decay_weight``.
+
+        Composite → tier mapping:
+          - score ≥ ``core_threshold`` → core
+          - score ≥ ``archival_threshold`` → recall
+          - score < ``archival_threshold`` → archival
+
+        Parameters
+        ----------
+        memory_id:
+            If given, auto-tier only that single memory.  If ``None``,
+            scan and re-tier all non-tombstoned memories.
+        recency_weight, frequency_weight, importance_weight:
+            Relative weights (need not sum to 1 — they are normalised).
+        core_threshold, archival_threshold:
+            Score cutoffs for tier assignment.
+        dry_run:
+            If True, report what would change without writing.
+
+        Returns
+        -------
+        list[dict]
+            Each entry: ``path``, ``old_tier``, ``new_tier``, ``score``,
+            ``recency``, ``frequency``, ``importance``.
+        """
+        _TIERS = ("archival", "recall", "core")
+        _TIER_SCORE = {"archival": 0.1, "recall": 0.5, "core": 1.0}
+        _MAX_ACCESSES = 20.0  # frequency normalisation ceiling
+        _RECENCY_HALFLIFE = 180.0  # days — half-life for exponential decay
+
+        total_w = recency_weight + frequency_weight + importance_weight
+        if total_w <= 0:
+            raise ValueError("weights must sum to a positive value")
+        rw = recency_weight / total_w
+        fw = frequency_weight / total_w
+        iw = importance_weight / total_w
+
+        # Gather candidate files
+        candidates: List[Path] = []
+        if memory_id is not None:
+            path = self._resolve_memory(memory_id)
+            if path is None:
+                raise FileNotFoundError(f"memory not found: {memory_id}")
+            candidates.append(path)
+        else:
+            base: Path = self.base_dir  # type: ignore[attr-defined]
+            for f in base.rglob("*.md"):
+                if ".memkraft" in f.parts:
+                    continue
+                fm = self._read_decay_fm(f)
+                if fm.get("tombstoned"):
+                    continue
+                candidates.append(f)
+
+        results: List[Dict[str, Any]] = []
+        now = datetime.now()
+
+        for path in candidates:
+            fm = self._read_decay_fm(path)
+
+            # --- recency ---
+            last_acc = fm.get("last_accessed")
+            recency_score = 0.0
+            if last_acc:
+                dt = _parse_date(str(last_acc))
+                if dt:
+                    days_old = (now - dt).days
+                    # exponential decay: e^(-ln2 * days / halflife)
+                    import math as _math
+                    recency_score = max(0.0, _math.exp(-_math.log(2) * days_old / _RECENCY_HALFLIFE))
+
+            # --- frequency ---
+            access_count = int(fm.get("access_count", 0))
+            frequency_score = min(1.0, access_count / _MAX_ACCESSES)
+
+            # --- importance (from existing tier + decay weight) ---
+            # Read current tier from tiers mixin if available, else from fm
+            current_tier = fm.get("tier")
+            if current_tier is None:
+                try:
+                    current_tier = self.tier_of(str(path))  # type: ignore[attr-defined]
+                except Exception:
+                    current_tier = "recall"
+            if current_tier not in _TIERS:
+                current_tier = "recall"
+            tier_score = _TIER_SCORE[current_tier]
+            decay_w = float(fm.get("decay_weight", 1.0))
+            importance_score = tier_score * decay_w
+
+            # --- composite ---
+            composite = rw * recency_score + fw * frequency_score + iw * importance_score
+            composite = round(min(1.0, max(0.0, composite)), 4)
+
+            # --- tier decision ---
+            if composite >= core_threshold:
+                new_tier = "core"
+            elif composite >= archival_threshold:
+                new_tier = "recall"
+            else:
+                new_tier = "archival"
+
+            changed = new_tier != current_tier
+
+            entry = {
+                "path": str(path),
+                "old_tier": current_tier,
+                "new_tier": new_tier,
+                "score": composite,
+                "recency": round(recency_score, 4),
+                "frequency": round(frequency_score, 4),
+                "importance": round(importance_score, 4),
+                "changed": changed,
+            }
+            results.append(entry)
+
+            if changed and not dry_run:
+                # Prefer tier_set (canonical path with validation) over
+                # writing frontmatter directly. Fall back to the raw
+                # writer if tier_set isn't available for any reason.
+                tier_set = getattr(self, "tier_set", None)
+                if callable(tier_set):
+                    try:
+                        tier_set(str(path), tier=new_tier)
+                    except Exception:  # pragma: no cover — best-effort
+                        self._write_tier_fm(path, {"tier": new_tier})  # type: ignore[attr-defined]
+                else:
+                    self._write_tier_fm(path, {"tier": new_tier})  # type: ignore[attr-defined]
+                _logger.info(
+                    "auto_tier: %s → %s (score=%.4f) [%s]",
+                    current_tier,
+                    new_tier,
+                    composite,
+                    Path(path).name,
+                )
+
+        # Sort: changed first, then by score desc
+        results.sort(key=lambda r: (not r["changed"], -r["score"]))
+
+        changed_count = sum(1 for r in results if r["changed"])
+        mode = "dry-run" if dry_run else "applied"
+        if memory_id is not None:
+            r = results[0] if results else {}
+            if r.get("changed"):
+                print(f"🎯 auto_tier ({mode}): {r['old_tier']} → {r['new_tier']} (score={r['score']}) [{Path(r['path']).name}]")
+            else:
+                print(f"🎯 auto_tier ({mode}): no change (score={r.get('score', '?')}) [{Path(r['path']).name}]")
+        else:
+            print(f"🎯 auto_tier ({mode}): {changed_count}/{len(results)} changed")
+            for r in results:
+                if r["changed"]:
+                    print(f"   {r['old_tier']} → {r['new_tier']} (score={r['score']}) [{Path(r['path']).name}]")
+
+        return results
