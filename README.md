@@ -13,28 +13,6 @@ _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracl
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
 
-### API overview (13 public methods)
-
-| API | Since | Role |
-|-----|-------|------|
-| `track` | 0.5 | Start tracking an entity |
-| `update` | 0.5 | Append information to an entity |
-| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy + BM25) |
-| `tier_set` | 0.8 | Set tier: `core` / `recall` / `archival` |
-| `fact_add` | 0.8 | Record a bitemporal fact (`fact_type`: `episodic` / `semantic` / `procedural` since **2.6**) |
-| `log_event` | 0.8 | Log a timestamped event |
-| `decision_record` | 0.9 | Capture a decision with rationale |
-| `evidence_first` | 0.9 | Retrieve evidence before acting |
-| `prompt_register` | **1.0** | Register a prompt/skill as an entity |
-| `prompt_eval` | **1.0** | Record one tuning iteration |
-| `prompt_evidence` | **1.0** | Cite past tuning results |
-| `convergence_check` | **1.0** | Auto-judge convergence |
-| `auto_tier` | **2.6** | Recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default |
-
-Also new in **2.6**: silent contradiction detection on `fact_add`, plus 1-hop graph neighbor expansion for counting-style queries (`how many`, `list all`).
-
-Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
-
 <div align="center">
 
 <br>
@@ -55,18 +33,36 @@ Self-improvement loop: **register → tune → recall → decide**, every step a
 
 <br>
 
-[Quick Start](#quick-start) · [Features](#features) · [API Reference](#api-reference) · [CLI Reference](#cli-reference) · [Architecture](#architecture) · [Changelog](#changelog)
-
 </div>
-
-<br>
 
 [![PyPI](https://img.shields.io/pypi/v/memkraft.svg)](https://pypi.org/project/memkraft/)
 [![Python](https://img.shields.io/pypi/pyversions/memkraft.svg)](https://pypi.org/project/memkraft/)
 [![Downloads](https://img.shields.io/pypi/dm/memkraft.svg)](https://pypi.org/project/memkraft/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 30-Second Quickstart
+---
+
+## 📖 Table of Contents
+
+- [⚡ Quickstart (30s)](#-quickstart-30s)
+- [🎯 Why MemKraft?](#-why-memkraft)
+- [🧩 Features](#-features)
+- [🍳 Real-world Recipes](#-real-world-recipes)
+- [🔬 Specialized Features](#-specialized-features)
+- [📚 API Reference](#-api-reference)
+- [⌨️ CLI Reference](#-cli-reference)
+- [🏗️ Architecture](#-architecture)
+- [⚖️ Comparison](#-comparison)
+- [🏆 Reproducing LongMemEval](#-reproducing-longmemeval-results)
+- [🆙 Staying Up To Date](#-staying-up-to-date)
+- [📝 Changelog](#-changelog)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🙏 Appendix: Inspirations & Credits](#-appendix-inspirations--credits)
+
+<br>
+
+## ⚡ Quickstart (30s)
 
 ```bash
 pip install memkraft
@@ -99,6 +95,71 @@ mk.search("MemKraft")
 
 That's it. Your agent now has persistent memory as plain markdown files.
 No API keys. No database. No config. Just `.md` files you own.
+
+### Optional extras
+
+```bash
+pip install 'memkraft[mcp]'      # + MCP server  (`python -m memkraft.mcp`)
+pip install 'memkraft[watch]'    # + auto-reindex on save (`memkraft watch`)
+pip install 'memkraft[all]'      # everything
+```
+
+### Connect Any Agent in 30 Seconds
+
+`memkraft agents-hint <target>` prints copy-paste-ready integration snippets:
+
+```bash
+memkraft agents-hint claude-code   # → CLAUDE.md / AGENTS.md block
+memkraft agents-hint openclaw      # → AGENTS.md block for ОpenClaw
+memkraft agents-hint cursor        # → .cursorrules block
+memkraft agents-hint openai        # → Custom GPT / function-calling schema
+memkraft agents-hint mcp           # → claude_desktop_config.json snippet
+memkraft agents-hint langchain     # → LangChain StructuredTool wrappers
+```
+
+Paste the output. Done. Or pipe it straight into your config:
+
+```bash
+memkraft agents-hint claude-code >> AGENTS.md
+```
+
+See [`examples/`](examples/) for runnable variants.
+
+<br>
+
+## 🎯 Why MemKraft?
+
+### What Makes MemKraft Different
+
+|                        | **MemKraft**   | Mem0        | Letta    |
+|------------------------|----------------|-------------|----------|
+| Dependencies           | **0**          | many        | many     |
+| API key required       | **No**         | Yes         | Yes      |
+| Source of truth        | Plain `.md`    | Cloud/DB    | DB       |
+| Local-first            | ✅             | —           | —        |
+| Git-friendly           | ✅             | —           | —        |
+
+### API overview (13 public methods)
+
+| API | Since | Role |
+|-----|-------|------|
+| `track` | 0.5 | Start tracking an entity |
+| `update` | 0.5 | Append information to an entity |
+| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy + BM25) |
+| `tier_set` | 0.8 | Set tier: `core` / `recall` / `archival` |
+| `fact_add` | 0.8 | Record a bitemporal fact (`fact_type`: `episodic` / `semantic` / `procedural` since **2.6**) |
+| `log_event` | 0.8 | Log a timestamped event |
+| `decision_record` | 0.9 | Capture a decision with rationale |
+| `evidence_first` | 0.9 | Retrieve evidence before acting |
+| `prompt_register` | **1.0** | Register a prompt/skill as an entity |
+| `prompt_eval` | **1.0** | Record one tuning iteration |
+| `prompt_evidence` | **1.0** | Cite past tuning results |
+| `convergence_check` | **1.0** | Auto-judge convergence |
+| `auto_tier` | **2.6** | Recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default |
+
+Also new in **2.6**: silent contradiction detection on `fact_add`, plus 1-hop graph neighbor expansion for counting-style queries (`how many`, `list all`).
+
+Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
 ### The 1.0 Self-Improvement Loop
 
@@ -152,46 +213,79 @@ iteration, an incident when unclear points pile up, and wiki-links
 between iterations. Upgrade is zero-breaking from 0.9.x — see
 [MIGRATION.md](./MIGRATION.md).
 
-### Optional extras
+<br>
+## 🧩 Features
 
-```bash
-pip install 'memkraft[mcp]'      # + MCP server  (`python -m memkraft.mcp`)
-pip install 'memkraft[watch]'    # + auto-reindex on save (`memkraft watch`)
-pip install 'memkraft[all]'      # everything
-```
+### Ingestion & Extraction
 
-## Connect Any Agent in 30 Seconds
+| Feature | Description |
+|---------|-------------|
+| **Auto-extract** | Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP - no LLM calls. |
+| **CJK detection** | 806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. |
+| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default - `--apply` to move. |
+| **Fact registry** | Extracts currencies, percentages, dates, quantities into a cross-domain index. |
+| **Originals capture** | Save raw text verbatim - no paraphrasing. |
+| **Confidence levels** | Tag facts as `verified` / `experimental` / `hypothesis`. Dream Cycle warns untagged facts. |
+| **Applicability conditions** | `--when "condition" --when-not "condition"` - facts get `When:` / `When NOT:` metadata. |
 
-`memkraft agents-hint <target>` prints copy-paste-ready integration snippets:
+### Search & Retrieval
 
-```bash
-memkraft agents-hint claude-code   # → CLAUDE.md / AGENTS.md block
-memkraft agents-hint openclaw      # → AGENTS.md block for ОpenClaw
-memkraft agents-hint cursor        # → .cursorrules block
-memkraft agents-hint openai        # → Custom GPT / function-calling schema
-memkraft agents-hint mcp           # → claude_desktop_config.json snippet
-memkraft agents-hint langchain     # → LangChain StructuredTool wrappers
-```
+| Feature | Description |
+|---------|-------------|
+| **Fuzzy search** | `difflib.SequenceMatcher`-based. Works offline, zero setup. |
+| **Brain-first lookup** | Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results. |
+| **Agentic search** | Multi-hop: decompose query → search → traverse `[[wiki-links]]` → re-rank by tier/recency/confidence/applicability. |
+| **Goal-weighted re-ranking** | Conway SMS: same query with different `--context` produces different rankings. |
+| **Feedback loop** | `--file-back`: search results auto-filed back to entity timelines (compound interest for memory). |
+| **Progressive disclosure** | 3-level query: L1 index (~50 tokens) → L2 section headers → L3 full file. |
+| **Backlinks** | `[[entity-name]]` cross-references. See every page that references an entity. |
+| **Link suggestions** | Auto-suggest missing `[[wiki-links]]` based on known entity names. |
 
-Paste the output. Done. Or pipe it straight into your config:
+### Structure & Organization
 
-```bash
-memkraft agents-hint claude-code >> AGENTS.md
-```
+| Feature | Description |
+|---------|-------------|
+| **Compiled Truth + Timeline** | Dual-layer entity model: mutable current state + append-only audit trail with `[Source:]` tags. |
+| **Memory tiers** | Core / Recall / Archival - explicit context window priority. `promote` to reclassify. |
+| **Memory type classification** | 8 types: identity, belief, preference, relationship, skill, episodic, routine, transient. |
+| **Type-aware decay** | Identity memories decay 10x slower than routine memories. Differential decay multipliers. |
+| **RESOLVER.md** | MECE classification tree - every piece of knowledge has exactly one destination. |
+| **Source attribution** | Every fact tagged with `[Source: who, when, how]`. Enforced by Dream Cycle. |
+| **Dialectic synthesis** | Auto-detect contradictory facts during `extract`, tag `[CONFLICT]`, generate `CONFLICTS.md`. |
+| **Conflict resolution** | `resolve-conflicts --strategy newest|confidence|keep-both|prompt`. |
+| **Live Notes** | Persistent tracking for people and companies. Auto-incrementing updates + timeline. |
 
-See [`examples/`](examples/) for runnable variants.
+### Maintenance & Audit
 
-## What Makes MemKraft Different
+| Feature | Description |
+|---------|-------------|
+| **Dream Cycle** | Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes. |
+| **Debug Hypothesis Tracking** | OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE flow. Track hypotheses, evidence, rejections. Auto-switch warning after 2 failures. Search past sessions to avoid repeating failed approaches. |
+| **Health Check** | 5 self-diagnostic assertions: source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts. Pass rate % + health score (A/B/C/D). |
+| **Memory decay** | Older, unaccessed memories naturally decay - type-aware differential curves. |
+| **Fact dedup** | Detects and merges duplicate facts across entities. |
+| **Auto-summarize** | Condenses bloated pages while preserving key information. |
+| **Diff tracking** | See exactly what changed since the last Dream Cycle. |
+| **Open loop tracking** | Finds all pending / TODO / FIXME items across memory. |
 
-|                        | **MemKraft**   | Mem0        | Letta    |
-|------------------------|----------------|-------------|----------|
-| Dependencies           | **0**          | many        | many     |
-| API key required       | **No**         | Yes         | Yes      |
-| Source of truth        | Plain `.md`    | Cloud/DB    | DB       |
-| Local-first            | ✅             | —           | —        |
-| Git-friendly           | ✅             | —           | —        |
+### Logging & Reflection
 
-## More CLI & Python Usage
+| Feature | Description |
+|---------|-------------|
+| **Session logging** | JSONL event trail with tags, importance, entity, task, and decision fields. |
+| **Daily retrospective** | Auto-generated Well / Bad / Next from session events + file changes. |
+| **Decision distillation** | Scans events and notes for decision candidates. EN + KR keyword matching. |
+| **Meeting briefs** | One command compiles entity info, timeline, open threads, and a pre-meeting checklist. |
+
+### Debugging
+
+| Feature | Description |
+|---------|-------------|
+| ✅ **Debug Hypothesis Tracking** | OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory. |
+
+<br>
+
+## 🍳 Real-world Recipes
 
 ```bash
 memkraft init
@@ -292,75 +386,9 @@ memkraft debug search-rejected "timeout"  # avoid past mistakes
 </details>
 
 <br>
+## 🔬 Specialized Features
 
-## Features
-
-### Ingestion & Extraction
-
-| Feature | Description |
-|---------|-------------|
-| **Auto-extract** | Pipe any text in, get entities + facts out. Regex-based NER for EN, KR, CN, JP - no LLM calls. |
-| **CJK detection** | 806 stopwords, 100 Chinese surnames, 85 Japanese surnames, Korean particle stripping. |
-| **Cognify pipeline** | Routes `inbox/` items to the right directory. Recommend-only by default - `--apply` to move. |
-| **Fact registry** | Extracts currencies, percentages, dates, quantities into a cross-domain index. |
-| **Originals capture** | Save raw text verbatim - no paraphrasing. |
-| **Confidence levels** | Tag facts as `verified` / `experimental` / `hypothesis`. Dream Cycle warns untagged facts. |
-| **Applicability conditions** | `--when "condition" --when-not "condition"` - facts get `When:` / `When NOT:` metadata. |
-
-### Search & Retrieval
-
-| Feature | Description |
-|---------|-------------|
-| **Fuzzy search** | `difflib.SequenceMatcher`-based. Works offline, zero setup. |
-| **Brain-first lookup** | Searches entities → notes → decisions → meetings. Stops after sufficient high-relevance results. |
-| **Agentic search** | Multi-hop: decompose query → search → traverse `[[wiki-links]]` → re-rank by tier/recency/confidence/applicability. |
-| **Goal-weighted re-ranking** | Conway SMS: same query with different `--context` produces different rankings. |
-| **Feedback loop** | `--file-back`: search results auto-filed back to entity timelines (compound interest for memory). |
-| **Progressive disclosure** | 3-level query: L1 index (~50 tokens) → L2 section headers → L3 full file. |
-| **Backlinks** | `[[entity-name]]` cross-references. See every page that references an entity. |
-| **Link suggestions** | Auto-suggest missing `[[wiki-links]]` based on known entity names. |
-
-### Structure & Organization
-
-| Feature | Description |
-|---------|-------------|
-| **Compiled Truth + Timeline** | Dual-layer entity model: mutable current state + append-only audit trail with `[Source:]` tags. |
-| **Memory tiers** | Core / Recall / Archival - explicit context window priority. `promote` to reclassify. |
-| **Memory type classification** | 8 types: identity, belief, preference, relationship, skill, episodic, routine, transient. |
-| **Type-aware decay** | Identity memories decay 10x slower than routine memories. Differential decay multipliers. |
-| **RESOLVER.md** | MECE classification tree - every piece of knowledge has exactly one destination. |
-| **Source attribution** | Every fact tagged with `[Source: who, when, how]`. Enforced by Dream Cycle. |
-| **Dialectic synthesis** | Auto-detect contradictory facts during `extract`, tag `[CONFLICT]`, generate `CONFLICTS.md`. |
-| **Conflict resolution** | `resolve-conflicts --strategy newest|confidence|keep-both|prompt`. |
-| **Live Notes** | Persistent tracking for people and companies. Auto-incrementing updates + timeline. |
-
-### Maintenance & Audit
-
-| Feature | Description |
-|---------|-------------|
-| **Dream Cycle** | Nightly auto-maintenance: missing sources, thin pages, duplicates, inbox age, bloated pages, daily notes. |
-| **Debug Hypothesis Tracking** | OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE flow. Track hypotheses, evidence, rejections. Auto-switch warning after 2 failures. Search past sessions to avoid repeating failed approaches. |
-| **Health Check** | 5 self-diagnostic assertions: source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts. Pass rate % + health score (A/B/C/D). |
-| **Memory decay** | Older, unaccessed memories naturally decay - type-aware differential curves. |
-| **Fact dedup** | Detects and merges duplicate facts across entities. |
-| **Auto-summarize** | Condenses bloated pages while preserving key information. |
-| **Diff tracking** | See exactly what changed since the last Dream Cycle. |
-| **Open loop tracking** | Finds all pending / TODO / FIXME items across memory. |
-
-### Logging & Reflection
-
-| Feature | Description |
-|---------|-------------|
-| **Session logging** | JSONL event trail with tags, importance, entity, task, and decision fields. |
-| **Daily retrospective** | Auto-generated Well / Bad / Next from session events + file changes. |
-| **Decision distillation** | Scans events and notes for decision candidates. EN + KR keyword matching. |
-| **Meeting briefs** | One command compiles entity info, timeline, open threads, and a pre-meeting checklist. |
-
-### Debugging
-
-| Feature | Description |
-|---------|-------------|
-| ✅ **Debug Hypothesis Tracking** | OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory. |
+This section gathers features that deserve a closer look: time-travel snapshots, multi-agent context plumbing, autonomous memory lifecycle, and scientific debugging.
 
 ### 📸 Memory Snapshots & Time Travel (v0.5.1)
 
@@ -371,6 +399,28 @@ memkraft debug search-rejected "timeout"  # avoid past mistakes
 | **Snapshot Diff** | Compare two snapshots (or snapshot vs live state). Shows added, removed, modified, unchanged files with byte deltas. |
 | **Time Travel** | Search memory *as it was* at a past snapshot. Answer "what did I know about X on March 1st?" |
 | **Entity Timeline** | Track how a specific entity evolved across all snapshots — new, modified, unchanged, deleted states. |
+
+```python
+from memkraft import MemKraft
+
+mk = MemKraft("/path/to/memory")
+
+# Take a snapshot before a big operation
+snap = mk.snapshot(label="before-migration", include_content=True)
+
+# ... time passes, memory changes ...
+
+# What changed?
+diff = mk.snapshot_diff(snap["snapshot_id"])  # vs live state
+# → {added: [...], removed: [...], modified: [...], unchanged_count: 42}
+
+# Search memory as it was at that snapshot
+results = mk.time_travel("venture capital", snapshot_id=snap["snapshot_id"])
+
+# How did an entity evolve over time?
+timeline = mk.snapshot_entity("Simon Kim")
+# → [{snapshot_id, timestamp, fact_count, size, change_type: "new"}, ...]
+```
 
 ### 🧠 Channel Context Memory + Task Continuity + Agent Working Memory (v0.5.4)
 
@@ -424,31 +474,57 @@ print(block)
 #   - [2026-04-15T...] active: vercel build passed
 ```
 
+### 🤖 Autonomous Memory Management (v1.1.0)
+
+> *"Memory should manage itself."*
+
+Memory tends to grow without limit — agents add entries but rarely clean up.
+MemKraft 1.1.0 solves this with a self-managing lifecycle.
+
+#### The Problem
+- **Add-only pattern**: agents append to MEMORY.md every session, never prune
+- **Silent maintenance failures**: nightly cleanup crons fail without notice
+- **No lifecycle**: every memory entry treated equally, forever
+
+#### The Solution: flush → compact → digest
+
 ```python
 from memkraft import MemKraft
+mk = MemKraft(base_dir="memory/")
 
-mk = MemKraft("/path/to/memory")
+# 1. Import existing MEMORY.md → structured MemKraft data
+mk.flush("MEMORY.md")
 
-# Take a snapshot before a big operation
-snap = mk.snapshot(label="before-migration", include_content=True)
+# 2. Auto-archive old/low-priority items
+result = mk.compact(max_chars=15000)
+# → {"moved": 47, "freed_chars": 89400, ...}
 
-# ... time passes, memory changes ...
+# 3. Re-render MEMORY.md — always ≤ 15KB
+mk.digest("MEMORY.md")
+# → {"chars": 11700, "truncated": False}
 
-# What changed?
-diff = mk.snapshot_diff(snap["snapshot_id"])  # vs live state
-# → {added: [...], removed: [...], modified: [...], unchanged_count: 42}
-
-# Search memory as it was at that snapshot
-results = mk.time_travel("venture capital", snapshot_id=snap["snapshot_id"])
-
-# How did an entity evolve over time?
-timeline = mk.snapshot_entity("Simon Kim")
-# → [{snapshot_id, timestamp, fact_count, size, change_type: "new"}, ...]
+# 4. Check memory health
+health = mk.health()
+# → {"status": "healthy", "total_chars": 11700, "recommendations": [...]}
 ```
 
-<br>
+#### Real-world result
+Our MEMORY.md grew to **153KB** (1,862 lines) over weeks of agent sessions.
+After `flush → compact → digest`: **11.7KB** (170 lines). **92% reduction.**
 
-## 🐛 Debugging is Memory
+#### Nightly self-cleanup recipe
+```python
+# Watch for real-time sync
+mk.watch("memory/", on_change="flush", interval=300)
+
+# Or set a nightly schedule (requires: pip install memkraft[schedule])
+mk.schedule([
+    lambda: mk.compact(max_chars=15000),
+    lambda: mk.digest("MEMORY.md"),
+], cron_expr="0 23 * * *")
+```
+
+### 🐛 Debugging is Memory
 
 Debugging insights are too valuable to lose in scrollback. MemKraft treats the entire debug process as first-class memory.
 
@@ -473,8 +549,7 @@ OBSERVE → HYPOTHESIZE → EXPERIMENT → CONCLUDE
 **Why it matters:** rejected hypotheses are permanent memory. Next time you hit a similar bug, MemKraft surfaces what you already tried - no more repeating the same failed approaches.
 
 <br>
-
-## API Reference
+## 📚 API Reference
 
 ### `MemKraft(base_dir=None)`
 
@@ -570,7 +645,7 @@ mk = MemKraft("/path/to/memory")
 
 <br>
 
-## CLI Reference
+## ⌨️ CLI Reference
 
 ```
 memkraft <command> [options]
@@ -628,30 +703,7 @@ memkraft <command> [options]
 | `doctor [--check-updates]` | Health check; with `--check-updates` also reports PyPI version status |
 
 <br>
-
-## Staying Up To Date
-
-MemKraft ships an opt-in self-upgrade flow so agents (and humans) never silently drift behind PyPI:
-
-```bash
-memkraft doctor --check-updates   # 🟢 up to date / 🟡 update available / 🔴 PyPI unreachable
-memkraft selfupdate               # pip install -U memkraft when newer
-memkraft selfupdate --dry-run     # check only
-```
-
-Classic still works:
-
-```bash
-pip install -U memkraft
-```
-
-**For agents:** add `memkraft doctor --check-updates` to your weekly skill or heartbeat — if it reports 🟡, ask the human before running `memkraft selfupdate`. Never auto-upgrade without explicit consent.
-
-**For maintainers:** pushing a `vX.Y.Z` git tag triggers `.github/workflows/release.yml`, which builds, verifies (`twine check`), publishes to PyPI, and cuts a GitHub Release. Requires a `PYPI_API_TOKEN` repo secret — add it at `Settings → Secrets and variables → Actions`.
-
-<br>
-
-## Architecture
+## 🏗️ Architecture
 
 ```
 Raw Input ──▶ Extract ──▶ Classify ──▶ Forge ──▶ Compound Knowledge
@@ -701,7 +753,7 @@ memory/
 
 <br>
 
-## Comparison
+## ⚖️ Comparison
 
 | | **MemKraft** | **Mem0** | **Letta** |
 |---|:---:|:---:|:---:|
@@ -734,7 +786,7 @@ memory/
 
 <br>
 
-## Reproducing LongMemEval Results
+## 🏆 Reproducing LongMemEval Results
 
 MemKraft achieves **98.0%** on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (LLM-as-judge, oracle subset, 3-run semantic majority vote). Single-run performance: **96–98%** (non-deterministic at inference level — sampling, not memory).
 
@@ -785,139 +837,98 @@ MODEL="claude-sonnet-4-6" \
 
 <br>
 
-## Contributing
+## 🆙 Staying Up To Date
+
+MemKraft ships an opt-in self-upgrade flow so agents (and humans) never silently drift behind PyPI:
+
+```bash
+memkraft doctor --check-updates   # 🟢 up to date / 🟡 update available / 🔴 PyPI unreachable
+memkraft selfupdate               # pip install -U memkraft when newer
+memkraft selfupdate --dry-run     # check only
+```
+
+Classic still works:
+
+```bash
+pip install -U memkraft
+```
+
+**For agents:** add `memkraft doctor --check-updates` to your weekly skill or heartbeat — if it reports 🟡, ask the human before running `memkraft selfupdate`. Never auto-upgrade without explicit consent.
+
+**For maintainers:** pushing a `vX.Y.Z` git tag triggers `.github/workflows/release.yml`, which builds, verifies (`twine check`), publishes to PyPI, and cuts a GitHub Release. Requires a `PYPI_API_TOKEN` repo secret — add it at `Settings → Secrets and variables → Actions`.
+
+<br>
+## 📝 Changelog
+
+Highlights from recent releases. Full history: [CHANGELOG.md](CHANGELOG.md).
+
+### v2.6.0 (current)
+
+- **`auto_tier`** — recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default.
+- **`fact_type`** on `fact_add` — `episodic` / `semantic` / `procedural` taxonomy with silent contradiction detection.
+- **1-hop graph neighbor expansion** for counting-style queries (`how many`, `list all`).
+- **1168 tests** passing; zero breaking changes from 2.5.x.
+
+### v2.5.0
+
+- Hybrid search upgraded to **exact + IDF + fuzzy + BM25**.
+- Smarter ranking on multi-token queries; better recall for short answers.
+
+### v2.4.0
+
+- Cross-entity link graph hardened; faster `link_scan`, more reliable backlinks index.
+- Performance improvements on large memory directories.
+
+### v2.3.x
+
+- Watchdog-based `memkraft watch` stability fixes.
+- Doctor health hints; richer `--check-updates` output.
+
+### v2.0.0
+
+- Major API consolidation around the **register → tune → recall → decide** loop.
+- Bitemporal facts, tier labels, reversible decay, link graph become first-class.
+- **Zero breaking changes** from 0.9.x — see [MIGRATION.md](./MIGRATION.md).
+
+### v1.1.0 — Autonomous Memory Management
+
+`flush → compact → digest` self-managing lifecycle. See **🤖 Autonomous Memory Management** above for details.
+
+### v1.0.0 — Self-Improvement Loop
+
+`prompt_register` / `prompt_eval` / `prompt_evidence` / `convergence_check` make tuning a first-class, auditable workflow.
+
+<details>
+<summary><b>Earlier releases (v0.x — one-line summaries)</b></summary>
+
+<br>
+
+- **v0.8.1** (2026-04-17) — `agents-hint` CLI, `examples/`, `python -m memkraft.mcp`, `memkraft watch`, `memkraft doctor`. 515 tests.
+- **v0.8.0** (2026-04-17) — Bitemporal Fact Layer + Memory Tier Labels + Reversible Decay/Tombstone + Cross-Entity Link Graph. 492 tests.
+- **v0.7.0** (2026-04-15) — multi-agent: `channel_update` modes, task delegation, `agent_handoff`, channel task listing, task cleanup. 409 tests.
+- **v0.5.4** (2026-04-15) — Channel Context Memory + Task Continuity Register + Agent Working Memory + `agent_inject()`. 377 tests.
+- **v0.5.1** (2026-04-14) — Memory Snapshots & Time Travel: `snapshot` / `snapshot_list` / `snapshot_diff` / `time_travel` / `snapshot_entity`. 328 tests.
+- **v0.4.1** (2026-04-13) — README: Debugging is Memory section + Appendix (Inspirations & Credits).
+- **v0.4.0** (2026-04-13) — Debug Hypothesis Tracking: full OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop, 2-fail auto-switch warning, `search_rejected_hypotheses()`. 277 tests.
+- **v0.3.0** (2026-04-13) — Query-to-Memory Feedback Loop (`--file-back`), Confidence Levels, Memory Health Assertions, Applicability Conditions. 198 tests.
+- **v0.2.0** (2026-04-12) — Goal-Weighted Reconstructive Memory (Conway SMS), Dialectic Synthesis, Memory Type Classification (8 types), Type-Aware Decay. 158 tests.
+- **v0.1.0** (2026-04-12) — Initial release: extract, detect, decay, dedup, summarize, agentic search, entity tracking, Dream Cycle, hybrid search. Zero dependencies.
+
+Full details for every release: [CHANGELOG.md](CHANGELOG.md).
+
+</details>
+
+<br>
+
+## 🤝 Contributing
 
 PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## License
+<br>
+
+## 📄 License
 
 [MIT](LICENSE) - use it however you want.
-
----
-
-## Changelog
-
-### v0.8.1 (2026-04-17)
-
-The "connect-any-agent-in-30-seconds" release. **Fully backward-compatible.**
-
-- **`mk.init()` now returns a dict** (`{"created": [...], "exists": [...], "base_dir": "..."}`) so scripts and tests can branch on it without parsing stdout.
-- **`memkraft agents-hint <target>` CLI** — paste-ready integration blocks for `claude-code`, `openclaw`, `openai`, `cursor`, `mcp`, `langchain`. Supports `--format json` and `--base-dir`.
-- **`examples/` folder** — drop-in AGENTS.md, OpenAI function-calling, 10-line RAG loop.
-- **`python -m memkraft.mcp`** — MCP stdio server exposing `remember / search / recall / link`. Extras: `pip install 'memkraft[mcp]'`.
-- **`memkraft watch`** — filesystem auto-reindex. Extras: `pip install 'memkraft[watch]'`.
-- **`memkraft doctor`** — health check with 🟢/🟡/🔴 icons and fix hints.
-- 515 tests passing (was 492, +23 new).
-
-### v0.8.0 (2026-04-17)
-
-Four new subsystems — all zero-dep, all backward-compatible.
-
-**1. Bitemporal Fact Layer** — track facts with separate `valid_time` and `record_time`.
-```python
-mk.fact_add("Simon", "role", "CEO of Hashed", valid_from="2020-03-01")
-mk.fact_add("Simon", "role", "CTO", valid_from="2018-01-01", valid_to="2020-02-29")
-mk.fact_at("Simon", "role", as_of="2019-06-01")   # -> {"value": "CTO", ...}
-mk.fact_history("Simon")                           # full timeline, recorded-order
-mk.fact_invalidate("Simon", "role", invalid_at="2026-04-17")
-```
-Stored as inline Markdown markers in `memory/facts/<slug>.md` — human-readable, git-diffable.
-
-**2. Memory Tier Labels + Working Set** — Letta-style `core | recall | archival` via a single YAML frontmatter line.
-```python
-mk.tier_set(memory_id, tier="core")
-mk.tier_promote(memory_id)     # archival -> recall -> core
-mk.tier_demote(memory_id)
-mk.tier_list(tier="core")
-mk.working_set(limit=10)       # all core + recently-accessed recall
-```
-
-**3. Reversible Decay + Tombstone** — memories fade numerically instead of being deleted, and tombstoned files move to `.memkraft/tombstones/` (still restorable).
-```python
-mk.decay_apply(memory_id, decay_rate=0.5)     # weight 1.0 -> 0.5
-mk.decay_list(below_threshold=0.1)            # show faded memories
-mk.decay_run(criteria={"weight_gt": 0.5})     # batch decay (cron)
-mk.decay_tombstone(memory_id)                 # move to tombstones, still on disk
-mk.decay_restore(memory_id)                   # full undo — weight back to 1.0
-```
-
-**4. Cross-Entity Link Graph + Backlinks** — `[[Wiki Link]]` patterns become a bidirectional graph; the file system is the DB.
-```python
-mk.link_scan()                                # build/refresh index
-mk.link_backlinks("Simon")                    # files that mention [[Simon]]
-mk.link_forward("inbox/notes.md")             # entities referenced from a file
-mk.link_graph("Simon", hops=2)                # N-hop neighbourhood
-mk.link_orphans()                             # entities referenced but never defined
-```
-Index persisted at `.memkraft/links/backlinks.json` and `.memkraft/links/forward.json`.
-
-**Tests:** 409 → 492 (83 new across `test_v080_*`).
-
-### v0.7.0 (2026-04-15)
-
-- **`channel_update` modes:** `mode="append"` (list append) and `mode="merge"` (dict shallow merge) added. Default `mode="set"` unchanged — fully backward compatible.
-- **Task delegation tracking:** `mk.task_delegate(task_id, from_agent, to_agent, context_note)` — delegate a task between agents with delegation events in history. `task_start()` gains optional `delegated_by` param.
-- **`agent_inject` filters:** `max_history` (default 5) limits task history entries. `include_completed_tasks=True` includes completed channel tasks in the inject block.
-- **Agent handoff:** `mk.agent_handoff(from_agent, to_agent, task_id, context_note)` — transfers working memory context, records handoff in `to_agent` memory, and delegates the task. Returns an inject-ready context block.
-- **Channel task listing:** `mk.channel_tasks(channel_id, status, limit)` — filter tasks by channel and status (`active`/`completed`/`all`), sorted by creation time descending.
-- **Task cleanup:** `mk.task_cleanup(max_age_days, archive)` — archive or delete completed tasks older than threshold. Archive goes to `.memkraft/tasks/archive/`.
-- **New CLI commands:** `channel-update --mode`, `task-delegate`, `channel-tasks`, `agent-handoff`, `task-cleanup`
-- **Tests:** 357 → 409 (52 new in `test_v070_multiagent.py`)
-
-### v0.5.4 (2026-04-15)
-
-- **Channel Context Memory:** `mk.channel_save()` / `mk.channel_load()` / `mk.channel_update()` — per-channel context persistence keyed by channel ID. Stored in `.memkraft/channels/{channel_id}.json`. Enables agents to recall channel-specific summaries, recent tasks, and preferences across sessions.
-- **Task Continuity Register:** `mk.task_start()` / `mk.task_update()` / `mk.task_complete()` / `mk.task_history()` / `mk.task_list()` — full task lifecycle with timestamped history. Stored in `.memkraft/tasks/{task_id}.json`.
-- **Agent Working Memory:** `mk.agent_save()` / `mk.agent_load()` / `mk.agent_inject()` — per-agent persistent working memory. The `agent_inject()` method merges agent memory + channel context + task history into a single ready-to-inject prompt block for sub-agent delegation.
-- **CLI commands:** `channel-save/load`, `task-start/update/list`, `agent-save/load/inject`
-- **zero-dependency maintained** (stdlib only: json, pathlib, datetime)
-- Tests: 328 → 377 (49 new in `test_v054_context.py`)
-
-### v0.5.1 (2026-04-14)
-
-- **Memory Snapshots & Time Travel:** `mk.snapshot()` / `mk.snapshot_list()` / `mk.snapshot_diff()` / `mk.time_travel()` / `mk.snapshot_entity()` — create point-in-time snapshots of all memory files (hash, size, summary, sections, fact count, link count), compare any two snapshots to see what changed, search memory as it was at a past date, and track how individual entities evolved over time
-- **CLI snapshot commands:** `memkraft snapshot` / `snapshot-list` / `snapshot-diff` / `time-travel` / `snapshot-entity`
-- Snapshot manifests saved as JSON under `.memkraft/snapshots/` — zero-dependency, git-friendly
-- Optional `--include-content` flag embeds full file text in snapshots for richer time-travel queries
-- Date-based time travel: `time-travel "query" --date 2026-03-01` finds the closest snapshot on or before that date
-- Tests: 277 → 328 (51 new for Snapshots & Time Travel)
-
-### v0.4.1 (2026-04-13)
-
-- README: comprehensive "Debugging is Memory" section with flow diagram, full API/CLI reference for debug methods
-- README: Appendix — Inspirations & Credits (8 projects with links)
-- Tests: 277 (79 new for Debug Hypothesis Tracking)
-
-### v0.4.0 (2026-04-13)
-
-- **Debug Hypothesis Tracking (Debugging is Memory):** `mk.start_debug()` / `mk.log_hypothesis()` / `mk.log_evidence()` / `mk.reject_hypothesis()` / `mk.confirm_hypothesis()` / `mk.end_debug()` - full OBSERVE→HYPOTHESIZE→EXPERIMENT→CONCLUDE loop with persistent failure memory, 2-fail auto-switch warning, anti-pattern detection via `search_rejected_hypotheses()`, and feedback into entity timelines
-- **CLI debug commands:** `memkraft debug start|hypothesis|evidence|reject|confirm|status|history|search-rejected`
-- Tests: 198 → 277
-
-### v0.3.0 (2026-04-13)
-
-- **Query-to-Memory Feedback Loop:** `agentic-search --file-back` / `search --file-back` - search results auto-filed back to entity timelines (compound interest for memory)
-- **Confidence Levels:** All facts support `verified` / `experimental` / `hypothesis` tags; `extract --confidence verified`; Dream Cycle warns about untagged facts; agentic-search re-ranking weights by confidence; conflict resolution via `--strategy confidence`
-- **Memory Health Assertions:** `memkraft health-check` - 5 self-diagnostic assertions (source attribution, orphan facts, duplicates, inbox freshness, unresolved conflicts) with pass rate % and health score (A/B/C/D); auto-runs in Dream Cycle
-- **Applicability Conditions:** `extract --when "condition" --when-not "condition"` - facts get `When:` / `When NOT:` metadata; agentic-search boosts results matching current context's applicability conditions
-- **Python re-export:** `from memkraft import MemKraft` now works directly
-- Tests: 158 → 198
-
-### v0.2.0 (2026-04-12)
-
-- **Goal-Weighted Reconstructive Memory (Conway SMS):** `agentic-search --context` - same query with different context produces different result rankings; memory-type-aware re-ranking with differential decay curves
-- **Dialectic Synthesis:** Auto-detect contradictory facts during `extract`, tag with `[CONFLICT]`, generate `CONFLICTS.md` report, resolve via `dream --resolve-conflicts` or `resolve-conflicts` command
-- **Memory Type Classification:** 8 memory types (identity, belief, preference, relationship, skill, episodic, routine, transient) with differential decay multipliers
-- **Type-Aware Decay:** Identity memories decay 10x slower than routine memories
-- Tests: 112 → 158
-
-### v0.1.0 (2026-04-12)
-
-- Initial release: extract, detect, decay, dedup, summarize, agentic search
-- Entity tracking (track, update, brief, promote)
-- Dream Cycle (7 health checks), cognify, retro
-- Hybrid search (exact + IDF-weighted + fuzzy), agentic multi-hop search
-- Zero dependencies - stdlib only
 
 ---
 
@@ -927,59 +938,11 @@ Index persisted at `.memkraft/links/backlinks.json` and `.memkraft/links/forward
 
 [GitHub](https://github.com/seojoonkim/memkraft) · [PyPI](https://pypi.org/project/memkraft/) · [Issues](https://github.com/seojoonkim/memkraft/issues)
 
-## 🤖 Autonomous Memory Management (v1.1.0)
+</div>
 
-> *"Memory should manage itself."*
+<br>
 
-Memory tends to grow without limit — agents add entries but rarely clean up.
-MemKraft 1.1.0 solves this with a self-managing lifecycle.
-
-### The Problem
-- **Add-only pattern**: agents append to MEMORY.md every session, never prune
-- **Silent maintenance failures**: nightly cleanup crons fail without notice
-- **No lifecycle**: every memory entry treated equally, forever
-
-### The Solution: flush → compact → digest
-
-```python
-from memkraft import MemKraft
-mk = MemKraft(base_dir="memory/")
-
-# 1. Import existing MEMORY.md → structured MemKraft data
-mk.flush("MEMORY.md")
-
-# 2. Auto-archive old/low-priority items
-result = mk.compact(max_chars=15000)
-# → {"moved": 47, "freed_chars": 89400, ...}
-
-# 3. Re-render MEMORY.md — always ≤ 15KB
-mk.digest("MEMORY.md")
-# → {"chars": 11700, "truncated": False}
-
-# 4. Check memory health
-health = mk.health()
-# → {"status": "healthy", "total_chars": 11700, "recommendations": [...]}
-```
-
-### Real-world result
-Our MEMORY.md grew to **153KB** (1,862 lines) over weeks of agent sessions.
-After `flush → compact → digest`: **11.7KB** (170 lines). **92% reduction.**
-
-### Nightly self-cleanup recipe
-```python
-# Watch for real-time sync
-mk.watch("memory/", on_change="flush", interval=300)
-
-# Or set a nightly schedule (requires: pip install memkraft[schedule])
-mk.schedule([
-    lambda: mk.compact(max_chars=15000),
-    lambda: mk.digest("MEMORY.md"),
-], cron_expr="0 23 * * *")
-```
-
----
-
-## Appendix: Inspirations & Credits
+## 🙏 Appendix: Inspirations & Credits
 
 MemKraft stands on the shoulders of giants. These projects and ideas shaped our approach:
 
@@ -997,5 +960,3 @@ MemKraft stands on the shoulders of giants. These projects and ideas shaped our 
 *"If I have seen further, it is by standing on the shoulders of giants."*
 
 Thank you to all these creators for sharing their work openly. MemKraft exists because of you.
-
-</div>
