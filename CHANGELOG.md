@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## [2.7.0] — 2026-05-01
+
+### Added
+- **Search result caching** — `search_v2()` and `search_smart()` now serve repeat queries from a thread-safe in-process LRU + TTL cache (`_SearchCache`, default capacity 256, TTL 300s). Zero breaking changes; opt-out per call via `cache=False`.
+- **`cache_stats()`** — returns `{hits, misses, evictions, size, capacity, ttl_seconds, hit_rate, generation}`. Useful for monitoring cache effectiveness in long-running agents.
+- **`cache_clear()`** — manual purge. Mostly for tests / benchmarks; mutations already auto-invalidate.
+- **`cache_configure(capacity, ttl)`** — reconfigure cache at runtime. Existing entries preserved (capacity shrink evicts immediately).
+
+### Changed
+- `search_v2(query, ..., cache=True)` and `search_smart(query, ..., cache=True)` — new keyword-only parameter. Default `True`.
+- Mutation methods (`update`, `track`, `fact_add`, `log_event`, `consolidate`, `consolidate_run`, `decision_record`, `incident_record`, `dream_cycle`) now bump an internal `_cache_generation_counter` after the original call returns. The counter is part of every cache key, so mutations automatically invalidate every cached entry without requiring an explicit purge. Bookkeeping is wrapped in a `try/except` so cache failures can never break a write.
+
+### Performance (measured on synthetic 50-entity corpus, 100 calls per workload, Apple M-series)
+- **Hot path** (10 repeated queries): cache OFF mean **6.59 ms** → cache ON mean **1.07 ms** — **6.14x speedup**, **+513% throughput** (152 → 931 qps).
+- **Mixed workload** (50% repeat / 50% varied): cache OFF mean **6.08 ms** → cache ON mean **3.69 ms** — **1.65x speedup** (164 → 271 qps).
+- **`search_smart` hot path**: cache OFF mean **5.69 ms** → cache ON mean **0.99 ms** — **5.76x speedup** (176 → 1012 qps).
+- p50 cache hit latency: **0.14 ms** (vs ~5.5 ms uncached).
+- Invalidation correctness: 100% miss rate when a mutation runs every 10 queries (verified end-to-end).
+- Raw numbers: `benchmarks/v2.7.0-bench-result.json`.
+
+### Tests
+- New: `tests/test_search_cache.py` — 24 tests (LRU/TTL/thread-safety/invalidation/opt-out/configure).
+- Cumulative: **1192 passed, 3 skipped** (zero regressions).
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
 ## [2.6.0] — 2026-04-30
 
 ### Added

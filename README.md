@@ -8,7 +8,7 @@
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
 _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
-**v2.6.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**v2.7.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
@@ -139,7 +139,7 @@ See [`examples/`](examples/) for runnable variants.
 | Local-first            | ✅             | —           | —        |
 | Git-friendly           | ✅             | —           | —        |
 
-### API overview (13 public methods)
+### API overview (14 public methods)
 
 | API | Since | Role |
 |-----|-------|------|
@@ -156,8 +156,11 @@ See [`examples/`](examples/) for runnable variants.
 | `prompt_evidence` | **1.0** | Cite past tuning results |
 | `convergence_check` | **1.0** | Auto-judge convergence |
 | `auto_tier` | **2.6** | Recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default |
+| `cache_stats` | **2.7** | Inspect search cache hit/miss/eviction counters and current generation |
 
 Also new in **2.6**: silent contradiction detection on `fact_add`, plus 1-hop graph neighbor expansion for counting-style queries (`how many`, `list all`).
+
+New in **2.7**: in-process **search result caching** for `search_v2()` and `search_smart()` — thread-safe LRU + TTL (default capacity 256, TTL 300s). Mutations (`update`, `track`, `fact_add`, `log_event`, `consolidate`, `decision_record`, `dream_cycle`) auto-invalidate via a generation counter, so callers never need to think about cache coherence. Opt-out per call with `cache=False`. Measured **6.14x speedup** on a hot-path workload (152 → 931 qps) and **1.65x** on a 50/50 mixed workload — raw numbers in `benchmarks/v2.7.0-bench-result.json`. Zero breaking changes.
 
 Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
