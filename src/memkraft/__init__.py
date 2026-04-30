@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.6.0"
+__version__ = "2.7.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -32,6 +32,10 @@ from .context_compress import ContextCompressMixin  # v2.5 context compression
 from .rerank import RerankMixin  # v2.5 question-type-aware re-ranking
 from .hierarchical import HierarchicalMixin  # v1.1.2 hierarchical retrieval
 from .alias import AliasMixin  # v2.4 entity alias support
+from .cache import (  # v2.7.0 search result caching
+    CacheInvalidationMixin,
+    install_cache_invalidation_wrappers,
+)
 # PreferenceMixin NOT registered — would overwrite core._slugify
 
 
@@ -73,6 +77,7 @@ for _mixin in (
     TemporalChainMixin,
     HierarchicalMixin,
     AliasMixin,
+    CacheInvalidationMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
@@ -176,6 +181,11 @@ setattr(_BaseMemKraft, "pref_conflicts_all", _pref_conflicts_all)
 setattr(_BaseMemKraft, "pref_conflicts", _pref_conflicts_all)  # convenience alias
 
 install_confidence_wrappers(_BaseMemKraft)
+
+# v2.7.0 — wrap mutation methods so they auto-invalidate the search
+# result cache. MUST run last so the wrappers see every other mixin's
+# final method body.
+install_cache_invalidation_wrappers(_BaseMemKraft)
 
 MemKraft = _BaseMemKraft
 

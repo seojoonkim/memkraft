@@ -191,6 +191,7 @@ class SearchMixin:
         top_k: int = 20,
         expand_query: bool = False,
         fuzzy: bool = False,
+        cache: bool = True,
     ) -> list[dict]:
         """Enhanced search with top_k limiting and optional expansion.
 
@@ -208,11 +209,40 @@ class SearchMixin:
             questions at a small latency cost.
         fuzzy:
             Forwarded to the underlying ``search``.
+        cache:
+            v2.7.0 — when True (default) results are cached and
+            served from the in-process LRU+TTL cache. Pass
+            ``cache=False`` to bypass the cache for a single call
+            (useful when you've manually edited memory files outside
+            of the public mutation API).
         """
         if not isinstance(query, str) or not query.strip():
             return []
         if not isinstance(top_k, int) or top_k <= 0:
             top_k = 20
+
+        # v2.7.0 — search result caching.
+        cache_obj = None
+        cache_key = None
+        if cache and hasattr(self, "_get_search_cache"):
+            cache_obj = self._get_search_cache()
+            cache_key = cache_obj.make_key(
+                _api="search_v2",
+                query=query,
+                top_k=top_k,
+                expand_query=bool(expand_query),
+                fuzzy=bool(fuzzy),
+                base_dir=str(getattr(self, "base_dir", "")),
+                generation=self._get_cache_generation()
+                if hasattr(self, "_get_cache_generation")
+                else 0,
+            )
+            cached = cache_obj.get(cache_key)
+            if cached is not None:
+                # Touch decay so the cache hit still refreshes file
+                # access timestamps (matches non-cached behaviour).
+                self._reset_decay(cached)
+                return cached
 
         batches: list[list[dict]] = [self._v102_run_search(query, fuzzy=fuzzy)]
         if expand_query:
@@ -222,6 +252,8 @@ class SearchMixin:
         merged = self._v102_merge(batches)
         result = merged[:top_k]
         self._reset_decay(result)
+        if cache_obj is not None and cache_key is not None:
+            cache_obj.set(cache_key, result)
         return result
 
     def search_expand(
@@ -320,6 +352,7 @@ class SearchMixin:
         top_k: int = 20,
         date_hint: str | None = None,
         fuzzy: bool = False,
+        cache: bool = True,
     ) -> list[dict]:
         """Strategy-dispatch search.
 
@@ -330,12 +363,42 @@ class SearchMixin:
           more than precision when the target is a style, not a fact)
         - **fact** questions → ``search_ranked`` (precision-first, no
           variant expansion to avoid topic drift)
+
+        v2.7.0 ``cache`` — set to False to bypass the in-process LRU
+        cache for this call. Default True.
         """
+        if not isinstance(query, str) or not query.strip():
+            return []
+
+        # v2.7.0 — cache the strategy-dispatched final result.
+        cache_obj = None
+        cache_key = None
+        if cache and hasattr(self, "_get_search_cache"):
+            cache_obj = self._get_search_cache()
+            cache_key = cache_obj.make_key(
+                _api="search_smart",
+                query=query,
+                top_k=top_k,
+                date_hint=date_hint,
+                fuzzy=bool(fuzzy),
+                base_dir=str(getattr(self, "base_dir", "")),
+                generation=self._get_cache_generation()
+                if hasattr(self, "_get_cache_generation")
+                else 0,
+            )
+            cached = cache_obj.get(cache_key)
+            if cached is not None:
+                self._reset_decay(cached)
+                return cached
+
         strategy = self._v102_classify(query)
         if strategy == "temporal":
-            return self.search_temporal(
+            result = self.search_temporal(
                 query, date_hint=date_hint, top_k=top_k, fuzzy=fuzzy
             )
+            if cache_obj is not None and cache_key is not None:
+                cache_obj.set(cache_key, result)
+            return result
         if strategy == "count":
             # Multi-item questions benefit from wider recall.
             # v2.6.x: also fold in 1-hop graph neighbors of any entities
@@ -352,12 +415,24 @@ class SearchMixin:
             if neighbor_results:
                 # Merge while keeping max score per file.
                 merged = self._v102_merge([base, neighbor_results])
-                return merged[: max(top_k, 30)][:top_k]
-            return base[:top_k]
+                count_result = merged[: max(top_k, 30)][:top_k]
+            else:
+                count_result = base[:top_k]
+            if cache_obj is not None and cache_key is not None:
+                cache_obj.set(cache_key, count_result)
+            return count_result
         if strategy == "preference":
-            return self.search_expand(query, top_k=top_k, fuzzy=fuzzy)
+            pref_result = self.search_expand(query, top_k=top_k, fuzzy=fuzzy)
+            if cache_obj is not None and cache_key is not None:
+                cache_obj.set(cache_key, pref_result)
+            return pref_result
         # fact
-        return self.search_ranked(query, top_k=top_k, min_score=0.0, fuzzy=fuzzy)
+        fact_result = self.search_ranked(
+            query, top_k=top_k, min_score=0.0, fuzzy=fuzzy
+        )
+        if cache_obj is not None and cache_key is not None:
+            cache_obj.set(cache_key, fact_result)
+        return fact_result
 
     # ------------------------------------------------------------------
     # v2.6.x — Counting-question neighbor expansion (graph 1-hop)
