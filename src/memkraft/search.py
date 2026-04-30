@@ -248,7 +248,13 @@ class SearchMixin:
     )
     _COUNT_KW = (
         "how many", "count", "number of", "total",
-        "몇", "얼마",
+        # v2.6.x — extra count-like phrasings that benefit from
+        # multi-session aggregation (was being mis-routed to ``fact``
+        # before, which suppressed query expansion).
+        "how often", "how frequent", "how frequently",
+        "list all", "each of",
+        "in total", "altogether", "combined", "overall",
+        "몇", "얼마", "몇 번", "몇번", "총",
     )
 
     def _v102_classify(self, query: str) -> str:
@@ -332,11 +338,108 @@ class SearchMixin:
             )
         if strategy == "count":
             # Multi-item questions benefit from wider recall.
-            return self.search_expand(query, top_k=max(top_k, 30), fuzzy=fuzzy)[:top_k]
+            # v2.6.x: also fold in 1-hop graph neighbors of any entities
+            # the user query mentions (when the graph mixin is
+            # available) — counting questions often span sessions that
+            # share an entity but not a keyword with the question.
+            base = self.search_expand(query, top_k=max(top_k, 30), fuzzy=fuzzy)
+            try:
+                neighbor_results = self._count_neighbor_expansion(
+                    query, top_k=top_k
+                )
+            except Exception:
+                neighbor_results = []
+            if neighbor_results:
+                # Merge while keeping max score per file.
+                merged = self._v102_merge([base, neighbor_results])
+                return merged[: max(top_k, 30)][:top_k]
+            return base[:top_k]
         if strategy == "preference":
             return self.search_expand(query, top_k=top_k, fuzzy=fuzzy)
         # fact
         return self.search_ranked(query, top_k=top_k, min_score=0.0, fuzzy=fuzzy)
+
+    # ------------------------------------------------------------------
+    # v2.6.x — Counting-question neighbor expansion (graph 1-hop)
+    # ------------------------------------------------------------------
+    def _count_neighbor_expansion(
+        self,
+        query: str,
+        top_k: int = 20,
+    ) -> list[dict]:
+        """For counting questions, broaden recall by asking the graph
+        for files that mention any 1-hop neighbor of an entity touched
+        by ``query``. Best-effort — returns ``[]`` when the graph mixin
+        is missing or no entities can be resolved.
+
+        Each returned dict mirrors ``search_v2`` output
+        (``{file, score, snippet}``). Scores are deliberately small
+        (0.05 floor) so neighbor hits never out-rank direct keyword
+        matches; they only fill gaps when a session shares an entity
+        but not a literal keyword with the question.
+        """
+        if not query or not query.strip():
+            return []
+
+        # Pull candidate entity names from the query (alpha tokens >=3 chars,
+        # not stopwords). Cheap heuristic — the graph layer will
+        # silently ignore unknown nodes.
+        tokens = re.findall(r"[\w][\w'\-]*", query.lower(), flags=re.UNICODE)
+        candidates: list[str] = []
+        seen: set[str] = set()
+        for t in tokens:
+            if len(t) < 3 or t in _STOPWORDS or t in seen:
+                continue
+            seen.add(t)
+            candidates.append(t)
+        if not candidates:
+            return []
+
+        neighbors: list[str] = []
+        graph_neighbors = getattr(self, "graph_neighbors", None)
+        if not callable(graph_neighbors):
+            return []
+        for cand in candidates[:5]:
+            try:
+                paths = graph_neighbors(cand, hops=1) or []
+            except Exception:
+                continue
+            for p in paths:
+                # graph_neighbors returns a list of paths; each path is
+                # a list of (src, rel, dst) edges. Pull the dst names.
+                if isinstance(p, (list, tuple)):
+                    for edge in p:
+                        if isinstance(edge, (list, tuple)) and len(edge) >= 3:
+                            dst = str(edge[2]) if edge[2] else ""
+                            if dst and dst.lower() not in seen and len(dst) >= 3:
+                                neighbors.append(dst)
+                                seen.add(dst.lower())
+        if not neighbors:
+            return []
+
+        merged: dict[str, dict] = {}
+        for n in neighbors[:8]:
+            try:
+                hits = self.search_v2(n, top_k=max(top_k, 10), expand_query=False)
+            except Exception:
+                continue
+            for r in hits or []:
+                if not isinstance(r, dict):
+                    continue
+                f = r.get("file")
+                if not f:
+                    continue
+                # Cap neighbor score so it never out-ranks a direct keyword hit.
+                damped = min(0.50, max(0.05, float(r.get("score", 0)) * 0.6))
+                prev = merged.get(f)
+                if prev is None or damped > prev.get("score", 0):
+                    new_r = dict(r)
+                    new_r["score"] = damped
+                    new_r["_neighbor_expansion"] = True
+                    merged[f] = new_r
+        return sorted(
+            merged.values(), key=lambda x: x.get("score", 0), reverse=True
+        )[:top_k]
 
     # ------------------------------------------------------------------
     # v2.5.0 — Multi-query RRF fusion + Context budget check
