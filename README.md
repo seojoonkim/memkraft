@@ -8,20 +8,20 @@
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
 _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
-**v1.0.2** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**v2.6.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
 
-### API overview (12 public methods)
+### API overview (13 public methods)
 
 | API | Since | Role |
 |-----|-------|------|
 | `track` | 0.5 | Start tracking an entity |
 | `update` | 0.5 | Append information to an entity |
-| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy) |
+| `search` | 0.5 | Hybrid search (exact + IDF + fuzzy + BM25) |
 | `tier_set` | 0.8 | Set tier: `core` / `recall` / `archival` |
-| `fact_add` | 0.8 | Record a bitemporal fact |
+| `fact_add` | 0.8 | Record a bitemporal fact (`fact_type`: `episodic` / `semantic` / `procedural` since **2.6**) |
 | `log_event` | 0.8 | Log a timestamped event |
 | `decision_record` | 0.9 | Capture a decision with rationale |
 | `evidence_first` | 0.9 | Retrieve evidence before acting |
@@ -29,6 +29,9 @@ _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracl
 | `prompt_eval` | **1.0** | Record one tuning iteration |
 | `prompt_evidence` | **1.0** | Cite past tuning results |
 | `convergence_check` | **1.0** | Auto-judge convergence |
+| `auto_tier` | **2.6** | Recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default |
+
+Also new in **2.6**: silent contradiction detection on `fact_add`, plus 1-hop graph neighbor expansion for counting-style queries (`how many`, `list all`).
 
 Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
@@ -733,10 +736,12 @@ memory/
 
 ## Reproducing LongMemEval Results
 
-MemKraft v1.0.2 achieves **98.0%** on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (LLM-as-judge, oracle subset, 3-run semantic majority vote). Single-run performance: **96–98%** (non-deterministic at inference level — sampling, not memory).
+MemKraft achieves **98.0%** on [LongMemEval](https://github.com/xiaowu0162/LongMemEval) (LLM-as-judge, oracle subset, 3-run semantic majority vote). Single-run performance: **96–98%** (non-deterministic at inference level — sampling, not memory).
+
+_Score measured on v1.0.2; v2.6.0 is regression-free with **1168 tests passing** and is API-compatible with the benchmark harness._
 
 **Comparison vs prior SOTA:**
-- MemKraft 1.0.2 — **98.0%** (LLM-judge, oracle 50, 3-run majority)
+- MemKraft (v1.0.2 measurement) — **98.0%** (LLM-judge, oracle 50, 3-run majority)
 - MemPalace — 96.6%
 - MEMENTO/MS — 90.8%
 

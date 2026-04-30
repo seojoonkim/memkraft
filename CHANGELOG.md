@@ -3,14 +3,14 @@
 ## [2.6.0] — 2026-04-30
 
 ### Added
-- **`fact_type` (episodic / semantic / procedural)** — `mk.fact_add(..., fact_type="episodic")` 신규 인자. 기본값은 `semantic` (하위 호환). 유형은 frontmatter에 그대로 저장되고 round-trip을 보장 — 추후 retrieval 정책이 사실 종류별로 다르게 동작할 수 있는 기반.
-- **`auto_tier()`** — entity 활동 기반 tier 자동 추천. `(recency, frequency, importance)` 가중치 합으로 `core / recall / archival` 후보를 산출. `dry_run=True` 가 기본 — 결과 dict만 반환하고 파일은 변경하지 않음. 가중치는 `weights={...}` 로 오버라이드 가능. 단일 entity 또는 전체 스캔 모두 지원.
-- **Contradiction detection** — 같은 entity의 같은 key에 서로 다른 value가 시간 겹치게 기록되면 자동 감지. 단순 동시 등록부터 본문에 묻혀 있는 conflict까지 검출. 무음 — 경고만, 입력은 차단하지 않음 (사용자 워크플로우 보존).
-- **Counting question + 1-hop graph neighbor expansion** (`search.py`) — "how many / 몇 번 / list all / in total" 류 질문이 그래프에서 1-hop 이웃까지 fold-in 하도록 확장. 같은 entity는 공유하지만 키워드는 안 겹치는 cross-session 카운팅이 잡힘. neighbor 점수는 cap 0.50 / factor 0.6 으로 damp — 직접 매치보다 절대 위로 못 올라감. graph mixin이 없으면 조용히 no-op.
+- **`fact_type` (episodic / semantic / procedural)** — new keyword on `mk.fact_add(..., fact_type="episodic")`. Default is `semantic` (backward-compatible). The type is persisted as-is in frontmatter with guaranteed round-trip — a foundation for retrieval policies that will eventually treat fact kinds differently.
+- **`auto_tier()`** — activity-based tier recommendation per entity. Combines `(recency, frequency, importance)` into a weighted score and returns a `core / recall / archival` candidate. `dry_run=True` is the default — it returns a result dict without touching files. Weights are overridable via `weights={...}`. Works on a single entity or as a full-store sweep.
+- **Contradiction detection** — if the same `(entity, key)` is recorded with different values whose validity windows overlap, MemKraft now detects it automatically. Catches both naive concurrent writes and conflicts buried inside body text. Silent by design — it warns only, never blocks the write (preserves user workflow).
+- **Counting question + 1-hop graph neighbor expansion** (`search.py`) — queries shaped like "how many / list all / in total" now fold in 1-hop graph neighbors. This catches cross-session counting where the entity is shared but keywords don’t overlap. Neighbor scores are damped (cap 0.50, factor 0.6) so they can never outrank a direct match. Cleanly no-ops when the graph mixin is absent.
 
 ### Tests
-- 신규: `tests/test_new_260_features.py` — 15 cases (FactType 6 + AutoTier 5 + Contradiction 4) 전부 통과.
-- 누적: **1168 passed, 3 skipped** (회귀 0건).
+- New: `tests/test_new_260_features.py` — 15 cases (FactType 6 + AutoTier 5 + Contradiction 4) all passing.
+- Cumulative: **1168 passed, 3 skipped** (zero regressions).
 
 ### Upgrade
 ```bash
