@@ -32,3 +32,4 @@ benchmarks/longmemeval/data/
 benchmarks/longmemeval/results/*.json
 benchmarks/longmemeval/results/*.jsonl
 benchmarks/longmemeval/*.bak
+README.md.bak-*
