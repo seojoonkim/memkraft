@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## [2.7.1] — 2026-05-01
+
+### Added
+- **ReasoningBank** — record agent reasoning trajectories (thought → action → outcome), distill them into success / failure patterns, and recall relevant past lessons before the next task. Six new methods on `MemKraft`:
+  - `mk.trajectory_start(task_id, *, title="", tags="")` — begin a trajectory.
+  - `mk.trajectory_log(task_id, step, *, thought="", action="", outcome="", metadata=None)` — append a step. Auto-starts the trajectory if missing.
+  - `mk.trajectory_complete(task_id, *, status="success", lesson="", pattern_signature="", tags="")` — finish a trajectory and upsert its pattern bucket. Idempotent on duplicate (status, signature).
+  - `mk.reasoning_recall(query, *, top_k=3, status="", min_score=0.0)` — retrieve completed trajectories most relevant to `query` via stopword-aware Jaccard over (title, lesson, tags, signature).
+  - `mk.reasoning_patterns(*, status="", min_count=1, top_k=20)` — list patterns sorted by frequency.
+  - `mk.trajectory_get(task_id)` — return the full reconstructed view (start + steps + complete).
+- **Repeated-failure detection** — when the same `failure` signature occurs ≥ 2 times, MemKraft auto-emits a high-importance event via `log_event(..., tags="reasoning-bank,repeat-failure")` so retros and dashboards light up immediately.
+
+### Storage
+- All ReasoningBank data lives under `<base_dir>/.memkraft/`:
+  - `trajectories/<task_id>.jsonl` — append-only, one JSON record per line, tolerant of corrupt lines.
+  - `patterns.json` — atomic-rename writes, per-pattern caps (max 3 lessons / 50 task ids).
+- Zero leakage into user-facing markdown — ReasoningBank is a meta layer, not a document corpus.
+
+### Tests
+- New: `tests/test_reasoning_bank.py` — 18 tests covering start/log/complete round-trip, signature determinism + degenerate fallback, status / min_score filters, pattern frequency ordering, repeat-failure event emission, idempotency on duplicate completes, corrupt-line tolerance, layout safety, list/string tag coercion, and path-traversal-safe task ids.
+- Cumulative: **1210 passed, 3 skipped** (zero regressions; baseline 1192).
+
+### Design
+- Mixin pattern (`ReasoningBankMixin`), additive only, stdlib only, no signature changes elsewhere. Spec: `docs/REASONING_BANK_DESIGN.md`.
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
+---
+
 ## [2.7.0] — 2026-05-01
 
 ### Added

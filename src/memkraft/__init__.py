@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.7.0"
+__version__ = "2.7.1"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -36,6 +36,7 @@ from .cache import (  # v2.7.0 search result caching
     CacheInvalidationMixin,
     install_cache_invalidation_wrappers,
 )
+from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
 # PreferenceMixin NOT registered — would overwrite core._slugify
 
 
@@ -78,6 +79,7 @@ for _mixin in (
     HierarchicalMixin,
     AliasMixin,
     CacheInvalidationMixin,
+    ReasoningBankMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
