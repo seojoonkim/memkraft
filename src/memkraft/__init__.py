@@ -37,6 +37,7 @@ from .cache import (  # v2.7.0 search result caching
     install_cache_invalidation_wrappers,
 )
 from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
+from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
 # `_slugify` would clobber core._slugify (which has Korean/CJK support).
@@ -83,6 +84,7 @@ for _mixin in (
     AliasMixin,
     CacheInvalidationMixin,
     ReasoningBankMixin,
+    EmbeddingMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

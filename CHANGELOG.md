@@ -2,6 +2,39 @@
 
 ## [Unreleased] — v2.7.3
 
+### Added
+- **Local embedding retrieval** (1° LongMemEval lever — closes the
+  zero-embedding gap that capped accuracy at ~90%, targeting parity
+  with MemPalace 96.6% / OMEGA 95.4%). New module
+  `memkraft.embedding` with a lazy SentenceTransformer loader,
+  pure-Python cosine, and incremental on-disk index.
+- New API on `MemKraft` (additive, keyword-only where it matters):
+  - `mk.embed_text(text)` → `list[float]`
+  - `mk.embed_batch(texts)` → `list[list[float]]`
+  - `mk.search_semantic(query, top_k=10, *, min_score=0.0, auto_build=True)`
+  - `mk.search_hybrid(query, top_k=10, *, alpha=0.5, k=60, date_hint=None)`
+    — Reciprocal Rank Fusion of `search_smart` (BM25 family) and
+    `search_semantic`. `alpha=0.0` ≡ BM25 only, `alpha=1.0` ≡
+    semantic only. Falls back to pure BM25 when the optional extra
+    is missing so existing pipelines never crash.
+  - `mk.build_embeddings(force=False)` → stats dict
+  - `mk.embedding_stats()`, `mk.embedding_clear()`
+- Default model: `sentence-transformers/all-MiniLM-L6-v2`
+  (~90 MB, 384-d). Override via `MEMKRAFT_EMBEDDING_MODEL` env var.
+
+### Storage
+- New `<base_dir>/.memkraft/embeddings/index.jsonl` — one JSON
+  record per markdown file (`{file, model, dim, mtime, size, vec}`).
+  Re-indexing is incremental: a file is re-encoded only when its
+  mtime or size changes; deleted files are pruned automatically.
+
+### Optional dependency
+- `pip install 'memkraft[embedding]'` installs
+  `sentence-transformers>=2.2,<6` and `numpy>=1.21`. Without it,
+  `embed_text` / `search_semantic` raise `MemKraftEmbeddingError`
+  with a clear install hint, and `search_hybrid` degrades to
+  BM25-only.
+
 ### Fixed
 - **`pref_context(entity)` no longer raises `TypeError`.** The
   `scenario` argument is now optional (`scenario: str = ""`); when

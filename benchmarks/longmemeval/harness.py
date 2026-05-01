@@ -275,6 +275,10 @@ class LongMemEvalHarness:
           * ``expand``   → ``search_expand`` (v1.0.2 Phase 1)
           * ``baseline`` → ``search_v2`` without expansion
           * ``legacy``   → 1.0.1 manual fallback path
+          * ``hybrid``   → ``search_hybrid`` (v2.7.3, BM25 ⊕ semantic
+                          via RRF; ``MK_HYBRID_ALPHA`` weights the
+                          semantic side, default 0.5)
+          * ``semantic`` → ``search_semantic`` (v2.7.3, dense only)
 
         For aggregation/multi-session questions, also run supplementary
         single-keyword searches and merge results to boost recall across
@@ -300,6 +304,24 @@ class LongMemEvalHarness:
                         question,
                         top_k=max(self.top_k * 2, 30),
                         date_hint=(question_date or None),
+                    )
+                # v2.7.3: hybrid + semantic dispatch for embedding bench.
+                if mode == "hybrid" and hasattr(mk, "search_hybrid"):
+                    alpha_env = os.environ.get("MK_HYBRID_ALPHA")
+                    try:
+                        alpha = float(alpha_env) if alpha_env else 0.5
+                    except ValueError:
+                        alpha = 0.5
+                    return mk.search_hybrid(
+                        question,
+                        top_k=max(self.top_k * 2, 30),
+                        alpha=alpha,
+                        date_hint=(question_date or None),
+                    )
+                if mode == "semantic" and hasattr(mk, "search_semantic"):
+                    return mk.search_semantic(
+                        question,
+                        top_k=max(self.top_k * 2, 30),
                     )
             except Exception as e:
                 if self.verbose:
