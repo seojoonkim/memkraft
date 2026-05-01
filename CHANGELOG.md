@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [Unreleased] — v2.7.3
+## [2.7.3] — 2026-05-02
 
 ### Added
 - **Local embedding retrieval** (1° LongMemEval lever — closes the
@@ -48,9 +48,29 @@
   `MemKraft(base_dir=<never-initialized-path>).pref_set(...)` no longer
   raises `FileNotFoundError`. Mirrors the `parents=True` policy core.py
   already uses for `.memkraft/<inner>/`.
+- **`novel_suggestion` over-grounding regression mitigated.** In v2.7.2
+  PersonaMem 32k (n=200, gpt-4o-mini), `suggest_new_ideas` shared the
+  `provide_preference_aligned` branch in `personamem.py`, dumping the
+  full preference profile + ~40 raw `Enjoys/Values` sentences. The model
+  read that wall of grounding as "user wants more of the same" and
+  selected distractors that echoed existing activities — the opposite of
+  what `suggest_new_ideas` asks for, where the correct option is
+  deliberately the most NOVEL/divergent one. This drove
+  novel_suggestion accuracy down to **11.5%** (−11.6pp vs baseline).
+  Fix splits `suggest_new_ideas` into a dedicated novelty-aware branch:
+  caps the preference profile at top-12 by strength (no per-category
+  dump), surfaces dislikes and an `Already Explored` guardrail, and
+  prepends explicit task framing ("user wants NEW ideas, not aligned
+  ones"). The `aligned_recommendation` branch is structurally
+  unchanged. Verification (PersonaMem 32k, gpt-4o-mini, memkraft
+  variant): novel_suggestion **11.5% → 16.7% (RUN-A) / 16.7% (RUN-B)**,
+  +5.2pp and reproducible across two independent n=30 runs;
+  aligned_recommendation 61.9% → 60.0%/60.0% (within noise);
+  preference_reasons / preference_evolution / cross_domain_transfer
+  no regression.
 
 ### Tests
-- New cases in `tests/test_preference_v272.py`:
+- New cases in `tests/test_preference_v272.py` (5):
   - `test_pref_context_no_scenario` — `pref_context(entity)` returns a
     structured payload without raising.
   - `test_pref_context_empty_scenario` — `pref_context(entity, "")`
@@ -61,6 +81,16 @@
     end-to-end.
   - `test_pref_set_existing_dir_idempotent` — second call into an
     already-created `preferences/` dir succeeds without error.
+- New `tests/test_preference_novelty.py` (7): task framing, taste
+  snapshot top-12 cap, `Already Explored` listing, dislike guardrail,
+  prompt size bound, and aligned-branch isolation.
+- New embedding suite (`tests/test_embedding*.py`, 21): cosine sanity,
+  incremental rebuild on mtime/size change, deletion pruning,
+  `search_semantic` ranking, `search_hybrid` RRF tie-break, BM25-only
+  graceful degradation when the optional extra is missing.
+- Cumulative: **1233 passed, 4 skipped, 0 regressions** (v2.7.2 baseline
+  1220 → +13 net after dedup of refactored cases; +33 new tests across
+  A/B/F).
 
 ### Compatibility
 - Additive only. Public signatures relaxed (`scenario` gains a default).
