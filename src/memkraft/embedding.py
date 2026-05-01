@@ -1,10 +1,23 @@
-"""v2.7.3 — Local embedding retrieval (semantic + hybrid search).
+"""v2.7.3+ — Local embedding retrieval (semantic + hybrid search).
+
+**Strictly opt-in (v2.7.4).** This module exposes `search_semantic` /
+`search_hybrid` as new APIs, but **no default code path activates
+them.** `search_smart` (BM25 family) remains the default retriever;
+embedding-based retrieval is invoked only when the user explicitly
+calls `search_semantic`, `search_hybrid`, sets `alpha > 0` in hybrid
+mode, or passes `mode="hybrid"`/`"semantic"` to a benchmark harness.
+
+Why opt-in: empirical validation (PersonaMem 32k n=200, LongMemEval
+oracle 50, n=50) showed v2.7.3 hybrid (alpha=0.5) added ~13× search
+latency (0.94s → 12.3s) for no statistically significant accuracy
+gain over v2.7.2 BM25 (PersonaMem 55% → 49%, p=0.271; LongMemEval
+oracle 58% = 58%). Until a real signal appears at n=500+, semantic
+should be a power-user lever, not the default.
 
 Adds dense retrieval to MemKraft on top of the existing BM25/IDF/RRF
 stack. Default model is `sentence-transformers/all-MiniLM-L6-v2`
 (~90 MB on disk, 384-dim) — small enough to ship behind an optional
-extra and good enough to close the LongMemEval gap from ~90% to the
-MemPalace/OMEGA range (95%+).
+extra.
 
 Design constraints honoured
 ---------------------------
@@ -413,7 +426,12 @@ class EmbeddingMixin:
         min_score: float = 0.0,
         auto_build: bool = True,
     ) -> List[dict]:
-        """Cosine-similarity search over the embedding index.
+        """Cosine-similarity search over the embedding index. **Opt-in.**
+
+        v2.7.4: this method is **never invoked by default**. The
+        default retriever (`search_smart`) does not call this; it
+        runs only when callers explicitly invoke `search_semantic`
+        (or `search_hybrid` with `alpha > 0`).
 
         Lazy-builds the index on first call (`auto_build=True`).
         Result shape mirrors `search_v2`:
@@ -469,12 +487,21 @@ class EmbeddingMixin:
         k: int = 60,
         date_hint: Optional[str] = None,
     ) -> List[dict]:
-        """Hybrid retrieval: BM25 (`search_smart`) ⊕ semantic.
+        """Hybrid retrieval: BM25 (`search_smart`) ⊕ semantic. **Opt-in.**
+
+        v2.7.4: this method is **never invoked by default**. Callers
+        must opt in by calling `search_hybrid` explicitly; the default
+        retriever (`search_smart`) is unchanged and runs BM25-only.
 
         Uses Reciprocal Rank Fusion (k=60 default) with `alpha`
         weighting the semantic side. `alpha=0.0` ≡ BM25 only;
-        `alpha=1.0` ≡ semantic only; `alpha=0.5` (default) is the
-        even mix.
+        `alpha=1.0` ≡ semantic only; `alpha=0.5` is the even mix.
+
+        Note: at the time of v2.7.4, hybrid retrieval has been shown
+        empirically to add ~13× latency for no statistically
+        significant accuracy gain over BM25 (PersonaMem 32k n=200,
+        p=0.271). Use it when you have a known semantic-recall need;
+        do not enable it as a blanket default.
 
         Falls back gracefully when the embedding extra is missing —
         emits BM25 results as if `alpha=0`.

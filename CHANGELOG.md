@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## [2.7.4] — 2026-05-02
+
+### Changed
+- **Embedding retrieval is now strictly opt-in.** v2.7.3 made
+  `search_semantic` / `search_hybrid` available as new APIs but did
+  not change defaults. v2.7.4 documents and audits the call paths to
+  guarantee that **no default code path activates embedding
+  retrieval** — BM25 (`search_smart`) remains the default, and
+  embedding-based search is only invoked when the user explicitly
+  calls `search_semantic`, `search_hybrid`, or sets `alpha > 0` in
+  hybrid mode.
+- Reason: empirical validation (PersonaMem 32k n=200, LongMemEval
+  oracle 50, n=50) showed the v2.7.3 hybrid mode adds ~13× search
+  latency (0.94s → 12.3s) for no statistically significant accuracy
+  gain over v2.7.2. The embedding APIs are kept for users who want
+  to experiment with semantic retrieval, but should not be the
+  default path until a real signal is found at n=500+.
+- Module docstring (`memkraft.embedding`) and the `search_semantic`
+  / `search_hybrid` docstrings now state the opt-in posture and the
+  empirical cost/no-benefit summary.
+
+### Retained from v2.7.3
+- `search_semantic` / `search_hybrid` / `embed_text` / `embed_batch`
+  / `build_embeddings` / `embedding_stats` / `embedding_clear` APIs.
+- `novel_suggestion` over-grounding fix in `personamem.py`
+  (kept — code is harmless even if smoke-test signal turned out to
+  be noise at n=200; the fix itself is structurally correct).
+- `pref_context` no-scenario fix, `pref_set` parents=True fix.
+
+### Validation
+- PersonaMem 32k n=200 v2.7.2 baseline: 55.0%
+- PersonaMem 32k n=200 v2.7.3 hybrid (alpha=0.5): 49.0% (-6pp,
+  p=0.271, not statistically significant)
+- LongMemEval oracle 50 v2.7.3 hybrid: 58% (= v2.7.2)
+- search_time (LME): 0.94s → 12.3s with hybrid
+- **Conclusion: cost without benefit at current sample sizes.**
+
+### Lessons documented
+- smoke n=5/n=30 is for signal exploration, not release decisions
+- +5pp claims need n≥200 verification, n=500+ for high confidence
+- 13× latency is real cost; must be matched by real accuracy gain
+
 ## [2.7.3] — 2026-05-02
 
 ### Added
