@@ -765,8 +765,8 @@ def build_context(
                 )
                 parts.append(f"- {c['key']}: {chain} — current: {c.get('current','?')}")
 
-    # ── Type: preference-aligned recommendations / suggest new ─
-    elif qt in ("provide_preference_aligned_recommendations", "suggest_new_ideas"):
+    # ── Type: preference-aligned recommendations ──────────────
+    elif qt == "provide_preference_aligned_recommendations":
         # Give a condensed current preference profile
         parts.append("## Current Preference Profile")
         # group by category
@@ -789,6 +789,69 @@ def build_context(
             parts.append("\n## Avoids / Dislikes")
             for s in neg[:40]:
                 parts.append(f"- {s['text'][:200]}")
+
+    # ── Type: suggest new ideas (NOVELTY-aware, v2.7.3 fix) ───
+    #
+    # Regression diagnosis (v2.7.2 n=200, novel_suggestion -11.6pp vs
+    # baseline): the previous handler dumped the full preference profile
+    # plus 40 raw "Enjoys / Values" sentences. The model interpreted that
+    # wall of grounding as "the user wants more of the same" and picked
+    # distractors that echoed existing activities — exactly the wrong
+    # answer for `suggest_new_ideas`, where PersonaMem's correct option
+    # is deliberately the most NOVEL/divergent one.
+    #
+    # Fix:
+    #   1. Cap the preference profile at the top-N strongest items
+    #      (no per-category dump, no raw-sentence walls).
+    #   2. Surface dislikes / discontinued activities as guardrails
+    #      (don't suggest something the user already rejected).
+    #   3. Prepend an explicit instruction that the user is asking for
+    #      something NEW — options that merely repeat existing
+    #      activities are NOT the right answer.
+    elif qt == "suggest_new_ideas":
+        parts.append(
+            "## Task Framing — Novel Suggestion\n"
+            "The user is asking for NEW ideas they haven't tried yet. "
+            "Use the preference profile below to understand their taste "
+            "AND to avoid suggesting activities they already do. "
+            "Prefer options that introduce a genuinely new direction "
+            "(adjacent or complementary to their interests) over options "
+            "that simply restate existing activities."
+        )
+
+        # Compact taste snapshot — top-N by strength only, no category
+        # explosion, no "Enjoys / Values" raw-sentence dump.
+        ranked = sorted(
+            all_prefs,
+            key=lambda p: (p.get("strength", 0.0) or 0.0),
+            reverse=True,
+        )
+        if ranked:
+            parts.append("\n## Taste Snapshot (top by strength)")
+            for p in ranked[:12]:
+                parts.append(_format_pref_line(p))
+
+        # Already-explored — what the user is currently doing or has
+        # discontinued. These are the things a "novel" suggestion should
+        # NOT echo back.
+        explored: List[str] = []
+        for p in all_prefs:
+            k = (p.get("key") or "").lower()
+            if k in ("activity", "discontinued") or k.startswith("favorite"):
+                explored.append(
+                    f"- ({p.get('category','general')}) {p.get('value','')}"
+                )
+        if explored:
+            parts.append("\n## Already Explored / Doing (avoid restating these as 'new')")
+            for line in explored[:20]:
+                parts.append(line)
+
+        # Dislikes — short guardrail.
+        neg = [s for s in statements if s.get("sentiment") == "negative"]
+        if neg:
+            parts.append("\n## Avoid (user dislikes)")
+            for s in neg[:10]:
+                parts.append(f"- {s['text'][:160]}")
 
     # ── Type: generalizing to new scenarios (cross-domain) ─────
     elif qt == "generalizing_to_new_scenarios":
