@@ -26,7 +26,11 @@ from pathlib import Path
 sys.path.insert(0, "/Users/gimseojun/memcraft/src")
 
 from memkraft import MemKraft  # noqa: E402
-import anthropic  # noqa: E402
+# Pluggable LLM backend (anthropic | openai | openrouter | litellm-vhh).
+# `make_client_with_messages_api()` returns an object whose
+# `.messages.create(...)` mirrors anthropic.Anthropic(), so the rest of the
+# harness keeps working unchanged. Backend chosen via MK_LME_LLM_BACKEND env.
+from llm_backend import make_client_with_messages_api  # noqa: E402
 
 
 DEFAULT_MODEL = "claude-haiku-4-5"
@@ -34,10 +38,16 @@ DEFAULT_MODEL = "claude-haiku-4-5"
 
 class LongMemEvalHarness:
     def __init__(self, model: str = DEFAULT_MODEL, top_k: int = 10, verbose: bool = False):
-        self.model = model
+        # If MK_LME_LLM_MODEL is set we let the backend pick (env-driven runs);
+        # otherwise the harness keeps the historical default for the
+        # Anthropic codepath.
+        env_model = os.environ.get("MK_LME_LLM_MODEL")
+        self.client = make_client_with_messages_api()
+        # Use env override > caller-supplied > backend default.
+        self.model = env_model or model or self.client.model
+        self.backend = getattr(self.client, "backend", "anthropic")
         self.top_k = top_k
         self.verbose = verbose
-        self.client = anthropic.Anthropic()
         # 통계
         self.ingest_time_total = 0.0
         self.search_time_total = 0.0

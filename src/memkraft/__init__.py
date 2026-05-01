@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.7.1"
+__version__ = "2.7.2"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -37,7 +37,10 @@ from .cache import (  # v2.7.0 search result caching
     install_cache_invalidation_wrappers,
 )
 from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
-# PreferenceMixin NOT registered — would overwrite core._slugify
+from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
+# Note: PreferenceMixin is NOT added to the global mixin loop because its
+# `_slugify` would clobber core._slugify (which has Korean/CJK support).
+# Instead, we attach only the public preference methods further down.
 
 
 # v0.8.0: extend MemKraft in-place with new mixins so every existing
@@ -180,7 +183,44 @@ def _pref_conflicts_all(self) -> list:
 
 
 setattr(_BaseMemKraft, "pref_conflicts_all", _pref_conflicts_all)
-setattr(_BaseMemKraft, "pref_conflicts", _pref_conflicts_all)  # convenience alias
+
+
+# v2.7.2 — `pref_conflicts` accepts either zero args (scan all entities,
+# legacy v2.5.0 alias behaviour) **or** a single entity name (per-entity
+# scan, what `PreferenceMixin.pref_conflicts` shipped with). PersonaMem
+# (`src/memkraft/personamem.py:756`) calls `mk.pref_conflicts(name)` and
+# previously raised `TypeError`, which the harness's `try/except` swallowed.
+def _pref_conflicts(self, entity=None):
+    if entity is None:
+        return _pref_conflicts_all(self)
+    return PreferenceMixin.pref_conflicts(self, entity)
+
+
+setattr(_BaseMemKraft, "pref_conflicts", _pref_conflicts)
+
+# v2.7.2 — selectively attach PreferenceMixin's public methods so PersonaMem
+# (and any other consumer) can actually call pref_set / pref_get /
+# pref_context / pref_evolution. We deliberately skip:
+#   - _slugify           → core._slugify is more capable (CJK aware)
+#   - pref_conflicts*    → already implemented above with cache-aware semantics
+# All attached methods rely on `self._slugify`, `self.base_dir`, and the
+# regex helpers in `preference.py`, so they cooperate with core's slugger.
+_PREF_MIXIN_EXPORTS = (
+    "pref_set",
+    "pref_get",
+    "pref_evolution",
+    "pref_context",
+    "_close_preference",
+    "_parse_preferences",
+)
+for _name in _PREF_MIXIN_EXPORTS:
+    _attr = getattr(PreferenceMixin, _name, None)
+    if _attr is None:
+        continue
+    # Don't clobber an existing method on _BaseMemKraft (paranoia guard).
+    if hasattr(_BaseMemKraft, _name):
+        continue
+    setattr(_BaseMemKraft, _name, _attr)
 
 install_confidence_wrappers(_BaseMemKraft)
 

@@ -1,0 +1,296 @@
+{
+  "split": "32k",
+  "model": "gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "hybrid",
+    "memkraft"
+  ],
+  "n_questions": 50,
+  "n_completed": 50,
+  "run_stats": {
+    "ingestions": 0,
+    "total_statements": 0,
+    "total_preferences": 0,
+    "total_facts": 0
+  },
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 50,
+      "correct": 21,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 8,
+          "correct": 3,
+          "accuracy": 37.5
+        },
+        "aligned_recommendation": {
+          "total": 7,
+          "correct": 3,
+          "accuracy": 42.857142857142854
+        },
+        "novel_suggestion": {
+          "total": 8,
+          "correct": 2,
+          "accuracy": 25.0
+        },
+        "preference_reasons": {
+          "total": 10,
+          "correct": 6,
+          "accuracy": 60.0
+        },
+        "preference_evolution": {
+          "total": 9,
+          "correct": 6,
+          "accuracy": 66.66666666666666
+        },
+        "cross_domain_transfer": {
+          "total": 8,
+          "correct": 1,
+          "accuracy": 12.5
+        }
+      },
+      "errors": [],
+      "accuracy": 42.0
+    },
+    "hybrid": {
+      "variant": "hybrid",
+      "total": 50,
+      "correct": 22,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 8,
+          "correct": 5,
+          "accuracy": 62.5
+        },
+        "aligned_recommendation": {
+          "total": 7,
+          "correct": 5,
+          "accuracy": 71.42857142857143
+        },
+        "novel_suggestion": {
+          "total": 8,
+          "correct": 2,
+          "accuracy": 25.0
+        },
+        "preference_reasons": {
+          "total": 10,
+          "correct": 6,
+          "accuracy": 60.0
+        },
+        "preference_evolution": {
+          "total": 9,
+          "correct": 4,
+          "accuracy": 44.44444444444444
+        },
+        "cross_domain_transfer": {
+          "total": 8,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [],
+      "accuracy": 44.0
+    },
+    "memkraft": {
+      "variant": "memkraft",
+      "total": 50,
+      "correct": 19,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 8,
+          "correct": 2,
+          "accuracy": 25.0
+        },
+        "aligned_recommendation": {
+          "total": 7,
+          "correct": 2,
+          "accuracy": 28.57142857142857
+        },
+        "novel_suggestion": {
+          "total": 8,
+          "correct": 2,
+          "accuracy": 25.0
+        },
+        "preference_reasons": {
+          "total": 10,
+          "correct": 6,
+          "accuracy": 60.0
+        },
+        "preference_evolution": {
+          "total": 9,
+          "correct": 5,
+          "accuracy": 55.55555555555556
+        },
+        "cross_domain_transfer": {
+          "total": 8,
+          "correct": 2,
+          "accuracy": 25.0
+        }
+      },
+      "errors": [],
+      "accuracy": 38.0
+    }
+  },
+  "per_question": {
+    "baseline": {
+      "acd74206-37dc-4756-94a8-b99a395d9a21": false,
+      "f546a74f-54de-40d0-9d88-8b0e30467d7b": true,
+      "b3588797-acdf-40d3-bcc5-951f81896f95": true,
+      "5370f186-0028-41f4-b436-c48575899fca": false,
+      "a40d5f67-8ec6-480b-a901-9709eecee9b9": false,
+      "6142fba4-a233-405a-a4fe-a5b2e27374a7": true,
+      "2cef53ac-c165-41b5-a31f-c3064106471f": true,
+      "4afc48ca-e6a7-4467-abd2-911915199315": false,
+      "defecce2-ff39-438e-ae41-90f3bcf9cb48": true,
+      "fd81b480-5723-43fe-9fb1-d3efa0df8e49": false,
+      "60023d63-4f11-47dc-8cef-82e3ca665a68": true,
+      "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d": true,
+      "ce9c7c39-c600-4971-9a7d-51a46e6c915c": false,
+      "217481b7-ad97-45d8-988f-abb3f9cf9b34": false,
+      "b4812983-2c33-48ae-8955-1a19f78f7f54": true,
+      "344ea859-e70d-48d2-8a97-7b68a104c6ae": false,
+      "c6d22f3d-282f-4e11-b9fd-39e2a687ef18": false,
+      "c2d3daad-6d3b-4852-8830-39f830f6cd01": true,
+      "96589b76-f0fa-4214-a110-c6f13ef15e83": false,
+      "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64": false,
+      "b449e614-d27f-4df4-9fb2-b4726a3423d8": false,
+      "3952f3c2-d810-4fd9-a461-8753406142a3": true,
+      "d71b360e-da59-480b-823e-a83e8c320b9c": false,
+      "7957ef21-86bb-4641-8a06-4ee2272f1c32": true,
+      "7a4ed201-4f7e-4d9c-a3f3-c5a2b8d424b3": false,
+      "afd724f4-8174-48d7-b9cd-34421c581550": false,
+      "32b03409-0710-4afd-89c1-9af72c339b4c": false,
+      "346a304a-4371-46ac-a8f7-021f25812b52": true,
+      "848b2923-33da-4ebc-86b5-e70374311fd2": true,
+      "221c8369-8ac4-447e-a13c-6088536f9abf": false,
+      "08814cb2-99dc-441d-b93b-8dcadf7f4859": true,
+      "7028667b-f2aa-4e22-a2e3-2bb97f3d9605": true,
+      "1da9453e-94f6-4e6d-9ae4-b7481217fdd1": true,
+      "0d49fda3-d417-4a47-9d8d-f6000ffa8097": false,
+      "4ca0a992-6743-4369-95b6-920712f8ef8b": true,
+      "f04613eb-8eff-4a4c-a191-d2574c87e67b": true,
+      "002e8df3-cebf-4197-8c16-cb834cc13aef": false,
+      "d90cadc8-e635-462b-8251-7f8a10734376": false,
+      "07873ceb-93a3-45fe-9f72-b0c57fd95802": false,
+      "6c4bc600-04c0-41be-841a-a1e149edd522": false,
+      "833601fa-de95-4fed-91d6-c9f45d778c84": false,
+      "aa2c7800-7f7d-401b-acfa-9af67910f9f7": true,
+      "2a69f556-c093-4bc3-aa4a-a5acaaec3801": false,
+      "c7c87a80-78e5-47d8-a068-2bfd244868f1": false,
+      "cffc32b7-fa14-457f-ac4f-9c060bf2aee1": false,
+      "856b5927-8865-4bb5-b1ac-38f965024508": true,
+      "66ce550d-37a1-43e5-ab56-0b6864d8cbaf": false,
+      "34e7e867-7730-4bb9-9dcf-bc5a93389b3a": false,
+      "08430f6d-ada1-46a7-8f15-ddc466ba8a5b": false,
+      "394bc68d-a4b3-415c-a7d9-6b367fe44e25": true
+    },
+    "hybrid": {
+      "acd74206-37dc-4756-94a8-b99a395d9a21": false,
+      "f546a74f-54de-40d0-9d88-8b0e30467d7b": true,
+      "b3588797-acdf-40d3-bcc5-951f81896f95": true,
+      "5370f186-0028-41f4-b436-c48575899fca": false,
+      "a40d5f67-8ec6-480b-a901-9709eecee9b9": false,
+      "6142fba4-a233-405a-a4fe-a5b2e27374a7": true,
+      "2cef53ac-c165-41b5-a31f-c3064106471f": true,
+      "4afc48ca-e6a7-4467-abd2-911915199315": false,
+      "defecce2-ff39-438e-ae41-90f3bcf9cb48": true,
+      "fd81b480-5723-43fe-9fb1-d3efa0df8e49": false,
+      "60023d63-4f11-47dc-8cef-82e3ca665a68": true,
+      "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d": true,
+      "ce9c7c39-c600-4971-9a7d-51a46e6c915c": false,
+      "217481b7-ad97-45d8-988f-abb3f9cf9b34": true,
+      "b4812983-2c33-48ae-8955-1a19f78f7f54": true,
+      "344ea859-e70d-48d2-8a97-7b68a104c6ae": true,
+      "c6d22f3d-282f-4e11-b9fd-39e2a687ef18": false,
+      "c2d3daad-6d3b-4852-8830-39f830f6cd01": true,
+      "96589b76-f0fa-4214-a110-c6f13ef15e83": false,
+      "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64": false,
+      "b449e614-d27f-4df4-9fb2-b4726a3423d8": false,
+      "3952f3c2-d810-4fd9-a461-8753406142a3": false,
+      "d71b360e-da59-480b-823e-a83e8c320b9c": false,
+      "7957ef21-86bb-4641-8a06-4ee2272f1c32": true,
+      "7a4ed201-4f7e-4d9c-a3f3-c5a2b8d424b3": false,
+      "afd724f4-8174-48d7-b9cd-34421c581550": true,
+      "32b03409-0710-4afd-89c1-9af72c339b4c": false,
+      "346a304a-4371-46ac-a8f7-021f25812b52": false,
+      "848b2923-33da-4ebc-86b5-e70374311fd2": true,
+      "221c8369-8ac4-447e-a13c-6088536f9abf": false,
+      "08814cb2-99dc-441d-b93b-8dcadf7f4859": true,
+      "7028667b-f2aa-4e22-a2e3-2bb97f3d9605": true,
+      "1da9453e-94f6-4e6d-9ae4-b7481217fdd1": false,
+      "0d49fda3-d417-4a47-9d8d-f6000ffa8097": false,
+      "4ca0a992-6743-4369-95b6-920712f8ef8b": false,
+      "f04613eb-8eff-4a4c-a191-d2574c87e67b": true,
+      "002e8df3-cebf-4197-8c16-cb834cc13aef": false,
+      "d90cadc8-e635-462b-8251-7f8a10734376": true,
+      "07873ceb-93a3-45fe-9f72-b0c57fd95802": false,
+      "6c4bc600-04c0-41be-841a-a1e149edd522": false,
+      "833601fa-de95-4fed-91d6-c9f45d778c84": false,
+      "aa2c7800-7f7d-401b-acfa-9af67910f9f7": true,
+      "2a69f556-c093-4bc3-aa4a-a5acaaec3801": false,
+      "c7c87a80-78e5-47d8-a068-2bfd244868f1": false,
+      "cffc32b7-fa14-457f-ac4f-9c060bf2aee1": true,
+      "856b5927-8865-4bb5-b1ac-38f965024508": true,
+      "66ce550d-37a1-43e5-ab56-0b6864d8cbaf": false,
+      "34e7e867-7730-4bb9-9dcf-bc5a93389b3a": false,
+      "08430f6d-ada1-46a7-8f15-ddc466ba8a5b": false,
+      "394bc68d-a4b3-415c-a7d9-6b367fe44e25": true
+    },
+    "memkraft": {
+      "acd74206-37dc-4756-94a8-b99a395d9a21": false,
+      "f546a74f-54de-40d0-9d88-8b0e30467d7b": false,
+      "b3588797-acdf-40d3-bcc5-951f81896f95": true,
+      "5370f186-0028-41f4-b436-c48575899fca": false,
+      "a40d5f67-8ec6-480b-a901-9709eecee9b9": false,
+      "6142fba4-a233-405a-a4fe-a5b2e27374a7": true,
+      "2cef53ac-c165-41b5-a31f-c3064106471f": true,
+      "4afc48ca-e6a7-4467-abd2-911915199315": false,
+      "defecce2-ff39-438e-ae41-90f3bcf9cb48": true,
+      "fd81b480-5723-43fe-9fb1-d3efa0df8e49": false,
+      "60023d63-4f11-47dc-8cef-82e3ca665a68": false,
+      "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d": true,
+      "ce9c7c39-c600-4971-9a7d-51a46e6c915c": false,
+      "217481b7-ad97-45d8-988f-abb3f9cf9b34": false,
+      "b4812983-2c33-48ae-8955-1a19f78f7f54": true,
+      "344ea859-e70d-48d2-8a97-7b68a104c6ae": true,
+      "c6d22f3d-282f-4e11-b9fd-39e2a687ef18": false,
+      "c2d3daad-6d3b-4852-8830-39f830f6cd01": false,
+      "96589b76-f0fa-4214-a110-c6f13ef15e83": false,
+      "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64": false,
+      "b449e614-d27f-4df4-9fb2-b4726a3423d8": false,
+      "3952f3c2-d810-4fd9-a461-8753406142a3": false,
+      "d71b360e-da59-480b-823e-a83e8c320b9c": true,
+      "7957ef21-86bb-4641-8a06-4ee2272f1c32": true,
+      "7a4ed201-4f7e-4d9c-a3f3-c5a2b8d424b3": true,
+      "afd724f4-8174-48d7-b9cd-34421c581550": true,
+      "32b03409-0710-4afd-89c1-9af72c339b4c": false,
+      "346a304a-4371-46ac-a8f7-021f25812b52": false,
+      "848b2923-33da-4ebc-86b5-e70374311fd2": true,
+      "221c8369-8ac4-447e-a13c-6088536f9abf": true,
+      "08814cb2-99dc-441d-b93b-8dcadf7f4859": true,
+      "7028667b-f2aa-4e22-a2e3-2bb97f3d9605": true,
+      "1da9453e-94f6-4e6d-9ae4-b7481217fdd1": true,
+      "0d49fda3-d417-4a47-9d8d-f6000ffa8097": true,
+      "4ca0a992-6743-4369-95b6-920712f8ef8b": false,
+      "f04613eb-8eff-4a4c-a191-d2574c87e67b": false,
+      "002e8df3-cebf-4197-8c16-cb834cc13aef": false,
+      "d90cadc8-e635-462b-8251-7f8a10734376": false,
+      "07873ceb-93a3-45fe-9f72-b0c57fd95802": false,
+      "6c4bc600-04c0-41be-841a-a1e149edd522": false,
+      "833601fa-de95-4fed-91d6-c9f45d778c84": false,
+      "aa2c7800-7f7d-401b-acfa-9af67910f9f7": true,
+      "2a69f556-c093-4bc3-aa4a-a5acaaec3801": true,
+      "c7c87a80-78e5-47d8-a068-2bfd244868f1": false,
+      "cffc32b7-fa14-457f-ac4f-9c060bf2aee1": false,
+      "856b5927-8865-4bb5-b1ac-38f965024508": false,
+      "66ce550d-37a1-43e5-ab56-0b6864d8cbaf": false,
+      "34e7e867-7730-4bb9-9dcf-bc5a93389b3a": false,
+      "08430f6d-ada1-46a7-8f15-ddc466ba8a5b": false,
+      "394bc68d-a4b3-415c-a7d9-6b367fe44e25": false
+    }
+  },
+  "elapsed_seconds": 578.2303121089935,
+  "memkraft_dir": "/tmp/personamem-v3-32k-1777607211"
+}

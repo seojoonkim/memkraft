@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## [2.7.2] — 2026-05-01
+
+### Fixed
+- **Critical — preference API was unreachable.** Since v2.1.0 the
+  `PreferenceMixin` (defining `pref_set`, `pref_get`, `pref_context`,
+  `pref_evolution`) was deliberately not registered on `MemKraft` to
+  avoid clobbering `core._slugify` (which has CJK support). The mixin
+  was never re-attached selectively, so all four methods silently
+  resolved as `AttributeError` at call time. The PersonaMem 32k harness
+  swallows those exceptions in `try/except` guards, so ingestion
+  appeared to work but **no preferences were ever stored** — producing a
+  -13.6pp accuracy regression vs hybrid baseline (memkraft 38% / hybrid
+  44% / baseline 42% on n=50). Now `pref_set / pref_get / pref_evolution
+  / pref_context` are explicitly attached to `_BaseMemKraft` while
+  preserving `core._slugify` (CJK-aware) and the existing
+  `pref_conflicts` / `pref_conflicts_all` aliases (no-arg, scans all
+  entities).
+
+### Tests
+- New: `tests/test_preference_v272.py` — 10 tests covering method
+  presence, set/get round-trip, chronological overwrite (closes
+  previous open-ended pref), `pref_context` scenario routing,
+  `pref_evolution` ordering, `pref_conflicts*` shape, Korean entity
+  names (CJK `_slugify` regression guard), category filter, reason
+  preservation, and empty-entity behaviour.
+- Cumulative: **1220 passed, 3 skipped** (zero regressions; baseline 1210).
+
+### Compatibility
+- Additive only. Public signatures unchanged. No new dependencies.
+  Pre-v2.7.2 callers who relied on `AttributeError` for these methods
+  (none should) will now get real return values.
+
+### Upgrade
+```bash
+pip install --upgrade memkraft
+```
+
 ## [2.7.1] — 2026-05-01
 
 ### Added

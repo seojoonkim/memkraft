@@ -80,6 +80,11 @@ def main():
     print(f"Dataset: {dataset}  N={n}")
     print(f"Model: {model}")
     print(f"Tag:   {tag}")
+    # Show which LLM backend the harness will use — selected via
+    # MK_LME_LLM_BACKEND (anthropic default | openai | openrouter | litellm-vhh).
+    backend_env = os.environ.get("MK_LME_LLM_BACKEND", "anthropic")
+    backend_model = os.environ.get("MK_LME_LLM_MODEL", "<backend default>")
+    print(f"LLM:   backend={backend_env} model={backend_model}")
     print("-" * 60)
 
     print("Loading samples...", flush=True)

@@ -1,0 +1,256 @@
+{
+  "completed_ids": [
+    "2cef53ac-c165-41b5-a31f-c3064106471f",
+    "4afc48ca-e6a7-4467-abd2-911915199315",
+    "5370f186-0028-41f4-b436-c48575899fca",
+    "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+    "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+    "acd74206-37dc-4756-94a8-b99a395d9a21",
+    "b3588797-acdf-40d3-bcc5-951f81896f95",
+    "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+    "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+    "fd81b480-5723-43fe-9fb1-d3efa0df8e49"
+  ],
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 10,
+      "correct": 0,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "acd74206-37dc-4756-94a8-b99a395d9a21",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b3588797-acdf-40d3-bcc5-951f81896f95",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "5370f186-0028-41f4-b436-c48575899fca",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2cef53ac-c165-41b5-a31f-c3064106471f",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "4afc48ca-e6a7-4467-abd2-911915199315",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "fd81b480-5723-43fe-9fb1-d3efa0df8e49",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    },
+    "hybrid": {
+      "variant": "hybrid",
+      "total": 10,
+      "correct": 0,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "acd74206-37dc-4756-94a8-b99a395d9a21",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b3588797-acdf-40d3-bcc5-951f81896f95",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "5370f186-0028-41f4-b436-c48575899fca",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2cef53ac-c165-41b5-a31f-c3064106471f",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "4afc48ca-e6a7-4467-abd2-911915199315",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "fd81b480-5723-43fe-9fb1-d3efa0df8e49",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    },
+    "memkraft": {
+      "variant": "memkraft",
+      "total": 10,
+      "correct": 0,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "aligned_recommendation": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "novel_suggestion": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_reasons": {
+          "total": 2,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "errors": [
+        {
+          "question_id": "acd74206-37dc-4756-94a8-b99a395d9a21",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "b3588797-acdf-40d3-bcc5-951f81896f95",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "5370f186-0028-41f4-b436-c48575899fca",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "2cef53ac-c165-41b5-a31f-c3064106471f",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "4afc48ca-e6a7-4467-abd2-911915199315",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        },
+        {
+          "question_id": "fd81b480-5723-43fe-9fb1-d3efa0df8e49",
+          "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 3. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_39cOpAfldtJeoiIBWdL2YbbOvne'}"
+        }
+      ],
+      "accuracy": 0.0
+    }
+  },
+  "run_stats": {
+    "ingestions": 0,
+    "total_statements": 0,
+    "total_preferences": 0,
+    "total_facts": 0
+  },
+  "split": "32k",
+  "model": "anthropic/claude-haiku-4.5",
+  "variants": [
+    "baseline",
+    "hybrid",
+    "memkraft"
+  ],
+  "elapsed_seconds": 233.8785011768341,
+  "finished": true
+}

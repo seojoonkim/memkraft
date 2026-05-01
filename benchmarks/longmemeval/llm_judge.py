@@ -12,9 +12,12 @@ import glob
 import sys
 from typing import Optional
 
-import anthropic
+# Pluggable LLM backend — returns an object exposing `.messages.create(...)`
+# in the Anthropic shape regardless of the underlying provider. Selected via
+# MK_LME_LLM_BACKEND env (anthropic default).
+from llm_backend import make_client_with_messages_api
 
-client = anthropic.Anthropic()
+client = make_client_with_messages_api()
 
 JUDGE_PROMPT = """You are evaluating whether a predicted answer correctly answers a question based on the gold (correct) answer.
 
@@ -51,11 +54,23 @@ def llm_judge(
 ) -> Optional[bool]:
     """
     Returns True if correct, False if incorrect, None on API failure.
+
+    Provider is selected via MK_LME_LLM_BACKEND (default: anthropic). The
+    `model` argument is forwarded; non-Anthropic backends substitute their
+    own default if `model` is empty (see llm_backend.LLMClient).
     """
+    # If env overrides the backend, respect its default model rather than the
+    # legacy claude-haiku id passed in by callers.
+    env_model = os.environ.get("MK_LME_LLM_MODEL")
+    if client.backend != "anthropic":
+        effective_model = env_model or client.model
+    else:
+        effective_model = model
+
     for attempt in range(max_retries):
         try:
             response = client.messages.create(
-                model=model,
+                model=effective_model,
                 max_tokens=10,
                 messages=[{
                     "role": "user",
@@ -68,7 +83,7 @@ def llm_judge(
             )
             verdict = response.content[0].text.strip().lower()
             return "correct" in verdict and "incorrect" not in verdict.split()[0:1]
-        except anthropic.RateLimitError as e:
+        except client.RateLimitError as e:  # noqa: PERF203
             wait = 2 ** attempt
             print(f"  [judge] 429 rate limit, wait {wait}s (attempt {attempt+1}/{max_retries})")
             time.sleep(wait)

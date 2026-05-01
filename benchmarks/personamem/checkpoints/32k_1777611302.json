@@ -1,0 +1,143 @@
+{
+  "completed_ids": [
+    "217481b7-ad97-45d8-988f-abb3f9cf9b34",
+    "2b3ce0bd-d0c2-48e3-8cd8-564905e9fe64",
+    "2cef53ac-c165-41b5-a31f-c3064106471f",
+    "344ea859-e70d-48d2-8a97-7b68a104c6ae",
+    "4afc48ca-e6a7-4467-abd2-911915199315",
+    "5370f186-0028-41f4-b436-c48575899fca",
+    "60023d63-4f11-47dc-8cef-82e3ca665a68",
+    "6142fba4-a233-405a-a4fe-a5b2e27374a7",
+    "96589b76-f0fa-4214-a110-c6f13ef15e83",
+    "a40d5f67-8ec6-480b-a901-9709eecee9b9",
+    "acd74206-37dc-4756-94a8-b99a395d9a21",
+    "b3588797-acdf-40d3-bcc5-951f81896f95",
+    "b4812983-2c33-48ae-8955-1a19f78f7f54",
+    "c2d3daad-6d3b-4852-8830-39f830f6cd01",
+    "c6d22f3d-282f-4e11-b9fd-39e2a687ef18",
+    "c8a763a5-a7ae-4047-b1cf-f17204fd1f7d",
+    "ce9c7c39-c600-4971-9a7d-51a46e6c915c",
+    "defecce2-ff39-438e-ae41-90f3bcf9cb48",
+    "f546a74f-54de-40d0-9d88-8b0e30467d7b",
+    "fd81b480-5723-43fe-9fb1-d3efa0df8e49"
+  ],
+  "results": {
+    "baseline": {
+      "variant": "baseline",
+      "total": 20,
+      "correct": 10,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 4,
+          "correct": 2,
+          "accuracy": 50.0
+        },
+        "aligned_recommendation": {
+          "total": 4,
+          "correct": 3,
+          "accuracy": 75.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 2,
+          "accuracy": 33.33333333333333
+        },
+        "preference_reasons": {
+          "total": 3,
+          "correct": 1,
+          "accuracy": 33.33333333333333
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 2,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 50.0
+    },
+    "hybrid": {
+      "variant": "hybrid",
+      "total": 20,
+      "correct": 12,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 4,
+          "correct": 2,
+          "accuracy": 50.0
+        },
+        "aligned_recommendation": {
+          "total": 4,
+          "correct": 3,
+          "accuracy": 75.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 2,
+          "accuracy": 33.33333333333333
+        },
+        "preference_reasons": {
+          "total": 3,
+          "correct": 3,
+          "accuracy": 100.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 2,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 60.0
+    },
+    "memkraft": {
+      "variant": "memkraft",
+      "total": 20,
+      "correct": 14,
+      "by_type": {
+        "static_fact_recall": {
+          "total": 4,
+          "correct": 3,
+          "accuracy": 75.0
+        },
+        "aligned_recommendation": {
+          "total": 4,
+          "correct": 4,
+          "accuracy": 100.0
+        },
+        "novel_suggestion": {
+          "total": 6,
+          "correct": 2,
+          "accuracy": 33.33333333333333
+        },
+        "preference_reasons": {
+          "total": 3,
+          "correct": 3,
+          "accuracy": 100.0
+        },
+        "preference_evolution": {
+          "total": 3,
+          "correct": 2,
+          "accuracy": 66.66666666666666
+        }
+      },
+      "errors": [],
+      "accuracy": 70.0
+    }
+  },
+  "run_stats": {
+    "ingestions": 7,
+    "total_statements": 3257,
+    "total_preferences": 795,
+    "total_facts": 2494
+  },
+  "split": "32k",
+  "model": "gpt-4o-mini",
+  "variants": [
+    "baseline",
+    "hybrid",
+    "memkraft"
+  ],
+  "elapsed_seconds": 217.91166496276855,
+  "finished": true
+}
