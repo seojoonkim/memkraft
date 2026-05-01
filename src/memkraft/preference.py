@@ -61,7 +61,10 @@ class PreferenceMixin:
 
         slug = self._slugify(entity)
         pref_dir = self.base_dir / "preferences"
-        pref_dir.mkdir(exist_ok=True)
+        # B3 (v2.7.3): use parents=True so a fresh base_dir works first-call.
+        # Previously a never-initialized base_dir raised FileNotFoundError
+        # because the parent itself didn't exist yet.
+        pref_dir.mkdir(exist_ok=True, parents=True)
         pref_file = pref_dir / f"{slug}.md"
 
         # Close any existing open-ended preference for this key
@@ -131,9 +134,16 @@ class PreferenceMixin:
         key_prefs.sort(key=lambda p: p["valid_from"])
         return key_prefs
 
-    def pref_context(self, entity: str, scenario: str,
+    def pref_context(self, entity: str, scenario: str = "",
                      max_prefs: int = 20) -> Dict[str, Any]:
-        """Build preference context for a scenario (cross-domain transfer)."""
+        """Build preference context for a scenario (cross-domain transfer).
+
+        B4 (v2.7.3): ``scenario`` is now optional. When omitted (or empty),
+        no category filtering is applied — the call returns the top
+        ``max_prefs`` preferences ranked purely by ``strength``, which is
+        what callers that just want "all current preferences for this
+        entity, ranked" already expected.
+        """
         category_map = {
             "food": ["food", "cuisine", "restaurant", "cooking", "diet", "meal"],
             "travel": ["travel", "trip", "vacation", "hotel", "flight", "destination"],
@@ -145,12 +155,16 @@ class PreferenceMixin:
             "education": ["education", "learning", "course", "study", "school"],
         }
 
-        scenario_lower = scenario.lower()
+        scenario_lower = (scenario or "").lower()
         relevant_categories = set()
-        for cat, keywords in category_map.items():
-            if any(kw in scenario_lower for kw in keywords):
-                relevant_categories.add(cat)
+        if scenario_lower:
+            for cat, keywords in category_map.items():
+                if any(kw in scenario_lower for kw in keywords):
+                    relevant_categories.add(cat)
 
+        # No scenario, or scenario didn't hit any known keyword → consider
+        # every category equally (cat_score = 1.0 for all prefs, ordering
+        # falls back to pure strength).
         if not relevant_categories:
             relevant_categories = set(category_map.keys())
 

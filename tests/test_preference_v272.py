@@ -179,3 +179,95 @@ def test_pref_conflicts_accepts_entity_arg(mk):
     # Per-entity form returns the v2.1 shape ("values" + "current"),
     # not the v2.5.0 cross-entity shape ("entity" + "conflict").
     assert "values" in bob_conf[0]
+
+
+# ---------------------------------------------------------------------------
+# v2.7.3 — ergonomic bug fixes
+# ---------------------------------------------------------------------------
+
+def test_pref_context_no_scenario(mk):
+    """v2.7.3: ``pref_context(entity)`` without a scenario must not raise.
+
+    Previously: ``TypeError: missing 1 required positional argument: 'scenario'``.
+    Now: scenario defaults to ``""`` and the call returns the top
+    ``max_prefs`` current preferences ranked by strength.
+    """
+    mk.track("Simon")
+    mk.pref_set("Simon", "food", "kimchi", category="food", strength=0.9)
+    mk.pref_set("Simon", "music", "city pop", category="music", strength=0.6)
+
+    ctx = mk.pref_context("Simon")
+    assert isinstance(ctx, dict)
+    assert ctx["entity"] == "Simon"
+    assert ctx["scenario"] == ""
+    assert ctx["total_count"] == 2
+    # Both preferences must come back; with no scenario hint, ordering
+    # is determined purely by strength.
+    values = [p["value"] for p in ctx["preferences"]]
+    assert set(values) == {"kimchi", "city pop"}
+    assert values[0] == "kimchi"  # 0.9 > 0.6
+
+
+def test_pref_context_empty_scenario(mk):
+    """v2.7.3: explicit ``scenario=""`` matches the no-arg form."""
+    mk.track("Simon")
+    mk.pref_set("Simon", "food", "kimchi", category="food", strength=0.9)
+    mk.pref_set("Simon", "music", "city pop", category="music", strength=0.6)
+
+    ctx_default = mk.pref_context("Simon")
+    ctx_empty = mk.pref_context("Simon", "")
+
+    # Same payload structure & ordering.
+    assert ctx_default["total_count"] == ctx_empty["total_count"]
+    assert [p["value"] for p in ctx_default["preferences"]] == \
+           [p["value"] for p in ctx_empty["preferences"]]
+
+
+def test_pref_context_with_scenario_still_filters(mk):
+    """v2.7.3: existing scenario routing is unchanged — a food scenario
+    still pushes food-category prefs above entertainment."""
+    mk.track("Simon")
+    mk.pref_set("Simon", "food", "kimchi", category="food", strength=1.0)
+    mk.pref_set("Simon", "movie", "kurosawa", category="entertainment",
+                strength=1.0)
+
+    ctx = mk.pref_context("Simon", "what should I eat tonight?")
+    assert ctx["preferences"][0]["category"] == "food"
+
+
+def test_pref_set_creates_nested_dirs(tmp_path):
+    """v2.7.3: a fresh, deeply-nested ``base_dir`` must work first-call.
+
+    Previously: ``FileNotFoundError`` because
+    ``(base_dir / "preferences").mkdir(exist_ok=True)`` lacked
+    ``parents=True`` and the parent itself didn't exist yet.
+    """
+    deep = tmp_path / "never" / "existed" / "before" / "mk-store"
+    assert not deep.exists()
+    mk = MemKraft(base_dir=deep)
+
+    # Should not raise FileNotFoundError.
+    result = mk.pref_set("Simon", "food", "kimchi", category="food")
+    assert result["value"] == "kimchi"
+
+    # Round-trips correctly.
+    prefs = mk.pref_get("Simon", key="food")
+    assert len(prefs) == 1
+    assert prefs[0]["value"] == "kimchi"
+
+    # And the nested dirs really were created.
+    assert (deep / "preferences").is_dir()
+
+
+def test_pref_set_existing_dir_idempotent(tmp_path):
+    """v2.7.3: second ``pref_set`` into an existing ``preferences/`` dir
+    must remain a no-op for the directory creation step."""
+    base = tmp_path / "store"
+    mk = MemKraft(base_dir=base)
+    mk.pref_set("Simon", "food", "kimchi", category="food")
+    # Directory now exists; a second call must not raise.
+    mk.pref_set("Simon", "music", "city pop", category="music")
+
+    prefs = mk.pref_get("Simon")
+    keys = {p["key"] for p in prefs}
+    assert keys == {"food", "music"}

@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## [Unreleased] — v2.7.3
+
+### Fixed
+- **`pref_context(entity)` no longer raises `TypeError`.** The
+  `scenario` argument is now optional (`scenario: str = ""`); when
+  omitted or empty, no scenario keyword filtering is applied and the
+  call returns the top `max_prefs` current preferences ranked by
+  strength. Previously, callers that just wanted "all current
+  preferences for this entity" were forced to pass a dummy scenario
+  string to avoid `missing 1 required positional argument: 'scenario'`.
+- **`pref_set` auto-creates parent directories on a fresh `base_dir`.**
+  The `preferences/` directory is now created with `parents=True`, so
+  `MemKraft(base_dir=<never-initialized-path>).pref_set(...)` no longer
+  raises `FileNotFoundError`. Mirrors the `parents=True` policy core.py
+  already uses for `.memkraft/<inner>/`.
+
+### Tests
+- New cases in `tests/test_preference_v272.py`:
+  - `test_pref_context_no_scenario` — `pref_context(entity)` returns a
+    structured payload without raising.
+  - `test_pref_context_empty_scenario` — `pref_context(entity, "")`
+    matches the no-arg behaviour.
+  - `test_pref_context_with_scenario_still_filters` — existing scenario
+    keyword routing is unchanged (food scenario still ranks food).
+  - `test_pref_set_creates_nested_dirs` — fresh deep `base_dir` works
+    end-to-end.
+  - `test_pref_set_existing_dir_idempotent` — second call into an
+    already-created `preferences/` dir succeeds without error.
+
+### Compatibility
+- Additive only. Public signatures relaxed (`scenario` gains a default).
+  Pre-v2.7.3 callers passing `scenario=` positionally or by keyword are
+  unaffected.
+
 ## [2.7.2] — 2026-05-01
 
 ### Fixed
