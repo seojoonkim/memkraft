@@ -1,0 +1,58 @@
+src/memkraft/rerank.py:26:1: 'datetime.datetime' imported but unused
+src/memkraft/preference.py:17:1: 'typing.Tuple' imported but unused
+src/memkraft/multi_pass.py:24:1: 'typing.Any' imported but unused
+src/memkraft/convergence.py:33:1: 'math' imported but unused
+src/memkraft/embedding.py:61:1: 'typing.Iterable' imported but unused
+src/memkraft/hierarchical.py:27:1: 'typing.Any' imported but unused
+src/memkraft/hierarchical.py:27:1: 'typing.List' imported but unused
+src/memkraft/incident.py:19:1: 'datetime.datetime' imported but unused
+src/memkraft/incident.py:23:1: '.storage.incident_storage.incidents_dir' imported but unused
+src/memkraft/incident.py:23:1: '.storage.incident_storage.today_iso' imported but unused
+src/memkraft/incident.py:139:9: local variable 'hyp_lines' is assigned to but never used
+src/memkraft/consolidation.py:32:1: '.bitemporal._LINE_RE' imported but unused
+src/memkraft/consolidation.py:211:17: local variable 'keep_idx' is assigned to but never used
+src/memkraft/graph.py:21:1: 'typing.Any' imported but unused
+src/memkraft/graph.py:794:13: undefined name 'Dict'
+src/memkraft/graph.py:803:17: undefined name 'Dict'
+src/memkraft/temporal_chain.py:26:1: 'typing.Iterable' imported but unused
+src/memkraft/__init__.py:117:5: 'pathlib.Path as _Path' imported but unused
+src/memkraft/__init__.py:118:5: 're as _re' imported but unused
+src/memkraft/personamem.py:19:1: 'datetime.datetime' imported but unused
+src/memkraft/personamem.py:275:9: local variable 's_lower' is assigned to but never used
+src/memkraft/personamem.py:405:9: local variable 'content' is assigned to but never used
+src/memkraft/core.py:776:29: f-string is missing placeholders
+src/memkraft/core.py:859:23: f-string is missing placeholders
+src/memkraft/core.py:1892:15: f-string is missing placeholders
+src/memkraft/core.py:1931:9: local variable 'all_kw' is assigned to but never used
+src/memkraft/core.py:2162:9: local variable 'base_threshold' is assigned to but never used
+src/memkraft/core.py:2303:61: f-string is missing placeholders
+src/memkraft/rca.py:17:1: 'pathlib.Path' imported but unused
+src/memkraft/rca.py:18:1: 'typing.Optional' imported but unused
+src/memkraft/decision_store.py:29:1: 're' imported but unused
+src/memkraft/decision_store.py:30:1: 'datetime.datetime' imported but unused
+src/memkraft/cli.py:128:5: local variable 'dd_parser' is assigned to but never used
+src/memkraft/cli.py:354:5: local variable 'mcp_doctor' is assigned to but never used
+src/memkraft/mcp.py:22:1: '.__version__' imported but unused
+src/memkraft/mcp.py:34:9: 'mcp' imported but unused
+src/memkraft/mcp.py:35:9: 'mcp.server.Server' imported but unused
+src/memkraft/mcp.py:36:9: 'mcp.server.stdio.stdio_server' imported but unused
+src/memkraft/mcp.py:37:9: 'mcp.types' imported but unused
+src/memkraft/routing.py:31:1: 'typing.Any' imported but unused
+src/memkraft/prompt_evidence.py:34:1: 'datetime.timezone' imported but unused
+src/memkraft/rrf.py:36:1: 'typing.Iterable' imported but unused
+src/memkraft/search.py:29:1: 'datetime.timedelta' imported but unused
+src/memkraft/watch.py:12:1: 'sys' imported but unused
+src/memkraft/watch.py:15:1: 'typing.Optional' imported but unused
+src/memkraft/watch.py:29:9: 'watchdog.events.FileSystemEventHandler' imported but unused
+src/memkraft/watch.py:30:9: 'watchdog.observers.Observer' imported but unused
+src/memkraft/watch.py:96:15: f-string is missing placeholders
+src/memkraft/runbook.py:16:1: 'datetime.datetime' imported but unused
+src/memkraft/preference_graph_sync.py:27:1: 'typing.Optional' imported but unused
+src/memkraft/prompt_tune.py:35:1: 'datetime.datetime' imported but unused
+src/memkraft/doctor.py:89:9: 'mcp' imported but unused
+src/memkraft/doctor.py:94:9: 'watchdog' imported but unused
+src/memkraft/doctor.py:238:5: local variable 'lines' is assigned to but never used
+src/memkraft/tiers.py:24:1: 'datetime.datetime' imported but unused
+src/memkraft/tiers.py:28:1: '.decay._parse_date' imported but unused
+src/memkraft/templates_pkg/__init__.py:20:1: 'os' imported but unused
+src/memkraft/templates_pkg/__init__.py:23:1: 'typing.Optional' imported but unused

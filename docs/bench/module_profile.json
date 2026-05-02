@@ -1,0 +1,1849 @@
+[
+  {
+    "file": "src/memkraft/__init__.py",
+    "loc": 237,
+    "public_api": 0,
+    "top_public": [],
+    "import_count": 34,
+    "sample_imports": [
+      "core",
+      "bitemporal",
+      "decay",
+      "links",
+      "tiers",
+      "incident",
+      "runbook",
+      "rca"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/agents_hint.py",
+    "loc": 121,
+    "public_api": 4,
+    "top_public": [
+      [
+        "func",
+        "resolve_target",
+        59
+      ],
+      [
+        "func",
+        "render",
+        74
+      ],
+      [
+        "func",
+        "render_json",
+        94
+      ],
+      [
+        "func",
+        "cmd",
+        106
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "os",
+      "pathlib",
+      "typing",
+      ""
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/alias.py",
+    "loc": 171,
+    "public_api": 8,
+    "top_public": [
+      [
+        "class",
+        "AliasMixin",
+        30
+      ],
+      [
+        "func",
+        "alias_add",
+        53
+      ],
+      [
+        "func",
+        "alias_resolve",
+        86
+      ],
+      [
+        "func",
+        "alias_list",
+        108
+      ],
+      [
+        "func",
+        "alias_all",
+        124
+      ],
+      [
+        "func",
+        "alias_remove",
+        138
+      ],
+      [
+        "func",
+        "alias_set",
+        149
+      ],
+      [
+        "func",
+        "alias_get",
+        160
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "os",
+      "sqlite3",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/bitemporal.py",
+    "loc": 412,
+    "public_api": 9,
+    "top_public": [
+      [
+        "func",
+        "parse_line",
+        98
+      ],
+      [
+        "func",
+        "format_line",
+        116
+      ],
+      [
+        "class",
+        "BitemporalMixin",
+        135
+      ],
+      [
+        "func",
+        "fact_add",
+        228
+      ],
+      [
+        "func",
+        "fact_at",
+        321
+      ],
+      [
+        "func",
+        "fact_history",
+        346
+      ],
+      [
+        "func",
+        "fact_invalidate",
+        361
+      ],
+      [
+        "func",
+        "fact_list",
+        405
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/cache.py",
+    "loc": 316,
+    "public_api": 11,
+    "top_public": [
+      [
+        "class",
+        "CacheInvalidationMixin",
+        202
+      ],
+      [
+        "func",
+        "install_cache_invalidation_wrappers",
+        279
+      ],
+      [
+        "func",
+        "make_key",
+        81
+      ],
+      [
+        "func",
+        "get",
+        100
+      ],
+      [
+        "func",
+        "set",
+        128
+      ],
+      [
+        "func",
+        "invalidate_all",
+        143
+      ],
+      [
+        "func",
+        "stats",
+        148
+      ],
+      [
+        "func",
+        "reset_stats",
+        163
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "hashlib",
+      "json",
+      "threading",
+      "time",
+      "collections",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/chunking.py",
+    "loc": 226,
+    "public_api": 4,
+    "top_public": [
+      [
+        "class",
+        "ChunkingMixin",
+        74
+      ],
+      [
+        "func",
+        "dynamic_chunk_size",
+        81
+      ],
+      [
+        "func",
+        "track_document",
+        96
+      ],
+      [
+        "func",
+        "search_precise",
+        161
+      ]
+    ],
+    "import_count": 2,
+    "sample_imports": [
+      "__future__",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/cli.py",
+    "loc": 718,
+    "public_api": 1,
+    "top_public": [
+      [
+        "func",
+        "main",
+        10
+      ]
+    ],
+    "import_count": 22,
+    "sample_imports": [
+      "argparse",
+      "sys",
+      "core",
+      "",
+      "",
+      "",
+      "json",
+      "json"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/confidence.py",
+    "loc": 465,
+    "public_api": 5,
+    "top_public": [
+      [
+        "class",
+        "ConfidenceMixin",
+        229
+      ],
+      [
+        "func",
+        "install_confidence_wrappers",
+        452
+      ],
+      [
+        "func",
+        "format_results_for_llm",
+        266
+      ],
+      [
+        "func",
+        "format_context_for_llm",
+        318
+      ],
+      [
+        "func",
+        "search_with_confidence",
+        388
+      ]
+    ],
+    "import_count": 4,
+    "sample_imports": [
+      "__future__",
+      "functools",
+      "re",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/consolidation.py",
+    "loc": 745,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "ConsolidationMixin",
+        64
+      ],
+      [
+        "func",
+        "consolidate",
+        76
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "datetime",
+      "logging",
+      "re",
+      "pathlib",
+      "typing",
+      "bitemporal"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/context_compress.py",
+    "loc": 231,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "ContextCompressMixin",
+        127
+      ],
+      [
+        "func",
+        "compress_context",
+        205
+      ]
+    ],
+    "import_count": 3,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/convergence.py",
+    "loc": 381,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "ConvergenceMixin",
+        164
+      ],
+      [
+        "func",
+        "convergence_check",
+        167
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "math",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing",
+      "storage.incident_storage"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/core.py",
+    "loc": 4724,
+    "public_api": 68,
+    "top_public": [
+      [
+        "class",
+        "MemKraft",
+        25
+      ],
+      [
+        "func",
+        "init",
+        66
+      ],
+      [
+        "func",
+        "track",
+        141
+      ],
+      [
+        "func",
+        "update",
+        199
+      ],
+      [
+        "func",
+        "list_entities",
+        256
+      ],
+      [
+        "func",
+        "brief",
+        291
+      ],
+      [
+        "func",
+        "detect",
+        415
+      ],
+      [
+        "func",
+        "dream",
+        429
+      ]
+    ],
+    "import_count": 16,
+    "sample_imports": [
+      "__future__",
+      "hashlib",
+      "json",
+      "math",
+      "os",
+      "re",
+      "shutil",
+      "sys"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/decay.py",
+    "loc": 537,
+    "public_api": 8,
+    "top_public": [
+      [
+        "class",
+        "DecayMixin",
+        136
+      ],
+      [
+        "func",
+        "decay_apply",
+        186
+      ],
+      [
+        "func",
+        "decay_list",
+        214
+      ],
+      [
+        "func",
+        "decay_restore",
+        244
+      ],
+      [
+        "func",
+        "decay_run",
+        271
+      ],
+      [
+        "func",
+        "decay_tombstone",
+        324
+      ],
+      [
+        "func",
+        "decay_is_tombstoned",
+        348
+      ],
+      [
+        "func",
+        "auto_tier",
+        361
+      ]
+    ],
+    "import_count": 8,
+    "sample_imports": [
+      "__future__",
+      "logging",
+      "re",
+      "shutil",
+      "datetime",
+      "pathlib",
+      "typing",
+      "math"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/decision_store.py",
+    "loc": 458,
+    "public_api": 11,
+    "top_public": [
+      [
+        "func",
+        "make_decision_id",
+        48
+      ],
+      [
+        "func",
+        "decisions_dir",
+        54
+      ],
+      [
+        "func",
+        "decision_path",
+        60
+      ],
+      [
+        "func",
+        "list_decisions",
+        64
+      ],
+      [
+        "class",
+        "DecisionStoreMixin",
+        93
+      ],
+      [
+        "func",
+        "decision_record",
+        113
+      ],
+      [
+        "func",
+        "decision_update",
+        213
+      ],
+      [
+        "func",
+        "decision_link",
+        278
+      ]
+    ],
+    "import_count": 11,
+    "sample_imports": [
+      "__future__",
+      "concurrent.futures",
+      "contextlib",
+      "io",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/doctor.py",
+    "loc": 340,
+    "public_api": 5,
+    "top_public": [
+      [
+        "func",
+        "plan_fixes",
+        133
+      ],
+      [
+        "func",
+        "apply_fixes",
+        166
+      ],
+      [
+        "func",
+        "run_fix",
+        186
+      ],
+      [
+        "func",
+        "run",
+        234
+      ],
+      [
+        "func",
+        "cmd",
+        321
+      ]
+    ],
+    "import_count": 10,
+    "sample_imports": [
+      "__future__",
+      "os",
+      "sys",
+      "pathlib",
+      "typing",
+      "",
+      "core",
+      "mcp"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/embedding.py",
+    "loc": 574,
+    "public_api": 9,
+    "top_public": [
+      [
+        "class",
+        "MemKraftEmbeddingError",
+        78
+      ],
+      [
+        "class",
+        "EmbeddingMixin",
+        166
+      ],
+      [
+        "func",
+        "embed_text",
+        209
+      ],
+      [
+        "func",
+        "embed_batch",
+        231
+      ],
+      [
+        "func",
+        "build_embeddings",
+        317
+      ],
+      [
+        "func",
+        "embedding_stats",
+        394
+      ],
+      [
+        "func",
+        "embedding_clear",
+        406
+      ],
+      [
+        "func",
+        "search_semantic",
+        421
+      ]
+    ],
+    "import_count": 9,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "os",
+      "threading",
+      "time",
+      "collections",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/graph.py",
+    "loc": 827,
+    "public_api": 10,
+    "top_public": [
+      [
+        "class",
+        "GraphMixin",
+        288
+      ],
+      [
+        "func",
+        "graph_node",
+        335
+      ],
+      [
+        "func",
+        "graph_edge",
+        360
+      ],
+      [
+        "func",
+        "graph_neighbors",
+        396
+      ],
+      [
+        "func",
+        "graph_search",
+        435
+      ],
+      [
+        "func",
+        "graph_causal_chain",
+        478
+      ],
+      [
+        "func",
+        "graph_extract",
+        577
+      ],
+      [
+        "func",
+        "graph_stats",
+        683
+      ]
+    ],
+    "import_count": 8,
+    "sample_imports": [
+      "__future__",
+      "os",
+      "re",
+      "sqlite3",
+      "json",
+      "datetime",
+      "typing",
+      "math"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/hierarchical.py",
+    "loc": 277,
+    "public_api": 3,
+    "top_public": [
+      [
+        "class",
+        "HierarchicalMixin",
+        101
+      ],
+      [
+        "func",
+        "track_hierarchical",
+        107
+      ],
+      [
+        "func",
+        "search_hierarchical",
+        202
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "hashlib",
+      "os",
+      "re",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/incident.py",
+    "loc": 380,
+    "public_api": 5,
+    "top_public": [
+      [
+        "class",
+        "IncidentMixin",
+        49
+      ],
+      [
+        "func",
+        "incident_record",
+        65
+      ],
+      [
+        "func",
+        "incident_update",
+        154
+      ],
+      [
+        "func",
+        "incident_search",
+        280
+      ],
+      [
+        "func",
+        "incident_get",
+        370
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "datetime",
+      "pathlib",
+      "typing",
+      "storage.incident_storage"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/lifecycle.py",
+    "loc": 858,
+    "public_api": 9,
+    "top_public": [
+      [
+        "class",
+        "LifecycleMixin",
+        21
+      ],
+      [
+        "func",
+        "flush",
+        33
+      ],
+      [
+        "func",
+        "compact",
+        170
+      ],
+      [
+        "func",
+        "digest",
+        250
+      ],
+      [
+        "func",
+        "health",
+        339
+      ],
+      [
+        "func",
+        "cleanup_orphans",
+        666
+      ],
+      [
+        "func",
+        "watch",
+        736
+      ],
+      [
+        "func",
+        "unwatch",
+        804
+      ]
+    ],
+    "import_count": 18,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "re",
+      "time",
+      "datetime",
+      "pathlib",
+      "typing",
+      "time"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/links.py",
+    "loc": 265,
+    "public_api": 6,
+    "top_public": [
+      [
+        "class",
+        "LinksMixin",
+        48
+      ],
+      [
+        "func",
+        "link_scan",
+        107
+      ],
+      [
+        "func",
+        "link_backlinks",
+        162
+      ],
+      [
+        "func",
+        "link_forward",
+        171
+      ],
+      [
+        "func",
+        "link_graph",
+        179
+      ],
+      [
+        "func",
+        "link_orphans",
+        233
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "re",
+      "collections",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/mcp.py",
+    "loc": 168,
+    "public_api": 2,
+    "top_public": [
+      [
+        "func",
+        "dispatch",
+        97
+      ],
+      [
+        "func",
+        "main",
+        127
+      ]
+    ],
+    "import_count": 13,
+    "sample_imports": [
+      "__future__",
+      "sys",
+      "typing",
+      "",
+      "asyncio",
+      "mcp.server",
+      "mcp.server.stdio",
+      "mcp.types"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/mcp_admin.py",
+    "loc": 200,
+    "public_api": 3,
+    "top_public": [
+      [
+        "func",
+        "doctor",
+        58
+      ],
+      [
+        "func",
+        "test_roundtrip",
+        119
+      ],
+      [
+        "func",
+        "cmd",
+        190
+      ]
+    ],
+    "import_count": 10,
+    "sample_imports": [
+      "__future__",
+      "importlib",
+      "os",
+      "sys",
+      "tempfile",
+      "pathlib",
+      "typing",
+      ""
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/multi_pass.py",
+    "loc": 639,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "MultiPassMixin",
+        89
+      ],
+      [
+        "func",
+        "search_multi",
+        506
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "typing",
+      "rrf"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/multimodal.py",
+    "loc": 424,
+    "public_api": 5,
+    "top_public": [
+      [
+        "class",
+        "MultimodalMixin",
+        84
+      ],
+      [
+        "func",
+        "attach",
+        133
+      ],
+      [
+        "func",
+        "attachments",
+        245
+      ],
+      [
+        "func",
+        "detach",
+        254
+      ],
+      [
+        "func",
+        "search_multimodal",
+        328
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/personamem.py",
+    "loc": 934,
+    "public_api": 10,
+    "top_public": [
+      [
+        "func",
+        "infer_category",
+        95
+      ],
+      [
+        "func",
+        "strip_role_prefix",
+        108
+      ],
+      [
+        "func",
+        "parse_persona_text",
+        120
+      ],
+      [
+        "func",
+        "extract_persona_from_context",
+        171
+      ],
+      [
+        "func",
+        "extract_statements_from_message",
+        240
+      ],
+      [
+        "func",
+        "detect_sessions",
+        388
+      ],
+      [
+        "class",
+        "PersonaMemAdapter",
+        435
+      ],
+      [
+        "func",
+        "build_context",
+        630
+      ]
+    ],
+    "import_count": 4,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/preference.py",
+    "loc": 348,
+    "public_api": 7,
+    "top_public": [
+      [
+        "class",
+        "PreferenceMixin",
+        35
+      ],
+      [
+        "func",
+        "pref_set",
+        38
+      ],
+      [
+        "func",
+        "pref_get",
+        96
+      ],
+      [
+        "func",
+        "pref_evolution",
+        124
+      ],
+      [
+        "func",
+        "pref_context",
+        137
+      ],
+      [
+        "func",
+        "pref_conflicts",
+        190
+      ],
+      [
+        "func",
+        "pref_conflicts_all",
+        224
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/preference_graph_sync.py",
+    "loc": 312,
+    "public_api": 4,
+    "top_public": [
+      [
+        "class",
+        "PreferenceGraphSyncMixin",
+        91
+      ],
+      [
+        "func",
+        "sync_preference_to_graph",
+        101
+      ],
+      [
+        "func",
+        "sync_all_preferences_to_graph",
+        204
+      ],
+      [
+        "func",
+        "reason_preference_via_graph",
+        252
+      ]
+    ],
+    "import_count": 4,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "typing",
+      "pathlib"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/prompt_evidence.py",
+    "loc": 273,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "PromptEvidenceMixin",
+        123
+      ],
+      [
+        "func",
+        "prompt_evidence",
+        126
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing",
+      "storage.incident_storage"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/prompt_tune.py",
+    "loc": 565,
+    "public_api": 3,
+    "top_public": [
+      [
+        "class",
+        "PromptTuneMixin",
+        161
+      ],
+      [
+        "func",
+        "prompt_register",
+        166
+      ],
+      [
+        "func",
+        "prompt_eval",
+        317
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "datetime",
+      "pathlib",
+      "typing",
+      "storage.incident_storage",
+      "warnings",
+      "warnings"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/prompts/__init__.py",
+    "loc": 2,
+    "public_api": 0,
+    "top_public": [],
+    "import_count": 0,
+    "sample_imports": [],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/rca.py",
+    "loc": 198,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "RCAMixin",
+        29
+      ],
+      [
+        "func",
+        "incident_rca",
+        32
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "difflib",
+      "pathlib",
+      "typing",
+      "storage.incident_storage"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/reasoning_bank.py",
+    "loc": 584,
+    "public_api": 7,
+    "top_public": [
+      [
+        "class",
+        "ReasoningBankMixin",
+        169
+      ],
+      [
+        "func",
+        "trajectory_start",
+        195
+      ],
+      [
+        "func",
+        "trajectory_log",
+        232
+      ],
+      [
+        "func",
+        "trajectory_complete",
+        266
+      ],
+      [
+        "func",
+        "reasoning_recall",
+        369
+      ],
+      [
+        "func",
+        "reasoning_patterns",
+        441
+      ],
+      [
+        "func",
+        "trajectory_get",
+        478
+      ]
+    ],
+    "import_count": 9,
+    "sample_imports": [
+      "__future__",
+      "hashlib",
+      "json",
+      "os",
+      "re",
+      "uuid",
+      "datetime",
+      "pathlib"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/rerank.py",
+    "loc": 264,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "RerankMixin",
+        178
+      ],
+      [
+        "func",
+        "rerank_for_question_type",
+        200
+      ]
+    ],
+    "import_count": 4,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/routing.py",
+    "loc": 594,
+    "public_api": 2,
+    "top_public": [
+      [
+        "class",
+        "RoutingMixin",
+        117
+      ],
+      [
+        "func",
+        "search_smart_v2",
+        490
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "contextlib",
+      "io",
+      "re",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/rrf.py",
+    "loc": 308,
+    "public_api": 3,
+    "top_public": [
+      [
+        "func",
+        "rrf_fuse",
+        95
+      ],
+      [
+        "class",
+        "RRFMixin",
+        217
+      ],
+      [
+        "func",
+        "search_rrf",
+        245
+      ]
+    ],
+    "import_count": 2,
+    "sample_imports": [
+      "__future__",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/runbook.py",
+    "loc": 257,
+    "public_api": 4,
+    "top_public": [
+      [
+        "class",
+        "RunbookMixin",
+        37
+      ],
+      [
+        "func",
+        "runbook_add",
+        45
+      ],
+      [
+        "func",
+        "runbook_match",
+        156
+      ],
+      [
+        "func",
+        "runbook_get",
+        245
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "difflib",
+      "pathlib",
+      "typing",
+      "storage.incident_storage"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/search.py",
+    "loc": 704,
+    "public_api": 8,
+    "top_public": [
+      [
+        "class",
+        "SearchMixin",
+        66
+      ],
+      [
+        "func",
+        "search_v2",
+        188
+      ],
+      [
+        "func",
+        "search_expand",
+        259
+      ],
+      [
+        "func",
+        "search_ranked",
+        309
+      ],
+      [
+        "func",
+        "search_smart",
+        349
+      ],
+      [
+        "func",
+        "search_multi_query",
+        523
+      ],
+      [
+        "func",
+        "context_budget_check",
+        574
+      ],
+      [
+        "func",
+        "search_temporal",
+        634
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "contextlib",
+      "io",
+      "re",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/selfupdate.py",
+    "loc": 112,
+    "public_api": 6,
+    "top_public": [
+      [
+        "func",
+        "latest_version",
+        21
+      ],
+      [
+        "func",
+        "installed_version",
+        33
+      ],
+      [
+        "func",
+        "needs_update",
+        58
+      ],
+      [
+        "func",
+        "selfupdate",
+        67
+      ],
+      [
+        "func",
+        "cmd",
+        97
+      ],
+      [
+        "func",
+        "main",
+        102
+      ]
+    ],
+    "import_count": 10,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "subprocess",
+      "sys",
+      "urllib.error",
+      "urllib.request",
+      "importlib.metadata",
+      "importlib.metadata"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/stats.py",
+    "loc": 246,
+    "public_api": 6,
+    "top_public": [
+      [
+        "func",
+        "collect",
+        71
+      ],
+      [
+        "func",
+        "format_csv",
+        172
+      ],
+      [
+        "func",
+        "format_json",
+        181
+      ],
+      [
+        "func",
+        "format_human",
+        185
+      ],
+      [
+        "func",
+        "cmd",
+        213
+      ],
+      [
+        "func",
+        "walk",
+        161
+      ]
+    ],
+    "import_count": 11,
+    "sample_imports": [
+      "__future__",
+      "csv",
+      "io",
+      "json",
+      "os",
+      "re",
+      "datetime",
+      "pathlib"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/storage/__init__.py",
+    "loc": 1,
+    "public_api": 0,
+    "top_public": [],
+    "import_count": 0,
+    "sample_imports": [],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/storage/incident_storage.py",
+    "loc": 243,
+    "public_api": 18,
+    "top_public": [
+      [
+        "func",
+        "encode_list_fields",
+        42
+      ],
+      [
+        "func",
+        "decode_list_fields",
+        53
+      ],
+      [
+        "func",
+        "slugify",
+        74
+      ],
+      [
+        "func",
+        "today_iso",
+        83
+      ],
+      [
+        "func",
+        "now_iso",
+        87
+      ],
+      [
+        "func",
+        "make_incident_id",
+        91
+      ],
+      [
+        "func",
+        "make_runbook_id",
+        97
+      ],
+      [
+        "func",
+        "split_frontmatter",
+        111
+      ]
+    ],
+    "import_count": 7,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "re",
+      "datetime",
+      "pathlib",
+      "typing",
+      "decay"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/templates_pkg/__init__.py",
+    "loc": 105,
+    "public_api": 5,
+    "top_public": [
+      [
+        "class",
+        "ApplyResult",
+        27
+      ],
+      [
+        "func",
+        "templates_root",
+        33
+      ],
+      [
+        "func",
+        "available",
+        37
+      ],
+      [
+        "func",
+        "load",
+        53
+      ],
+      [
+        "func",
+        "apply",
+        69
+      ]
+    ],
+    "import_count": 6,
+    "sample_imports": [
+      "__future__",
+      "json",
+      "os",
+      "dataclasses",
+      "pathlib",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/temporal_chain.py",
+    "loc": 375,
+    "public_api": 1,
+    "top_public": [
+      [
+        "class",
+        "TemporalChainMixin",
+        117
+      ]
+    ],
+    "import_count": 4,
+    "sample_imports": [
+      "__future__",
+      "re",
+      "datetime",
+      "typing"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/tiers.py",
+    "loc": 236,
+    "public_api": 8,
+    "top_public": [
+      [
+        "class",
+        "TiersMixin",
+        35
+      ],
+      [
+        "func",
+        "tier_set",
+        67
+      ],
+      [
+        "func",
+        "tier_of",
+        82
+      ],
+      [
+        "func",
+        "tier_list",
+        93
+      ],
+      [
+        "func",
+        "tier_promote",
+        159
+      ],
+      [
+        "func",
+        "tier_demote",
+        167
+      ],
+      [
+        "func",
+        "tier_touch",
+        175
+      ],
+      [
+        "func",
+        "working_set",
+        193
+      ]
+    ],
+    "import_count": 5,
+    "sample_imports": [
+      "__future__",
+      "datetime",
+      "pathlib",
+      "typing",
+      "decay"
+    ],
+    "responsibility": ""
+  },
+  {
+    "file": "src/memkraft/watch.py",
+    "loc": 133,
+    "public_api": 6,
+    "top_public": [
+      [
+        "func",
+        "run",
+        87
+      ],
+      [
+        "func",
+        "cmd",
+        131
+      ],
+      [
+        "func",
+        "on_created",
+        60
+      ],
+      [
+        "func",
+        "on_modified",
+        66
+      ],
+      [
+        "func",
+        "on_deleted",
+        72
+      ],
+      [
+        "func",
+        "on_moved",
+        77
+      ]
+    ],
+    "import_count": 10,
+    "sample_imports": [
+      "__future__",
+      "sys",
+      "time",
+      "pathlib",
+      "typing",
+      "core",
+      "watchdog.events",
+      "watchdog.events"
+    ],
+    "responsibility": ""
+  }
+]

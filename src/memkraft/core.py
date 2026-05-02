@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -20,6 +21,30 @@ from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from ._regexes import (
+    _UPDATE_COUNT_RE, _LAST_UPDATE_RE, _DATE_YYYYMMDD_RE, _DIGITS_RE,
+    _SOURCE_TAG_RE, _CONFLICT_TAG_RE, _DATE_BULLET_RE, _PENDING_BULLET_RE,
+    _MONEY_RE, _PERCENT_RE, _COUNT_ITEMS_RE, _FACT_REGISTRY_LINE_RE,
+    _SECTION_HEADER_RE, _NEXT_SECTION_RE, _PLACEHOLDER_RE,
+    _STATE_ROLE_RE, _STATE_ROLE_IS_RE, _STATE_AFFIL_RE, _STATE_AFFIL_VERB_RE,
+    _STATE_STATUS_RE, _STATE_LOCATION_RE, _STATE_LOCATION_IS_RE,
+    _NAME_2WORDS_RE, _NAME_3WORDS_RE, _KOREAN_NAME_RE, _KOREAN_VERB_SUFFIX_RE,
+    _CHINESE_CHAR_RUN_RE, _HANDLE_RE, _EMAIL_RE, _URL_RE,
+    _ORG_SUFFIX_RE, _KR_ORG_RE, _PRODUCT_SUFFIX_RE,
+    _VERSION_PRODUCT_RE, _VERSION_HYPHEN_RE, _KR_LOCATION_RE,
+    _SEARCH_TOKEN_RE, _KR_QUERY_PATTERNS, _EN_QUERY_PATTERNS, _QUERY_SPLIT_RE,
+    _CONFLICT_BLOCK_RE, _SLUG_NONWORD_RE, _SLUG_WHITESPACE_RE,
+    _FACT_LINE_RE, _DATE_BRACKET_RE, _WHEN_RE, _WHEN_NOT_RE,
+    _CONFIDENCE_RE, _WIKILINK_RE, _TIER_RE,
+    _STATUS_RE, _DESC_RE, _RESOLUTION_RE, _EVIDENCE_RE,
+    _TAGS_RE, _LINK_COUNT_RE,
+    _KNOWN_ORG_RES, _KNOWN_LOC_RES,
+    _FIELD_KV_RE, _KR_CONFLICT_PATTERNS, _OPEN_ITEM_RE,
+    _KR_JOSA_STRIP_RE, _HYPOTHESIS_TESTING_RE, _DEBUG_HYPOTHESIS_RE,
+)
+
+log = logging.getLogger("memkraft.core")
 
 
 class MemKraft:
@@ -143,6 +168,7 @@ class MemKraft:
         if not name:
             print("Error: Entity name cannot be empty.")
             return None
+        log.debug("track entity=%r type=%s source=%s", name, entity_type, source)
         try:
             self.live_notes_dir.mkdir(parents=True, exist_ok=True)
             slug = self._slugify(name)
@@ -199,6 +225,7 @@ class MemKraft:
     def update(self, name: str, info: str, source: str = "manual") -> None:
         if not info or not info.strip():
             return  # Skip empty updates
+        log.debug("update entity=%r len=%d source=%s", name, len(info), source)
 
         slug = self._slugify(name)
         filepath = self.live_notes_dir / f"{slug}.md"
@@ -213,7 +240,7 @@ class MemKraft:
             content, state_transitions = self._apply_state_changes(content, info)
 
             # Increment update count
-            count_match = re.search(r'(?:Update Count|업데이트 횟수):\*\* (\d+)', content)
+            count_match = _UPDATE_COUNT_RE.search(content)
             if count_match:
                 new_count = int(count_match.group(1)) + 1
                 old_str = count_match.group(0)
@@ -221,9 +248,9 @@ class MemKraft:
                 content = content[:count_match.start()] + new_str + content[count_match.end():]
 
             # Update last update date
-            last_match = re.search(r'(?:Last Update|마지막 업데이트):\*\* \d{4}-\d{2}-\d{2}', content)
+            last_match = _LAST_UPDATE_RE.search(content)
             if last_match:
-                new_date_str = re.sub(r'\d{4}-\d{2}-\d{2}', now, last_match.group())
+                new_date_str = _DATE_YYYYMMDD_RE.sub(now, last_match.group())
                 content = content[:last_match.start()] + new_date_str + content[last_match.end():]
 
             # Add to Recent Activity
@@ -266,11 +293,11 @@ class MemKraft:
                 date_val = "?"
                 for line in content.split("\n"):
                     if "Update Count" in line or "업데이트 횟수" in line:
-                        nums = re.findall(r'\d+', line)
+                        nums = _DIGITS_RE.findall(line)
                         if nums:
                             count_val = nums[-1]
                     if "Last Update" in line or "마지막 업데이트" in line:
-                        dates = re.findall(r'\d{4}-\d{2}-\d{2}', line)
+                        dates = _DATE_YYYYMMDD_RE.findall(line)
                         if dates:
                             date_val = dates[-1]
                 print(f"  📌 {md.stem} (updates: {count_val}, last: {date_val})")
@@ -338,7 +365,7 @@ class MemKraft:
                         brief_parts.extend(entries)
                     break
             # Open threads
-            open_items = re.findall(r'- \[ \] (.+?)(?:\n|$)', content)
+            open_items = _OPEN_ITEM_RE.findall(content)
             if open_items:
                 brief_parts.append("\n## 🔓 Open Threads")
                 for item in open_items:
@@ -507,7 +534,7 @@ class MemKraft:
                 # Normalize slug: lowercase, strip common suffixes
                 norm = md.stem.lower().replace("-", "")
                 # Also strip Korean particles for comparison
-                norm_kr = re.sub(r'(이|을|를|은|는|에|로|의)$', '', norm)
+                norm_kr = _KR_JOSA_STRIP_RE.sub('', norm)
                 for n in [norm, norm_kr]:
                     if n in seen_normalized and seen_normalized[n] != md.stem:
                         issues["duplicate_entities"] += 1
@@ -695,9 +722,8 @@ class MemKraft:
 
         # Same field, different value detection
         # Pattern: "Role: X" vs "Role: Y" where X != Y
-        field_pattern = r'(\w+):\s*(.+?)$'
-        old_match = re.search(field_pattern, old)
-        new_match = re.search(field_pattern, new)
+        old_match = _FIELD_KV_RE.search(old)
+        new_match = _FIELD_KV_RE.search(new)
         if old_match and new_match:
             if old_match.group(1).lower() == new_match.group(1).lower():
                 if old_match.group(2).strip().lower() != new_match.group(2).strip().lower():
@@ -723,10 +749,10 @@ class MemKraft:
             stripped = line.strip()
             if stripped.startswith("- ") and len(stripped) > 10:
                 # Clean up: remove source tags, timestamps, markers
-                clean = re.sub(r'\[Source:.*?\]', '', stripped)
-                clean = re.sub(r'\[CONFLICT\]', '', clean)
-                clean = re.sub(r'^- \*\*\d{4}-\d{2}-\d{2}\*\* \| ', '- ', clean)
-                clean = re.sub(r'^- ⏳ ', '- ', clean)
+                clean = _SOURCE_TAG_RE.sub('', stripped)
+                clean = _CONFLICT_TAG_RE.sub('', clean)
+                clean = _DATE_BULLET_RE.sub('- ', clean)
+                clean = _PENDING_BULLET_RE.sub('- ', clean)
                 clean = clean.strip()
                 if clean.startswith("- ") and len(clean) > 5:
                     facts.append(clean[2:])  # Strip leading "- "
@@ -796,8 +822,7 @@ class MemKraft:
 
         # Parse unresolved conflicts
         unresolved = []
-        conflict_blocks = re.findall(
-            r'### (.+?)\n- \*\*Old:\*\* (.+?)\n- \*\*New:\*\* (.+?)\n- \*\*Similarity:\*\* ([\d.]+)\n- \*\*File:\*\* (.+?)\n- \*\*Status:\*\* ❌ unresolved',
+        conflict_blocks = _CONFLICT_BLOCK_RE.findall(
             content
         )
 
@@ -1009,16 +1034,11 @@ class MemKraft:
     def _extract_registry_facts(self, text: str) -> List[str]:
         """Extract numeric/date facts for the cross-domain fact registry."""
         facts = []
-        patterns = [
-            r'[\$₩€]\s?[\d,.]+(?:\s*(?:million|billion|trillion|만|억|조|M|B|K))?\b',
-            r'\d+(?:\.\d+)?%',
-            r'\d+(?:,\d+)*(?:\s+(?:items|users|employees|members|people|명|개|건|팀))',
-        ]
-        for pattern in patterns:
-            for m in re.finditer(pattern, text, re.IGNORECASE):
+        for pattern in [_MONEY_RE, _PERCENT_RE, _COUNT_ITEMS_RE]:
+            for m in pattern.finditer(text):
                 facts.append(m.group().strip())
 
-        for m in re.finditer(r'\d{4}-\d{2}-\d{2}', text):
+        for m in _DATE_YYYYMMDD_RE.finditer(text):
             start = max(0, m.start() - 20)
             prefix = text[start:m.start()].lower()
             if "source" in prefix or "update" in prefix or "started" in prefix or "**" in prefix:
@@ -1036,7 +1056,7 @@ class MemKraft:
         registry = self.base_dir / "fact-registry.md"
         registry.parent.mkdir(parents=True, exist_ok=True)
         existing = registry.read_text(encoding="utf-8", errors="replace") if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
-        existing_facts = set(re.findall(r'^- (.+?)(?: \[Source:.*\])?$', existing, re.MULTILINE))
+        existing_facts = set(_FACT_REGISTRY_LINE_RE.findall(existing))
         new_facts = [f for f in dict.fromkeys(clean_facts) if f not in existing_facts]
         if not new_facts:
             return []
@@ -1055,12 +1075,12 @@ class MemKraft:
         if not candidates:
             return content, []
 
-        section_match = re.search(r'## (?:Current State|State|현재 상태)\n', content)
+        section_match = _SECTION_HEADER_RE.search(content)
         if not section_match:
             return content, []
 
         section_start = section_match.end()
-        next_section = re.search(r'\n## ', content[section_start:])
+        next_section = _NEXT_SECTION_RE.search(content[section_start:])
         section_end = section_start + next_section.start() if next_section else len(content)
         section = content[section_start:section_end]
         transitions = []
@@ -1075,7 +1095,7 @@ class MemKraft:
                 section = section[:match.start(2)] + new_value + section[match.end(2):]
                 continue
 
-            placeholder_match = re.search(r'^\((?:Latest information accumulates here|enrichment needed).*\)\n?', section, re.MULTILINE)
+            placeholder_match = _PLACEHOLDER_RE.search(section)
             insertion = f"- **{field}:** {new_value}\n"
             if placeholder_match:
                 section = section[:placeholder_match.start()] + insertion + section[placeholder_match.end():]
@@ -1087,26 +1107,15 @@ class MemKraft:
     def _extract_state_candidates(self, info: str) -> Dict[str, str]:
         """Extract simple state fields from update text."""
         fields = {
-            "Role": [
-                r'(?:^|\b)(?:role|title|position)\s*(?::|is|=)\s*(.+)$',
-                r'\b(?:is|became|serves as|was named|appointed as)\s+(?:the\s+)?(.+?)(?:\.|$)',
-            ],
-            "Affiliation": [
-                r'(?:^|\b)(?:affiliation|company|organization|org)\s*(?::|is|=)\s*(.+)$',
-                r'\b(?:joined|left|moved to)\s+(.+?)(?:\.|$)',
-            ],
-            "Status": [
-                r'(?:^|\b)status\s*(?::|is|=)\s*(.+)$',
-            ],
-            "Location": [
-                r'(?:^|\b)location\s*(?::|is|=)\s*(.+)$',
-                r'\b(?:based in|located in)\s+(.+?)(?:\.|$)',
-            ],
+            "Role": [_STATE_ROLE_RE, _STATE_ROLE_IS_RE],
+            "Affiliation": [_STATE_AFFIL_RE, _STATE_AFFIL_VERB_RE],
+            "Status": [_STATE_STATUS_RE],
+            "Location": [_STATE_LOCATION_RE, _STATE_LOCATION_IS_RE],
         }
         candidates = {}
         for field, patterns in fields.items():
             for pattern in patterns:
-                match = re.search(pattern, info, re.IGNORECASE)
+                match = pattern.search(info)
                 if match:
                     value = match.group(1).strip(" .;")
                     if value:
@@ -1230,7 +1239,7 @@ class MemKraft:
                 content = filepath.read_text(encoding="utf-8", errors="replace")
                 # Update or add tier
                 if "Tier:" in content:
-                    content = re.sub(r'\*\*Tier: \w+', f'**Tier: {tier}', content, count=1)
+                    content = _TIER_RE.sub(f'**Tier: {tier}', content, count=1)
                 else:
                     # Add tier after title
                     content = content.replace("\n\n> ", f"\n\n**Tier: {tier}**\n\n> ", 1)
@@ -1287,6 +1296,7 @@ class MemKraft:
         """Search memory with hybrid exact/token matching and optional fuzzy matching."""
         if not query or not query.strip():
             return []
+        log.debug("search query=%r fuzzy=%s", query, fuzzy)
 
         results = []
         query_lower = query.lower()
@@ -1436,7 +1446,7 @@ class MemKraft:
                         break
 
             # Date-aware recency bonus
-            dates = re.findall(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', content)
+            dates = _DATE_BRACKET_RE.findall(content)
             if dates:
                 try:
                     latest = max(dates)
@@ -1508,10 +1518,12 @@ class MemKraft:
 
         if not results:
             print(f"No results for '{query}'.")
+            log.debug("search results=0")
         else:
             for r in results[:20]:
                 snippet_display = f"\n     {r['snippet'][:100]}" if r.get('snippet') else ""
                 print(f"  [{r['score']:.2f}] {r['file']}{snippet_display}")
+            log.debug("search results=%d top_score=%.3f", len(results), results[0].get('score', 0))
         return results
 
     # ── Links (Backlinks) ─────────────────────────────────────
@@ -1802,8 +1814,8 @@ class MemKraft:
             for line in content.split("\n"):
                 stripped = line.strip()
                 if stripped.startswith("- ") and len(stripped) > 15:
-                    clean = re.sub(r'\[Source:.*?\]', '', stripped).strip()
-                    clean = re.sub(r'^- \*\*\d{4}-\d{2}-\d{2}\*\* \| ', '- ', clean)
+                    clean = _SOURCE_TAG_RE.sub('', stripped).strip()
+                    clean = _DATE_BULLET_RE.sub('- ', clean)
                     clean_lower = clean.lower()
                     if clean_lower in all_facts_set and all_facts_set[clean_lower] != rel:
                         assertion_3["passed"] = False
@@ -2109,13 +2121,13 @@ class MemKraft:
 
         facts = []
         # Currency: $N, ₩N, €N
-        for m in re.finditer(r'[\$₩€]\s?[\d,.]+(?:\s*(?:million|billion|trillion|만|억|조|M|B|K))?\b', text, re.IGNORECASE):
+        for m in _MONEY_RE.finditer(text):
             facts.append(m.group())
         # Percentages
-        for m in re.finditer(r'\d+(?:\.\d+)?%', text):
+        for m in _PERCENT_RE.finditer(text):
             facts.append(m.group())
         # Dates
-        for m in re.finditer(r'\d{4}-\d{2}-\d{2}', text):
+        for m in _DATE_YYYYMMDD_RE.finditer(text):
             # Skip if it looks like metadata ([Source: ..., Last Update: ..., - **YYYY-MM-DD**)
             start = max(0, m.start() - 20)
             prefix = text[start:m.start()].lower()
@@ -2123,7 +2135,7 @@ class MemKraft:
                 continue
             facts.append(m.group())
         # Quantities: N items/users/employees/members
-        for m in re.finditer(r'\d+(?:,\d+)*(?:\s+(?:items|users|employees|members|people|명|개|건|팀))', text, re.IGNORECASE):
+        for m in _COUNT_ITEMS_RE.finditer(text):
             facts.append(m.group().strip())
 
         if not facts:
@@ -2140,7 +2152,7 @@ class MemKraft:
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         existing = registry.read_text(encoding="utf-8", errors="replace") if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
         # Skip facts that already exist in the registry
-        existing_facts = set(re.findall(r'^- (.+)$', existing, re.MULTILINE))
+        existing_facts = set(_FACT_REGISTRY_LINE_RE.findall(existing))
         new_facts = [f for f in facts if f not in existing_facts]
         if new_facts:
             existing += f"\n## {now}\n"
@@ -2180,7 +2192,7 @@ class MemKraft:
 
             for line in lines:
                 # Find timeline entries with dates
-                date_match = re.search(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', line)
+                date_match = _DATE_BRACKET_RE.search(line)
                 if date_match:
                     entry_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
                     if entry_date < threshold and "⏳" not in line:
@@ -2218,7 +2230,7 @@ class MemKraft:
                 stripped = line.strip()
                 if stripped.startswith("- ") and len(stripped) > 10:
                     # Strip source tags for comparison
-                    clean = re.sub(r'\[Source:.*?\]', '', stripped).strip()
+                    clean = _SOURCE_TAG_RE.sub('', stripped).strip()
                     if clean.startswith("- "):
                         all_facts.append((md.stem, clean, str(md.relative_to(self.base_dir))))
 
@@ -2447,8 +2459,8 @@ class MemKraft:
         match_count = 0
 
         for line in content.split("\n"):
-            when_match = re.search(r'When:\s*([^|\]]+)', line)
-            when_not_match = re.search(r'When NOT:\s*([^|\]]+)', line)
+            when_match = _WHEN_RE.search(line)
+            when_not_match = _WHEN_NOT_RE.search(line)
 
             if when_match:
                 condition = when_match.group(1).strip().lower()
@@ -2474,9 +2486,9 @@ class MemKraft:
         Returns dict with 'when' and 'when_not' lists.
         """
         result: Dict[str, List[str]] = {"when": [], "when_not": []}
-        for match in re.finditer(r'When:\s*([^|\]]+)', text):
+        for match in _WHEN_RE.finditer(text):
             result["when"].append(match.group(1).strip())
-        for match in re.finditer(r'When NOT:\s*([^|\]]+)', text):
+        for match in _WHEN_NOT_RE.finditer(text):
             result["when_not"].append(match.group(1).strip())
         return result
 
@@ -2496,7 +2508,7 @@ class MemKraft:
 
     def _extract_fact_confidence(self, line: str) -> str:
         """Extract confidence level from a fact line."""
-        m = re.search(r'Confidence:\s*(verified|experimental|hypothesis)', line)
+        m = _CONFIDENCE_RE.search(line)
         return m.group(1) if m else ""
 
     # ── Agentic Search ──────────────────────────────────────────
@@ -2534,7 +2546,7 @@ class MemKraft:
                 if md_path.exists():
                     content = self._safe_read(md_path)
                     # Find [[wiki-links]] in content
-                    linked = re.findall(r'\[\[([^\]]+)\]\]', content)
+                    linked = _WIKILINK_RE.findall(content)
                     for link in linked:
                         link_slug = self._slugify(link)
                         for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir]:
@@ -2577,7 +2589,7 @@ class MemKraft:
                 elif "Tier: archival" in content:
                     bonus -= 0.05
                 # Recency bonus
-                dates = re.findall(r'\*\*(\d{4}-\d{2}-\d{2})\*\*', content)
+                dates = _DATE_BRACKET_RE.findall(content)
                 if dates:
                     try:
                         latest = max(dates)
@@ -2669,25 +2681,20 @@ class MemKraft:
     def _decompose_query(self, query: str) -> List[str]:
         """Decompose a complex query into sub-queries."""
         # Korean question patterns
-        kr_patterns = [r'(.+?)이/가 누구', r'(.+?)의 (.+?)', r'(.+?)은/는 어디', r'(.+?)에 대해']
-        for pat in kr_patterns:
-            m = re.search(pat, query)
+        for pat in _KR_QUERY_PATTERNS:
+            m = pat.search(query)
             if m:
                 return [g.strip() for g in m.groups() if g.strip()] + [query]
 
         # English patterns: "X of Y", "who is X", "what is X"
-        en_patterns = [
-            r"who is (.+)", r"what is (.+)", r"tell me about (.+)",
-            r"(.+?) of (.+)", r"(.+?)'s (.+)"
-        ]
-        for pat in en_patterns:
-            m = re.search(pat, query, re.IGNORECASE)
+        for pat in _EN_QUERY_PATTERNS:
+            m = pat.search(query)
             if m:
                 return [g.strip() for g in m.groups() if g.strip()] + [query]
 
         # Fallback: split on common delimiters
         if len(query) > 20:
-            parts = re.split(r'[,.]|\s+(?:and|or|but|그리고|또는)\s+', query)
+            parts = _QUERY_SPLIT_RE.split(query)
             if len(parts) > 1:
                 return [p.strip() for p in parts if len(p.strip()) > 2]
 
@@ -2863,7 +2870,7 @@ class MemKraft:
         # Parse ### HN: hypothesis text
         # Status line may be followed by optional "Rejected reason" before "Created"
         pattern = r'### (H\d+): (.+?)\n- \*\*Status:\*\* (.+?)\n(?:- \*\*Rejected reason:\*\* .+?\n)?- \*\*Created:\*\* (.+?)\n'
-        for match in re.finditer(pattern, content):
+        for match in _DEBUG_HYPOTHESIS_RE.finditer(content):
             h_id = match.group(1)
             h_text = match.group(2).strip()
             status_raw = match.group(3).strip()
@@ -2904,7 +2911,7 @@ class MemKraft:
 
         # Find and update the hypothesis status
         pattern = rf'(### {re.escape(hypothesis_id)}: .+?\n- \*\*Status:\*\* )🧪 TESTING'
-        match = re.search(pattern, content)
+        match = _HYPOTHESIS_TESTING_RE.search(content)
         if not match:
             print(f"❌ Hypothesis {hypothesis_id} not found or not in TESTING state")
             return {}
@@ -2948,7 +2955,7 @@ class MemKraft:
 
         # Find and update the hypothesis status
         pattern = rf'(### {re.escape(hypothesis_id)}: .+?\n- \*\*Status:\*\* )🧪 TESTING'
-        match = re.search(pattern, content)
+        match = _HYPOTHESIS_TESTING_RE.search(content)
         if not match:
             print(f"❌ Hypothesis {hypothesis_id} not found or not in TESTING state")
             return {}
@@ -2963,8 +2970,8 @@ class MemKraft:
 
         # Extract hypothesis text for feedback
         h_pattern = rf'### {re.escape(hypothesis_id)}: (.+?)\n'
-        h_match = re.search(h_pattern, content)
-        hypothesis_text = h_match.group(1).strip() if h_match else hypothesis_id
+        h_match = _DEBUG_HYPOTHESIS_RE.search(content)
+        hypothesis_text = h_match.group(2).strip() if h_match else hypothesis_id
 
         print(f"✅ Hypothesis {hypothesis_id} confirmed for {bug_id}")
         print(f"   {hypothesis_text}")
@@ -3097,15 +3104,15 @@ class MemKraft:
         hypotheses = self.get_hypotheses(bug_id)
 
         # Extract status
-        status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
+        status_match = _STATUS_RE.search(content)
         status = status_match.group(1) if status_match else "UNKNOWN"
 
         # Extract description
-        desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
+        desc_match = _DESC_RE.search(content)
         description = desc_match.group(1).strip() if desc_match else ""
 
         # Count evidence
-        evidence_count = len(re.findall(r'- \*\*.+?\*\* \| \[H\d+\]', content))
+        evidence_count = len(_EVIDENCE_RE.findall(content))
 
         # Current testing hypothesis
         testing = [h for h in hypotheses if h["status"] == "testing"]
@@ -3142,9 +3149,9 @@ class MemKraft:
         sessions = []
         for md in sorted(self.debug_dir.glob("DEBUG-*.md"), reverse=True)[:limit]:
             content = self._safe_read(md)
-            status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
-            desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
-            resolution_match = re.search(r'\*\*Resolution:\*\* (.+)', content)
+            status_match = _STATUS_RE.search(content)
+            desc_match = _DESC_RE.search(content)
+            resolution_match = _RESOLUTION_RE.search(content)
 
             status = status_match.group(1) if status_match else "UNKNOWN"
             description = desc_match.group(1).strip() if desc_match else ""
@@ -3228,9 +3235,9 @@ class MemKraft:
 
             if query_lower in content_lower:
                 bug_id = md.stem
-                desc_match = re.search(r'\*\*Description:\*\* (.+)', content)
-                status_match = re.search(r'\*\*Status:\*\* (\w+)', content)
-                resolution_match = re.search(r'\*\*Resolution:\*\* (.+)', content)
+                desc_match = _DESC_RE.search(content)
+                status_match = _STATUS_RE.search(content)
+                resolution_match = _RESOLUTION_RE.search(content)
 
                 results.append({
                     "bug_id": bug_id,
@@ -3796,8 +3803,8 @@ class MemKraft:
     # ── Helpers ───────────────────────────────────────────────
     def _slugify(self, text: str) -> str:
         text = text.strip().lower()
-        text = re.sub(r'[^\w\s\-\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]', '', text)
-        text = re.sub(r'\s+', '-', text)
+        text = _SLUG_NONWORD_RE.sub('', text)
+        text = _SLUG_WHITESPACE_RE.sub('-', text)
         return text[:80]
 
     def _detect_regex(self, text: str) -> List[Dict[str, str]]:
@@ -3809,14 +3816,14 @@ class MemKraft:
         entities: List[Dict[str, str]] = []
         common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With', 'Please', 'Contact', 'However', 'While', 'These', 'Those', 'Each', 'Some', 'Many', 'Other', 'Such', 'Most', 'Last', 'New', 'Old', 'Next', 'Here', 'After', 'Before', 'Between', 'Under', 'Over', 'Every', 'About', 'Also', 'Just', 'When', 'Where', 'Why', 'How', 'What', 'Who', 'Which', 'More', 'Much', 'Very', 'Well', 'Still', 'Even', 'Back', 'Down', 'Only', 'Then', 'Than', 'Both', 'Into', 'Like', 'Made', 'Come', 'Could', 'Would', 'Should', 'Will', 'May', 'Can', 'Did', 'Does'}
 
-        names_2 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\b', text)
-        names_3 = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+)\b', text)
-        korean_names = re.findall(r'[\uAC00-\uD7AF]{2,4}', text)
+        names_2 = _NAME_2WORDS_RE.findall(text)
+        names_3 = _NAME_3WORDS_RE.findall(text)
+        korean_names = _KOREAN_NAME_RE.findall(text)
         # 한국어 동사/형용사 어미 제거 후 이름만 추출
         korean_names_cleaned = []
         for name in korean_names:
             # 동사 어미 제거: 했다, 한다, 해요, 함, 됨, 됐다, etc.
-            stripped = re.sub(r'(했|할|해|되|됐|받|만|지|보|주|가|오|알|인|있|없|갈|될|만들|사용|개발|적용|설정|확인|업데이트|추가|수정|삭제|생성|실행|테스트|분석|검색|연결|설치|시작|완료|진행|보고|논의|발표|참여|준비|요청|제안|검토|승인|거절|검증|배포|구축|도입|운영|관리|모니터링|추적|감지|정리|보강|업그레이드|마이그레이션|이|이다|입니다|였다|였음)(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서|의)?$', '', name)
+            stripped = _KOREAN_VERB_SUFFIX_RE.sub('', name)
             if len(stripped) >= 2:
                 korean_names_cleaned.append(stripped)
         korean_names = korean_names_cleaned
@@ -3847,7 +3854,7 @@ class MemKraft:
         # 전체 한자 텍스트에서 성씨로 시작하는 2~3글자 패턴 추출
         chinese_surnames = {'王', '李', '张', '刘', '陈', '杨', '赵', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'}
         # 한자 연속 시퀀스에서 성씨+1~2글자 추출
-        chinese_char_runs = re.findall(r'[\u4E00-\u9FFF]+', text)
+        chinese_char_runs = _CHINESE_CHAR_RUN_RE.findall(text)
         seen_chinese = set()
         for run in chinese_char_runs:
             for i, ch in enumerate(run):
@@ -3873,17 +3880,17 @@ class MemKraft:
                                 entities.append({"name": candidate, "type": "person", "context": "auto-detected (Japanese)"})
                                 break
 
-        handles = re.findall(r'(?:^|(?<=\s))@(\w+)', text)
+        handles = _HANDLE_RE.findall(text)
         for handle in set(handles):
             entities.append({"name": handle, "type": "person", "context": "mentioned via @handle"})
 
         # ── Email detection ───────────────────────────────────
-        emails = re.findall(r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', text)
+        emails = _EMAIL_RE.findall(text)
         for email in set(emails):
             entities.append({"name": email, "type": "contact", "context": "auto-detected (email)"})
 
         # ── URL detection ─────────────────────────────────────
-        urls = re.findall(r'https?://[^\s)<>\]]+', text)
+        urls = _URL_RE.findall(text)
         for url in set(urls):
             entities.append({"name": url, "type": "reference", "context": "auto-detected (URL)"})
 
@@ -3891,35 +3898,35 @@ class MemKraft:
         # Known tech companies (extendable)
         known_orgs = {'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Tesla', 'Netflix', 'Nvidia', 'OpenAI', 'Anthropic', 'Samsung', 'Hashed', 'Tencent', 'Alibaba', 'ByteDance', 'Baidu', 'Sony', 'Toyota', 'Hyundai', 'LG', 'Kakao', 'Naver', 'Coupang', 'Toss', 'Stripe', 'SpaceX', 'Palantir', 'Uber', 'Airbnb', 'Coinbase', 'Binance', 'Riot', 'Epic', 'Valve', 'Blizzard'}
         # "X Corp", "X Inc", "X Ltd", "X Co", "X Foundation", "X Labs", "X Group", "X Capital", "X Ventures"
-        org_suffix_pattern = re.findall(r'\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+(?:Corp|Inc|Ltd|Co|Foundation|Labs|Group|Capital|Ventures|Systems|Technologies|Networks|AI|IO|Software|Digital|Dynamics|Industries|Holdings))\b', text)
+        org_suffix_pattern = _ORG_SUFFIX_RE.findall(text)
         for org in org_suffix_pattern:
             entities.append({"name": org, "type": "organization", "context": "auto-detected (suffix)"})
 
         # Known org names from text
         for org in known_orgs:
-            if re.search(r'\b' + re.escape(org) + r'\b', text):
+            if _KNOWN_ORG_RES.get(org) and _KNOWN_ORG_RES[org].search(text):
                 # Check not already captured as person
                 if not any(e["name"] == org for e in entities):
                     entities.append({"name": org, "type": "organization", "context": "auto-detected (known)"})
 
         # Korean organizations: 한자+기관/회사/은행/그룹 etc.
-        kr_orgs = re.findall(r'([가-힣]{2,8}(?:기관|회사|은행|그룹|재단|연구소|대학|대학교|병원|센터|연합|협회|위원회|청|부|처|실|국|원|전자|자동차|물산|중공업|건설|해운|항공|통신|제약|화학|철강|에너지|인터넷|소프트웨어|테크|랩스|벤처스|캐피탈|파트너스|네트워크|시스템|솔루션|미디어|엔터|엔터테인먼트|게임즈|스튜디오|플랫폼))', text)
+        kr_orgs = _KR_ORG_RE.findall(text)
         for org in kr_orgs:
             if org not in korean_stopwords:
                 entities.append({"name": org, "type": "organization", "context": "auto-detected (Korean org)"})
 
         # ── Product detection ──────────────────────────────────
         # "X Pro", "X Max", "X Ultra", "X Plus", "X Mini", "X Air"
-        product_pattern = re.findall(r'\b([A-Za-z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+(?:Pro|Max|Ultra|Plus|Mini|Air|Lite|SE|Studio|Suite|Cloud|Engine|Platform|OS|OSX))\b', text)
+        product_pattern = _PRODUCT_SUFFIX_RE.findall(text)
         for prod in product_pattern:
             if not any(e["name"] == prod for e in entities):
                 entities.append({"name": prod, "type": "product", "context": "auto-detected (suffix)"})
 
         # Version-number products: "GPT-5", "iPhone 16", "Claude-3.5"
         # CamelCase or uppercase start + digit (allows iPhone, MacBook, GPT, etc.)
-        version_products = re.findall(r'\b([a-zA-Z]*[A-Z][A-Za-z]*[\s-]\d+(?:\.\d+)?(?:\s+(?:Pro|Max|Ultra|Plus|Mini|Air))?)\b', text)
+        version_products = _VERSION_PRODUCT_RE.findall(text)
         # Hyphenated: GPT-5, Claude-3
-        version_products += re.findall(r'\b([A-Z][A-Za-z]+-\d+(?:\.\d+)?)\b', text)
+        version_products += _VERSION_HYPHEN_RE.findall(text)
         for vp in set(version_products):
             vp = vp.strip()
             if len(vp) >= 3 and not any(e["name"] == vp for e in entities):
@@ -3930,12 +3937,12 @@ class MemKraft:
         # ── Location detection ─────────────────────────────────
         known_locations = {'Seoul', 'Tokyo', 'Beijing', 'Shanghai', 'Singapore', 'London', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Dubai', 'Hong Kong', 'Taipei', 'Bangkok', 'Sydney', 'Toronto', 'Vancouver', 'Busan', 'Jeju', 'Osaka', 'Mumbai', 'Delhi', 'Jakarta', 'Manila', 'Kuala Lumpur'}
         for loc in known_locations:
-            if re.search(r'\b' + re.escape(loc) + r'\b', text):
+            if _KNOWN_LOC_RES.get(loc) and _KNOWN_LOC_RES[loc].search(text):
                 if not any(e["name"] == loc for e in entities):
                     entities.append({"name": loc, "type": "location", "context": "auto-detected (known)"})
 
         # Korean locations: 시/도/구/군/읍/면
-        kr_locations = re.findall(r'([가-힣]{2,5}(?:시|도|구|군|읍|면|동|로|길))', text)
+        kr_locations = _KR_LOCATION_RE.findall(text)
         for loc in kr_locations:
             if loc not in korean_stopwords and len(loc) >= 3:
                 entities.append({"name": loc, "type": "location", "context": "auto-detected (Korean location)"})
@@ -4093,7 +4100,7 @@ class MemKraft:
 
     def _search_tokens(self, text: str) -> list:
         """Tokenize search text for dependency-free hybrid matching."""
-        return [t for t in re.findall(r'[\w\uAC00-\uD7AF\u4E00-\u9FFF]+', text.lower()) if len(t) > 1]
+        return [t for t in _SEARCH_TOKEN_RE.findall(text.lower()) if len(t) > 1]
 
     # ── BM25 scoring (v2.3) ───────────────────────────────────
     def _get_corpus_stats(self) -> Tuple[int, float]:
@@ -4226,7 +4233,7 @@ class MemKraft:
 
     def _extract_tags(self, content: str) -> str:
         """Extract tags from content."""
-        tags = re.findall(r'(?:tags?:|태그:)\s*(.+)', content, re.IGNORECASE)
+        tags = _TAGS_RE.findall(content)
         if tags:
             return tags[0].strip()[:50]
         return ""
@@ -4301,7 +4308,7 @@ class MemKraft:
                 "summary": self._first_meaningful_line(content)[:200],
                 "sections": [l.strip() for l in content.split("\n") if l.startswith("#")][:15],
                 "fact_count": content.count("\n- "),
-                "link_count": len(re.findall(r'\[\[[^\]]+\]\]', content)),
+                "link_count": len(_LINK_COUNT_RE.findall(content)),
             }
             if include_content:
                 # Guard: skip embedding content for very large files to avoid memory issues

@@ -1,0 +1,2169 @@
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent0.md
+   Use 'memkraft update "ent0" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent1.md
+   Use 'memkraft update "ent1" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent2.md
+   Use 'memkraft update "ent2" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent3.md
+   Use 'memkraft update "ent3" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent4.md
+   Use 'memkraft update "ent4" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent5.md
+   Use 'memkraft update "ent5" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent6.md
+   Use 'memkraft update "ent6" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent7.md
+   Use 'memkraft update "ent7" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent8.md
+   Use 'memkraft update "ent8" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent9.md
+   Use 'memkraft update "ent9" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent10.md
+   Use 'memkraft update "ent10" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent11.md
+   Use 'memkraft update "ent11" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent12.md
+   Use 'memkraft update "ent12" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent13.md
+   Use 'memkraft update "ent13" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent14.md
+   Use 'memkraft update "ent14" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent15.md
+   Use 'memkraft update "ent15" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent16.md
+   Use 'memkraft update "ent16" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent17.md
+   Use 'memkraft update "ent17" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent18.md
+   Use 'memkraft update "ent18" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent19.md
+   Use 'memkraft update "ent19" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent20.md
+   Use 'memkraft update "ent20" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent21.md
+   Use 'memkraft update "ent21" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent22.md
+   Use 'memkraft update "ent22" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent23.md
+   Use 'memkraft update "ent23" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent24.md
+   Use 'memkraft update "ent24" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent25.md
+   Use 'memkraft update "ent25" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent26.md
+   Use 'memkraft update "ent26" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent27.md
+   Use 'memkraft update "ent27" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent28.md
+   Use 'memkraft update "ent28" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent29.md
+   Use 'memkraft update "ent29" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent30.md
+   Use 'memkraft update "ent30" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent31.md
+   Use 'memkraft update "ent31" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent32.md
+   Use 'memkraft update "ent32" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent33.md
+   Use 'memkraft update "ent33" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent34.md
+   Use 'memkraft update "ent34" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent35.md
+   Use 'memkraft update "ent35" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent36.md
+   Use 'memkraft update "ent36" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent37.md
+   Use 'memkraft update "ent37" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent38.md
+   Use 'memkraft update "ent38" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent39.md
+   Use 'memkraft update "ent39" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent40.md
+   Use 'memkraft update "ent40" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent41.md
+   Use 'memkraft update "ent41" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent42.md
+   Use 'memkraft update "ent42" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent43.md
+   Use 'memkraft update "ent43" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent44.md
+   Use 'memkraft update "ent44" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent45.md
+   Use 'memkraft update "ent45" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent46.md
+   Use 'memkraft update "ent46" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent47.md
+   Use 'memkraft update "ent47" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent48.md
+   Use 'memkraft update "ent48" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent49.md
+   Use 'memkraft update "ent49" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent50.md
+   Use 'memkraft update "ent50" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent51.md
+   Use 'memkraft update "ent51" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent52.md
+   Use 'memkraft update "ent52" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent53.md
+   Use 'memkraft update "ent53" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent54.md
+   Use 'memkraft update "ent54" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent55.md
+   Use 'memkraft update "ent55" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent56.md
+   Use 'memkraft update "ent56" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent57.md
+   Use 'memkraft update "ent57" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent58.md
+   Use 'memkraft update "ent58" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent59.md
+   Use 'memkraft update "ent59" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent60.md
+   Use 'memkraft update "ent60" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent61.md
+   Use 'memkraft update "ent61" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent62.md
+   Use 'memkraft update "ent62" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent63.md
+   Use 'memkraft update "ent63" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent64.md
+   Use 'memkraft update "ent64" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent65.md
+   Use 'memkraft update "ent65" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent66.md
+   Use 'memkraft update "ent66" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent67.md
+   Use 'memkraft update "ent67" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent68.md
+   Use 'memkraft update "ent68" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent69.md
+   Use 'memkraft update "ent69" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent70.md
+   Use 'memkraft update "ent70" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent71.md
+   Use 'memkraft update "ent71" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent72.md
+   Use 'memkraft update "ent72" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent73.md
+   Use 'memkraft update "ent73" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent74.md
+   Use 'memkraft update "ent74" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent75.md
+   Use 'memkraft update "ent75" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent76.md
+   Use 'memkraft update "ent76" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent77.md
+   Use 'memkraft update "ent77" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent78.md
+   Use 'memkraft update "ent78" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent79.md
+   Use 'memkraft update "ent79" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent80.md
+   Use 'memkraft update "ent80" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent81.md
+   Use 'memkraft update "ent81" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent82.md
+   Use 'memkraft update "ent82" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent83.md
+   Use 'memkraft update "ent83" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent84.md
+   Use 'memkraft update "ent84" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent85.md
+   Use 'memkraft update "ent85" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent86.md
+   Use 'memkraft update "ent86" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent87.md
+   Use 'memkraft update "ent87" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent88.md
+   Use 'memkraft update "ent88" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent89.md
+   Use 'memkraft update "ent89" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent90.md
+   Use 'memkraft update "ent90" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent91.md
+   Use 'memkraft update "ent91" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent92.md
+   Use 'memkraft update "ent92" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent93.md
+   Use 'memkraft update "ent93" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent94.md
+   Use 'memkraft update "ent94" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent95.md
+   Use 'memkraft update "ent95" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent96.md
+   Use 'memkraft update "ent96" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent97.md
+   Use 'memkraft update "ent97" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent98.md
+   Use 'memkraft update "ent98" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+⚠️ Already tracking: /tmp/mk-prof-v28/live-notes/ent99.md
+   Use 'memkraft update "ent99" --info "..."' to add info
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+✅ Updated: mk-prof-v28/live-notes/ent0.md
+✅ Updated: mk-prof-v28/live-notes/ent1.md
+✅ Updated: mk-prof-v28/live-notes/ent2.md
+✅ Updated: mk-prof-v28/live-notes/ent3.md
+✅ Updated: mk-prof-v28/live-notes/ent4.md
+✅ Updated: mk-prof-v28/live-notes/ent5.md
+✅ Updated: mk-prof-v28/live-notes/ent6.md
+✅ Updated: mk-prof-v28/live-notes/ent7.md
+✅ Updated: mk-prof-v28/live-notes/ent8.md
+✅ Updated: mk-prof-v28/live-notes/ent9.md
+✅ Updated: mk-prof-v28/live-notes/ent10.md
+✅ Updated: mk-prof-v28/live-notes/ent11.md
+✅ Updated: mk-prof-v28/live-notes/ent12.md
+✅ Updated: mk-prof-v28/live-notes/ent13.md
+✅ Updated: mk-prof-v28/live-notes/ent14.md
+✅ Updated: mk-prof-v28/live-notes/ent15.md
+✅ Updated: mk-prof-v28/live-notes/ent16.md
+✅ Updated: mk-prof-v28/live-notes/ent17.md
+✅ Updated: mk-prof-v28/live-notes/ent18.md
+✅ Updated: mk-prof-v28/live-notes/ent19.md
+✅ Updated: mk-prof-v28/live-notes/ent20.md
+✅ Updated: mk-prof-v28/live-notes/ent21.md
+✅ Updated: mk-prof-v28/live-notes/ent22.md
+✅ Updated: mk-prof-v28/live-notes/ent23.md
+✅ Updated: mk-prof-v28/live-notes/ent24.md
+✅ Updated: mk-prof-v28/live-notes/ent25.md
+✅ Updated: mk-prof-v28/live-notes/ent26.md
+✅ Updated: mk-prof-v28/live-notes/ent27.md
+✅ Updated: mk-prof-v28/live-notes/ent28.md
+✅ Updated: mk-prof-v28/live-notes/ent29.md
+✅ Updated: mk-prof-v28/live-notes/ent30.md
+✅ Updated: mk-prof-v28/live-notes/ent31.md
+✅ Updated: mk-prof-v28/live-notes/ent32.md
+✅ Updated: mk-prof-v28/live-notes/ent33.md
+✅ Updated: mk-prof-v28/live-notes/ent34.md
+✅ Updated: mk-prof-v28/live-notes/ent35.md
+✅ Updated: mk-prof-v28/live-notes/ent36.md
+✅ Updated: mk-prof-v28/live-notes/ent37.md
+✅ Updated: mk-prof-v28/live-notes/ent38.md
+✅ Updated: mk-prof-v28/live-notes/ent39.md
+✅ Updated: mk-prof-v28/live-notes/ent40.md
+✅ Updated: mk-prof-v28/live-notes/ent41.md
+✅ Updated: mk-prof-v28/live-notes/ent42.md
+✅ Updated: mk-prof-v28/live-notes/ent43.md
+✅ Updated: mk-prof-v28/live-notes/ent44.md
+✅ Updated: mk-prof-v28/live-notes/ent45.md
+✅ Updated: mk-prof-v28/live-notes/ent46.md
+✅ Updated: mk-prof-v28/live-notes/ent47.md
+✅ Updated: mk-prof-v28/live-notes/ent48.md
+✅ Updated: mk-prof-v28/live-notes/ent49.md
+✅ Updated: mk-prof-v28/live-notes/ent50.md
+✅ Updated: mk-prof-v28/live-notes/ent51.md
+✅ Updated: mk-prof-v28/live-notes/ent52.md
+✅ Updated: mk-prof-v28/live-notes/ent53.md
+✅ Updated: mk-prof-v28/live-notes/ent54.md
+✅ Updated: mk-prof-v28/live-notes/ent55.md
+✅ Updated: mk-prof-v28/live-notes/ent56.md
+✅ Updated: mk-prof-v28/live-notes/ent57.md
+✅ Updated: mk-prof-v28/live-notes/ent58.md
+✅ Updated: mk-prof-v28/live-notes/ent59.md
+✅ Updated: mk-prof-v28/live-notes/ent60.md
+✅ Updated: mk-prof-v28/live-notes/ent61.md
+✅ Updated: mk-prof-v28/live-notes/ent62.md
+✅ Updated: mk-prof-v28/live-notes/ent63.md
+✅ Updated: mk-prof-v28/live-notes/ent64.md
+✅ Updated: mk-prof-v28/live-notes/ent65.md
+✅ Updated: mk-prof-v28/live-notes/ent66.md
+✅ Updated: mk-prof-v28/live-notes/ent67.md
+✅ Updated: mk-prof-v28/live-notes/ent68.md
+✅ Updated: mk-prof-v28/live-notes/ent69.md
+✅ Updated: mk-prof-v28/live-notes/ent70.md
+✅ Updated: mk-prof-v28/live-notes/ent71.md
+✅ Updated: mk-prof-v28/live-notes/ent72.md
+✅ Updated: mk-prof-v28/live-notes/ent73.md
+✅ Updated: mk-prof-v28/live-notes/ent74.md
+✅ Updated: mk-prof-v28/live-notes/ent75.md
+✅ Updated: mk-prof-v28/live-notes/ent76.md
+✅ Updated: mk-prof-v28/live-notes/ent77.md
+✅ Updated: mk-prof-v28/live-notes/ent78.md
+✅ Updated: mk-prof-v28/live-notes/ent79.md
+✅ Updated: mk-prof-v28/live-notes/ent80.md
+✅ Updated: mk-prof-v28/live-notes/ent81.md
+✅ Updated: mk-prof-v28/live-notes/ent82.md
+✅ Updated: mk-prof-v28/live-notes/ent83.md
+✅ Updated: mk-prof-v28/live-notes/ent84.md
+✅ Updated: mk-prof-v28/live-notes/ent85.md
+✅ Updated: mk-prof-v28/live-notes/ent86.md
+✅ Updated: mk-prof-v28/live-notes/ent87.md
+✅ Updated: mk-prof-v28/live-notes/ent88.md
+✅ Updated: mk-prof-v28/live-notes/ent89.md
+✅ Updated: mk-prof-v28/live-notes/ent90.md
+✅ Updated: mk-prof-v28/live-notes/ent91.md
+✅ Updated: mk-prof-v28/live-notes/ent92.md
+✅ Updated: mk-prof-v28/live-notes/ent93.md
+✅ Updated: mk-prof-v28/live-notes/ent94.md
+✅ Updated: mk-prof-v28/live-notes/ent95.md
+✅ Updated: mk-prof-v28/live-notes/ent96.md
+✅ Updated: mk-prof-v28/live-notes/ent97.md
+✅ Updated: mk-prof-v28/live-notes/ent98.md
+✅ Updated: mk-prof-v28/live-notes/ent99.md
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+  [1.00] live-notes/ent53.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent5.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent67.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent36.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent94.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent84.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent26.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent77.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent43.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent12.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent32.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent63.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent90.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent57.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent1.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent16.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent47.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent80.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent73.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent22.md
+     **Tier: core** | > 🔄 Auto-tracked — updates automatically as new information arrives | ## Tracking C
+  [1.00] live-notes/ent53.md
+     # ent53 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent5.md
+     # ent5 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent57.md
+     # ent57 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent56.md
+     # ent56 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent52.md
+     # ent52 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent59.md
+     # ent59 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent58.md
+     # ent58 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent55.md
+     # ent55 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent51.md
+     # ent51 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent50.md
+     # ent50 (Live Note) | **Tier: core**
+  [1.00] live-notes/ent54.md
+     # ent54 (Live Note) | **Tier: core**
+No results for 'data'.
+No results for 'memory'.
+No results for 'agent'.
+         28597109 function calls (28596983 primitive calls) in 5.282 seconds
+
+   Ordered by: cumulative time
+   List reduced from 329 to 60 due to restriction <60>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      100    0.870    0.009    5.206    0.052 /Users/gimseojun/memcraft/src/memkraft/core.py:1286(search)
+    30100    0.017    0.000    2.902    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4094(_search_tokens)
+    40100    0.010    0.000    1.854    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/re.py:233(findall)
+    40100    1.830    0.000    1.830    0.000 {method 'findall' of 're.Pattern' objects}
+    30100    0.548    0.000    0.860    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4096(<listcomp>)
+    70948    0.449    0.000    0.449    0.000 {method 'lower' of 'str' objects}
+    21120    0.012    0.000    0.411    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1252(read_text)
+  9171350    0.351    0.000    0.352    0.000 {method 'get' of 'dict' objects}
+    22240    0.005    0.000    0.321    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1236(open)
+    22240    0.076    0.000    0.316    0.000 {built-in method io.open}
+17124092/17124058    0.315    0.000    0.315    0.000 {built-in method builtins.len}
+    22240    0.004    0.000    0.225    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1108(_opener)
+    22240    0.216    0.000    0.221    0.000 {built-in method posix.open}
+    10000    0.005    0.000    0.202    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4024(_safe_read)
+    21120    0.062    0.000    0.087    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+    20620    0.076    0.000    0.076    0.000 {method 'split' of 'str' objects}
+      500    0.000    0.000    0.076    0.000 /Users/gimseojun/memcraft/src/memkraft/cache.py:297(_wrapper)
+      500    0.005    0.000    0.075    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:199(update)
+     1120    0.001    0.000    0.069    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1268(write_text)
+    10000    0.003    0.000    0.066    0.000 {built-in method strptime}
+    10000    0.005    0.000    0.062    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_strptime.py:565(_strptime_datetime)
+    10100    0.002    0.000    0.061    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4011(_all_md_files)
+      620    0.002    0.000    0.059    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4031(_touch_last_accessed)
+    22243    0.057    0.000    0.057    0.000 {method '__exit__' of '_io._IOBase' objects}
+    10000    0.032    0.000    0.056    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_strptime.py:309(_strptime)
+    10500    0.013    0.000    0.051    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:902(relative_to)
+   687607    0.037    0.000    0.037    0.000 {method 'startswith' of 'str' objects}
+    11620    0.006    0.000    0.034    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:672(_parse_args)
+    10000    0.002    0.000    0.033    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1477(is_symlink)
+    10000    0.001    0.000    0.030    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1355(lstat)
+    10000    0.021    0.000    0.028    0.000 {built-in method posix.lstat}
+    11820    0.016    0.000    0.028    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:64(parse_parts)
+    21120    0.007    0.000    0.026    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py:319(decode)
+    10200    0.002    0.000    0.023    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1156(glob)
+    57720    0.010    0.000    0.021    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:742(__fspath__)
+    10200    0.010    0.000    0.020    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:546(_select_from)
+    21120    0.019    0.000    0.019    0.000 {built-in method _codecs.utf_8_decode}
+    47351    0.010    0.000    0.017    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/re.py:289(_compile)
+     5120    0.001    0.000    0.016    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/re.py:198(search)
+      500    0.000    0.000    0.015    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:1052(_apply_state_changes)
+      500    0.001    0.000    0.015    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:1087(_extract_state_candidates)
+    10002    0.002    0.000    0.014    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_strptime.py:26(_getlang)
+    40000    0.008    0.000    0.014    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:779(__hash__)
+    60440    0.009    0.000    0.013    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:732(__str__)
+     5120    0.013    0.000    0.013    0.000 {method 'search' of 're.Pattern' objects}
+    10002    0.003    0.000    0.012    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/locale.py:577(getlocale)
+    12220    0.006    0.000    0.010    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:856(stem)
+    22120    0.007    0.000    0.010    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:705(_from_parsed_parts)
+     2840    0.000    0.000    0.009    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1217(stat)
+     2852    0.007    0.000    0.008    0.000 {built-in method posix.stat}
+     2020    0.001    0.000    0.008    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1409(exists)
+    32320    0.006    0.000    0.008    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:293(splitroot)
+    21120    0.005    0.000    0.007    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codecs.py:309(__init__)
+    10002    0.002    0.000    0.007    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/locale.py:469(_parse_localename)
+      200    0.000    0.000    0.007    0.000 /Users/gimseojun/memcraft/src/memkraft/alias.py:86(alias_resolve)
+    10000    0.004    0.000    0.006    0.000 /Users/gimseojun/memcraft/src/memkraft/core.py:4120(_bm25_score)
+    10000    0.002    0.000    0.006    0.000 /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py:1088(_make_child_relpath)
+    24774    0.006    0.000    0.006    0.000 {built-in method builtins.max}
+    81753    0.006    0.000    0.006    0.000 {built-in method builtins.isinstance}
+    30000    0.004    0.000    0.005    0.000 {built-in method builtins.sum}
+
+
+

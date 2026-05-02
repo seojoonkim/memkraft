@@ -25,9 +25,14 @@ from __future__ import annotations
 
 import contextlib
 import io
+import logging
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List
+
+from ._regexes import _SEARCH_TOKEN_RE, _DATE_YYYYMMDD_RE
+
+log = logging.getLogger("memkraft.search")
 
 
 # Lightweight multilingual stopword set.  Intentionally small — stop
@@ -110,7 +115,7 @@ class SearchMixin:
             return []
 
         # Grab alphanumeric tokens (preserve apostrophes / hyphens mid-word)
-        tokens = re.findall(r"[\w][\w'\-]*", query.lower(), flags=re.UNICODE)
+        tokens = _SEARCH_TOKEN_RE.findall(query.lower())
         keywords: list[str] = []
         seen: set[str] = set()
         for t in tokens:
@@ -392,6 +397,7 @@ class SearchMixin:
                 return cached
 
         strategy = self._v102_classify(query)
+        log.debug("search_smart query=%r strategy=%s top_k=%d", query, strategy, top_k)
         if strategy == "temporal":
             result = self.search_temporal(
                 query, date_hint=date_hint, top_k=top_k, fuzzy=fuzzy
@@ -432,6 +438,7 @@ class SearchMixin:
         )
         if cache_obj is not None and cache_key is not None:
             cache_obj.set(cache_key, fact_result)
+        log.debug("search_smart results=%d strategy=%s", len(fact_result), strategy)
         return fact_result
 
     # ------------------------------------------------------------------
@@ -459,7 +466,7 @@ class SearchMixin:
         # Pull candidate entity names from the query (alpha tokens >=3 chars,
         # not stopwords). Cheap heuristic — the graph layer will
         # silently ignore unknown nodes.
-        tokens = re.findall(r"[\w][\w'\-]*", query.lower(), flags=re.UNICODE)
+        tokens = _SEARCH_TOKEN_RE.findall(query.lower())
         candidates: list[str] = []
         seen: set[str] = set()
         for t in tokens:
@@ -660,7 +667,7 @@ class SearchMixin:
         except ValueError:
             return base[:top_k]
 
-        date_re = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+        date_re = _DATE_YYYYMMDD_RE
         boosted: list[dict] = []
         for r in base:
             score = float(r.get("score", 0) or 0)
