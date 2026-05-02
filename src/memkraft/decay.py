@@ -172,14 +172,19 @@ class DecayMixin:
     def _read_decay_fm(self, path: Path) -> Dict[str, Any]:
         if not path.exists():
             return {}
-        text = path.read_text(encoding="utf-8")
+        from ._read_cache import get_cache
+        cached = get_cache().get_or_read(path)
+        text = cached if cached is not None else path.read_text(encoding="utf-8")
         return _parse_frontmatter(text)
 
     def _update_decay_fm(self, path: Path, updates: Dict[str, Any]) -> None:
-        text = path.read_text(encoding="utf-8")
+        from ._read_cache import get_cache
+        cached = get_cache().get_or_read(path)
+        text = cached if cached is not None else path.read_text(encoding="utf-8")
         fm = _parse_frontmatter(text)
         fm.update(updates)
         path.write_text(_write_frontmatter(text, fm), encoding="utf-8")
+        get_cache().invalidate(path)
 
     # --- public API --------------------------------------------------------
 

@@ -679,7 +679,9 @@ class SearchMixin:
             try:
                 abs_path = self.base_dir / fpath if fpath else None
                 if abs_path and abs_path.exists():
-                    content_for_date = abs_path.read_text(encoding="utf-8", errors="replace")
+                    from ._read_cache import get_cache
+                    cached = get_cache().get_or_read(abs_path)
+                    content_for_date = cached if cached is not None else content_for_date
             except Exception:
                 pass
 

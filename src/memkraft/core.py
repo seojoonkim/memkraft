@@ -215,6 +215,9 @@ class MemKraft:
 - **{now}** | Live note created [Source: {source or 'Manual'}]
 """
             filepath.write_text(content, encoding="utf-8")
+            # v2.8: explicit cache invalidation (new file, mtime fresh)
+            from ._read_cache import get_cache
+            get_cache().invalidate(filepath)
             print(f"✅ Tracking: {filepath.relative_to(self.base_dir.parent)}")
             return filepath
         except OSError as e:
@@ -274,6 +277,10 @@ class MemKraft:
                     break
 
             filepath.write_text(content, encoding="utf-8")
+            # v2.8: explicit fast-path cache invalidation so subsequent
+            # reads in the same process see fresh content immediately.
+            from ._read_cache import get_cache
+            get_cache().invalidate(filepath)
             print(f"✅ Updated: {filepath.relative_to(self.base_dir.parent)}")
         except OSError as e:
             print(f"❌ Error updating file: {e}")
@@ -4029,11 +4036,14 @@ class MemKraft:
                     yield md
 
     def _safe_read(self, path: Path) -> str:
-        """Read file safely, returning empty string on any error."""
-        try:
-            return path.read_text(encoding="utf-8", errors="replace")
-        except (OSError, ValueError):
-            return ""
+        """Read file safely, returning empty string on any error.
+
+        v2.8: uses bounded LRU cache (mtime+size invalidation) to avoid
+        redundant disk reads in the search hot path.
+        """
+        from ._read_cache import get_cache
+        text = get_cache().get_or_read(path)
+        return text if text is not None else ""
 
     def _touch_last_accessed(self, rel_path: str, timestamp: str) -> None:
         """Update 'Last Accessed' timestamp in an entity/note file.
