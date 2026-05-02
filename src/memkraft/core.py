@@ -24,25 +24,19 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ._regexes import (
     _UPDATE_COUNT_RE, _LAST_UPDATE_RE, _DATE_YYYYMMDD_RE, _DIGITS_RE,
-    _SOURCE_TAG_RE, _CONFLICT_TAG_RE, _DATE_BULLET_RE, _PENDING_BULLET_RE,
+    _SOURCE_TAG_RE, _DATE_BULLET_RE,
     _MONEY_RE, _PERCENT_RE, _COUNT_ITEMS_RE, _FACT_REGISTRY_LINE_RE,
-    _SECTION_HEADER_RE, _NEXT_SECTION_RE, _PLACEHOLDER_RE,
-    _STATE_ROLE_RE, _STATE_ROLE_IS_RE, _STATE_AFFIL_RE, _STATE_AFFIL_VERB_RE,
-    _STATE_STATUS_RE, _STATE_LOCATION_RE, _STATE_LOCATION_IS_RE,
-    _NAME_2WORDS_RE, _NAME_3WORDS_RE, _KOREAN_NAME_RE, _KOREAN_VERB_SUFFIX_RE,
-    _CHINESE_CHAR_RUN_RE, _HANDLE_RE, _EMAIL_RE, _URL_RE,
-    _ORG_SUFFIX_RE, _KR_ORG_RE, _PRODUCT_SUFFIX_RE,
-    _VERSION_PRODUCT_RE, _VERSION_HYPHEN_RE, _KR_LOCATION_RE,
-    _SEARCH_TOKEN_RE, _KR_QUERY_PATTERNS, _EN_QUERY_PATTERNS, _QUERY_SPLIT_RE,
-    _CONFLICT_BLOCK_RE, _SLUG_NONWORD_RE, _SLUG_WHITESPACE_RE,
-    _FACT_LINE_RE, _DATE_BRACKET_RE, _WHEN_RE, _WHEN_NOT_RE,
-    _CONFIDENCE_RE, _WIKILINK_RE, _TIER_RE,
-    _STATUS_RE, _DESC_RE, _RESOLUTION_RE, _EVIDENCE_RE,
-    _TAGS_RE, _LINK_COUNT_RE,
-    _KNOWN_ORG_RES, _KNOWN_LOC_RES,
-    _FIELD_KV_RE, _KR_CONFLICT_PATTERNS, _OPEN_ITEM_RE,
-    _KR_JOSA_STRIP_RE, _HYPOTHESIS_TESTING_RE, _DEBUG_HYPOTHESIS_RE,
+    _CONFLICT_BLOCK_RE, _DATE_BRACKET_RE,
+    _WIKILINK_RE, _TIER_RE,
+    _STATUS_RE, _DESC_RE, _RESOLUTION_RE, _EVIDENCE_RE, _LINK_COUNT_RE,
+    _OPEN_ITEM_RE, _KR_JOSA_STRIP_RE,
+    _HYPOTHESIS_TESTING_RE, _DEBUG_HYPOTHESIS_RE,
 )
+
+# WS-A: helper modules extracted from core.py
+from . import _core_search_helpers as _sh
+from . import _core_detection_helpers as _dh
+from . import _core_lifecycle_helpers as _lh
 
 log = logging.getLogger("memkraft.core")
 
@@ -642,26 +636,7 @@ class MemKraft:
 
     def _compression_suggestion(self, md: Path, size: int) -> str:
         """Generate an actionable compression suggestion for a bloated page."""
-        content = self._safe_read(md)
-        timeline_lines = 0
-        key_points = 0
-        for line in content.split("\n"):
-            stripped = line.strip()
-            if stripped.startswith("- **") and "**" in stripped[4:]:
-                timeline_lines += 1
-            if stripped.startswith("- ") and "[Source:" in stripped:
-                key_points += 1
-
-        suggestions = []
-        if timeline_lines > 20:
-            suggestions.append(f"condense timeline ({timeline_lines} entries → keep latest 10)")
-        if key_points > 10:
-            suggestions.append(f"merge similar key points ({key_points} items)")
-        if size > 8000:
-            suggestions.append("split into sub-pages or promote to archival tier")
-        if not suggestions:
-            suggestions.append("consider condensing Compiled Truth")
-        return "; ".join(suggestions)
+        return _dh.compression_suggestion(md, size, self._safe_read)
 
     # ── Dialectic Synthesis (Conflict Detection) ───────────
     def detect_conflicts(self, entity_name: str, new_fact: str,
@@ -710,106 +685,19 @@ class MemKraft:
 
     def _is_opposing(self, old: str, new: str) -> bool:
         """Detect if two facts are opposing/contradictory."""
-        # Negation detection
-        negation_pairs = [
-            ("is ", "is not "), ("is ", "isn't "),
-            ("was ", "was not "), ("was ", "wasn't "),
-            ("can ", "cannot "), ("can ", "can't "),
-            ("will ", "will not "), ("will ", "won't "),
-            ("이다", "아니다"), ("맞다", "틀리다"), ("맞다", "아니다"),
-            ("true", "false"), ("yes", "no"),
-            ("active", "inactive"), ("open", "closed"),
-            ("joined", "left"), ("started", "stopped"),
-            ("accepted", "rejected"), ("approved", "denied"),
-        ]
-
-        for pos, neg in negation_pairs:
-            if (pos in old and neg in new) or (neg in old and pos in new):
-                return True
-
-        # Same field, different value detection
-        # Pattern: "Role: X" vs "Role: Y" where X != Y
-        old_match = _FIELD_KV_RE.search(old)
-        new_match = _FIELD_KV_RE.search(new)
-        if old_match and new_match:
-            if old_match.group(1).lower() == new_match.group(1).lower():
-                if old_match.group(2).strip().lower() != new_match.group(2).strip().lower():
-                    return True
-
-        # High similarity (>0.6) but not identical suggests value change
-        sim = SequenceMatcher(None, old, new).ratio()
-        if sim > 0.6 and sim < 0.95:
-            # Check if they share a subject but differ in predicate
-            old_tokens = old.split()
-            new_tokens = new.split()
-            if len(old_tokens) >= 3 and len(new_tokens) >= 3:
-                # Same first 2 words (subject) but different rest (predicate)
-                if old_tokens[:2] == new_tokens[:2] and old_tokens[2:] != new_tokens[2:]:
-                    return True
-
-        return False
+        return _dh.is_opposing(old, new)
 
     def _extract_bullet_facts(self, content: str) -> List[str]:
         """Extract bullet-point facts from Key Points and Timeline sections."""
-        facts = []
-        for line in content.split("\n"):
-            stripped = line.strip()
-            if stripped.startswith("- ") and len(stripped) > 10:
-                # Clean up: remove source tags, timestamps, markers
-                clean = _SOURCE_TAG_RE.sub('', stripped)
-                clean = _CONFLICT_TAG_RE.sub('', clean)
-                clean = _DATE_BULLET_RE.sub('- ', clean)
-                clean = _PENDING_BULLET_RE.sub('- ', clean)
-                clean = clean.strip()
-                if clean.startswith("- ") and len(clean) > 5:
-                    facts.append(clean[2:])  # Strip leading "- "
-        return facts
+        return _dh.extract_bullet_facts(content)
 
     def _tag_conflict(self, filepath: Path, old_fact: str, new_fact: str, source: str) -> None:
         """Tag a conflict in the entity file: keep both, mark with [CONFLICT]."""
-        content = self._safe_read(filepath)
-        now = datetime.now().strftime("%Y-%m-%d")
-
-        # Add [CONFLICT] tag to the new fact in Key Points
-        for marker in ["## Key Points\n", "── 키 포인트\n"]:
-            if marker in content:
-                conflict_entry = f"- [CONFLICT] {new_fact} [Source: {source}] (conflicts with: {old_fact[:60]})\n"
-                content = content.replace(marker, f"{marker}{conflict_entry}")
-                break
-
-        # Add to Timeline
-        for marker in ["## Timeline\n\n", "## Timeline (Full Record)\n\n"]:
-            if marker in content:
-                content = content.replace(
-                    marker,
-                    f"{marker}- **{now}** | [CONFLICT] Detected conflict: '{new_fact[:50]}' vs '{old_fact[:50]}' [Source: {source}]\n"
-                )
-                break
-
-        filepath.write_text(content, encoding="utf-8")
+        _dh.tag_conflict(filepath, old_fact, new_fact, source)
 
     def _write_conflicts_report(self, conflicts: List[Dict[str, Any]]) -> Path:
         """Write or update CONFLICTS.md with detected conflicts."""
-        conflicts_path = self.base_dir / "CONFLICTS.md"
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-        if conflicts_path.exists():
-            existing = conflicts_path.read_text(encoding="utf-8", errors="replace")
-        else:
-            existing = "# ⚔️ Fact Conflicts\n\nAuto-detected contradictions in memory. Resolve with `memkraft dream --resolve-conflicts`.\n\n"
-
-        if conflicts:
-            existing += f"## {now}\n\n"
-            for c in conflicts:
-                existing += f"### {c['entity']}\n"
-                existing += f"- **Old:** {c['old_fact']}\n"
-                existing += f"- **New:** {c['new_fact']}\n"
-                existing += f"- **Similarity:** {c['similarity']}\n"
-                existing += f"- **File:** {c['file']}\n"
-                existing += f"- **Status:** ❌ unresolved\n\n"
-
-        conflicts_path.write_text(existing, encoding="utf-8")
-        return conflicts_path
+        return _dh.write_conflicts_report(conflicts, self.base_dir)
 
     def resolve_conflicts(self, strategy: str = "newest", dry_run: bool = False) -> Dict[str, Any]:
         """Resolve detected conflicts in CONFLICTS.md.
@@ -1003,141 +891,30 @@ class MemKraft:
 
     def _extract_facts(self, text: str) -> List[Dict[str, str]]:
         """Extract key facts from text using regex patterns."""
-        facts = []
-        # Pattern: "X is Y", "X was Y", "X serves as Y", "X joined Y"
-        fact_patterns = [
-            r'([A-Z][a-z]+ [A-Z][a-z]+) (?:is|was|serves as|joined|became|founded|leads|runs|leads) (.+?)(?:\.|,|;|$)',
-            r'([\uAC00-\uD7AF]{2,4})(?:은|는|이|가) (.+?)(?:이다|다|했다|임|됨|\.)',
-        ]
-        for pattern in fact_patterns:
-            for match in re.finditer(pattern, text):
-                entity_name = match.group(1).strip()
-                fact_text = match.group(2).strip()
-                if len(fact_text) > 5 and len(entity_name) > 1:
-                    facts.append({"entity": entity_name, "fact": fact_text, "type": "fact"})
-        return facts
+        return _dh.extract_facts(text)
 
     def _resolve_extract_input(self, input_text: str) -> Tuple[str, str]:
         """Resolve extract input from a file path, literal text, or stdin."""
-        if input_text:
-            # Skip path check for very long inputs (clearly not a file path)
-            if len(input_text) <= 4096:
-                maybe_path = Path(input_text).expanduser()
-                try:
-                    if maybe_path.exists() and maybe_path.is_file():
-                        return maybe_path.read_text(encoding="utf-8", errors="replace"), str(maybe_path)
-                except OSError:
-                    pass  # Not a valid path, treat as text
-            return input_text, "inline"
-
-        try:
-            if not sys.stdin.isatty():
-                return sys.stdin.read(), "stdin"
-        except (OSError, AttributeError):
-            pass
-
-        return "", ""
+        return _dh.resolve_extract_input(input_text, self._safe_read, self.base_dir)
 
     def _extract_registry_facts(self, text: str) -> List[str]:
         """Extract numeric/date facts for the cross-domain fact registry."""
-        facts = []
-        for pattern in [_MONEY_RE, _PERCENT_RE, _COUNT_ITEMS_RE]:
-            for m in pattern.finditer(text):
-                facts.append(m.group().strip())
-
-        for m in _DATE_YYYYMMDD_RE.finditer(text):
-            start = max(0, m.start() - 20)
-            prefix = text[start:m.start()].lower()
-            if "source" in prefix or "update" in prefix or "started" in prefix or "**" in prefix:
-                continue
-            facts.append(m.group())
-
-        return list(dict.fromkeys(facts))
+        return _dh.extract_registry_facts(text)
 
     def _write_fact_registry(self, facts: list, source: str = "") -> List[str]:
         """Append de-duplicated facts to fact-registry.md."""
-        clean_facts = [f.strip() for f in facts if f and f.strip()]
-        if not clean_facts:
-            return []
-
-        registry = self.base_dir / "fact-registry.md"
-        registry.parent.mkdir(parents=True, exist_ok=True)
-        existing = registry.read_text(encoding="utf-8", errors="replace") if registry.exists() else "# Fact Registry\n\nCross-domain index of concrete data points.\n\n"
-        existing_facts = set(_FACT_REGISTRY_LINE_RE.findall(existing))
-        new_facts = [f for f in dict.fromkeys(clean_facts) if f not in existing_facts]
-        if not new_facts:
-            return []
-
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        existing += f"\n## {now}\n"
-        for fact in new_facts:
-            source_suffix = f" [Source: {source}]" if source else ""
-            existing += f"- {fact}{source_suffix}\n"
-        registry.write_text(existing, encoding="utf-8")
-        return new_facts
+        return _dh.write_fact_registry(facts, self.base_dir, source)
 
     def _apply_state_changes(self, content: str, info: str) -> Tuple[str, List[str]]:
         """Update Current State lines and return human-readable transitions."""
-        candidates = self._extract_state_candidates(info)
-        if not candidates:
-            return content, []
-
-        section_match = _SECTION_HEADER_RE.search(content)
-        if not section_match:
-            return content, []
-
-        section_start = section_match.end()
-        next_section = _NEXT_SECTION_RE.search(content[section_start:])
-        section_end = section_start + next_section.start() if next_section else len(content)
-        section = content[section_start:section_end]
-        transitions = []
-
-        for field, new_value in candidates.items():
-            field_pattern = re.compile(rf'(^- \*\*{re.escape(field)}:\*\* )(.*)$', re.MULTILINE)
-            match = field_pattern.search(section)
-            if match:
-                old_value = match.group(2).strip()
-                if self._is_material_state_change(old_value, new_value):
-                    transitions.append(f"{field} changed from `{old_value}` to `{new_value}`")
-                section = section[:match.start(2)] + new_value + section[match.end(2):]
-                continue
-
-            placeholder_match = _PLACEHOLDER_RE.search(section)
-            insertion = f"- **{field}:** {new_value}\n"
-            if placeholder_match:
-                section = section[:placeholder_match.start()] + insertion + section[placeholder_match.end():]
-            else:
-                section = insertion + section
-
-        return content[:section_start] + section + content[section_end:], transitions
+        return _dh.apply_state_changes(content, info)
 
     def _extract_state_candidates(self, info: str) -> Dict[str, str]:
         """Extract simple state fields from update text."""
-        fields = {
-            "Role": [_STATE_ROLE_RE, _STATE_ROLE_IS_RE],
-            "Affiliation": [_STATE_AFFIL_RE, _STATE_AFFIL_VERB_RE],
-            "Status": [_STATE_STATUS_RE],
-            "Location": [_STATE_LOCATION_RE, _STATE_LOCATION_IS_RE],
-        }
-        candidates = {}
-        for field, patterns in fields.items():
-            for pattern in patterns:
-                match = pattern.search(info)
-                if match:
-                    value = match.group(1).strip(" .;")
-                    if value:
-                        candidates[field] = value[:200]
-                    break
-        return candidates
+        return _dh.extract_state_candidates(info)
 
     def _is_material_state_change(self, old_value: str, new_value: str) -> bool:
-        old_clean = old_value.strip()
-        new_clean = new_value.strip()
-        if old_clean.lower() == new_clean.lower():
-            return False
-        if not old_clean or "enrichment needed" in old_clean.lower() or "latest information" in old_clean.lower():
-            return False
-        return True
+        return _dh.is_material_state_change(old_value, new_value)
 
     def _append_fact(self, entity_name: str, fact: str, source: str = "",
                      confidence: str = "experimental",
@@ -1148,28 +925,10 @@ class MemKraft:
             confidence: Confidence level (verified / experimental / hypothesis).
             applicability: Applicability condition (optional).
         """
-        slug = self._slugify(entity_name)
-        conf_tag = f" | Confidence: {confidence}" if confidence else ""
-        app_tag = f" | {applicability}" if applicability else ""
-        # Try live-notes first, then entities
-        for directory in [self.live_notes_dir, self.entities_dir]:
-            filepath = directory / f"{slug}.md"
-            if filepath.exists():
-                now = datetime.now().strftime("%Y-%m-%d")
-                content = filepath.read_text(encoding="utf-8", errors="replace")
-                # Add to Key Points section
-                for marker in ["## Key Points\n", "## 키 포인트\n"]:
-                    if marker in content:
-                        content = content.replace(marker, f"{marker}- {fact} [Source: {source}{conf_tag}]{app_tag}\n")
-                        break
-                else:
-                    # Add to timeline if no Key Points section
-                    for marker in ["## Timeline\n\n", "## Timeline (Full Record)\n\n"]:
-                        if marker in content:
-                            content = content.replace(marker, f"{marker}- **{now}** | {fact} [Source: {source}{conf_tag}]{app_tag}\n")
-                            break
-                filepath.write_text(content, encoding="utf-8")
-                return
+        _dh.append_fact(
+            entity_name, fact, source, confidence, applicability,
+            self._slugify, self.live_notes_dir, self.entities_dir,
+        )
 
     # ── Cognify ────────────────────────────────────────────────
     def cognify(self, dry_run: bool = False, apply: bool = False) -> None:
@@ -1214,23 +973,15 @@ class MemKraft:
 
     def _classify_content(self, content: str) -> str:  # noqa: PLR0911
         """Classify content based on heuristics."""
-        lower = content.lower()
-        # Decision markers
-        if any(kw in lower for kw in ["decided", "decision", "chose", "agreed"]):
-            return "decision"
-        # Task markers
-        if any(kw in lower for kw in ["todo", "task", "action item", "need to", "must"]):
-            return "task"
-        # Person markers
-        if any(kw in lower for kw in ["ceo", "cto", "founder", "investor", "director"]):
-            return "entity"
-        # Default to entity
-        return "entity"
+        return _dh.classify_content(content)
 
     def _route_to_dir(self, route: str) -> Path:
         """Map classification to directory."""
-        mapping = {"entity": self.entities_dir, "decision": self.decisions_dir, "task": self.tasks_dir}
-        return mapping.get(route)
+        return _dh.route_to_dir(route, {
+            "entity": self.entities_dir,
+            "decision": self.decisions_dir,
+            "task": self.tasks_dir,
+        })
 
     # ── Promote (Memory Tiers) ────────────────────────────────
     def promote(self, name: str, tier: str = "core") -> None:
@@ -2393,63 +2144,10 @@ class MemKraft:
         Same query with different context produces different rankings.
         Uses difflib similarity between context and file content + memory-type decay.
         """
-        if not context or not results:
-            return results
-
-        context_lower = context.lower()
-        context_tokens = set(self._search_tokens(context_lower))
-
-        for r in results:
-            md_path = self.base_dir / r["file"]
-            content = self._safe_read(md_path)
-            if not content:
-                continue
-
-            content_lower = content.lower()
-
-            # 1. Context relevance: how well does this result match the goal?
-            context_score = 0.0
-            if context_lower in content_lower:
-                context_score = 0.3
-            else:
-                content_tokens = set(self._search_tokens(content_lower))
-                overlap = len(context_tokens & content_tokens)
-                if context_tokens:
-                    context_score = 0.2 * (overlap / len(context_tokens))
-
-            # 2. Semantic similarity via difflib
-            # Compare context against most relevant section
-            best_section_sim = 0.0
-            for line in content.split("\n"):
-                stripped = line.strip()
-                if stripped and len(stripped) > 10:
-                    sim = SequenceMatcher(None, context_lower, stripped.lower()).ratio()
-                    if sim > best_section_sim:
-                        best_section_sim = sim
-            context_score += best_section_sim * 0.15
-
-            # 3. Memory-type decay adjustment
-            memory_type = self.classify_memory_type(content)
-            decay_mult = self.get_decay_multiplier(memory_type)
-            # For identity/belief memories, boost score; for routine/transient, penalize
-            type_bonus = 0.05 * (1.0 - decay_mult)  # identity → +0.045, routine → +0.005
-
-            # 4. Tier-context alignment
-            tier_bonus = 0.0
-            if "Tier: core" in content:
-                tier_bonus = 0.03
-
-            # 5. Confidence weighting: verified facts boost score
-            confidence_bonus = self._compute_confidence_bonus(content)
-
-            # 6. Applicability conditions: boost if current context matches When: conditions
-            applicability_bonus = self._compute_applicability_bonus(content, context)
-
-            r["score"] = round(min(1.0, r.get("score", 0) + context_score + type_bonus + tier_bonus + confidence_bonus + applicability_bonus), 2)
-            r["memory_type"] = memory_type
-
-        results.sort(key=lambda x: x["score"], reverse=True)
-        return results
+        return _sh.goal_weighted_rerank(
+            results, context, self.base_dir, self._safe_read,
+            self._search_tokens, self.classify_memory_type, self.get_decay_multiplier,
+        )
 
     def _compute_applicability_bonus(self, content: str, context: str) -> float:
         """Compute a score bonus based on applicability conditions matching context.
@@ -2457,66 +2155,25 @@ class MemKraft:
         Lines with 'When: X' get boosted if X keywords match context.
         Lines with 'When NOT: X' get penalized if X keywords match context.
         """
-        if not context:
-            return 0.0
-
-        context_lower = context.lower()
-        context_tokens = set(self._search_tokens(context_lower))
-        bonus = 0.0
-        match_count = 0
-
-        for line in content.split("\n"):
-            when_match = _WHEN_RE.search(line)
-            when_not_match = _WHEN_NOT_RE.search(line)
-
-            if when_match:
-                condition = when_match.group(1).strip().lower()
-                cond_tokens = set(self._search_tokens(condition))
-                overlap = len(context_tokens & cond_tokens)
-                if overlap > 0 and cond_tokens:
-                    bonus += 0.03 * (overlap / len(cond_tokens))
-                    match_count += 1
-
-            if when_not_match:
-                condition = when_not_match.group(1).strip().lower()
-                cond_tokens = set(self._search_tokens(condition))
-                overlap = len(context_tokens & cond_tokens)
-                if overlap > 0 and cond_tokens:
-                    bonus -= 0.02 * (overlap / len(cond_tokens))
-                    match_count += 1
-
-        return round(min(0.1, bonus), 3)
+        return _sh.compute_applicability_bonus(content, context, self._search_tokens)
 
     def _parse_applicability(self, text: str) -> Dict[str, List[str]]:
         """Parse applicability conditions from text.
 
         Returns dict with 'when' and 'when_not' lists.
         """
-        result: Dict[str, List[str]] = {"when": [], "when_not": []}
-        for match in _WHEN_RE.finditer(text):
-            result["when"].append(match.group(1).strip())
-        for match in _WHEN_NOT_RE.finditer(text):
-            result["when_not"].append(match.group(1).strip())
-        return result
+        return _sh.parse_applicability(text)
 
     def _compute_confidence_bonus(self, content: str) -> float:
         """Compute a score bonus based on the confidence levels of facts in content.
 
         Files with more verified facts get a higher bonus.
         """
-        verified_count = content.count("Confidence: verified")
-        experimental_count = content.count("Confidence: experimental")
-        hypothesis_count = content.count("Confidence: hypothesis")
-        total = verified_count + experimental_count + hypothesis_count
-        if total == 0:
-            return 0.0
-        weighted = (verified_count * 1.0 + experimental_count * 0.7 + hypothesis_count * 0.4) / total
-        return round(0.05 * weighted, 3)
+        return _sh.compute_confidence_bonus(content)
 
     def _extract_fact_confidence(self, line: str) -> str:
         """Extract confidence level from a fact line."""
-        m = _CONFIDENCE_RE.search(line)
-        return m.group(1) if m else ""
+        return _sh.extract_fact_confidence(line)
 
     # ── Agentic Search ──────────────────────────────────────────
     def agentic_search(self, query: str, max_hops: int = 2, json_output: bool = False,
@@ -2648,64 +2305,11 @@ class MemKraft:
         Creates a compound interest effect: searching enriches memory,
         so future searches return richer results.
         """
-        now = datetime.now().strftime("%Y-%m-%d")
-        filed_count = 0
-        for r in results[:5]:  # Top 5 results only to avoid noise
-            md_path = self.base_dir / r["file"]
-            snippet = r.get("snippet", "")[:120]
-            if not snippet:
-                continue
-
-            feedback_entry = f"- **{now}** | [Filed back] Query: '{query[:60]}' — {snippet} [Source: agentic_search | Confidence: experimental]"
-
-            # Prefer writing to live-notes if it exists (richer context)
-            slug = md_path.stem
-            live_path = self.base_dir / "live-notes" / f"{slug}.md"
-            wrote = False
-            if live_path.exists():
-                live_content = self._safe_read(live_path)
-                for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
-                    if marker in live_content:
-                        live_content = live_content.replace(marker, f"{marker}{feedback_entry}\n")
-                        live_path.write_text(live_content, encoding="utf-8")
-                        filed_count += 1
-                        wrote = True
-                        break
-
-            # Fall back to entities file if no live-notes
-            if not wrote and md_path.exists():
-                content = self._safe_read(md_path)
-                for marker in ["## Timeline (Full Record)\n\n", "## Timeline\n\n"]:
-                    if marker in content:
-                        content = content.replace(marker, f"{marker}{feedback_entry}\n")
-                        md_path.write_text(content, encoding="utf-8")
-                        filed_count += 1
-                        break
-
-        if filed_count:
-            print(f"📂 Filed back {filed_count} results into entity timelines")
+        _sh.file_back_results(self.base_dir, query, results, self._safe_read)
 
     def _decompose_query(self, query: str) -> List[str]:
         """Decompose a complex query into sub-queries."""
-        # Korean question patterns
-        for pat in _KR_QUERY_PATTERNS:
-            m = pat.search(query)
-            if m:
-                return [g.strip() for g in m.groups() if g.strip()] + [query]
-
-        # English patterns: "X of Y", "who is X", "what is X"
-        for pat in _EN_QUERY_PATTERNS:
-            m = pat.search(query)
-            if m:
-                return [g.strip() for g in m.groups() if g.strip()] + [query]
-
-        # Fallback: split on common delimiters
-        if len(query) > 20:
-            parts = _QUERY_SPLIT_RE.split(query)
-            if len(parts) > 1:
-                return [p.strip() for p in parts if len(p.strip()) > 2]
-
-        return [query]
+        return _sh.decompose_query(query)
 
     # ── Brain-first Lookup ───────────────────────────────────────
     def lookup(self, query: str, json_output: bool = False,
@@ -3266,29 +2870,18 @@ class MemKraft:
 
     def _get_debug_file(self, bug_id: str) -> Optional[Path]:
         """Get the file path for a debug session."""
-        filepath = self.debug_dir / f"{bug_id}.md"
-        if not filepath.exists():
+        result = _lh.get_debug_file(bug_id, self.debug_dir)
+        if result is None:
             print(f"❌ Debug session '{bug_id}' not found")
-            return None
-        return filepath
+        return result
 
     def _update_debug_status(self, content: str, new_status: str) -> str:
         """Update the status field in debug session content."""
-        return re.sub(
-            r'(\*\*Status:\*\* )(OBSERVE|HYPOTHESIZE|EXPERIMENT|CONCLUDE)',
-            rf'\g<1>{new_status}',
-            content,
-            count=1
-        )
+        return _lh.update_debug_status(content, new_status)
 
     def _append_debug_timeline(self, content: str, entry: str) -> str:
         """Append an entry to the debug session timeline."""
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        timeline_entry = f"- **{now}** | {entry}\n"
-        # Find the last line of Timeline section and append
-        if "## Timeline\n" in content:
-            content = content.rstrip() + "\n" + timeline_entry
-        return content
+        return _lh.append_debug_timeline(content, entry)
 
     # ── Channel Context Memory ─────────────────────────────────
     def channel_save(self, channel_id: str, context_data: Dict[str, Any]) -> Path:
@@ -3793,26 +3386,15 @@ class MemKraft:
     # ── JSON helpers (for channel/task/agent) ─────────────────────
     def _json_load(self, filepath: Path) -> Dict[str, Any]:
         """Load a JSON file, returning empty dict if missing or invalid."""
-        if not filepath.exists():
-            return {}
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
-            return {}
+        return _lh.json_load(filepath)
 
     def _json_save(self, filepath: Path, data: Dict[str, Any]) -> None:
         """Save data to a JSON file."""
-        filepath.parent.mkdir(parents=True, exist_ok=True)
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        _lh.json_save(filepath, data)
 
     # ── Helpers ───────────────────────────────────────────────
     def _slugify(self, text: str) -> str:
-        text = text.strip().lower()
-        text = _SLUG_NONWORD_RE.sub('', text)
-        text = _SLUG_WHITESPACE_RE.sub('-', text)
-        return text[:80]
+        return _lh.slugify(text)
 
     def _detect_regex(self, text: str) -> List[Dict[str, str]]:
         """Multi-language entity detection via regex (zero ML dependencies).
@@ -3820,220 +3402,20 @@ class MemKraft:
         Detects: persons (EN/KR/CN/JP), @handles, emails, URLs,
         organizations, products (incl. version numbers), and locations.
         """
-        entities: List[Dict[str, str]] = []
-        common = {'The', 'This', 'That', 'And', 'But', 'For', 'Not', 'All', 'Has', 'Was', 'Are', 'Its', 'Our', 'Their', 'Yc', 'From', 'With', 'Please', 'Contact', 'However', 'While', 'These', 'Those', 'Each', 'Some', 'Many', 'Other', 'Such', 'Most', 'Last', 'New', 'Old', 'Next', 'Here', 'After', 'Before', 'Between', 'Under', 'Over', 'Every', 'About', 'Also', 'Just', 'When', 'Where', 'Why', 'How', 'What', 'Who', 'Which', 'More', 'Much', 'Very', 'Well', 'Still', 'Even', 'Back', 'Down', 'Only', 'Then', 'Than', 'Both', 'Into', 'Like', 'Made', 'Come', 'Could', 'Would', 'Should', 'Will', 'May', 'Can', 'Did', 'Does'}
-
-        names_2 = _NAME_2WORDS_RE.findall(text)
-        names_3 = _NAME_3WORDS_RE.findall(text)
-        korean_names = _KOREAN_NAME_RE.findall(text)
-        # 한국어 동사/형용사 어미 제거 후 이름만 추출
-        korean_names_cleaned = []
-        for name in korean_names:
-            # 동사 어미 제거: 했다, 한다, 해요, 함, 됨, 됐다, etc.
-            stripped = _KOREAN_VERB_SUFFIX_RE.sub('', name)
-            if len(stripped) >= 2:
-                korean_names_cleaned.append(stripped)
-        korean_names = korean_names_cleaned
-        # 중국어/일본어 한자 패턴 (한자에는 단어 경계가 없어서 연속 추출)
-        stopwords = self._load_stopwords()
-        korean_stopwords = set(stopwords.get("korean", []))
-        chinese_stopwords = set(stopwords.get("chinese", []))
-        japanese_stopwords = set(stopwords.get("japanese", []))
-
-        names_3_word_sets = [set(n.split()) for n in names_3]
-        for name in set(names_3):
-            if name not in common:
-                entities.append({"name": name, "type": "person", "context": "auto-detected"})
-        for name in set(names_2):
-            name_words = set(name.split())
-            is_substring = any(name_words.issubset(ws) for ws in names_3_word_sets)
-            if name not in common and name.split()[0] not in common and name.split()[1] not in common and not is_substring:
-                entities.append({"name": name, "type": "person", "context": "auto-detected"})
-        for name in set(korean_names):
-            if len(name) >= 2 and name not in korean_stopwords:
-                stripped = self._strip_korean_josa(name)
-                if stripped != name and stripped not in korean_stopwords:
-                    name = stripped
-                if name not in korean_stopwords and len(name) >= 2:
-                    entities.append({"name": name, "type": "person", "context": "auto-detected (Korean)"})
-
-        # 중국어 이름 감지 — 성씨 기반 접근 (한자에는 단어 경계가 없어서 정규식만으로는 한계)
-        # 전체 한자 텍스트에서 성씨로 시작하는 2~3글자 패턴 추출
-        chinese_surnames = {'王', '李', '张', '刘', '陈', '杨', '赵', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'}
-        # 한자 연속 시퀀스에서 성씨+1~2글자 추출
-        chinese_char_runs = _CHINESE_CHAR_RUN_RE.findall(text)
-        seen_chinese = set()
-        for run in chinese_char_runs:
-            for i, ch in enumerate(run):
-                if ch in chinese_surnames:
-                    for length in [3, 2]:  # 3글자 이름 먼저
-                        if i + length <= len(run):
-                            candidate = run[i:i+length]
-                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords and candidate not in seen_chinese:
-                                seen_chinese.add(candidate)
-                                entities.append({"name": candidate, "type": "person", "context": "auto-detected (Chinese)"})
-                                break  # 가장 긴 매치 사용
-
-        # 일본어 성씨 기반 감지
-        japanese_surnames = {'田中', '佐藤', '鈴木', '高橋', '伊藤', '渡辺', '山本', '中村', '小林', '加藤', '吉田', '山田', '山口', '松本', '井上', '木村', '斎藤', '清水', '山崎', '池田', '橋本', '阿部', '石川', '山下', '中島', '石井', '小川', '前田', '岡田', '長谷川', '藤田', '後藤', '近藤', '村上', '遠藤', '青木', '坂本', '斉藤', '福田', '西村', '藤井', '金子', '岡本', '藤原', '中野', '三浦', '原田', '松田', '竹内', '上田', '中山', '和田', '森田', '柴田', '酒井', '工藤', '横山', '宮崎', '宮本', '内田', '高木', '安藤', '谷口', '大野', '丸山', '今井', '高田', '藤本', '武田', '村田', '上野', '杉山', '増田', '平野', '大塚', '千葉', '久保', '松井', '小島', '岩崎', '桜井', '木下', '野村', '島田', '菊池'}
-        for run in chinese_char_runs:
-            for js in sorted(japanese_surnames, key=len, reverse=True):
-                if js in run:
-                    idx = run.find(js)
-                    for name_len in [len(js)+2, len(js)+1]:  # 긴 것부터
-                        if idx + name_len <= len(run):
-                            candidate = run[idx:idx+name_len]
-                            if candidate not in chinese_stopwords and candidate not in japanese_stopwords and candidate not in seen_chinese:
-                                entities.append({"name": candidate, "type": "person", "context": "auto-detected (Japanese)"})
-                                break
-
-        handles = _HANDLE_RE.findall(text)
-        for handle in set(handles):
-            entities.append({"name": handle, "type": "person", "context": "mentioned via @handle"})
-
-        # ── Email detection ───────────────────────────────────
-        emails = _EMAIL_RE.findall(text)
-        for email in set(emails):
-            entities.append({"name": email, "type": "contact", "context": "auto-detected (email)"})
-
-        # ── URL detection ─────────────────────────────────────
-        urls = _URL_RE.findall(text)
-        for url in set(urls):
-            entities.append({"name": url, "type": "reference", "context": "auto-detected (URL)"})
-
-        # ── Organization detection ─────────────────────────────
-        # Known tech companies (extendable)
-        known_orgs = {'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Tesla', 'Netflix', 'Nvidia', 'OpenAI', 'Anthropic', 'Samsung', 'Hashed', 'Tencent', 'Alibaba', 'ByteDance', 'Baidu', 'Sony', 'Toyota', 'Hyundai', 'LG', 'Kakao', 'Naver', 'Coupang', 'Toss', 'Stripe', 'SpaceX', 'Palantir', 'Uber', 'Airbnb', 'Coinbase', 'Binance', 'Riot', 'Epic', 'Valve', 'Blizzard'}
-        # "X Corp", "X Inc", "X Ltd", "X Co", "X Foundation", "X Labs", "X Group", "X Capital", "X Ventures"
-        org_suffix_pattern = _ORG_SUFFIX_RE.findall(text)
-        for org in org_suffix_pattern:
-            entities.append({"name": org, "type": "organization", "context": "auto-detected (suffix)"})
-
-        # Known org names from text
-        for org in known_orgs:
-            if _KNOWN_ORG_RES.get(org) and _KNOWN_ORG_RES[org].search(text):
-                # Check not already captured as person
-                if not any(e["name"] == org for e in entities):
-                    entities.append({"name": org, "type": "organization", "context": "auto-detected (known)"})
-
-        # Korean organizations: 한자+기관/회사/은행/그룹 etc.
-        kr_orgs = _KR_ORG_RE.findall(text)
-        for org in kr_orgs:
-            if org not in korean_stopwords:
-                entities.append({"name": org, "type": "organization", "context": "auto-detected (Korean org)"})
-
-        # ── Product detection ──────────────────────────────────
-        # "X Pro", "X Max", "X Ultra", "X Plus", "X Mini", "X Air"
-        product_pattern = _PRODUCT_SUFFIX_RE.findall(text)
-        for prod in product_pattern:
-            if not any(e["name"] == prod for e in entities):
-                entities.append({"name": prod, "type": "product", "context": "auto-detected (suffix)"})
-
-        # Version-number products: "GPT-5", "iPhone 16", "Claude-3.5"
-        # CamelCase or uppercase start + digit (allows iPhone, MacBook, GPT, etc.)
-        version_products = _VERSION_PRODUCT_RE.findall(text)
-        # Hyphenated: GPT-5, Claude-3
-        version_products += _VERSION_HYPHEN_RE.findall(text)
-        for vp in set(version_products):
-            vp = vp.strip()
-            if len(vp) >= 3 and not any(e["name"] == vp for e in entities):
-                if re.fullmatch(r'\d{4}', vp):
-                    continue
-                entities.append({"name": vp, "type": "product", "context": "auto-detected (version)"})
-
-        # ── Location detection ─────────────────────────────────
-        known_locations = {'Seoul', 'Tokyo', 'Beijing', 'Shanghai', 'Singapore', 'London', 'New York', 'San Francisco', 'Berlin', 'Paris', 'Dubai', 'Hong Kong', 'Taipei', 'Bangkok', 'Sydney', 'Toronto', 'Vancouver', 'Busan', 'Jeju', 'Osaka', 'Mumbai', 'Delhi', 'Jakarta', 'Manila', 'Kuala Lumpur'}
-        for loc in known_locations:
-            if _KNOWN_LOC_RES.get(loc) and _KNOWN_LOC_RES[loc].search(text):
-                if not any(e["name"] == loc for e in entities):
-                    entities.append({"name": loc, "type": "location", "context": "auto-detected (known)"})
-
-        # Korean locations: 시/도/구/군/읍/면
-        kr_locations = _KR_LOCATION_RE.findall(text)
-        for loc in kr_locations:
-            if loc not in korean_stopwords and len(loc) >= 3:
-                entities.append({"name": loc, "type": "location", "context": "auto-detected (Korean location)"})
-
-        return entities
+        return _sh.detect_regex(text, self._strip_korean_josa)
 
     def _create_entity(self, name: str, entity_type: str = "person", source: str = ""):
-        self.entities_dir.mkdir(parents=True, exist_ok=True)
-        slug = self._slugify(name)
-        filepath = self.entities_dir / f"{slug}.md"
-
-        if filepath.exists():
-            # Append to timeline
-            content = filepath.read_text(encoding="utf-8", errors="replace")
-            now = datetime.now().strftime("%Y-%m-%d")
-            timeline_marker = "## Timeline\n\n"
-            if timeline_marker in content:
-                content = content.replace(
-                    timeline_marker,
-                    f"{timeline_marker}- **{now}** | Re-detected [Source: {source}]\n"
-                )
-                filepath.write_text(content, encoding="utf-8")
-            return
-
-        now = datetime.now().strftime("%Y-%m-%d")
-        content = f"""# {name}
-
-**Tier: recall**
-
-## Executive Summary
-(Type or auto-generate a 1-2 sentence summary)
-
-## State
-- **Role:** (enrichment needed)
-- **Affiliation:** (enrichment needed)
-- **Relationship:** (enrichment needed)
-- **Key Context:** (enrichment needed)
-
-## Open Threads
-- [ ] Initial entity — enrichment needed
-
-## See Also
-(Related items to be linked)
-
----
-
-## Timeline
-
-- **{now}** | Entity first detected [Source: {source}]
-"""
-        filepath.write_text(content, encoding="utf-8")
+        _lh.create_entity(name, entity_type, source, self.entities_dir, self._slugify)
 
     def _strip_korean_josa(self, name: str) -> str:
-        for josa in self.KOREAN_JOSA:
-            if name.endswith(josa):
-                stripped = name[:-len(josa)]
-                if len(stripped) >= 2:
-                    return stripped
-        return name
+        return _lh.strip_korean_josa(name, self.KOREAN_JOSA)
 
     def _extract_section(self, content: str, section_name: str) -> str:
-        marker = f"## {section_name}"
-        if marker not in content:
-            return ""
-        start = content.find(marker) + len(marker)
-        end = content.find("\n## ", start)
-        if end == -1:
-            end = content.find("\n---", start)
-        if end == -1:
-            end = len(content)
-        return content[start:end].strip()
+        return _lh.extract_section(content, section_name)
 
     def _all_md_files(self):
-        for subdir in [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir]:
-            if subdir.exists():
-                for md in subdir.glob("*.md"):
-                    if not md.is_symlink():
-                        yield md
-        # Include daily notes and base-dir markdown files (exclude system/auto-generated files)
-        _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
-        if self.base_dir.exists():
-            for md in self.base_dir.glob("*.md"):
-                if md.name not in _system_files and not md.is_symlink():
-                    yield md
+        dirs = [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir]
+        return _lh.all_md_files(dirs, self.base_dir)
 
     def _safe_read(self, path: Path) -> str:
         """Read file safely, returning empty string on any error.
@@ -4051,66 +3433,15 @@ class MemKraft:
         v2.4: search hit decay reset — refreshes access time so recently
         searched entities don't decay away.
         """
-        if not rel_path:
-            return
-        try:
-            full_path = self.base_dir / rel_path
-            if not full_path.exists() or not full_path.is_file():
-                return
-            content = full_path.read_text(encoding="utf-8", errors="replace")
-            # Check if "Last Accessed" line exists
-            import re as _re
-            pattern = r'\*\*Last Accessed:\*\*\s*.*'
-            replacement = f'**Last Accessed:** {timestamp}'
-            if _re.search(pattern, content):
-                content = _re.sub(pattern, replacement, content)
-            else:
-                # Insert after "Last Update" line if present, else after "Tracking Config" heading
-                last_update_pattern = r'(\*\*Last Update:\*\*\s*[^\n]+)'
-                m = _re.search(last_update_pattern, content)
-                if m:
-                    insert_pos = m.end()
-                    content = content[:insert_pos] + f'\n- **Last Accessed:** {timestamp}' + content[insert_pos:]
-                else:
-                    # Insert after "## Tracking Config" heading
-                    tc_pattern = r'(## Tracking Config\n)'
-                    m2 = _re.search(tc_pattern, content)
-                    if m2:
-                        insert_pos = m2.end()
-                        content = content[:insert_pos] + f'- **Last Accessed:** {timestamp}\n' + content[insert_pos:]
-            full_path.write_text(content, encoding="utf-8")
-        except Exception:
-            pass  # best-effort, don't break search
-
+        _lh.touch_last_accessed(self.base_dir, rel_path, timestamp)
 
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""
-        files = list(self._all_md_files())
-        # Deduplicate (in case _all_md_files yields same file from base_dir)
-        seen = set()
-        unique = []
-        for f in files:
-            if f not in seen:
-                seen.add(f)
-                unique.append(f)
-        files = unique
-        if recent > 0:
-            def _safe_mtime(f: Path) -> float:
-                try:
-                    return f.stat().st_mtime
-                except OSError:
-                    return 0.0
-            files.sort(key=_safe_mtime, reverse=True)
-            files = files[:recent]
-        if date:
-            files = [f for f in files if date in f.read_text(encoding="utf-8", errors="replace") or date in f.name]
-        if tag:
-            files = [f for f in files if tag.lower() in f.read_text(encoding="utf-8", errors="replace").lower()]
-        return files
+        return _lh.gather_memory_files(self._all_md_files, recent, tag, date)
 
     def _search_tokens(self, text: str) -> list:
         """Tokenize search text for dependency-free hybrid matching."""
-        return [t for t in _SEARCH_TOKEN_RE.findall(text.lower()) if len(t) > 1]
+        return _sh.search_tokens(text)
 
     # ── BM25 scoring (v2.3) ───────────────────────────────────
     def _get_corpus_stats(self) -> Tuple[int, float]:
@@ -4121,18 +3452,7 @@ class MemKraft:
         in tokens (using the same tokenizer as the rest of the search
         pipeline).  Returns ``(0, 0.0)`` if the corpus is empty.
         """
-        total_tokens = 0
-        n = 0
-        for md in self._all_md_files():
-            try:
-                text = md.read_text(encoding="utf-8", errors="replace").lower()
-            except OSError:
-                continue
-            total_tokens += len(self._search_tokens(text))
-            n += 1
-        if n == 0:
-            return 0, 0.0
-        return n, total_tokens / n
+        return _sh.get_corpus_stats(self._all_md_files, self._search_tokens)
 
     def _bm25_score(
         self,
@@ -4146,118 +3466,26 @@ class MemKraft:
         k1: float = 1.5,
         b: float = 0.75,
     ) -> float:
-        """Compute Okapi BM25 score for a single (query, document) pair.
-
-        Pure stdlib (uses :pymod:`math` only).  Does not depend on any
-        external retrieval library.  When the corpus is empty or all
-        inputs are zero, returns ``0.0`` rather than raising.
-
-        Formula::
-
-            BM25(q, d) = Σ_{q_i ∈ q} IDF(q_i) *
-                         tf(q_i, d) * (k1 + 1) /
-                         (tf(q_i, d) + k1 * (1 - b + b * |d| / avgdl))
-
-        Standard BM25 IDF (Robertson-Sparck-Jones, smoothed)::
-
-            IDF(q_i) = log( (N - n(q_i) + 0.5) / (n(q_i) + 0.5) + 1 )
-
-        Parameters
-        ----------
-        query_tokens:
-            Tokenised query (lowercased, len>1 — same shape as
-            :py:meth:`_search_tokens`).
-        doc_tf:
-            Mapping ``token -> raw count`` for the document body.
-        doc_length:
-            Number of tokens in the document body.
-        avg_doc_length:
-            Corpus average document length in tokens.
-        doc_count:
-            Total number of documents in the corpus (``N``).
-        token_doc_freq:
-            Mapping ``token -> document frequency`` across the corpus.
-        filename_tokens:
-            Optional set of tokens drawn from the filename / entity
-            slug.  Each member contributes a synthetic TF=1 if it is
-            absent from the body so single-token entity files still
-            score on lookup.
-        k1, b:
-            Standard BM25 hyperparameters (defaults match Lucene).
-        """
-        if not query_tokens or doc_count <= 0:
-            return 0.0
-        # Avoid division-by-zero when the corpus is degenerate.
-        avgdl = avg_doc_length if avg_doc_length and avg_doc_length > 0 else 1.0
-        # Length normalisation factor (B in BM25 papers); uses doc_length
-        # so longer-than-average docs are penalised, shorter ones boosted.
-        length_norm = (1.0 - b) + b * (doc_length / avgdl)
-        score = 0.0
-        fname = filename_tokens or set()
-        for qi in query_tokens:
-            tf = doc_tf.get(qi, 0)
-            # Filename match bumps TF to at least 1 — critical for entity
-            # files where the slug is the only place the term appears.
-            if tf == 0 and qi in fname:
-                tf = 1
-            if tf == 0:
-                continue
-            n_qi = token_doc_freq.get(qi, 0)
-            # Standard BM25 IDF; +1 inside log keeps it non-negative
-            # even for very common terms (n_qi > N/2).
-            idf = math.log(((doc_count - n_qi + 0.5) / (n_qi + 0.5)) + 1.0)
-            if idf <= 0:
-                continue
-            denom = tf + k1 * length_norm
-            if denom <= 0:
-                continue
-            score += idf * (tf * (k1 + 1.0)) / denom
-        return score
+        """Compute Okapi BM25 score. See :py:func:`_core_search_helpers.bm25_score` for docs."""
+        return _sh.bm25_score(
+            query_tokens, doc_tf, doc_length, avg_doc_length,
+            doc_count, token_doc_freq, filename_tokens, k1, b,
+        )
 
     def _best_token_snippet(self, query_tokens: list, lines: list, lines_orig: list) -> str:
-        best_idx = 0
-        best_hits = 0
-        query_set = set(query_tokens)
-        for idx, line in enumerate(lines):
-            line_tokens = set(self._search_tokens(line))
-            hits = len(query_set & line_tokens)
-            if hits > best_hits:
-                best_hits = hits
-                best_idx = idx
-        if best_hits == 0:
-            return ""
-        start = max(0, best_idx - 3)
-        end = min(len(lines), best_idx + 4)
-        return " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())[:200]
+        return _sh.best_token_snippet(query_tokens, lines, lines_orig, self._search_tokens)
 
     def _first_meaningful_line(self, content: str) -> str:
         """Return the first non-heading, non-empty, non-boilerplate line."""
-        skip_prefixes = ("#", "---", ">", "**Tier", "- **Type", "- **Started",
-                         "- **Last Update", "- **Update Count", "- **Source",
-                         "- [[", "(")
-        for line in content.split("\n"):
-            stripped = line.strip()
-            if stripped and not any(stripped.startswith(p) for p in skip_prefixes) and len(stripped) > 10:
-                return stripped
-        return ""
+        return _sh.first_meaningful_line(content)
 
     def _extract_tags(self, content: str) -> str:
         """Extract tags from content."""
-        tags = _TAGS_RE.findall(content)
-        if tags:
-            return tags[0].strip()[:50]
-        return ""
+        return _sh.extract_tags(content)
 
     def _load_stopwords(self) -> dict:
         """Load stopwords from JSON file (cached)"""
-        if not hasattr(self, '_stopwords_cache'):
-            sw_path = Path(__file__).parent / "stopwords.json"
-            if sw_path.exists():
-                with open(sw_path, 'r', encoding='utf-8') as f:
-                    self._stopwords_cache = json.load(f)
-            else:
-                self._stopwords_cache = {"korean": [], "chinese": [], "japanese": []}
-        return self._stopwords_cache
+        return _sh.load_stopwords()
 
     # ══════════════════════════════════════════════════════════
     # Memory Snapshots & Time Travel (v0.5.0)
@@ -4265,20 +3493,11 @@ class MemKraft:
 
     def _get_version(self) -> str:
         """Return the package version without circular imports."""
-        try:
-            from memkraft import __version__
-            return __version__
-        except Exception:
-            return "unknown"
+        return _lh.get_version()
 
     def _file_hash(self, path: Path) -> str:
         """SHA-256 of a file's content, truncated to 12 hex chars."""
-        h = hashlib.sha256()
-        try:
-            h.update(path.read_bytes())
-        except OSError:
-            return "error"
-        return h.hexdigest()[:12]
+        return _lh.file_hash(path)
 
     def snapshot(self, label: str = "", include_content: bool = False) -> Dict[str, Any]:
         """Create a point-in-time snapshot of all memory files.
@@ -4390,26 +3609,7 @@ class MemKraft:
 
     def _load_snapshot(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
         """Load a snapshot by ID or partial match."""
-        if not self.snapshots_dir.exists():
-            return None
-        # Exact match
-        exact = self.snapshots_dir / f"{snapshot_id}.json"
-        if exact.exists():
-            with open(exact, "r", encoding="utf-8") as f:
-                return json.load(f)
-        # Partial / label match
-        for snap_file in sorted(self.snapshots_dir.glob("SNAP-*.json"), reverse=True):
-            if snapshot_id in snap_file.stem:
-                with open(snap_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            try:
-                with open(snap_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                if data.get("label", "") == snapshot_id:
-                    return data
-            except (json.JSONDecodeError, OSError):
-                continue
-        return None
+        return _lh.load_snapshot(snapshot_id, self.snapshots_dir)
 
     def snapshot_diff(self, snapshot_a: str, snapshot_b: str = "") -> Dict[str, Any]:
         """Compare two snapshots (or a snapshot vs current state).
