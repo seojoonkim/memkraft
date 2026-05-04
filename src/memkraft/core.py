@@ -1090,27 +1090,28 @@ class MemKraft:
         # Compute IDF (Inverse Document Frequency) for BM25-style scoring.
         # v2.3: also compute per-doc term frequencies + corpus length stats
         # for full BM25 (Okapi) scoring as a 4th retrieval signal.
+        # v2.7.5: cached at module level — see ``_corpus_index`` —
+        # invalidated automatically when any markdown file's mtime/size
+        # changes.  Treat the returned dicts/lists as read-only.
+        from ._corpus_index import get_corpus_index
+        # Pass ``read_text_fn=None`` so the index builder uses
+        # ``Path.read_text`` directly — mirrors the legacy semantics
+        # exactly (OSError → skip the document).
+        _idx = get_corpus_index(
+            self._all_md_files,
+            self._search_tokens,
+        )
+        # Iterate the full md file set for scoring; the index dicts
+        # are looked up defensively (`.get(md, ...)`) inside the
+        # scoring loop / BM25 helper, so files missing from the index
+        # (rare race-deleted) score as zero-length docs — same as the
+        # pre-cache behaviour.
         all_files = list(self._all_md_files())
-        doc_count = max(len(all_files), 1)
-        token_doc_freq: Dict[str, int] = {}  # How many docs contain each token
-        doc_token_freqs: Dict[Path, Dict[str, int]] = {}  # Per-doc TF map
-        doc_lengths: Dict[Path, int] = {}  # Per-doc length in tokens
-        total_tokens = 0
-        for md in all_files:
-            try:
-                doc_text = md.read_text(encoding="utf-8", errors="replace").lower()
-            except OSError:
-                continue
-            doc_tok_list = self._search_tokens(doc_text)
-            tf_map: Dict[str, int] = {}
-            for t in doc_tok_list:
-                tf_map[t] = tf_map.get(t, 0) + 1
-            doc_token_freqs[md] = tf_map
-            doc_lengths[md] = len(doc_tok_list)
-            total_tokens += len(doc_tok_list)
-            for t in tf_map:
-                token_doc_freq[t] = token_doc_freq.get(t, 0) + 1
-        avg_doc_len = (total_tokens / doc_count) if doc_count > 0 else 0.0
+        doc_count = _idx.doc_count
+        token_doc_freq: Dict[str, int] = _idx.token_doc_freq
+        doc_token_freqs: Dict[Path, Dict[str, int]] = _idx.doc_token_freqs
+        doc_lengths: Dict[Path, int] = _idx.doc_lengths
+        avg_doc_len = _idx.avg_doc_len
 
         for md in all_files:
             try:

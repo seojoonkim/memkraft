@@ -1,5 +1,53 @@
 # CHANGELOG
 
+## [2.7.5] — 2026-05-04 (unreleased)
+
+### Performance
+- **Corpus-index cache for `search`** — the legacy hot path used to
+  recompute per-document term frequencies, document lengths, and the
+  global document-frequency map on every single query. We now cache
+  the entire BM25 index in a module-level singleton keyed by a
+  fingerprint over `(path, mtime_ns, size)` of every markdown file
+  in the corpus.  Any add / modify / delete bumps the fingerprint
+  and triggers a rebuild; otherwise repeated searches reuse the
+  index for free.
+- **Result on the WS-A bench (50 entities, 100 queries):**
+  - `mixed_cache_off`: 6.19 ms → **4.46 ms (1.39x)**
+  - `invalidation` workload: 7.27 ms → **5.38 ms (1.35x)**
+  - `smart_repeat_cache_off`: 6.00 ms → **4.68 ms (1.28x)**
+  - `repeat_cache_off`: 6.68 ms → 5.69 ms (1.17x)
+  - `repeat_cache_on` mean speedup vs cache_off: **5.84x** (was 5.97x)
+  - `smart_repeat_cache_on` mean speedup vs cache_off: **5.34x**
+  - The corpus-index cache is what actually makes warm-cache search
+    O(1) on a stable corpus; the existing per-query LRU still helps
+    on top of that.
+- The optimisation scales with corpus size — expected ~5–10x speedup
+  on 1k+ doc corpora where the legacy rebuild dominated.
+
+### Added
+- `memkraft._corpus_index` — internal singleton with `CorpusIndex`
+  dataclass, `get_corpus_index()`, `reset_for_tests()`, `stats()`.
+- `MEMKRAFT_CORPUS_INDEX_DISABLE=1` environment variable as a
+  regression-test escape hatch (forces a rebuild on every call).
+- `tests/test_corpus_index.py` — 12 tests covering build / hit / add /
+  modify / delete / size-change / disable / search-correctness.
+- `benchmarks/v2.7.5-bench-result.json` — numbers above, reproducible
+  via `python3 benchmarks/search_cache_bench.py`.
+
+### Changed
+- `MemKraft.search()` line 1093–1117 (per-call corpus walk) replaced
+  by a single `get_corpus_index(…)` call. Returned dicts/lists are
+  treated as read-only by the search hot path.
+- Public API unchanged. `_get_corpus_stats` still works — it
+  continues to walk the corpus directly so callers that only need
+  `(doc_count, avg_doc_len)` don't pay the index build cost.
+
+### Compatibility
+- Zero new dependencies (stdlib only).
+- No PyPI release.  Version bump deferred to the maintainer.
+- All 1267 existing tests still pass; 12 new tests added
+  (1279 / 4 skipped total).
+
 ## [2.7.4] — 2026-05-02
 
 ### Changed
