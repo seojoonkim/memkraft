@@ -1,6 +1,72 @@
 # CHANGELOG
 
-## [2.7.5] — 2026-05-04 (unreleased)
+## [2.8.0] — 2026-05-13
+
+Large internal refactor + multi-workstream performance pass. **Public API
+unchanged.** All 1300 tests pass (3 skipped). Includes everything from the
+previously-unreleased v2.7.5 work plus three additional workstreams (WS-A,
+WS-B, WS-C) and a regression-test expansion (WS-F).
+
+### Performance (cumulative vs v2.7.4)
+- **WS-A** — `core.py` internal split into helper modules
+  (`_core_*_helpers.py`). Reduces import-time work and keeps the hot path
+  isolated from administrative code.
+- **WS-B** — Hot-path regex precompilation (`_regexes.py`). Eliminates
+  per-call `re.compile` overhead inside `search` / mutation paths.
+- **WS-C** — Bounded LRU file-read cache (`_read_cache.py`). Avoids
+  re-reading unchanged markdown files between search calls; bounded
+  size prevents unbounded memory growth on large corpora.
+- **Corpus-index cache for `search`** (originally v2.7.5) — module-level
+  singleton keyed by `(path, mtime_ns, size)` fingerprint over every
+  markdown file in the corpus. Any add / modify / delete bumps the
+  fingerprint and triggers a rebuild; otherwise repeated searches reuse
+  the index for free.
+- **Combined result (50 entities, 100 queries):**
+  - `mixed_cache_off`: 6.19 ms → **4.46 ms (1.39x)**
+  - `invalidation`: 7.27 ms → **5.38 ms (1.35x)**
+  - `smart_repeat_cache_off`: 6.00 ms → **4.68 ms (1.28x)**
+  - `repeat_cache_off`: 6.68 ms → 5.69 ms (1.17x)
+  - `repeat_cache_on` mean speedup vs cache_off: **5.84x**
+  - `smart_repeat_cache_on` mean speedup vs cache_off: **5.34x**
+- Expected ~5–10x speedup on 1k+ doc corpora where the legacy rebuild
+  dominated.
+
+### Added
+- `memkraft._corpus_index` — internal singleton with `CorpusIndex`
+  dataclass, `get_corpus_index()`, `reset_for_tests()`, `stats()`.
+- `memkraft._read_cache` — bounded LRU file-read cache (WS-C).
+- `memkraft._regexes` — precompiled hot-path regex (WS-B).
+- `memkraft._core_*_helpers` — extracted helper modules (WS-A).
+- `MEMKRAFT_CORPUS_INDEX_DISABLE=1` environment variable as a
+  regression-test escape hatch (forces a rebuild on every call).
+- `tests/test_corpus_index.py` — 12 tests covering build / hit / add /
+  modify / delete / size-change / disable / search-correctness.
+- WS-F regression tests expanding search/mutation coverage.
+- `benchmarks/v2.7.5-bench-result.json`,
+  `benchmarks/v2.8.0-current-bench-result.json` — reproducible numbers.
+
+### Changed
+- `MemKraft.search()` per-call corpus walk replaced by a single
+  `get_corpus_index(…)` call. Returned dicts/lists are treated as
+  read-only by the search hot path.
+- `core.py` internal structure refactored — public surface preserved.
+- Public API unchanged. `_get_corpus_stats` still walks the corpus
+  directly so callers that only need `(doc_count, avg_doc_len)` don't
+  pay the index build cost.
+
+### Compatibility
+- Zero new runtime dependencies (stdlib only).
+- 1300 tests pass, 3 skipped.
+- No deprecations.
+
+### Note on versioning
+v2.7.5 was prepared but never released to PyPI (CHANGELOG marked it
+"unreleased, version bump deferred to maintainer"). The 2.7.5 changes
+are included in 2.8.0 as the corpus-index cache section above. The
+2.7.5 → 2.8.0 jump on PyPI is intentional and reflects the additional
+WS-A/B/C/F workstreams shipped together.
+
+## [2.7.5] — 2026-05-04 (rolled into 2.8.0, never released)
 
 ### Performance
 - **Corpus-index cache for `search`** — the legacy hot path used to
