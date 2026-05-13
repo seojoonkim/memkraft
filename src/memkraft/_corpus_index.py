@@ -75,19 +75,35 @@ class CorpusIndex:
     # the list at build time (deterministic order, same as
     # ``_compute_fingerprint``) so search loops can reuse it.
     file_list: list = field(default_factory=list)
-    # v2.9 — inverted posting list (P3, opt-in).
-    # ``content_postings[token]`` → list of doc Paths whose body has
-    # that token (built from ``doc_token_freqs`` — same source, just
-    # transposed).  ``filename_postings[token]`` → list of doc Paths
-    # whose filename (stem, hyphens→spaces, lowered) contains that
-    # token.  Together they let ``search()`` skip the per-doc
-    # prefilter scan and iterate only candidate docs.
+    # v2.9 — inverted posting list (P3 in v2.9.0; compressed in v2.9.1).
+    # ``content_postings[token]`` → list of **doc_ids** (ints) whose
+    # body has that token (built from ``doc_token_freqs`` — same
+    # source, just transposed).  ``filename_postings[token]`` → list
+    # of **doc_ids** whose filename (stem, hyphens→spaces, lowered)
+    # contains that token.  Together they let ``search()`` skip the
+    # per-doc prefilter scan and iterate only candidate docs.
+    #
+    # v2.9.1 (P2): postings store int doc_ids instead of ``Path``
+    # objects to cut memory ~40-60% on large corpora (Path objects
+    # are ~200-300 bytes each; small ints share interned slots).
+    # ``doc_id_map[doc_id] -> Path`` reverses the index when search
+    # needs the actual path.  Public API unchanged — callers fetch
+    # Paths via ``doc_id_map`` indexing.
+    #
     # Filename substring matches (query in filename_lower) still need
     # the brute filename scan because token lookup misses
     # substrings of long filenames; the per-doc cost is one
     # ``str.__contains__`` though, much cheaper than the prefilter.
     content_postings: Dict[str, list] = field(default_factory=dict)
     filename_postings: Dict[str, list] = field(default_factory=dict)
+    # v2.9.1 — doc_id <-> Path mapping.  ``doc_id_map[i]`` is the
+    # Path corresponding to doc_id ``i``.  Stable for the lifetime of
+    # this index instance (rebuilt on every corpus change anyway).
+    doc_id_map: list = field(default_factory=list)
+    # Reverse map kept for the rare callers that have a Path and want
+    # to know its doc_id.  Currently unused by core but exposed for
+    # forward compatibility (e.g. future per-doc score caching).
+    doc_to_id: Dict[Path, int] = field(default_factory=dict)
     # v2.9: cached per-doc filename_lower string (stem with hyphens →
     # spaces, lowered) so the search hot path can do filename
     # substring matching without recomputing per doc.
@@ -177,9 +193,13 @@ def _build_index(
     total_tokens = 0
     valid_docs = 0
     # v2.9 — postings (inverted index) built alongside the BM25 stats.
+    # v2.9.1 — postings hold int doc_ids, not Path objects.  doc_id
+    # is assigned on first encounter (sequential, starting at 0).
     content_postings: Dict[str, list] = {}
     filename_postings: Dict[str, list] = {}
     filename_lower_map: Dict[Path, str] = {}
+    doc_id_map: list = []   # doc_id -> Path
+    doc_to_id: Dict[Path, int] = {}  # Path -> doc_id
 
     for md, _stat in items:
         try:
@@ -192,6 +212,11 @@ def _build_index(
                 doc_text = md.read_text(encoding="utf-8", errors="replace").lower()
         except OSError:
             continue
+        # v2.9.1: assign doc_id for this document.  Used by postings.
+        doc_id = len(doc_id_map)
+        doc_id_map.append(md)
+        doc_to_id[md] = doc_id
+
         doc_tok_list = search_tokens_fn(doc_text)
         tf_map: Dict[str, int] = {}
         for t in doc_tok_list:
@@ -201,12 +226,12 @@ def _build_index(
         total_tokens += len(doc_tok_list)
         for t in tf_map:
             token_doc_freq[t] = token_doc_freq.get(t, 0) + 1
-            # v2.9: same iteration — build content posting list.
+            # v2.9: same iteration — build content posting list (int doc_ids).
             posting = content_postings.get(t)
             if posting is None:
-                content_postings[t] = [md]
+                content_postings[t] = [doc_id]
             else:
-                posting.append(md)
+                posting.append(doc_id)
         # v2.9: filename postings.  Mirror search()'s filename_lower
         # derivation (stem, hyphens→spaces, lowered) so candidate
         # selection matches scoring exactly.
@@ -215,9 +240,9 @@ def _build_index(
         for ft in search_tokens_fn(fname_lower):
             posting = filename_postings.get(ft)
             if posting is None:
-                filename_postings[ft] = [md]
+                filename_postings[ft] = [doc_id]
             else:
-                posting.append(md)
+                posting.append(doc_id)
         valid_docs += 1
 
     # Mirror the legacy semantics: ``doc_count = max(len(all_files), 1)``
@@ -251,6 +276,8 @@ def _build_index(
         filename_lower=filename_lower_map,
         token_bloom=_bloom,
         filename_corpus=_fn_corpus,
+        doc_id_map=doc_id_map,
+        doc_to_id=doc_to_id,
     )
 
 
@@ -305,18 +332,19 @@ def get_corpus_index(
         # path-set check guards against singleton bleed across
         # MemKraft instances (e.g. in long-running test runs).
         files = list(all_md_files_fn())
+        fingerprint, items = _compute_fingerprint(files)
         with _INDEX_LOCK:
             cached = _INDEX_CACHE
             if (
                 cached is not None
                 and _INDEX_GENERATION == _WRITE_GENERATION
                 and cached.path_set_hash == _compute_path_set_hash(files)
+                and cached.fingerprint == fingerprint
             ):
                 _FAST_HITS += 1
                 _BUILD_HITS += 1
                 return cached
             observed_generation = _WRITE_GENERATION
-        fingerprint, items = _compute_fingerprint(files)
     elif not _disabled():
         # Legacy slow-but-safe path: fingerprint scan always runs.
         with _INDEX_LOCK:

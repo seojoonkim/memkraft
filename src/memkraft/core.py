@@ -90,7 +90,27 @@ class MemKraft:
     HYPOTHESIS_STATUSES = ("testing", "rejected", "confirmed")
     EVIDENCE_RESULTS = ("supports", "contradicts", "neutral")
 
-    def __init__(self, base_dir: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        cache_policy: Optional[str] = None,
+    ) -> None:
+        """Initialize a MemKraft instance.
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Memory root.  Defaults to ``$MEMKRAFT_DIR`` or ``./memory``.
+        cache_policy : str, optional (v2.9.1)
+            Read-cache eviction policy.  ``"lru"`` (default) or
+            ``"arc"``.  ARC keeps a separate frequency list so
+            hot entities survive one-shot scans — worth a try on
+            mixed hot/cold workloads.  The choice is sticky: the
+            first ``MemKraft`` to construct in a process pins the
+            singleton cache's policy; later instances inherit it.
+            Falls back to ``MEMKRAFT_READ_CACHE_POLICY`` env var
+            when not specified.
+        """
         if base_dir:
             self.base_dir = Path(base_dir)
         else:
@@ -107,6 +127,16 @@ class MemKraft:
         self.channels_dir = self.base_dir / ".memkraft" / "channels"
         self.context_tasks_dir = self.base_dir / ".memkraft" / "tasks"
         self.agents_dir = self.base_dir / ".memkraft" / "agents"
+
+        # v2.9.1: opt-in ARC cache.  Touching get_cache() here makes
+        # the policy choice effective from the very first read.
+        if cache_policy:
+            try:
+                from ._read_cache import get_cache
+                get_cache(policy=cache_policy)
+            except Exception:
+                # Cache wiring failure must never break MemKraft init.
+                pass
 
     # ── Init ──────────────────────────────────────────────────
     def init(self, path: str = "", force: bool = False, verbose: bool = True) -> Dict[str, Any]:
@@ -1233,6 +1263,13 @@ class MemKraft:
             and os.environ.get("MEMKRAFT_DISABLE_INVERTED_INDEX") != "1"
         )
         if _inverted_enabled:
+            # v2.9.1 (P2): postings hold int doc_ids, not Path objects.
+            # Collect candidate doc_ids first, translate to Paths via
+            # doc_id_map at the end.  Falls back gracefully when an
+            # older index is encountered (doc_id_map empty → postings
+            # already contain Paths; same code path as v2.9.0).
+            _doc_id_map = _idx.doc_id_map
+            _use_doc_ids = bool(_doc_id_map)
             _candidate_set: set = set()
             # (a) exact token-match candidates — cheap dict lookup.
             for _qt in _query_token_set:  # type: ignore[union-attr]
@@ -1242,6 +1279,12 @@ class MemKraft:
                 _fp = _idx.filename_postings.get(_qt)
                 if _fp:
                     _candidate_set.update(_fp)
+            # Translate doc_ids -> Paths now so (c) and the final
+            # ordering pass operate on Paths uniformly.
+            if _use_doc_ids:
+                _candidate_paths: set = {_doc_id_map[i] for i in _candidate_set}
+            else:
+                _candidate_paths = _candidate_set
             # (b) Recall parity with v2.8.3 prefilter.  v2.8.3's
             # prefilter passes any doc whose token set intersects
             # ``query_tokens`` — same as our (a).  It does NOT rescue
@@ -1259,10 +1302,10 @@ class MemKraft:
             # name encoding (hyphens vs underscores).
             for _md_fn, _fn_lower in _idx.filename_lower.items():
                 if query_lower in _fn_lower:
-                    _candidate_set.add(_md_fn)
+                    _candidate_paths.add(_md_fn)
             # Preserve deterministic order matching ``file_list`` so
             # downstream tie-breaks (file path sort) stay stable.
-            _all_files_iter = [m for m in all_files if m in _candidate_set]
+            _all_files_iter = [m for m in all_files if m in _candidate_paths]
         else:
             _all_files_iter = all_files
 

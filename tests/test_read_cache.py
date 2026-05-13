@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from memkraft._read_cache import _ReadCache, get_cache, reset_for_tests
+from memkraft._read_cache import _ReadCache, _ARCReadCache, get_cache, reset_for_tests
 
 
 @pytest.fixture(autouse=True)
@@ -198,4 +198,168 @@ class TestReadCacheIntegration:
         # Search should not crash
         results = mk.search("cats")
         # May or may not find results, but should not raise
+        assert isinstance(results, list)
+
+
+# v2.9.1 — ARC cache tests.
+class TestARCReadCache:
+    """Unit tests for the v2.9.1 Adaptive Replacement Cache."""
+
+    def test_basic_hit_and_miss(self, tmp_path: Path):
+        cache = _ARCReadCache(capacity=16)
+        f = tmp_path / "a.txt"
+        f.write_text("hello", encoding="utf-8")
+
+        assert cache.get_or_read(f) == "hello"
+        assert cache.misses == 1
+        assert cache.hits == 0
+
+        # Second read = hit in T1.
+        assert cache.get_or_read(f) == "hello"
+        assert cache.hits == 1
+        assert cache.t1_hits == 1
+        assert cache.misses == 1
+
+    def test_promotes_to_t2_on_second_touch(self, tmp_path: Path):
+        """Second access promotes a key from T1 → T2 (frequency list)."""
+        cache = _ARCReadCache(capacity=16)
+        f = tmp_path / "hot.txt"
+        f.write_text("hot", encoding="utf-8")
+
+        cache.get_or_read(f)  # miss → T1
+        cache.get_or_read(f)  # T1 hit → promoted to T2
+        cache.get_or_read(f)  # T2 hit
+        st = cache.stats()
+        assert st["t2_size"] >= 1
+        assert st["t1_hits"] == 1
+        assert st["t2_hits"] == 1
+
+    def test_hot_set_survives_scan(self, tmp_path: Path):
+        """ARC's headline benefit: a hot key survives a one-shot scan that
+        floods T1, because the hot key sits in T2 (frequency).
+
+        With plain LRU the hot key would be evicted by the scan.
+        """
+        cap = 4
+        cache = _ARCReadCache(capacity=cap)
+
+        # Hot key: read twice so it lands in T2.
+        hot = tmp_path / "hot.txt"
+        hot.write_text("hot", encoding="utf-8")
+        cache.get_or_read(hot)
+        cache.get_or_read(hot)
+
+        # Scan: 8 distinct cold files — floods the cache.
+        for i in range(8):
+            f = tmp_path / f"cold_{i}.txt"
+            f.write_text(f"c{i}", encoding="utf-8")
+            cache.get_or_read(f)
+
+        # Hot key should still be a hit (came from T2, not evicted).
+        hits_before = cache.hits
+        result = cache.get_or_read(hot)
+        assert result == "hot"
+        assert cache.hits == hits_before + 1, "hot key should survive the scan"
+
+    def test_invalidation_drops_ghosts(self, tmp_path: Path):
+        """Explicit invalidate() clears the path from T1/T2 AND B1/B2."""
+        cache = _ARCReadCache(capacity=4)
+        f = tmp_path / "x.txt"
+        f.write_text("x", encoding="utf-8")
+        cache.get_or_read(f)
+        cache.invalidate(f)
+        assert cache.invalidations >= 1
+        st = cache.stats()
+        assert st["t1_size"] == 0 and st["t2_size"] == 0
+        assert st["b1_size"] == 0 and st["b2_size"] == 0
+
+    def test_mtime_invalidation(self, tmp_path: Path):
+        cache = _ARCReadCache(capacity=16)
+        f = tmp_path / "m.txt"
+        f.write_text("v1", encoding="utf-8")
+        assert cache.get_or_read(f) == "v1"
+        time.sleep(0.05)
+        f.write_text("v2", encoding="utf-8")
+        assert cache.get_or_read(f) == "v2"
+        assert cache.invalidations >= 1
+
+    def test_stats_shape(self, tmp_path: Path):
+        cache = _ARCReadCache(capacity=8)
+        f = tmp_path / "s.txt"
+        f.write_text("y", encoding="utf-8")
+        cache.get_or_read(f)
+        cache.get_or_read(f)
+        st = cache.stats()
+        for key in ("policy", "capacity", "size", "t1_size", "t2_size",
+                    "b1_size", "b2_size", "p", "hits", "misses",
+                    "t1_hits", "t2_hits", "b1_rescues", "b2_rescues",
+                    "hit_rate"):
+            assert key in st
+        assert st["policy"] == "arc"
+
+    def test_thread_safety(self, tmp_path: Path):
+        cache = _ARCReadCache(capacity=64)
+        f = tmp_path / "shared.txt"
+        f.write_text("shared", encoding="utf-8")
+        errors = []
+
+        def reader():
+            try:
+                for _ in range(100):
+                    assert cache.get_or_read(f) == "shared"
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=reader) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors
+        assert cache.hits + cache.misses == 1000
+
+
+class TestCachePolicySelection:
+    """Public API: cache_policy parameter + env var."""
+
+    def test_get_cache_default_is_lru(self, tmp_path: Path):
+        reset_for_tests()
+        c = get_cache()
+        assert isinstance(c, _ReadCache)
+
+    def test_get_cache_arc_via_arg(self, tmp_path: Path):
+        reset_for_tests()
+        c = get_cache(policy="arc")
+        assert isinstance(c, _ARCReadCache)
+
+    def test_get_cache_arc_via_env(self, tmp_path: Path, monkeypatch):
+        monkeypatch.setenv("MEMKRAFT_READ_CACHE_POLICY", "arc")
+        reset_for_tests()
+        c = get_cache()
+        assert isinstance(c, _ARCReadCache)
+
+    def test_policy_is_sticky(self, tmp_path: Path):
+        """Once built, the singleton's policy is fixed until reset."""
+        reset_for_tests()
+        c1 = get_cache(policy="arc")
+        c2 = get_cache(policy="lru")  # ignored — ARC already built
+        assert c1 is c2
+        assert isinstance(c2, _ARCReadCache)
+
+    def test_invalid_policy_falls_back_to_lru(self, tmp_path: Path):
+        reset_for_tests()
+        c = get_cache(policy="bogus")
+        assert isinstance(c, _ReadCache)
+
+    def test_memkraft_constructor_wires_arc(self, tmp_path: Path):
+        from memkraft import MemKraft
+
+        reset_for_tests()
+        mk = MemKraft(base_dir=str(tmp_path), cache_policy="arc")
+        c = get_cache()
+        assert isinstance(c, _ARCReadCache)
+        # Sanity: the instance is functional end-to-end.
+        mk.track("alice", entity_type="person")
+        mk.update("alice", "Alice works at Acme")
+        results = mk.search("Acme")
         assert isinstance(results, list)
