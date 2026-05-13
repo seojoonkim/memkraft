@@ -1,5 +1,61 @@
 # CHANGELOG
 
+## [2.8.4] — 2026-05-14
+
+Third hot-path performance pass on top of v2.8.1. **Public API unchanged.**
+All 1300 tests pass (3 skipped). Bundles v2.8.2 (touch-throttle + strptime
+memo), v2.8.3 (candidate prefilter), and v2.8.4 (file-list caching +
+`os.scandir` walker) into a single PyPI release.
+
+### Performance (cumulative vs v2.8.1)
+- **v2.8.2 — Touch-throttle** (`_core_lifecycle_helpers.py`). Per-process
+  60s window on `touch_last_accessed` writes during search hot loops.
+  Eliminates write-on-read storms when the same paths surface across
+  repeated queries.
+- **v2.8.2 — `strptime` memoisation** (`core.py`). Per-string cache on the
+  recency-bonus ISO date parser — only ~365 distinct dates per year,
+  amortises parser cost across the entire corpus scan.
+- **v2.8.3 — Candidate prefilter** (`core.py`). Recall-preserving skip:
+  when `fuzzy=False`, docs with zero query-token overlap and no filename
+  match are skipped before the read+score loop. Substring proof: the
+  `\w+` tokenizer guarantees `query in content` implies token overlap,
+  so exact-substring hits are never dropped. Raw-write bypass detected
+  via cached `(mtime_ns, size)` tuple — stale skips fall through to full
+  scoring.
+- **v2.8.4 — File-list caching** (`_corpus_index.py` + `core.py`). The
+  corpus index now stores its build-time file list. `MemKraft.search()`
+  reuses it instead of re-walking the directory tree, eliminating a
+  second pass over hundreds of files per query.
+- **v2.8.4 — `os.scandir` walker** (`_core_lifecycle_helpers.py`).
+  Markdown enumeration now reads dirent flags via `os.DirEntry.is_file`
+  / `is_symlink` (single dirent read) instead of `Path.glob` + Python-side
+  `is_symlink` (double lstat per file).
+- **Measured impact (50 queries, single-process):**
+  - n=100: 3.55ms → 2.74ms mean (–23%)
+  - n=500: 35.20ms → 27.21ms mean (–23%)
+  - n=1000: 68.39ms → 54.76ms mean (–20%); p95 98.13ms → 59.51ms (–39%)
+
+### Added
+- `CorpusIndex.file_list` — ordered snapshot of files included in the
+  cached index; read-only, deterministic order matches the fingerprint.
+- `MEMKRAFT_TOUCH_THROTTLE_SECONDS` env (default `60`) and
+  `MEMKRAFT_DISABLE_TOUCH_LAST_ACCESSED=1` escape hatch (v2.8.2).
+- `MEMKRAFT_DISABLE_CANDIDATE_PREFILTER=1` regression-test escape hatch
+  (v2.8.3).
+- `CorpusIndex.doc_stat` — per-doc `(mtime_ns, size)` tuple used by the
+  v2.8.3 prefilter to detect raw-write bypass.
+
+### Changed
+- `all_md_files` (lifecycle helper) now walks via `os.scandir`. External
+  behaviour identical — same set of files, same exclusion of symlinks
+  and system docs (`RESOLVER.md`, `TEMPLATES.md`, `open-loops.md`,
+  `fact-registry.md`).
+
+### Compatibility
+- Search recall fingerprint unchanged: zero diffs on the canonical
+  regression suite. The prefilter cannot drop any doc that the v2.8.1
+  full-scan path would have surfaced.
+
 ## [2.8.1] — 2026-05-13
 
 Small hot-path performance pass on top of v2.8.0. **Public API unchanged.**

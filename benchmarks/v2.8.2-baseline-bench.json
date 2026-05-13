@@ -1,0 +1,132 @@
+{
+  "repeat_cache_off": {
+    "workload": "repeat_cache_off",
+    "n": 100,
+    "mean_ms": 1.846,
+    "median_ms": 1.639,
+    "p50_ms": 1.639,
+    "p95_ms": 2.468,
+    "p99_ms": 3.484,
+    "min_ms": 1.499,
+    "max_ms": 8.495,
+    "throughput_qps": 541.8
+  },
+  "repeat_cache_on": {
+    "workload": "repeat_cache_on",
+    "n": 100,
+    "mean_ms": 0.292,
+    "median_ms": 0.024,
+    "p50_ms": 0.024,
+    "p95_ms": 1.638,
+    "p99_ms": 2.004,
+    "min_ms": 0.006,
+    "max_ms": 2.457,
+    "throughput_qps": 3422.9,
+    "cache_stats": {
+      "hits": 90,
+      "misses": 10,
+      "evictions": 0,
+      "size": 10,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.9,
+      "generation": 120
+    }
+  },
+  "mixed_cache_off": {
+    "workload": "mixed_cache_off",
+    "n": 100,
+    "mean_ms": 1.698,
+    "median_ms": 1.633,
+    "p50_ms": 1.633,
+    "p95_ms": 2.431,
+    "p99_ms": 2.473,
+    "min_ms": 1.511,
+    "max_ms": 2.558,
+    "throughput_qps": 589.0
+  },
+  "mixed_cache_on": {
+    "workload": "mixed_cache_on",
+    "n": 100,
+    "mean_ms": 1.052,
+    "median_ms": 1.586,
+    "p50_ms": 1.586,
+    "p95_ms": 1.687,
+    "p99_ms": 2.483,
+    "min_ms": 0.007,
+    "max_ms": 2.546,
+    "throughput_qps": 950.3,
+    "cache_stats": {
+      "hits": 40,
+      "misses": 60,
+      "evictions": 0,
+      "size": 60,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.4,
+      "generation": 120
+    }
+  },
+  "smart_repeat_cache_off": {
+    "workload": "smart_repeat_cache_off",
+    "n": 100,
+    "mean_ms": 1.635,
+    "median_ms": 1.626,
+    "p50_ms": 1.626,
+    "p95_ms": 2.0,
+    "p99_ms": 2.019,
+    "min_ms": 1.013,
+    "max_ms": 2.956,
+    "throughput_qps": 611.8
+  },
+  "smart_repeat_cache_on": {
+    "workload": "smart_repeat_cache_on",
+    "n": 100,
+    "mean_ms": 0.199,
+    "median_ms": 0.011,
+    "p50_ms": 0.011,
+    "p95_ms": 1.655,
+    "p99_ms": 2.022,
+    "min_ms": 0.006,
+    "max_ms": 2.992,
+    "throughput_qps": 5021.9,
+    "cache_stats": {
+      "hits": 90,
+      "misses": 11,
+      "evictions": 0,
+      "size": 11,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.8911,
+      "generation": 120
+    }
+  },
+  "invalidation": {
+    "workload": "invalidation",
+    "n": 100,
+    "mean_ms": 1.774,
+    "median_ms": 1.66,
+    "p50_ms": 1.66,
+    "p95_ms": 2.484,
+    "p99_ms": 2.492,
+    "min_ms": 1.517,
+    "max_ms": 2.512,
+    "throughput_qps": 563.8,
+    "cache_stats": {
+      "hits": 0,
+      "misses": 100,
+      "evictions": 0,
+      "size": 100,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.0,
+      "generation": 129
+    }
+  },
+  "speedup": {
+    "repeat_mean_speedup_x": 6.32,
+    "repeat_throughput_gain_pct": 531.8,
+    "mixed_mean_speedup_x": 1.61,
+    "smart_mean_speedup_x": 8.22
+  }
+}

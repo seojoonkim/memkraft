@@ -64,6 +64,17 @@ class CorpusIndex:
     # path can verify it's looking at the right corpus when multiple
     # MemKraft instances share the singleton (e.g. across test runs).
     path_set_hash: bytes = b""
+    # v2.8.3: per-doc (mtime_ns, size) so the search prefilter can
+    # detect raw-write bypass (writes that didn't go through MemKraft
+    # invalidate hooks) and refuse to skip a stale doc.
+    doc_stat: Dict[Path, tuple] = field(default_factory=dict)
+    # v2.8.4: cached ordered file list — callers (notably
+    # ``MemKraft.search``) used to invoke ``self._all_md_files()`` a
+    # second time after building the index, which on a 1k-doc corpus
+    # repeats the entire directory scan + stat dance.  We now snapshot
+    # the list at build time (deterministic order, same as
+    # ``_compute_fingerprint``) so search loops can reuse it.
+    file_list: list = field(default_factory=list)
 
 
 # ── Module-level singleton ────────────────────────────────────────
@@ -170,6 +181,8 @@ def _build_index(
         doc_lengths=doc_lengths,
         fingerprint=fingerprint,
         path_set_hash=_compute_path_set_hash(p for p, _ in items),
+        doc_stat={p: (s["mtime_ns"], s["size"]) for p, s in items},
+        file_list=[p for p, _ in items],
     )
 
 

@@ -41,6 +41,33 @@ from . import _core_lifecycle_helpers as _lh
 log = logging.getLogger("memkraft.core")
 
 
+# v2.8.2 — memoise ISO date → datetime parsing.  At most ~365 distinct
+# dates per year in practice, so an unbounded module-level dict is fine.
+# Returns ``None`` for malformed strings so callers can branch cheaply
+# instead of catching ``ValueError`` on every search-loop iteration.
+_ISO_DATE_PARSE_CACHE: dict = {}
+
+
+def _iso_date_to_datetime(date_str: str):
+    """Parse an ISO ``YYYY-MM-DD`` string into a ``datetime``, memoised.
+
+    Returns ``None`` on parse failure.  Thread-safety: CPython dict
+    inserts are atomic, and worst-case races just re-parse — same value.
+    """
+    cached = _ISO_DATE_PARSE_CACHE.get(date_str)
+    if cached is not None:
+        return cached
+    # Defensive ceiling so a corrupt corpus can't OOM us.
+    if len(_ISO_DATE_PARSE_CACHE) > 4096:
+        _ISO_DATE_PARSE_CACHE.clear()
+    try:
+        parsed = datetime.strptime(date_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return None
+    _ISO_DATE_PARSE_CACHE[date_str] = parsed
+    return parsed
+
+
 class MemKraft:
     """The compound knowledge system for AI agents.
 
@@ -1110,14 +1137,88 @@ class MemKraft:
         # scoring loop / BM25 helper, so files missing from the index
         # (rare race-deleted) score as zero-length docs — same as the
         # pre-cache behaviour.
-        all_files = list(self._all_md_files())
+        # v2.8.4: reuse the cached ``file_list`` from the corpus index
+        # instead of re-walking the directory tree.  The list is built
+        # at index time (deterministic order, same as fingerprint).
+        # Falls back to a fresh walk only when the index is empty
+        # (degenerate corpus) so legacy semantics are preserved.
+        if _idx.file_list:
+            all_files = _idx.file_list
+        else:
+            all_files = list(self._all_md_files())
         doc_count = _idx.doc_count
         token_doc_freq: Dict[str, int] = _idx.token_doc_freq
         doc_token_freqs: Dict[Path, Dict[str, int]] = _idx.doc_token_freqs
         doc_lengths: Dict[Path, int] = _idx.doc_lengths
         avg_doc_len = _idx.avg_doc_len
 
+        # v2.8.3 — candidate prefilter (recall-preserving).
+        # When ``fuzzy=False`` and the query has at least one searchable
+        # token, any doc that contributes to the result set MUST have
+        # either: (a) a query token in its content tokens (drives
+        # token_score / bm25_score / exact-substring — see note below),
+        # (b) the query substring in its filename (drives filename
+        # match exact_score), or (c) a query token in its filename
+        # tokens (drives token_score via filename_tokens).
+        # Substring proof: the tokenizer is ``\w+`` with ``len > 1``.
+        # If ``query_lower in content_lower`` then every whitespace-
+        # tokenized fragment of the query is in content, which means
+        # at least one query *search-token* is in ``content_tokens`` —
+        # so the prefilter never drops an exact-substring hit.
+        # Disabled when ``fuzzy=True`` (fuzzy scores docs that share
+        # no tokens) or when the query produced no tokens (rare:
+        # punctuation-only or single-char queries — fall back to legacy
+        # full-scan so we don't change behaviour on degenerate input).
+        _prefilter_enabled = (
+            not fuzzy
+            and bool(query_tokens)
+            and bool(doc_token_freqs)  # corpus index actually populated
+            and os.environ.get("MEMKRAFT_DISABLE_CANDIDATE_PREFILTER") != "1"
+        )
+        _query_token_set = set(query_tokens) if _prefilter_enabled else None
+        _doc_stat_cached = _idx.doc_stat if _prefilter_enabled else None
+
         for md in all_files:
+            if _prefilter_enabled:
+                _tf_map_pf = doc_token_freqs.get(md)
+                if _tf_map_pf is not None:
+                    # Cheap O(|query_tokens|) intersection check.
+                    _content_token_hit = False
+                    for _qt in _query_token_set:  # type: ignore[union-attr]
+                        if _qt in _tf_map_pf:
+                            _content_token_hit = True
+                            break
+                    if not _content_token_hit:
+                        # No content token overlap.  Last gates:
+                        # filename substring or filename-token overlap.
+                        _fname_lower = md.stem.lower().replace("-", " ")
+                        if query_lower not in _fname_lower:
+                            _fname_tokens = self._search_tokens(_fname_lower)
+                            if not any(_qt in _fname_tokens for _qt in _query_token_set):  # type: ignore[union-attr]
+                                # v2.8.3 safety: before skipping, verify
+                                # the cached TF map is still fresh.  If
+                                # a raw write (bypassing MemKraft's
+                                # write API) changed the file since the
+                                # index was built, the doc may now
+                                # contain a query token — fall through
+                                # to full scoring in that case.
+                                _cached_st = _doc_stat_cached.get(md) if _doc_stat_cached else None  # type: ignore[union-attr]
+                                if _cached_st is not None:
+                                    try:
+                                        _live_st = md.stat()
+                                        if (
+                                            _live_st.st_mtime_ns == _cached_st[0]
+                                            and _live_st.st_size == _cached_st[1]
+                                        ):
+                                            # Cache is fresh — safe to skip.
+                                            continue
+                                    except OSError:
+                                        continue
+                                else:
+                                    # No cached stat (shouldn't happen
+                                    # post-2.8.3 but be defensive) —
+                                    # don't skip.
+                                    pass
             try:
                 content = self._safe_read(md)
             except OSError:
@@ -1220,17 +1321,19 @@ class MemKraft:
                         break
 
             # Date-aware recency bonus
+            # v2.8.2: memoised ``strptime`` — only ~365 distinct dates per
+            # year, so we cache the parsed ``datetime`` per literal string
+            # at module level (see ``_iso_date_to_datetime``).
             dates = _DATE_BRACKET_RE.findall(content)
             if dates:
-                try:
-                    latest = max(dates)
-                    days_old = (datetime.now() - datetime.strptime(latest, "%Y-%m-%d")).days
+                latest = max(dates)
+                parsed = _iso_date_to_datetime(latest)
+                if parsed is not None:
+                    days_old = (datetime.now() - parsed).days
                     if days_old < 7:
                         recency_bonus = 0.05
                     elif days_old < 30:
                         recency_bonus = 0.02
-                except ValueError:
-                    pass
 
             if fuzzy:
                 best_fuzzy_snippet = ""
@@ -2268,16 +2371,14 @@ class MemKraft:
                     bonus += 0.1
                 elif "Tier: archival" in content:
                     bonus -= 0.05
-                # Recency bonus
+                # Recency bonus (v2.8.2: memoised strptime)
                 dates = _DATE_BRACKET_RE.findall(content)
                 if dates:
-                    try:
-                        latest = max(dates)
-                        days_old = (datetime.now() - datetime.strptime(latest, "%Y-%m-%d")).days
+                    parsed = _iso_date_to_datetime(max(dates))
+                    if parsed is not None:
+                        days_old = (datetime.now() - parsed).days
                         if days_old < 7:
                             bonus += 0.05
-                    except ValueError:
-                        pass
             r["score"] = round(min(1.0, r.get("score", 0) + bonus), 2)
 
         # Step 4b: Goal-Weighted Reconstructive Re-ranking (Conway SMS)

@@ -74,50 +74,148 @@ def extract_section(content: str, section_name: str) -> str:
 
 
 # ── File iteration ─────────────────────────────────────────
+import os as _os_walk  # local alias to avoid collision with module-level os later
+
+_SYSTEM_FILES = frozenset({"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"})
+
+
+def _iter_md_via_scandir(directory: Path, skip_system: bool = False):
+    """v2.8.4: os.scandir-based walker — single stat per entry.
+
+    The legacy ``Path.glob("*.md")`` + ``is_symlink()`` path costs two
+    ``lstat`` calls per file (one inside glob to materialise the Path,
+    one for ``is_symlink``).  ``os.scandir`` exposes the dirent flags
+    via :meth:`os.DirEntry.is_symlink` and :meth:`os.DirEntry.is_file`
+    which on macOS/Linux read from the cached dirent (zero extra
+    syscalls beyond the directory read).
+    """
+    try:
+        it = _os_walk.scandir(directory)
+    except (FileNotFoundError, NotADirectoryError, PermissionError, OSError):
+        return
+    try:
+        for entry in it:
+            name = entry.name
+            if not name.endswith(".md"):
+                continue
+            if skip_system and name in _SYSTEM_FILES:
+                continue
+            # is_symlink reads dirent on POSIX — no extra stat.
+            try:
+                if entry.is_symlink():
+                    continue
+                if not entry.is_file(follow_symlinks=False):
+                    continue
+            except OSError:
+                continue
+            yield Path(entry.path)
+    finally:
+        try:
+            it.close()
+        except Exception:
+            pass
+
+
 def all_md_files(dirs: List[Path], base_dir: Path):
-    """Yield all markdown files from the given directories and base_dir."""
-    _system_files = {"RESOLVER.md", "TEMPLATES.md", "open-loops.md", "fact-registry.md"}
+    """Yield all markdown files from the given directories and base_dir.
+
+    v2.8.4: uses :func:`os.scandir` (single dirent read per file)
+    instead of ``Path.glob`` + ``is_symlink`` (which double-stats).
+    """
     seen = set()
     for subdir in dirs:
-        if subdir.exists():
-            for md in subdir.glob("*.md"):
-                if not md.is_symlink() and md not in seen:
-                    seen.add(md)
-                    yield md
-    if base_dir.exists():
-        for md in base_dir.glob("*.md"):
-            if md.name not in _system_files and not md.is_symlink() and md not in seen:
+        for md in _iter_md_via_scandir(subdir, skip_system=False):
+            if md not in seen:
                 seen.add(md)
                 yield md
+    for md in _iter_md_via_scandir(base_dir, skip_system=True):
+        if md not in seen:
+            seen.add(md)
+            yield md
 
 
 # ── Touch last accessed ────────────────────────────────────
+# v2.8.2 — per-process throttle so search hot loops don't write-on-read
+# for the same paths repeatedly.  ``Last Accessed:`` is purely cosmetic
+# (the markdown body field is *not* the YAML frontmatter ``last_accessed``
+# that decay.py consumes), so coalescing repeats is safe.
+import os as _os
+import time as _time
+
+_TOUCH_LAST_AT: "dict[Path, float]" = {}
+try:
+    _TOUCH_THROTTLE_SECONDS = float(_os.environ.get("MEMKRAFT_TOUCH_THROTTLE_SECONDS", "60"))
+except ValueError:  # pragma: no cover
+    _TOUCH_THROTTLE_SECONDS = 60.0
+_TOUCH_DISABLED = _os.environ.get("MEMKRAFT_DISABLE_TOUCH_LAST_ACCESSED") == "1"
+_TOUCH_CACHE_LIMIT = 4096  # cap so the throttle map can't grow unbounded
+
+
+def _touch_should_skip(full_path: Path) -> bool:
+    """True if this path was touched within the throttle window."""
+    if _TOUCH_DISABLED:
+        return True
+    if _TOUCH_THROTTLE_SECONDS <= 0:
+        return False
+    now = _time.time()
+    last = _TOUCH_LAST_AT.get(full_path)
+    if last is not None and (now - last) < _TOUCH_THROTTLE_SECONDS:
+        return True
+    # Bound memory: if cache is full, drop the oldest entry.
+    if len(_TOUCH_LAST_AT) >= _TOUCH_CACHE_LIMIT:
+        try:
+            oldest = min(_TOUCH_LAST_AT, key=_TOUCH_LAST_AT.get)  # type: ignore[arg-type]
+            _TOUCH_LAST_AT.pop(oldest, None)
+        except ValueError:
+            pass
+    _TOUCH_LAST_AT[full_path] = now
+    return False
+
+
+def _touch_reset_for_tests() -> None:
+    """Test hook — clears the throttle map."""
+    _TOUCH_LAST_AT.clear()
+
+
 def touch_last_accessed(base_dir: Path, rel_path: str, timestamp: str) -> None:
-    """Update 'Last Accessed' timestamp in an entity/note file."""
+    """Update 'Last Accessed' timestamp in an entity/note file.
+
+    v2.8.2: throttled per-process to avoid write-on-read storms during
+    repeated searches.  Window: ``MEMKRAFT_TOUCH_THROTTLE_SECONDS``
+    (default 60s).  Set ``MEMKRAFT_DISABLE_TOUCH_LAST_ACCESSED=1`` to
+    skip entirely.
+    """
     if not rel_path:
         return
     try:
         full_path = base_dir / rel_path
+        if _touch_should_skip(full_path):
+            return
         if not full_path.exists() or not full_path.is_file():
             return
         content = full_path.read_text(encoding="utf-8", errors="replace")
         pattern = r'\*\*Last Accessed:\*\*\s*.*'
         replacement = f'**Last Accessed:** {timestamp}'
         if re.search(pattern, content):
-            content = re.sub(pattern, replacement, content)
+            new_content = re.sub(pattern, replacement, content)
         else:
             last_update_pattern = r'(\*\*Last Update:\*\*\s*[^\n]+)'
             m = re.search(last_update_pattern, content)
             if m:
                 insert_pos = m.end()
-                content = content[:insert_pos] + f'\n- **Last Accessed:** {timestamp}' + content[insert_pos:]
+                new_content = content[:insert_pos] + f'\n- **Last Accessed:** {timestamp}' + content[insert_pos:]
             else:
                 tc_pattern = r'(## Tracking Config\n)'
                 m2 = re.search(tc_pattern, content)
                 if m2:
                     insert_pos = m2.end()
-                    content = content[:insert_pos] + f'- **Last Accessed:** {timestamp}\n' + content[insert_pos:]
-        full_path.write_text(content, encoding="utf-8")
+                    new_content = content[:insert_pos] + f'- **Last Accessed:** {timestamp}\n' + content[insert_pos:]
+                else:
+                    new_content = content
+        # Skip write if no actual change (cheap byte compare).
+        if new_content == content:
+            return
+        full_path.write_text(new_content, encoding="utf-8")
     except Exception:
         pass
 
