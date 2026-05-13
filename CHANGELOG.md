@@ -1,5 +1,85 @@
 # CHANGELOG
 
+## [2.9.0] — 2026-05-14
+
+Fourth hot-path performance pass on top of v2.8.4. **Public API unchanged.**
+All 1300 tests pass (3 skipped). Recall envelope identical to v2.8.3 —
+fingerprint preserved.
+
+Bundles two complementary optimizations that together turn search from
+O(N) per-doc scan into O(matches) candidate iteration with O(1) no-match
+early-exit:
+
+1. **Inverted posting list** (P3) — candidate selection from `content_postings`
+   / `filename_postings` / `filename_lower` substring scan, replacing the
+   per-doc prefilter pass.
+2. **Bloom filter** (P1) — short-circuit return for true no-match queries
+   before any candidate selection, alias bookkeeping, or filename scan.
+
+### Performance (vs v2.8.4)
+- **Inverted posting list** (`_corpus_index.py` + `core.py`).
+  `content_postings: dict[token, list[Path]]` and `filename_postings`
+  built alongside BM25 stats (same iteration, ~zero build overhead).
+  `MemKraft.search()` now iterates `union(content_postings[t] for t in
+  query_tokens) ∪ union(filename_postings[t] …) ∪ {md : query in
+  filename_lower[md]}` instead of every file. Filename substring scan
+  (set (c)) is brute but O(N) with one `str.__contains__` per doc —
+  much cheaper than the prefilter's tokenize-and-intersect.
+- **Bloom filter early-exit** (`_corpus_index.py` + `core.py`).
+  `CorpusIndex.token_bloom: set[str]` = union of content + filename
+  posting keys (every token any doc contains). `CorpusIndex.filename_corpus`
+  = NUL-separated concatenation of every `filename_lower`. When
+  `fuzzy=False` and zero expanded-query-tokens appear in `token_bloom`
+  AND `query_lower` is not a substring of `filename_corpus`, `search()`
+  returns `[]` before any candidate selection. Single dict-hit per
+  query token + one `str.__contains__` — amortized O(1).
+- **Measured impact (50 queries, single-process):**
+  - n=500 no-match: 2.26ms → 1.80ms mean (–20%)
+  - n=1000 no-match: 5.02ms → 3.67ms mean (–27%)
+  - n=2000 no-match: ~9ms → 7.44ms mean (–17%)
+  - n=1000 rare-match (1 hit, unique token): 3.76ms
+
+### Added
+- `CorpusIndex.content_postings` — inverted token → docs map for content.
+- `CorpusIndex.filename_postings` — inverted token → docs map for filenames.
+- `CorpusIndex.filename_lower` — cached per-doc `(stem.lower with
+  hyphens→spaces)` so the search hot loop skips per-doc recomputation.
+- `CorpusIndex.token_bloom` — exact set of all corpus tokens (content
+  ∪ filename). Naming follows convention; this is a precise set, not a
+  probabilistic bloom filter — zero false positives. Build cost is
+  ~free (dict-key union on data already computed).
+- `CorpusIndex.filename_corpus` — NUL-joined concatenation of every
+  `filename_lower` string. NUL separator prevents cross-file substring
+  leakage (a query spanning two adjacent filenames cannot spuriously
+  hit).
+- `MEMKRAFT_DISABLE_INVERTED_INDEX=1` regression-test escape hatch.
+- `MEMKRAFT_DISABLE_BLOOM_FILTER=1` regression-test escape hatch.
+
+### Changed
+- `MemKraft.search()` candidate selection short-circuits via inverted
+  index when available; falls back to the v2.8.3 per-doc prefilter when
+  the corpus index lacks postings (degenerate / pre-v2.9 cached index).
+- `MemKraft.search()` early-exits via bloom + filename-corpus gate
+  before candidate selection when no token + substring match is
+  possible. Bypassed for `fuzzy=True` (fuzzy can score zero-overlap
+  docs).
+
+### Recall safety
+- Inverted-index candidate set is the exact set the v2.8.3 prefilter
+  would have *kept* on a per-doc scan — zero recall delta.
+- Bloom early-exit only fires when both gates fail (no token in bloom
+  AND no substring in filename corpus). Both are necessary conditions
+  for ANY non-fuzzy score > 0, so the empty return is provably correct.
+- 1300 tests pass; no test required modification.
+
+### Notes
+- Pre-existing v2.8.3 recall gap (substring-of-content-token matches,
+  e.g. query `"deploy"` vs token `"deploys"`) is intentionally
+  preserved — closing it requires a suffix-trie / trigram index,
+  deferred to a future v2.9.x.
+- `fuzzy=True` path is unchanged — fuzzy scoring still walks every doc
+  because Levenshtein/Jaro can match zero-overlap inputs.
+
 ## [2.8.4] — 2026-05-14
 
 Third hot-path performance pass on top of v2.8.1. **Public API unchanged.**

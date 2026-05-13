@@ -1132,6 +1132,39 @@ class MemKraft:
             self._search_tokens,
             trust_write_hooks=True,  # v2.8.1: skip stat-scan between writes
         )
+
+        # v2.9.0 — Bloom filter early-exit (P1, no-match short circuit).
+        # When ``fuzzy=False`` and NONE of the (expanded) query tokens
+        # appear anywhere in the corpus AND ``query_lower`` is not a
+        # substring of any filename, no doc can possibly score > 0 —
+        # return immediately without the candidate-selection /
+        # filename-scan / scoring machinery below.
+        # Recall safety: matches the exact recall envelope of the v2.8.3
+        # prefilter + the v2.9 inverted-index candidate selection.  A
+        # doc with score > 0 must (a) share a token with query_tokens,
+        # in which case the token is in ``_idx.token_bloom``, OR (b)
+        # have ``query_lower`` as a filename substring, in which case
+        # it appears in ``_idx.filename_corpus``.  Both gates failing
+        # ⇒ empty result set guaranteed.
+        # Disabled when ``fuzzy=True`` (fuzzy can score docs sharing
+        # zero tokens) or when the corpus index lacks bloom data (rare
+        # — e.g. empty corpus, or index built by pre-v2.9 path —
+        # ``token_bloom`` is then empty and we fall through to legacy).
+        # Escape hatch: ``MEMKRAFT_DISABLE_BLOOM_FILTER=1``.
+        if (
+            not fuzzy
+            and bool(query_tokens)
+            and bool(_idx.token_bloom)  # only available on v2.9+ index
+            and os.environ.get("MEMKRAFT_DISABLE_BLOOM_FILTER") != "1"
+        ):
+            _bloom = _idx.token_bloom
+            if not any(_qt in _bloom for _qt in query_tokens):
+                # No token match possible.  Last gate: filename
+                # substring (covers e.g. query "ent_42" → file
+                # ``ent_42.md`` even when the tokenizer's split misses).
+                if query_lower not in _idx.filename_corpus:
+                    return []
+
         # Iterate the full md file set for scoring; the index dicts
         # are looked up defensively (`.get(md, ...)`) inside the
         # scoring loop / BM25 helper, so files missing from the index
@@ -1178,8 +1211,67 @@ class MemKraft:
         _query_token_set = set(query_tokens) if _prefilter_enabled else None
         _doc_stat_cached = _idx.doc_stat if _prefilter_enabled else None
 
-        for md in all_files:
-            if _prefilter_enabled:
+        # v2.9 — inverted-index candidate selection (P3).
+        # When prefilter is enabled AND the corpus index ships postings
+        # (built in v2.9+), we can iterate ONLY candidate docs rather
+        # than walking every file.  Candidates =
+        #   union(content_postings[t] for t in query_tokens) ∪
+        #   union(filename_postings[t] for t in query_tokens) ∪
+        #   { md : query_lower in filename_lower[md] }
+        # The last set covers filename-substring matches (e.g. query
+        # "ent_42" must match file ``ent_42.md`` even if the tokenizer
+        # drops the underscore-aware split) — it's a brute scan over
+        # the filename strings but no I/O, very cheap.
+        # Recall safety: identical to the v2.8.3 prefilter (zero risk)
+        # because the candidate set is the exact set the prefilter
+        # would have *kept* on a per-doc scan.  The stale-cache stat
+        # check still runs inside the loop for any candidate that
+        # would otherwise have been dropped — see below.
+        _inverted_enabled = (
+            _prefilter_enabled
+            and bool(_idx.content_postings)  # only available on v2.9+ index
+            and os.environ.get("MEMKRAFT_DISABLE_INVERTED_INDEX") != "1"
+        )
+        if _inverted_enabled:
+            _candidate_set: set = set()
+            # (a) exact token-match candidates — cheap dict lookup.
+            for _qt in _query_token_set:  # type: ignore[union-attr]
+                _cp = _idx.content_postings.get(_qt)
+                if _cp:
+                    _candidate_set.update(_cp)
+                _fp = _idx.filename_postings.get(_qt)
+                if _fp:
+                    _candidate_set.update(_fp)
+            # (b) Recall parity with v2.8.3 prefilter.  v2.8.3's
+            # prefilter passes any doc whose token set intersects
+            # ``query_tokens`` — same as our (a).  It does NOT rescue
+            # docs where the query is a substring of a content token
+            # (e.g. query "deploy" vs content token "deploys") or a
+            # substring of arbitrary content text.  Those are
+            # pre-existing v2.8.3 recall gaps and are documented but
+            # not closed here — a proper fix requires either a
+            # suffix-trie / trigram index (deferred to v2.9.x).  We
+            # keep the gap aligned with v2.8.3 so existing callers see
+            # identical results.
+            # (c) filename substring matches — cheap brute scan over
+            # precomputed lowered names.  Catches queries like "ent_42"
+            # that the tokenizer may split differently than the file
+            # name encoding (hyphens vs underscores).
+            for _md_fn, _fn_lower in _idx.filename_lower.items():
+                if query_lower in _fn_lower:
+                    _candidate_set.add(_md_fn)
+            # Preserve deterministic order matching ``file_list`` so
+            # downstream tie-breaks (file path sort) stay stable.
+            _all_files_iter = [m for m in all_files if m in _candidate_set]
+        else:
+            _all_files_iter = all_files
+
+        for md in _all_files_iter:
+            # v2.9: when the inverted-index candidate selection is
+            # active, every doc in _all_files_iter is by construction
+            # a candidate that would have passed the per-doc
+            # prefilter check — skip the redundant inner pass.
+            if _prefilter_enabled and not _inverted_enabled:
                 _tf_map_pf = doc_token_freqs.get(md)
                 if _tf_map_pf is not None:
                     # Cheap O(|query_tokens|) intersection check.

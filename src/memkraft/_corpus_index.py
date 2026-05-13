@@ -75,6 +75,37 @@ class CorpusIndex:
     # the list at build time (deterministic order, same as
     # ``_compute_fingerprint``) so search loops can reuse it.
     file_list: list = field(default_factory=list)
+    # v2.9 — inverted posting list (P3, opt-in).
+    # ``content_postings[token]`` → list of doc Paths whose body has
+    # that token (built from ``doc_token_freqs`` — same source, just
+    # transposed).  ``filename_postings[token]`` → list of doc Paths
+    # whose filename (stem, hyphens→spaces, lowered) contains that
+    # token.  Together they let ``search()`` skip the per-doc
+    # prefilter scan and iterate only candidate docs.
+    # Filename substring matches (query in filename_lower) still need
+    # the brute filename scan because token lookup misses
+    # substrings of long filenames; the per-doc cost is one
+    # ``str.__contains__`` though, much cheaper than the prefilter.
+    content_postings: Dict[str, list] = field(default_factory=dict)
+    filename_postings: Dict[str, list] = field(default_factory=dict)
+    # v2.9: cached per-doc filename_lower string (stem with hyphens →
+    # spaces, lowered) so the search hot path can do filename
+    # substring matching without recomputing per doc.
+    filename_lower: Dict[Path, str] = field(default_factory=dict)
+    # v2.9.0 — Bloom filter (P1, exact set; "bloom" by convention only).
+    # ``token_bloom`` is the union of every token that appears in any
+    # document's content OR in any filename_lower tokenization.  When
+    # NO query token is in ``token_bloom``, the only remaining way a
+    # doc can match is via filename-substring (query_lower in
+    # filename_lower).  ``filename_corpus`` is the concatenation of
+    # every filename_lower string (joined with ``\x00`` so substring
+    # matches can't cross file boundaries) — so we can answer
+    # "is ``query_lower`` a substring of any filename?" in one
+    # ``str.__contains__`` call instead of an O(N) per-doc scan.
+    # Together they let ``search()`` early-exit on true no-match queries
+    # before doing any candidate selection / alias expansion bookkeeping.
+    token_bloom: set = field(default_factory=set)
+    filename_corpus: str = ""
 
 
 # ── Module-level singleton ────────────────────────────────────────
@@ -145,6 +176,10 @@ def _build_index(
     doc_lengths: Dict[Path, int] = {}
     total_tokens = 0
     valid_docs = 0
+    # v2.9 — postings (inverted index) built alongside the BM25 stats.
+    content_postings: Dict[str, list] = {}
+    filename_postings: Dict[str, list] = {}
+    filename_lower_map: Dict[Path, str] = {}
 
     for md, _stat in items:
         try:
@@ -166,12 +201,40 @@ def _build_index(
         total_tokens += len(doc_tok_list)
         for t in tf_map:
             token_doc_freq[t] = token_doc_freq.get(t, 0) + 1
+            # v2.9: same iteration — build content posting list.
+            posting = content_postings.get(t)
+            if posting is None:
+                content_postings[t] = [md]
+            else:
+                posting.append(md)
+        # v2.9: filename postings.  Mirror search()'s filename_lower
+        # derivation (stem, hyphens→spaces, lowered) so candidate
+        # selection matches scoring exactly.
+        fname_lower = md.stem.lower().replace("-", " ")
+        filename_lower_map[md] = fname_lower
+        for ft in search_tokens_fn(fname_lower):
+            posting = filename_postings.get(ft)
+            if posting is None:
+                filename_postings[ft] = [md]
+            else:
+                posting.append(md)
         valid_docs += 1
 
     # Mirror the legacy semantics: ``doc_count = max(len(all_files), 1)``
     # so BM25 IDF never divides by zero on an empty corpus.
     doc_count = max(valid_docs, 1)
     avg_doc_len = (total_tokens / doc_count) if total_tokens > 0 else 0.0
+
+    # v2.9.0 — Bloom filter assembly.  Union of every content posting
+    # key and filename posting key — i.e. every token that any doc in
+    # the corpus contains.  Plus a single concatenated string of all
+    # filename_lower values (NUL-separated to prevent cross-file
+    # substring leakage) so the early-exit gate can answer
+    # "does ``query_lower`` appear in ANY filename?" in O(1) amortized.
+    _bloom: set = set()
+    _bloom.update(content_postings.keys())
+    _bloom.update(filename_postings.keys())
+    _fn_corpus = "\x00".join(filename_lower_map.values())
 
     return CorpusIndex(
         doc_count=doc_count,
@@ -183,6 +246,11 @@ def _build_index(
         path_set_hash=_compute_path_set_hash(p for p, _ in items),
         doc_stat={p: (s["mtime_ns"], s["size"]) for p, s in items},
         file_list=[p for p, _ in items],
+        content_postings=content_postings,
+        filename_postings=filename_postings,
+        filename_lower=filename_lower_map,
+        token_bloom=_bloom,
+        filename_corpus=_fn_corpus,
     )
 
 
