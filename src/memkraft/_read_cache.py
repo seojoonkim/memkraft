@@ -79,13 +79,28 @@ class _ReadCache:
         return text
 
     def invalidate(self, path: Path) -> None:
-        """Explicitly drop a path. Called from write paths as a fast-path."""
+        """Explicitly drop a path. Called from write paths as a fast-path.
+
+        v2.8.1: also bumps the corpus-index generation counter so the
+        next ``MemKraft.search()`` call skips its per-file ``stat()``
+        fingerprint pass and goes straight to a rebuild check.  This
+        is the canonical write-path hook — every site that already
+        invalidates the read cache automatically invalidates the BM25
+        corpus index too.
+        """
         spath = str(path)
         with self._lock:
             for k in list(self._data.keys()):
                 if k[0] == spath:
                     self._data.pop(k, None)
                     self.invalidations += 1
+        # Imported lazily to avoid a circular import at module load.
+        try:
+            from . import _corpus_index
+            _corpus_index.invalidate(path)
+        except Exception:
+            # Never let cache-coherency telemetry break a write path.
+            pass
 
     def clear(self) -> None:
         with self._lock:

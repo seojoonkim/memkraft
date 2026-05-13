@@ -1006,6 +1006,9 @@ class MemKraft:
                         lines.insert(1, f"\n**Tier: {tier}**")
                         content = "\n".join(lines)
                 filepath.write_text(content, encoding="utf-8")
+                # v2.8.1: invalidate read cache + corpus index generation
+                from ._read_cache import get_cache
+                get_cache().invalidate(filepath)
                 print(f"✅ Promoted '{name}' → {tier}")
                 return
 
@@ -1100,6 +1103,7 @@ class MemKraft:
         _idx = get_corpus_index(
             self._all_md_files,
             self._search_tokens,
+            trust_write_hooks=True,  # v2.8.1: skip stat-scan between writes
         )
         # Iterate the full md file set for scoring; the index dicts
         # are looked up defensively (`.get(md, ...)`) inside the
@@ -1148,7 +1152,17 @@ class MemKraft:
                     best_snippet = md.stem
 
             if query_tokens:
-                content_tokens = set(self._search_tokens(content_lower))
+                # v2.8.1 hot-path: reuse pre-tokenized TF map from the cached
+                # corpus index instead of re-tokenizing the document body on
+                # every search.  ``doc_token_freqs[md].keys()`` is exactly the
+                # set of body tokens (after dedup), which is all the scoring
+                # below needs.  Falls back to fresh tokenization only when the
+                # cache miss races (rare: a file was added after fingerprint).
+                _tf_map_hot = doc_token_freqs.get(md)
+                if _tf_map_hot is not None:
+                    content_tokens = _tf_map_hot.keys()
+                else:
+                    content_tokens = set(self._search_tokens(content_lower))
                 filename_tokens = set(self._search_tokens(filename_lower))
                 # IDF-weighted token scoring: rare tokens count more
                 idf_weights = []
@@ -1167,7 +1181,8 @@ class MemKraft:
                 # normalisation (b), which the simple IDF-weighted overlap
                 # above does not.  Filename tokens count as TF=1 if absent
                 # from the body so single-token entity files still score.
-                tf_map = doc_token_freqs.get(md, {})
+                # v2.8.1: reuse the same TF map looked up above.
+                tf_map = _tf_map_hot if _tf_map_hot is not None else doc_token_freqs.get(md, {})
                 doc_len = doc_lengths.get(md, 0)
                 bm25_raw = self._bm25_score(
                     query_tokens=query_tokens,

@@ -60,6 +60,10 @@ class CorpusIndex:
     doc_token_freqs: Dict[Path, Dict[str, int]] = field(default_factory=dict)
     doc_lengths: Dict[Path, int] = field(default_factory=dict)
     fingerprint: bytes = b""
+    # v2.8.1: cheap identity hash (paths only, no stat) so the fast
+    # path can verify it's looking at the right corpus when multiple
+    # MemKraft instances share the singleton (e.g. across test runs).
+    path_set_hash: bytes = b""
 
 
 # ── Module-level singleton ────────────────────────────────────────
@@ -67,6 +71,15 @@ _INDEX_CACHE: Optional[CorpusIndex] = None
 _INDEX_LOCK = threading.Lock()
 _BUILD_HITS = 0
 _BUILD_MISSES = 0
+# v2.8.1: write-path generation counter.  When a write path (track,
+# update, fact_add, …) mutates a markdown file it bumps this counter
+# via :func:`invalidate`.  ``get_corpus_index`` records the generation
+# observed at build time and short-circuits the per-file ``stat()``
+# fingerprint when the generation is unchanged.  This is the fast path
+# for read-heavy workloads (search >> write).
+_WRITE_GENERATION: int = 0
+_INDEX_GENERATION: int = -1  # generation captured when _INDEX_CACHE was built
+_FAST_HITS = 0
 
 
 def _compute_fingerprint(files: Iterable[Path]) -> tuple[bytes, list[tuple[Path, dict]]]:
@@ -93,6 +106,20 @@ def _compute_fingerprint(files: Iterable[Path]) -> tuple[bytes, list[tuple[Path,
         h.update(int(st.st_size).to_bytes(8, "little", signed=False))
         h.update(b"\xff")
     return h.digest(), items
+
+
+def _compute_path_set_hash(files: Iterable[Path]) -> bytes:
+    """v2.8.1: cheap path-set identity (no ``stat``).
+
+    Used by the fast path to ensure the cached index belongs to the
+    caller's corpus (multiple ``MemKraft`` instances may share the
+    singleton in long-running processes or test suites).
+    """
+    h = hashlib.blake2b(digest_size=16)
+    for p in sorted(files, key=lambda x: str(x)):
+        h.update(str(p).encode("utf-8", "replace"))
+        h.update(b"\x00")
+    return h.digest()
 
 
 def _build_index(
@@ -142,6 +169,7 @@ def _build_index(
         doc_token_freqs=doc_token_freqs,
         doc_lengths=doc_lengths,
         fingerprint=fingerprint,
+        path_set_hash=_compute_path_set_hash(p for p, _ in items),
     )
 
 
@@ -149,6 +177,7 @@ def get_corpus_index(
     all_md_files_fn: Callable[[], Iterable[Path]],
     search_tokens_fn: Callable[[str], list],
     read_text_fn: Optional[Callable[[Path], Optional[str]]] = None,
+    trust_write_hooks: bool = False,
 ) -> CorpusIndex:
     """Return the cached :class:`CorpusIndex`, rebuilding on change.
 
@@ -164,16 +193,59 @@ def get_corpus_index(
         we go through the bounded LRU read cache, which makes the
         first build cheaper too.  When ``None`` we read directly via
         ``Path.read_text``.
+    trust_write_hooks:
+        v2.8.1.  When ``True``, the caller promises that every write
+        which mutates a corpus markdown file also invokes
+        :func:`invalidate` (directly or via
+        ``_ReadCache.invalidate``).  This lets ``get_corpus_index``
+        skip the per-file ``stat()`` fingerprint pass when no writes
+        have happened since the cached build — the fast path that
+        powers the search hot loop.
+
+        When ``False`` (the default, used by tests and callers that
+        mutate corpus files directly without going through MemKraft's
+        write API), the legacy fingerprint check always runs so a
+        bare ``Path.write_text`` outside the library still invalidates
+        the cache.
 
     Returns
     -------
     CorpusIndex
         Treat as read-only.  Mutating it corrupts subsequent searches.
     """
-    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS
 
-    files = list(all_md_files_fn())
-    fingerprint, items = _compute_fingerprint(files)
+    if trust_write_hooks and not _disabled():
+        # v2.8.1 fast path: if no writes have happened since the
+        # cached index was built AND the corpus file-set hash matches
+        # (same MemKraft instance / same corpus), skip the per-file
+        # ``stat()`` fingerprint pass entirely.  ``invalidate()``
+        # (called from write paths) bumps ``_WRITE_GENERATION``; the
+        # path-set check guards against singleton bleed across
+        # MemKraft instances (e.g. in long-running test runs).
+        files = list(all_md_files_fn())
+        with _INDEX_LOCK:
+            cached = _INDEX_CACHE
+            if (
+                cached is not None
+                and _INDEX_GENERATION == _WRITE_GENERATION
+                and cached.path_set_hash == _compute_path_set_hash(files)
+            ):
+                _FAST_HITS += 1
+                _BUILD_HITS += 1
+                return cached
+            observed_generation = _WRITE_GENERATION
+        fingerprint, items = _compute_fingerprint(files)
+    elif not _disabled():
+        # Legacy slow-but-safe path: fingerprint scan always runs.
+        with _INDEX_LOCK:
+            observed_generation = _WRITE_GENERATION
+        files = list(all_md_files_fn())
+        fingerprint, items = _compute_fingerprint(files)
+    else:
+        observed_generation = -1
+        files = list(all_md_files_fn())
+        fingerprint, items = _compute_fingerprint(files)
 
     if _disabled():
         # Always rebuild; do not touch the cache so unit tests can
@@ -201,17 +273,39 @@ def get_corpus_index(
             _BUILD_HITS += 1
             return existing
         _INDEX_CACHE = fresh
+        _INDEX_GENERATION = observed_generation
         _BUILD_MISSES += 1
         return fresh
 
 
+def invalidate(path: Optional[Path] = None) -> None:
+    """Mark the corpus as dirty (v2.8.1 write-path hook).
+
+    Called from write paths (``track``, ``update``, ``fact_add``, …)
+    when a markdown file is created, modified, or deleted.  Bumping
+    the generation counter forces the next ``get_corpus_index`` call
+    to re-fingerprint and rebuild as needed.
+
+    The ``path`` argument is accepted for forward compatibility (per-
+    file partial invalidation may land in a later release) but is
+    currently ignored — we always do a global bump because BM25 IDF
+    depends on every other doc's TF anyway.
+    """
+    global _WRITE_GENERATION
+    with _INDEX_LOCK:
+        _WRITE_GENERATION += 1
+
+
 def reset_for_tests() -> None:
     """Drop the singleton + counters.  Test helper only."""
-    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _WRITE_GENERATION, _FAST_HITS
     with _INDEX_LOCK:
         _INDEX_CACHE = None
         _BUILD_HITS = 0
         _BUILD_MISSES = 0
+        _INDEX_GENERATION = -1
+        _WRITE_GENERATION = 0
+        _FAST_HITS = 0
 
 
 def stats() -> Dict[str, Any]:
@@ -224,5 +318,8 @@ def stats() -> Dict[str, Any]:
             "avg_doc_len": cached.avg_doc_len if cached is not None else 0.0,
             "build_hits": _BUILD_HITS,
             "build_misses": _BUILD_MISSES,
+            "fast_hits": _FAST_HITS,
+            "write_generation": _WRITE_GENERATION,
+            "index_generation": _INDEX_GENERATION,
             "disabled": _disabled(),
         }

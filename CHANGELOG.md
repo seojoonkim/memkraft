@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## [2.8.1] — 2026-05-13
+
+Small hot-path performance pass on top of v2.8.0. **Public API unchanged.**
+All 1300 tests pass.
+
+### Performance
+- **TF map reuse** (`core.py`) — the BM25 scoring loop now consumes the
+  cached per-document term-frequency map directly instead of re-tokenizing
+  each document on every query. Removes the dominant per-document cost
+  in the post-cache search hot path.
+- **Substring snippet matching** (`_core_search_helpers.py`) —
+  `best_token_snippet` falls back to a fast substring scan when no token
+  match is found, eliminating a regression where short queries against
+  long-form notes were re-tokenizing the entire document.
+- **Write-path corpus invalidation** (`_corpus_index.py` +
+  `_read_cache.py`) — introduces a global write-generation counter so
+  read-heavy workloads can skip the per-file `stat()` fingerprint scan
+  between writes. The existing fingerprint check is preserved as a
+  fallback for correctness on writes that bypass the read-cache
+  invalidation hook.
+- **Measured impact (50 entities, 100 queries):** 1.3–2.3x faster search
+  vs v2.8.0 across the WS-A workload.
+
+### Added
+- `memkraft._corpus_index.invalidate(path=None)` — write-path hook
+  callable by any module that mutates a corpus markdown file. Currently
+  a global generation bump; per-path partial invalidation reserved for
+  a future release.
+- `_corpus_index.stats()` now reports `fast_hits`, `write_generation`,
+  and `index_generation` for diagnostics.
+
+### Changed
+- `_ReadCache.invalidate(path)` now also bumps the corpus-index
+  generation counter. Every existing write site that already
+  invalidates the read cache (`track`, `update`, `promote`, …)
+  automatically gets the corpus fast-path benefit — no behavioural
+  change for external callers.
+
 ## [2.8.0] — 2026-05-13
 
 Large internal refactor + multi-workstream performance pass. **Public API

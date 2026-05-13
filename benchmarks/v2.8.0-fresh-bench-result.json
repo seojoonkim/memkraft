@@ -1,0 +1,275 @@
+✅ MemKraft initialized at /tmp/memkraft_v270_bench
+   Directories: entities/, live-notes/, decisions/, originals/, inbox/, tasks/, meetings/, sessions/
+   Files: RESOLVER.md, TEMPLATES.md
+[bench] seeding corpus (50 entities + 20 events)...
+✅ Tracking: memkraft_v270_bench/live-notes/bob0.md
+✅ Updated: memkraft_v270_bench/live-notes/bob0.md
+✅ Tracking: memkraft_v270_bench/live-notes/erin1.md
+✅ Updated: memkraft_v270_bench/live-notes/erin1.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie2.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie2.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy3.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy3.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace4.md
+✅ Updated: memkraft_v270_bench/live-notes/grace4.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob5.md
+✅ Updated: memkraft_v270_bench/live-notes/bob5.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy6.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy6.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy7.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy7.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy8.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy8.md
+✅ Tracking: memkraft_v270_bench/live-notes/henry9.md
+✅ Updated: memkraft_v270_bench/live-notes/henry9.md
+✅ Tracking: memkraft_v270_bench/live-notes/alice10.md
+✅ Updated: memkraft_v270_bench/live-notes/alice10.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace11.md
+✅ Updated: memkraft_v270_bench/live-notes/grace11.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie12.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie12.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob13.md
+✅ Updated: memkraft_v270_bench/live-notes/bob13.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob14.md
+✅ Updated: memkraft_v270_bench/live-notes/bob14.md
+✅ Tracking: memkraft_v270_bench/live-notes/jack15.md
+✅ Updated: memkraft_v270_bench/live-notes/jack15.md
+✅ Tracking: memkraft_v270_bench/live-notes/henry16.md
+✅ Updated: memkraft_v270_bench/live-notes/henry16.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace17.md
+✅ Updated: memkraft_v270_bench/live-notes/grace17.md
+✅ Tracking: memkraft_v270_bench/live-notes/erin18.md
+✅ Updated: memkraft_v270_bench/live-notes/erin18.md
+✅ Tracking: memkraft_v270_bench/live-notes/jack19.md
+✅ Updated: memkraft_v270_bench/live-notes/jack19.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob20.md
+✅ Updated: memkraft_v270_bench/live-notes/bob20.md
+✅ Tracking: memkraft_v270_bench/live-notes/dana21.md
+✅ Updated: memkraft_v270_bench/live-notes/dana21.md
+✅ Tracking: memkraft_v270_bench/live-notes/dana22.md
+✅ Updated: memkraft_v270_bench/live-notes/dana22.md
+✅ Tracking: memkraft_v270_bench/live-notes/erin23.md
+✅ Updated: memkraft_v270_bench/live-notes/erin23.md
+✅ Tracking: memkraft_v270_bench/live-notes/frank24.md
+✅ Updated: memkraft_v270_bench/live-notes/frank24.md
+✅ Tracking: memkraft_v270_bench/live-notes/frank25.md
+✅ Updated: memkraft_v270_bench/live-notes/frank25.md
+✅ Tracking: memkraft_v270_bench/live-notes/erin26.md
+✅ Updated: memkraft_v270_bench/live-notes/erin26.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie27.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie27.md
+✅ Tracking: memkraft_v270_bench/live-notes/dana28.md
+✅ Updated: memkraft_v270_bench/live-notes/dana28.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace29.md
+✅ Updated: memkraft_v270_bench/live-notes/grace29.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy30.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy30.md
+✅ Tracking: memkraft_v270_bench/live-notes/frank31.md
+✅ Updated: memkraft_v270_bench/live-notes/frank31.md
+✅ Tracking: memkraft_v270_bench/live-notes/alice32.md
+✅ Updated: memkraft_v270_bench/live-notes/alice32.md
+✅ Tracking: memkraft_v270_bench/live-notes/erin33.md
+✅ Updated: memkraft_v270_bench/live-notes/erin33.md
+✅ Tracking: memkraft_v270_bench/live-notes/jack34.md
+✅ Updated: memkraft_v270_bench/live-notes/jack34.md
+✅ Tracking: memkraft_v270_bench/live-notes/henry35.md
+✅ Updated: memkraft_v270_bench/live-notes/henry35.md
+✅ Tracking: memkraft_v270_bench/live-notes/henry36.md
+✅ Updated: memkraft_v270_bench/live-notes/henry36.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie37.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie37.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy38.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy38.md
+✅ Tracking: memkraft_v270_bench/live-notes/jack39.md
+✅ Updated: memkraft_v270_bench/live-notes/jack39.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace40.md
+✅ Updated: memkraft_v270_bench/live-notes/grace40.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie41.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie41.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob42.md
+✅ Updated: memkraft_v270_bench/live-notes/bob42.md
+✅ Tracking: memkraft_v270_bench/live-notes/charlie43.md
+✅ Updated: memkraft_v270_bench/live-notes/charlie43.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace44.md
+✅ Updated: memkraft_v270_bench/live-notes/grace44.md
+✅ Tracking: memkraft_v270_bench/live-notes/grace45.md
+✅ Updated: memkraft_v270_bench/live-notes/grace45.md
+✅ Tracking: memkraft_v270_bench/live-notes/henry46.md
+✅ Updated: memkraft_v270_bench/live-notes/henry46.md
+✅ Tracking: memkraft_v270_bench/live-notes/ivy47.md
+✅ Updated: memkraft_v270_bench/live-notes/ivy47.md
+✅ Tracking: memkraft_v270_bench/live-notes/bob48.md
+✅ Updated: memkraft_v270_bench/live-notes/bob48.md
+✅ Tracking: memkraft_v270_bench/live-notes/frank49.md
+✅ Updated: memkraft_v270_bench/live-notes/frank49.md
+📝 Logged: deploy 0 succeeded
+📝 Logged: deploy 1 succeeded
+📝 Logged: deploy 2 succeeded
+📝 Logged: deploy 3 succeeded
+📝 Logged: deploy 4 succeeded
+📝 Logged: deploy 5 succeeded
+📝 Logged: deploy 6 succeeded
+📝 Logged: deploy 7 succeeded
+📝 Logged: deploy 8 succeeded
+📝 Logged: deploy 9 succeeded
+📝 Logged: deploy 10 succeeded
+📝 Logged: deploy 11 succeeded
+📝 Logged: deploy 12 succeeded
+📝 Logged: deploy 13 succeeded
+📝 Logged: deploy 14 succeeded
+📝 Logged: deploy 15 succeeded
+📝 Logged: deploy 16 succeeded
+📝 Logged: deploy 17 succeeded
+📝 Logged: deploy 18 succeeded
+📝 Logged: deploy 19 succeeded
+[bench] repeat workload, cache=OFF (100 calls)...
+[bench] repeat workload, cache=ON (100 calls)...
+[bench] mixed workload, cache=OFF (100 calls)...
+[bench] mixed workload, cache=ON (100 calls)...
+[bench] smart workload, cache=OFF (100 calls)...
+[bench] smart workload, cache=ON (100 calls)...
+[bench] invalidation workload (100 calls + mutations)...
+📝 Logged: bench tick 10
+📝 Logged: bench tick 20
+📝 Logged: bench tick 30
+📝 Logged: bench tick 40
+📝 Logged: bench tick 50
+📝 Logged: bench tick 60
+📝 Logged: bench tick 70
+📝 Logged: bench tick 80
+📝 Logged: bench tick 90
+
+[bench] saved -> /tmp/v2.7.0-bench-result.json
+
+{
+  "repeat_cache_off": {
+    "workload": "repeat_cache_off",
+    "n": 100,
+    "mean_ms": 5.152,
+    "median_ms": 5.268,
+    "p50_ms": 5.268,
+    "p95_ms": 9.933,
+    "p99_ms": 10.164,
+    "min_ms": 2.76,
+    "max_ms": 13.802,
+    "throughput_qps": 194.1
+  },
+  "repeat_cache_on": {
+    "workload": "repeat_cache_on",
+    "n": 100,
+    "mean_ms": 0.91,
+    "median_ms": 0.147,
+    "p50_ms": 0.147,
+    "p95_ms": 4.58,
+    "p99_ms": 7.354,
+    "min_ms": 0.007,
+    "max_ms": 9.934,
+    "throughput_qps": 1098.7,
+    "cache_stats": {
+      "hits": 90,
+      "misses": 10,
+      "evictions": 0,
+      "size": 10,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.9,
+      "generation": 120
+    }
+  },
+  "mixed_cache_off": {
+    "workload": "mixed_cache_off",
+    "n": 100,
+    "mean_ms": 4.317,
+    "median_ms": 3.151,
+    "p50_ms": 3.151,
+    "p95_ms": 7.485,
+    "p99_ms": 9.721,
+    "min_ms": 2.779,
+    "max_ms": 10.001,
+    "throughput_qps": 231.7
+  },
+  "mixed_cache_on": {
+    "workload": "mixed_cache_on",
+    "n": 100,
+    "mean_ms": 2.723,
+    "median_ms": 2.924,
+    "p50_ms": 2.924,
+    "p95_ms": 7.25,
+    "p99_ms": 7.57,
+    "min_ms": 0.007,
+    "max_ms": 7.712,
+    "throughput_qps": 367.3,
+    "cache_stats": {
+      "hits": 40,
+      "misses": 60,
+      "evictions": 0,
+      "size": 60,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.4,
+      "generation": 120
+    }
+  },
+  "smart_repeat_cache_off": {
+    "workload": "smart_repeat_cache_off",
+    "n": 100,
+    "mean_ms": 4.332,
+    "median_ms": 4.413,
+    "p50_ms": 4.413,
+    "p95_ms": 7.313,
+    "p99_ms": 7.438,
+    "min_ms": 2.144,
+    "max_ms": 10.32,
+    "throughput_qps": 230.8
+  },
+  "smart_repeat_cache_on": {
+    "workload": "smart_repeat_cache_on",
+    "n": 100,
+    "mean_ms": 0.802,
+    "median_ms": 0.127,
+    "p50_ms": 0.127,
+    "p95_ms": 4.487,
+    "p99_ms": 7.268,
+    "min_ms": 0.006,
+    "max_ms": 10.327,
+    "throughput_qps": 1247.5,
+    "cache_stats": {
+      "hits": 90,
+      "misses": 11,
+      "evictions": 0,
+      "size": 11,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.8911,
+      "generation": 120
+    }
+  },
+  "invalidation": {
+    "workload": "invalidation",
+    "n": 100,
+    "mean_ms": 5.144,
+    "median_ms": 5.323,
+    "p50_ms": 5.323,
+    "p95_ms": 10.155,
+    "p99_ms": 10.213,
+    "min_ms": 2.809,
+    "max_ms": 10.275,
+    "throughput_qps": 194.4,
+    "cache_stats": {
+      "hits": 0,
+      "misses": 100,
+      "evictions": 0,
+      "size": 100,
+      "capacity": 256,
+      "ttl_seconds": 300.0,
+      "hit_rate": 0.0,
+      "generation": 129
+    }
+  },
+  "speedup": {
+    "repeat_mean_speedup_x": 5.66,
+    "repeat_throughput_gain_pct": 466.0,
+    "mixed_mean_speedup_x": 1.59,
+    "smart_mean_speedup_x": 5.4
+  }
+}
