@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "2.9.1"
+__version__ = "2.9.2"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -37,6 +37,7 @@ from .cache import (  # v2.7.0 search result caching
     install_cache_invalidation_wrappers,
 )
 from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
+from .struct_mem import StructMemMixin  # v2.9.2 StructMem regex extraction
 from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -84,6 +85,7 @@ for _mixin in (
     AliasMixin,
     CacheInvalidationMixin,
     ReasoningBankMixin,
+    StructMemMixin,
     EmbeddingMixin,
 ):
     for _name, _attr in vars(_mixin).items():

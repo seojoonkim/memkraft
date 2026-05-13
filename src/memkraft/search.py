@@ -271,6 +271,80 @@ class SearchMixin:
         return self.search_v2(query, top_k=top_k, expand_query=True, fuzzy=fuzzy)
 
     # ------------------------------------------------------------------
+    # v2.9.2 — Memanto-style typed semantic search
+    # ------------------------------------------------------------------
+    def search_typed(
+        self,
+        query: str,
+        entity_type: str = "",
+        fact_key: str = "",
+        top_k: int = 10,
+        fuzzy: bool = False,
+    ) -> list[dict]:
+        """v2.9.2 — typed semantic search with post-filters.
+
+        Runs ``search_v2`` then filters by:
+
+        * ``entity_type`` — keep only entities whose markdown contains
+          ``**Type:** <entity_type>`` (case-insensitive substring match
+          on the tracked Type field; empty string disables this filter).
+        * ``fact_key`` — keep only entities for which ``fact_list`` has
+          at least one fact with this key (empty string disables).
+
+        Both filters are additive (AND). Empty filters = pure search_v2.
+        Fetches a wider candidate window (``top_k * 5``, capped 200)
+        before filtering so the final ``top_k`` is honoured when possible.
+
+        Returns the same dict shape as ``search_v2``.
+        """
+        if not isinstance(query, str) or not query.strip():
+            return []
+        if not isinstance(top_k, int) or top_k <= 0:
+            top_k = 10
+
+        et = (entity_type or "").strip().lower()
+        fk = (fact_key or "").strip()
+
+        # No filters — short-circuit to plain search_v2.
+        if not et and not fk:
+            return self.search_v2(query, top_k=top_k, fuzzy=fuzzy)
+
+        # Wider candidate fetch so post-filter has room to work.
+        candidate_window = min(max(top_k * 5, 20), 200)
+        candidates = self.search_v2(query, top_k=candidate_window, fuzzy=fuzzy)
+
+        base = getattr(self, "base_dir", None)
+        out: list[dict] = []
+        for hit in candidates:
+            if et and not _entity_type_matches(hit, et, base_dir=base):
+                continue
+            if fk and not self._has_fact_key(hit, fk):
+                continue
+            out.append(hit)
+            if len(out) >= top_k:
+                break
+        return out
+
+    def _has_fact_key(self, hit: dict, fact_key: str) -> bool:
+        """Internal: True iff entity has ≥1 fact with this key."""
+        if not hasattr(self, "fact_list"):
+            return False
+        entity_name = _entity_name_from_hit(hit)
+        if not entity_name:
+            return False
+        try:
+            facts = self.fact_list(entity_name) or []
+        except Exception:
+            return False
+        target = fact_key.strip().lower()
+        for f in facts:
+            if not isinstance(f, dict):
+                continue
+            if str(f.get("key", "")).strip().lower() == target:
+                return True
+        return False
+
+    # ------------------------------------------------------------------
     # v1.0.2 Phase 2 — Score-based ranking + per-query-type strategy
     # ------------------------------------------------------------------
     _TEMPORAL_KW = (
@@ -710,3 +784,63 @@ class SearchMixin:
         result = boosted[:top_k]
         self._reset_decay(result)
         return result
+
+
+# ── v2.9.2 typed search helpers (module-level) ────────────────────────
+_TYPE_LINE_RE = re.compile(
+    r"\*\*\s*Type\s*:\s*\*\*\s*([A-Za-z0-9_\-]+)",
+    re.IGNORECASE,
+)
+
+
+def _entity_type_matches(hit: dict, target_type: str, base_dir=None) -> bool:
+    """True iff hit's markdown body declares ``**Type:** <target_type>``.
+
+    Tolerant: missing path/content returns False. Case-insensitive on the type.
+    ``hit['file']`` is typically relative to ``base_dir``; ``hit['path']`` is
+    absolute when present.
+    """
+    if not isinstance(hit, dict):
+        return False
+    # Prefer pre-loaded content; otherwise read from path.
+    content = hit.get("content") or ""
+    if not content:
+        from pathlib import Path as _P
+        path_str = hit.get("path") or hit.get("file") or ""
+        if path_str:
+            try:
+                p = _P(path_str)
+                if not p.is_absolute() and base_dir is not None:
+                    p = _P(base_dir) / p
+                if p.exists() and p.is_file():
+                    # Only read the first 2KB — the Type field lives near the top.
+                    with open(p, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read(2048)
+            except OSError:
+                content = ""
+    if not content:
+        return False
+    m = _TYPE_LINE_RE.search(content)
+    if not m:
+        return False
+    return m.group(1).strip().lower() == target_type.lower()
+
+
+def _entity_name_from_hit(hit: dict) -> str:
+    """Best-effort: pull the entity slug/name from a search hit dict."""
+    if not isinstance(hit, dict):
+        return ""
+    # Prefer explicit fields if the search backend supplied them.
+    for k in ("entity", "name", "slug", "title"):
+        v = hit.get(k)
+        if v and isinstance(v, str):
+            return v.strip()
+    # Fall back to filename stem.
+    path_str = hit.get("path") or hit.get("file") or ""
+    if path_str:
+        try:
+            from pathlib import Path as _P
+            return _P(path_str).stem
+        except Exception:
+            return ""
+    return ""

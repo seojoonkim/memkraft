@@ -1,5 +1,80 @@
 # CHANGELOG
 
+## [2.9.2] — 2026-05-14
+
+Agent ergonomics pass on top of v2.9.1. **Public API additive only.**
+All 1332 tests pass (3 skipped). Recall envelope identical to v2.9.1.
+
+Three complementary additions:
+
+1. **ReasoningBank convenience aliases** (`reasoning_bank.py`) — wraps
+   the existing `trajectory_start/log/complete` flow behind a single
+   call so agents can record a reasoning episode in one line.
+2. **Memanto-style typed search** (`search.py`) — `search_typed` adds
+   entity-type and fact-key post-filters over `search_v2`.
+3. **StructMem regex extraction** (`struct_mem.py` — new) —
+   `extract_structured` pulls dates / URLs / emails / money / versions
+   / percentages / phones out of free text, with optional auto-save
+   into `fact_add`.
+
+### New APIs
+
+- `mk.log_reasoning(task, outcome, steps=None, error=None, tags="")` —
+  one-call trajectory recording. Internally chains `trajectory_start`
+  → per-step `trajectory_log` → `trajectory_complete`. Idempotent on
+  duplicate `(status, signature)`. Auto-derives `pattern_signature`
+  from `error` + `tags` using stopword-aware tokenisation.
+- `mk.get_similar_reasoning(task_description, top_k=5)` — alias for
+  `reasoning_recall` matching the natural API name.
+- `mk.reasoning_stats()` — aggregate `{total, success, failure,
+  partial, in_progress, success_rate, top_failure_patterns[5]}`.
+  `success_rate` is computed over completed trajectories only;
+  in-progress trajectories are tracked separately.
+- `mk.search_typed(query, entity_type="", fact_key="", top_k=10,
+  fuzzy=False)` — typed semantic search. Pre-fetches a wider
+  `top_k*5` candidate window from `search_v2`, then post-filters by
+  `**Type:** <entity_type>` in the markdown body and/or by
+  `fact_list` key presence. Empty filters short-circuit to plain
+  `search_v2`. Reads only the first 2KB of each candidate's file for
+  type detection (Type field lives near the top of the live note).
+- `mk.extract_structured(text, entity_hint=None, auto_save=False)` —
+  stdlib regex extraction. Returns
+  `{dates, urls, emails, money[], percentages, versions, phones, saved}`.
+  All extracted lists are de-duplicated while preserving order.
+  Version detection excludes values that also appear as date
+  components or money amounts. When `auto_save=True` and
+  `entity_hint` is given, every field is written via `fact_add` with
+  canonical keys (`email`, `date`, `url`, `money`, ...) and `_2`/`_3`
+  suffixes for additional occurrences. `fact_add` failures are
+  swallowed silently so extraction always succeeds.
+
+### Internals
+
+- `struct_mem.py` is a new top-level module (`StructMemMixin`),
+  wired into the master mixin loop in `__init__.py` between
+  `ReasoningBankMixin` and `EmbeddingMixin`. Mixin is stdlib-only and
+  has zero coupling to the rest of MemKraft beyond `fact_add`.
+- `search.py` grows two module-level helpers: `_entity_type_matches`
+  (markdown Type-line parser, case-insensitive, base_dir-aware for
+  relative `hit['file']`) and `_entity_name_from_hit` (extracts entity
+  name preferring explicit fields, falling back to file stem).
+- `reasoning_bank.py` convenience methods reuse the existing
+  `_safe_task_id`, `_derive_signature`, and `_read_jsonl` helpers —
+  no duplicated logic.
+
+### Tests
+
+- `tests/test_v292_new_apis.py` (new, 19 tests): covers all three
+  surfaces — ReasoningBank aliases (7), `search_typed` (5),
+  `extract_structured` (7).
+- All 18 pre-existing `test_reasoning_bank.py` tests continue to
+  pass unchanged.
+
+### Versions
+
+- `__init__.py` → `2.9.2`
+- `pyproject.toml` → `2.9.2`
+
 ## [2.9.0] — 2026-05-14
 
 Fourth hot-path performance pass on top of v2.8.4. **Public API unchanged.**

@@ -506,6 +506,114 @@ class ReasoningBankMixin:
             "path": str(path),
         }
 
+    # ── v2.9.2 convenience API (additive aliases) ────────────────
+    def log_reasoning(
+        self,
+        task: str,
+        outcome: str,
+        steps: Optional[List[str]] = None,
+        error: Optional[str] = None,
+        tags: Any = "",
+    ) -> Dict[str, Any]:
+        """v2.9.2 — single-call convenience wrapper.
+
+        Records an entire reasoning episode in one call by chaining
+        ``trajectory_start`` → per-step ``trajectory_log`` → ``trajectory_complete``.
+
+        Parameters
+        ----------
+        task:
+            Short task description (used both as title and to derive task_id).
+        outcome:
+            One of ``success`` / ``failure`` / ``partial`` (anything else
+            coerced to ``partial``).
+        steps:
+            Optional list of step descriptions. Each becomes a
+            ``trajectory_log`` record with ``action=step_text``.
+        error:
+            Optional error string. When provided, becomes the trajectory's
+            ``lesson`` (so it lands in pattern stats).
+        tags:
+            Comma-string or iterable of tags.
+
+        Returns the completion dict from ``trajectory_complete``.
+        """
+        if not task or not str(task).strip():
+            raise ValueError("task must be a non-empty string")
+        tid = _safe_task_id(task)
+        self.trajectory_start(tid, title=str(task), tags=tags)
+        for i, step in enumerate(steps or [], start=1):
+            self.trajectory_log(tid, i, action=str(step))
+        lesson = str(error or "")
+        return self.trajectory_complete(
+            tid,
+            status=outcome,
+            lesson=lesson,
+            tags=tags,
+        )
+
+    def get_similar_reasoning(
+        self,
+        task_description: str,
+        top_k: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """v2.9.2 — alias for ``reasoning_recall`` matching natural API names."""
+        return self.reasoning_recall(task_description, top_k=top_k)
+
+    def reasoning_stats(self) -> Dict[str, Any]:
+        """v2.9.2 — aggregate stats: total trajectories, success rate, top failures.
+
+        Returns
+        -------
+        ``{
+            "total": int,
+            "success": int,
+            "failure": int,
+            "partial": int,
+            "in_progress": int,
+            "success_rate": float,            # 0.0–1.0 over completed only
+            "top_failure_patterns": [          # top 5 failures by count
+                {"signature": str, "count": int, "last_seen": str}, ...
+            ],
+        }``
+        """
+        tdir = self._trajectory_dir()
+        counts = {"total": 0, "success": 0, "failure": 0, "partial": 0, "in_progress": 0}
+        if tdir.exists():
+            for jsonl_path in tdir.glob("*.jsonl"):
+                records = _read_jsonl(jsonl_path)
+                if not records:
+                    continue
+                counts["total"] += 1
+                last_complete = None
+                for r in records:
+                    if r.get("kind") == "complete":
+                        last_complete = r
+                if last_complete is None:
+                    counts["in_progress"] += 1
+                else:
+                    st = (last_complete.get("status") or "partial").lower()
+                    if st not in ("success", "failure", "partial"):
+                        st = "partial"
+                    counts[st] += 1
+        completed = counts["success"] + counts["failure"] + counts["partial"]
+        success_rate = (counts["success"] / completed) if completed else 0.0
+
+        top_failures = self.reasoning_patterns(status="failure", top_k=5)
+        top_failure_patterns = [
+            {
+                "signature": b.get("signature", ""),
+                "count": int(b.get("count", 0)),
+                "last_seen": b.get("last_seen"),
+            }
+            for b in top_failures
+        ]
+        return {
+            **counts,
+            "success_rate": round(success_rate, 4),
+            "top_failure_patterns": top_failure_patterns,
+        }
+
     # ── private helpers ───────────────────────────────────────────
     def _read_patterns(self) -> Dict[str, Any]:
         path = self._patterns_path()
