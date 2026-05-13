@@ -13,12 +13,17 @@ API:
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sqlite3
 import json
 from datetime import datetime, timezone
 from typing import Any, List, Optional
+
+from ._regexes import _EN_CAPITALIZED_RE, _KO_NOUN_RE
+
+log = logging.getLogger("memkraft.graph")
 
 
 _SCHEMA = """
@@ -441,11 +446,11 @@ class GraphMixin:
         4. Fallback to search_precise if no graph results
         """
         # 엔티티 추출 (대문자 단어 NER)
-        entities = re.findall(r"\b[A-Z][a-z]+\b", query)
+        entities = _EN_CAPITALIZED_RE.findall(query)
         entities = [e for e in entities if e.lower() not in _STOPWORDS]
 
         # 한국어 단어 추출 (조사 strip 후 stopword 필터)
-        ko_words = re.findall(r'[\uac00-\ud7af]+', query)
+        ko_words = _KO_NOUN_RE.findall(query)
         for w in ko_words:
             stripped = _strip_josa(w)
             if stripped and stripped not in _KO_STOPWORDS and len(stripped) >= 2:

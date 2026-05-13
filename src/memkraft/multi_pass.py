@@ -19,9 +19,14 @@ Constraints honoured:
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timezone
 from typing import Any, Iterable
+
+from ._regexes import _EN_CAPITALIZED_RE, _KO_NOUN_RE, _MULTI_TOKEN_RE
+
+log = logging.getLogger("memkraft.multi_pass")
 
 
 # Same minimal stopword set used by SearchMixin / GraphMixin so entity
@@ -52,7 +57,7 @@ def _extract_entities_from_text(text: str, *, max_entities: int = 6) -> list[str
 
     # English: capitalized words (not at sentence start ideally, but we
     # accept any capitalized token >=3 chars that isn't a stopword)
-    for m in re.findall(r"\b[A-Z][a-zA-Z]{2,}\b", text):
+    for m in _EN_CAPITALIZED_RE.findall(text):
         low = m.lower()
         if low in _STOPWORDS or low in seen:
             continue
@@ -62,7 +67,7 @@ def _extract_entities_from_text(text: str, *, max_entities: int = 6) -> list[str
             return out
 
     # Korean tokens (>=2 chars)
-    for m in re.findall(r"[\uac00-\ud7af]{2,}", text):
+    for m in _KO_NOUN_RE.findall(text):
         if m in seen:
             continue
         seen.add(m)
@@ -139,7 +144,7 @@ class MultiPassMixin:
         try:
             q_tokens = list(self._search_tokens(query.lower())) if query else []
         except Exception:
-            q_tokens = re.findall(r"\w+", (query or "").lower())
+            q_tokens = _MULTI_TOKEN_RE.findall((query or "").lower())
         q_tokens = [t for t in q_tokens if t not in _STOPWORDS and len(t) >= 2]
         q_set = set(q_tokens)
 
@@ -163,7 +168,7 @@ class MultiPassMixin:
 
                 # Relevance: token overlap between (target + relation) and query.
                 hay = f"{target} {relation}".lower()
-                hay_tokens = set(re.findall(r"\w+", hay))
+                hay_tokens = set(_MULTI_TOKEN_RE.findall(hay))
                 overlap = len(q_set & hay_tokens)
                 if q_set:
                     overlap_ratio = overlap / max(len(q_set), 1)
