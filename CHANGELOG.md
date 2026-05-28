@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## [2.10.0] — 2026-05-28
+
+Minor agent-ergonomics release. **Public API additive only.**
+
+Adds a compact ReasoningBank task-injection surface so agents can reuse
+local trajectory memory before starting new work:
+
+- `mk.reasoning_anti_patterns(task_query, top_k=3)` — returns relevant
+  prior failed trajectories as injection-friendly dictionaries with
+  `task_id`, `title`, `lesson`, `pattern_signature`, `score`, `tags`,
+  `completed_at`, and `path`.
+- `mk.reasoning_inject_for_task(task_query, k=3)` — renders a short
+  deterministic prompt block containing past failures to avoid and past
+  successes to reuse. Returns an empty string when no relevant local
+  reasoning history exists.
+
+### Operational validation
+
+- Separately reviewed the external `dm-queue-flush.py` operations script
+  used by the version-amnesia backlog and validated dry-run/send-failure
+  safety without sending real Telegram messages.
+- Verified the existing launchd plist with `plutil -lint` during release
+  preparation. These operations-layer checks are not packaged in the
+  `memkraft` wheel.
+
+### Tests
+
+- Added `tests/test_reasoning_bank_injection.py` (4 tests).
+- Focused ReasoningBank regression suite: 41 tests pass.
+
+### Versions
+
+- `__init__.py` → `2.10.0`
+- `pyproject.toml` → `2.10.0`
+
 ## [2.9.2] — 2026-05-14
 
 Agent ergonomics pass on top of v2.9.1. **Public API additive only.**
