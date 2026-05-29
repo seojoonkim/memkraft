@@ -3388,7 +3388,9 @@ class MemKraft:
                      channel_id: Optional[str] = None,
                      task_id: Optional[str] = None,
                      max_history: int = 5,
-                     include_completed_tasks: bool = False) -> str:
+                     include_completed_tasks: bool = False,
+                     include_reasoning: bool = False,
+                     reasoning_k: int = 3) -> str:
         """Merge agent + channel + task context into a single prompt block.
 
         This is the key integration method: it produces a ready-to-inject
@@ -3401,11 +3403,15 @@ class MemKraft:
             max_history: Maximum number of task history entries to include (default 5).
             include_completed_tasks: If True and channel_id is provided,
                 include completed tasks for that channel.
+            include_reasoning: If True and task_id is provided, append compact
+                ReasoningBank task context when relevant local trajectories exist.
+            reasoning_k: Maximum ReasoningBank hits per status to request.
 
         Returns:
             A formatted context block string.
         """
         parts = []
+        task_query = ""
 
         # Agent working memory
         agent_mem = self.agent_load(agent_id)
@@ -3456,6 +3462,7 @@ class MemKraft:
                 self.context_tasks_dir / f"{task_id}.json"
             )
             if task_record:
+                task_query = str(task_record.get('description', task_id) or task_id)
                 parts.append("")
                 parts.append("## Task Context")
                 parts.append(f"- **Task:** {task_record.get('description', task_id)}")
@@ -3465,6 +3472,16 @@ class MemKraft:
                     parts.append("- **History:**")
                     for h in history[-max_history:]:
                         parts.append(f"  - [{h.get('timestamp', '')[:19]}] {h.get('status', '')}: {h.get('note', '')}")
+            else:
+                task_query = str(task_id)
+
+        if include_reasoning and task_id and task_query:
+            reasoning_fn = getattr(self, "reasoning_inject_for_task", None)
+            if callable(reasoning_fn):
+                reasoning_block = reasoning_fn(task_query, k=reasoning_k)
+                if reasoning_block:
+                    parts.append("")
+                    parts.append(reasoning_block)
 
         return "\n".join(parts)
 

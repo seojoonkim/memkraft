@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## [2.11.0] — 2026-05-29
+
+Memory-injection quality release. **Public API additive only.**
+
+### ReasoningBank injection quality
+
+- `mk.reasoning_inject_for_task(...)` now supports keyword-only controls:
+  - `max_chars=1400` — hard item-boundary prompt budget.
+  - `per_item_chars=180` — per rendered title/lesson compacting budget.
+  - `max_items=None` — optional total emitted item cap across failures and successes.
+  - `dedupe=True` — deduplicates repeated lessons/signatures/titles by default.
+  - `min_score=0.0` — optional post-filter for low-score hits.
+  - `return_metadata=False` — opt-in telemetry tuple `(block, metadata)` without writing memory.
+- Prompt-injection safety remains explicit: retrieved trajectory text is rendered as
+  untrusted quoted data and never arbitrary-sliced through JSON-quoted fields.
+
+### Agent injection integration
+
+- `mk.agent_inject(..., include_reasoning=True, reasoning_k=3)` appends compact
+  task-specific ReasoningBank context after existing task context when relevant.
+- Default `agent_inject(...)` output is unchanged unless `include_reasoning=True`.
+
+### Preference graph bridge
+
+- Public `MemKraft` now exposes the existing PreferenceGraphSync bridge methods:
+  - `sync_preference_to_graph(...)`
+  - `sync_all_preferences_to_graph(...)`
+  - `reason_preference_via_graph(...)`
+- The bridge is attached without adding `PreferenceMixin` to the global mixin loop,
+  preserving the existing Korean/CJK-safe core slug behavior.
+
+### Tests
+
+- Expanded `tests/test_reasoning_bank_injection.py` to cover budget, dedupe,
+  metadata, and `agent_inject(include_reasoning=True)` behavior.
+- Added `tests/test_preference_graph_sync_public.py` for public bridge exposure
+  and preference→graph sync regressions.
+
+### Versions
+
+- `__init__.py` → `2.11.0`
+- `pyproject.toml` → `2.11.0`
+
 ## [2.10.0] — 2026-05-28
 
 Minor agent-ergonomics release. **Public API additive only.**
