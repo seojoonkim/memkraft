@@ -1,4 +1,4 @@
-"""Tests for store_core — S1 envelope append/read, S2 tombstone filtering."""
+"""Tests for store_core — S1 envelope append/read, S2 tombstone filtering, S3 compaction."""
 
 from __future__ import annotations
 
@@ -8,7 +8,18 @@ from pathlib import Path
 
 import pytest
 
-from memkraft.store_core import RecordNotFoundError, append, mark_tombstone, read_all
+from memkraft.store_core import (
+    RecordNotFoundError,
+    append,
+    compact,
+    mark_tombstone,
+    read_all,
+)
+
+
+def _compact_tmp(path: Path) -> Path:
+    """Temp-file convention used by compact: ``<store>.compact.tmp`` alongside it."""
+    return path.with_name(path.name + ".compact.tmp")
 
 
 class TestAppendReadRoundtrip:
@@ -202,3 +213,170 @@ class TestMarkTombstone:
         assert excinfo.value.record_id == "no-such-id"
         # no marker was appended
         assert len(read_all(path, include_tombstoned=True).records) == 1
+
+
+class TestCompactRemoval:
+    """S3 — compact physically removes tombstoned records and markers."""
+
+    def test_tombstoned_records_and_markers_physically_removed(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        a = append(path, {"text": "a"})
+        b = append(path, {"text": "b"})
+        c = append(path, {"text": "c"})
+        mark_tombstone(path, b["id"])
+
+        result = compact(path)
+
+        # physical removal: even the audit path no longer sees them
+        audit = read_all(path, include_tombstoned=True)
+        assert [r["id"] for r in audit.records] == [a["id"], c["id"]]
+        assert audit.skipped == 0
+        # live record order preserved
+        assert [r["text"] for r in read_all(path).records] == ["a", "c"]
+        assert result.kept == 2
+        assert result.removed_tombstoned == 1
+        assert result.removed_markers == 1
+        assert result.removed_corrupt == 0
+
+    def test_live_lines_preserved_byte_for_byte(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "a"})
+        live_bytes = path.read_bytes()
+        dead = append(path, {"text": "dead"})
+        mark_tombstone(path, dead["id"])
+
+        compact(path)
+
+        # compact rewrites, it does not re-serialize live records
+        assert path.read_bytes() == live_bytes
+
+    def test_directly_appended_tombstone_record_removed(self, tmp_path: Path):
+        # a record born with tombstone: true (no marker) is also compacted away
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "live"})
+        append(path, {"text": "dead", "tombstone": True})
+
+        result = compact(path)
+
+        records = read_all(path, include_tombstoned=True).records
+        assert [r["text"] for r in records] == ["live"]
+        assert result.kept == 1
+        assert result.removed_markers == 1
+        assert result.removed_tombstoned == 0
+
+    def test_compact_with_nothing_to_remove_keeps_file_identical(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "a"})
+        append(path, {"text": "b"})
+        before = path.read_bytes()
+
+        result = compact(path)
+
+        assert path.read_bytes() == before
+        assert result.kept == 2
+        assert (
+            result.removed_tombstoned
+            == result.removed_markers
+            == result.removed_corrupt
+            == 0
+        )
+
+
+class TestCompactCrashSafety:
+    """S3 — temp-file rewrite + os.replace; a stale temp never survives a rerun."""
+
+    def test_no_temp_file_left_behind(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        rec = append(path, {"text": "x"})
+        mark_tombstone(path, rec["id"])
+
+        compact(path)
+
+        assert not _compact_tmp(path).exists()
+        # nothing else in the directory besides the store itself
+        assert [p.name for p in tmp_path.iterdir()] == [path.name]
+
+    def test_stale_temp_from_interrupted_compact_is_replaced(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        keep = append(path, {"text": "keep"})
+        drop = append(path, {"text": "drop"})
+        mark_tombstone(path, drop["id"])
+        # simulate a prior compact killed after writing its temp file
+        _compact_tmp(path).write_text('{"text":"stale partial rewri', encoding="utf-8")
+
+        result = compact(path)
+
+        assert not _compact_tmp(path).exists()
+        audit = read_all(path, include_tombstoned=True)
+        assert [r["id"] for r in audit.records] == [keep["id"]]
+        assert audit.skipped == 0
+        assert result.kept == 1
+
+    def test_stale_temp_next_to_missing_file_is_cleaned(self, tmp_path: Path):
+        # prior compact could have been killed between unlink-races; a leftover
+        # temp with no store must be swept, not promoted to a store
+        path = tmp_path / "store.jsonl"
+        _compact_tmp(path).write_text('{"text":"orphan"}\n', encoding="utf-8")
+
+        result = compact(path)
+
+        assert not _compact_tmp(path).exists()
+        assert not path.exists()
+        assert result.kept == 0
+
+
+class TestCompactCorruptLines:
+    """S3 — corrupt lines are removed during compact and counted."""
+
+    def test_corrupt_lines_removed_and_counted(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"seq": 0})
+        append(path, {"seq": 1})
+        lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        path.write_text(
+            lines[0] + '{"seq": 99, "trunca' + "\n" + lines[1] + "[1,2,3]\n",
+            encoding="utf-8",
+        )
+
+        result = compact(path)
+
+        raw = read_all(path)
+        assert [r["seq"] for r in raw.records] == [0, 1]
+        assert raw.skipped == 0  # corrupt lines are physically gone
+        assert result.kept == 2
+        assert result.removed_corrupt == 2
+        assert result.removed_tombstoned == result.removed_markers == 0
+
+
+class TestCompactNoOp:
+    """S3 — empty file and missing file compact as no-op success."""
+
+    def test_empty_file_is_noop_success(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        path.touch()
+
+        result = compact(path)
+
+        assert path.exists()
+        assert path.read_bytes() == b""
+        assert result.kept == 0
+        assert (
+            result.removed_tombstoned
+            == result.removed_markers
+            == result.removed_corrupt
+            == 0
+        )
+
+    def test_missing_file_is_noop_success_and_not_created(self, tmp_path: Path):
+        path = tmp_path / "absent.jsonl"
+
+        result = compact(path)
+
+        assert not path.exists()
+        assert result.kept == 0
+        assert (
+            result.removed_tombstoned
+            == result.removed_markers
+            == result.removed_corrupt
+            == 0
+        )

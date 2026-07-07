@@ -10,6 +10,7 @@ API (internal tier):
     append(path, record) -> dict          # the enveloped record as written
     read_all(path, include_tombstoned=False) -> ReadResult
     mark_tombstone(path, record_id) -> dict   # the appended marker record
+    compact(path) -> CompactResult        # physical removal (S3)
 
 Tombstones (S2): the store is append-only — ``mark_tombstone`` never
 rewrites existing lines; it appends a marker record
@@ -22,7 +23,13 @@ Concurrency: append takes an ``fcntl.flock`` exclusive lock on the store
 file and writes the whole newline-terminated line with a single
 ``os.write`` call, so concurrent appenders never interleave bytes.
 
-Compaction (physical removal) and snapshots are out of scope here (S3).
+Compaction (S3): ``compact`` physically drops tombstone markers, the
+records they target, and corrupt lines, preserving live lines byte-for-byte
+in file order. It rewrites through ``<store>.compact.tmp`` in the same
+directory and swaps it in with ``os.replace``, so a kill mid-compact leaves
+either the original or the finished file; a stale temp from an interrupted
+run is discarded by the next compact (or by this one, via the replace).
+Automatic compaction triggers and snapshots are out of scope (S4+).
 
 Zero dependencies — stdlib only.
 """
@@ -57,6 +64,15 @@ class ReadResult(NamedTuple):
 
     records: List[Dict[str, Any]]
     skipped: int
+
+
+class CompactResult(NamedTuple):
+    """Line counts from a compact run: what stayed and why each removal happened."""
+
+    kept: int
+    removed_tombstoned: int
+    removed_markers: int
+    removed_corrupt: int
 
 
 def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
@@ -148,3 +164,87 @@ def mark_tombstone(path: Union[str, Path], record_id: str) -> Dict[str, Any]:
     if not any(r.get("id") == record_id for r in existing):
         raise RecordNotFoundError(path, record_id)
     return append(path, {"tombstone": True, "tombstone_of": record_id})
+
+
+def _compact_tmp_path(path: Path) -> Path:
+    return path.with_name(path.name + ".compact.tmp")
+
+
+def compact(path: Union[str, Path]) -> CompactResult:
+    """Physically remove tombstoned records, markers, and corrupt lines.
+
+    Live lines keep their original bytes and order. The store is rewritten
+    through ``<store>.compact.tmp`` and swapped in with ``os.replace`` under
+    the same exclusive lock append takes, so readers only ever see the
+    original or the finished file; a stale temp left by an interrupted
+    compact is discarded. A missing or empty file is a no-op success (a
+    missing file is not created).
+    """
+    path = Path(path)
+    tmp = _compact_tmp_path(path)
+    try:
+        fd = os.open(str(path), os.O_RDONLY)
+    except FileNotFoundError:
+        tmp.unlink(missing_ok=True)
+        return CompactResult(0, 0, 0, 0)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            raw = b""
+            while True:
+                chunk = os.read(fd, 1 << 20)
+                if not chunk:
+                    break
+                raw += chunk
+
+            lines = raw.splitlines(keepends=True)
+            parsed: List[Any] = []  # dict per valid record line, None per corrupt
+            tombstoned_ids = set()
+            for line in lines:
+                text = line.decode("utf-8", errors="replace").strip()
+                if not text:
+                    parsed.append(None)
+                    continue
+                try:
+                    obj = json.loads(text)
+                except json.JSONDecodeError:
+                    obj = None
+                if not isinstance(obj, dict):
+                    obj = None
+                elif obj.get("tombstone") and obj.get("tombstone_of") is not None:
+                    tombstoned_ids.add(obj["tombstone_of"])
+                parsed.append(obj)
+
+            kept_lines: List[bytes] = []
+            kept = removed_tombstoned = removed_markers = removed_corrupt = 0
+            for line, obj in zip(lines, parsed):
+                if obj is None:
+                    if line.strip():  # blank filler lines vanish uncounted
+                        removed_corrupt += 1
+                    continue
+                if obj.get("tombstone"):
+                    removed_markers += 1
+                    continue
+                if obj.get("id") in tombstoned_ids:
+                    removed_tombstoned += 1
+                    continue
+                kept += 1
+                kept_lines.append(line if line.endswith(b"\n") else line + b"\n")
+
+            out = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+            try:
+                os.write(out, b"".join(kept_lines))
+                os.fsync(out)
+            finally:
+                os.close(out)
+            os.replace(str(tmp), str(path))
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+    return CompactResult(
+        kept=kept,
+        removed_tombstoned=removed_tombstoned,
+        removed_markers=removed_markers,
+        removed_corrupt=removed_corrupt,
+    )
