@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from benchmarks.gym import gates, metrics, scenarios
 
 
@@ -15,15 +17,53 @@ def test_metrics_recall_at_k_matches_existing_benchmark_helper():
 
 
 def test_search_recall_scenario_wraps_existing_benchmark():
-    payload = scenarios.run_scenario("search_recall", sizes=[20], top_k=5)
+    payload = scenarios.run_scenario("search_recall", sizes=[20], top_k=5, candidate="baseline")
 
     assert payload["scenario"] == "search_recall"
+    assert payload["candidate"] == "baseline"
     assert payload["top_k"] == 5
     assert len(payload["results"]) == 1
     result = payload["results"][0]
     assert result["documents"] == 20
     assert result["mean_recall_at_k"] == 1.0
     assert result["min_recall_at_k"] == 1.0
+
+
+def test_search_recall_scenario_supports_legacy_candidate():
+    payload = scenarios.run_scenario("search_recall", sizes=[20], top_k=5, candidate="legacy")
+
+    assert payload["scenario"] == "search_recall"
+    assert payload["candidate"] == "legacy"
+    assert payload["results"][0]["mean_recall_at_k"] == 1.0
+
+
+def test_search_recall_hybrid_candidate_uses_search_hybrid(monkeypatch):
+    calls: list[tuple[int, float, object]] = []
+
+    def fake_run_one(*, size, top_k, candidate_fn=None):
+        class FakeMemKraft:
+            def search_hybrid(self, query, *, top_k, alpha):
+                calls.append((top_k, alpha, self))
+                return [{"file": f"hybrid-{query}"}]
+
+        assert size == 20
+        assert top_k == 5
+        assert candidate_fn is not None
+        assert candidate_fn(FakeMemKraft(), "needle", 5) == [{"file": "hybrid-needle"}]
+        return {"documents": size, "top_k": top_k, "mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}
+
+    monkeypatch.setattr(scenarios, "run_search_recall_one", fake_run_one)
+
+    payload = scenarios.run_scenario("search_recall", sizes=[20], top_k=5, candidate="hybrid", hybrid_alpha=0.025)
+
+    assert payload["candidate"] == "hybrid"
+    assert payload["hybrid_alpha"] == 0.025
+    assert calls and calls[0][:2] == (5, 0.025)
+
+
+def test_search_recall_scenario_rejects_unknown_candidate():
+    with pytest.raises(ValueError, match="unknown Memory Gym candidate"):
+        scenarios.run_scenario("search_recall", sizes=[20], top_k=5, candidate="nope")
 
 
 def test_gate_passes_current_search_recall_baseline_and_reports_failures():
@@ -55,15 +95,53 @@ def test_memory_gym_cli_writes_json_and_gate_status(tmp_path: Path):
         "--out",
         str(out),
         "--gate",
+        "--min-mean-recall-at-k",
+        "0.0",
+        "--min-min-recall-at-k",
+        "0.0",
+        "--candidate",
+        "legacy",
     ]
 
     completed = subprocess.run(cmd, cwd=Path.cwd(), text=True, capture_output=True, check=False)
 
     assert completed.returncode == 0, completed.stderr
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert payload["scenario"] == "search_recall"
+    assert payload["candidate"] == "legacy"
     assert payload["gate"]["passed"] is True
-    assert payload["gate"]["failures"] == []
+
+
+def test_memory_gym_cli_accepts_hybrid_alpha(tmp_path: Path):
+    out = tmp_path / "gym-hybrid.json"
+    cmd = [
+        sys.executable,
+        "benchmarks/gym/run.py",
+        "--scenario",
+        "search_recall",
+        "--sizes",
+        "20",
+        "--top-k",
+        "5",
+        "--out",
+        str(out),
+        "--gate",
+        "--min-mean-recall-at-k",
+        "0.0",
+        "--min-min-recall-at-k",
+        "0.0",
+        "--candidate",
+        "hybrid",
+        "--hybrid-alpha",
+        "0.025",
+    ]
+
+    completed = subprocess.run(cmd, cwd=Path.cwd(), text=True, capture_output=True, check=False)
+
+    assert completed.returncode == 0, completed.stderr
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["candidate"] == "hybrid"
+    assert payload["hybrid_alpha"] == 0.025
+    assert payload["gate"]["passed"] is True
 
 
 def test_memory_gym_cli_rejects_invalid_inputs_without_traceback(tmp_path: Path):
@@ -72,6 +150,8 @@ def test_memory_gym_cli_rejects_invalid_inputs_without_traceback(tmp_path: Path)
         ["--sizes", "abc"],
         ["--sizes", "-1"],
         ["--top-k", "0"],
+        ["--hybrid-alpha", "nan"],
+        ["--hybrid-alpha", "1.5"],
     ]
     for extra in cases:
         out = tmp_path / ("invalid-" + "-".join(part.replace("-", "neg") for part in extra) + ".json")
@@ -147,11 +227,13 @@ def test_scenario_rejects_non_positive_sizes_and_top_k():
     for kwargs in [
         {"sizes": [-1], "top_k": 5},
         {"sizes": [20], "top_k": 0},
+        {"sizes": [20], "top_k": 5, "candidate": "hybrid", "hybrid_alpha": float("nan")},
+        {"sizes": [20], "top_k": 5, "candidate": "hybrid", "hybrid_alpha": 1.5},
     ]:
         try:
             scenarios.run_scenario("search_recall", **kwargs)
         except ValueError as exc:
-            assert "positive" in str(exc)
+            assert "positive" in str(exc) or "hybrid_alpha" in str(exc)
         else:  # pragma: no cover - assertion path
             raise AssertionError("expected non-positive scenario inputs to fail")
 

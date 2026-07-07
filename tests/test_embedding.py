@@ -281,6 +281,32 @@ def test_search_hybrid_unions_signals(tmp_mk):
     assert any("claire" in f.lower() for f in files), out
 
 
+def test_search_hybrid_dedupes_relative_and_absolute_paths(tmp_mk, monkeypatch):
+    """BM25 and semantic paths may use different path forms for the same file.
+
+    RRF fusion must merge them as one document; otherwise dense hybrid can
+    return duplicate files and artificially lower recall in Memory Gym.
+    """
+    rel = "entities/alice.md"
+    abs_path = str(Path(tmp_mk.base_dir) / rel)
+
+    def fake_search_smart(query, *, top_k, date_hint=None):
+        return [{"file": rel, "score": 0.9, "retrieval": "bm25"}]
+
+    def fake_search_semantic(query, *, top_k):
+        return [{"file": abs_path, "score": 0.8, "retrieval": "semantic"}]
+
+    monkeypatch.setattr(tmp_mk, "search_smart", fake_search_smart)
+    monkeypatch.setattr(tmp_mk, "search_semantic", fake_search_semantic)
+
+    out = tmp_mk.search_hybrid("Italian pasta", top_k=5, alpha=0.5)
+
+    assert len(out) == 1
+    assert out[0]["file"] == rel
+    assert out[0]["retrieval"] == "hybrid"
+    assert out[0]["semantic_score"] == 0.8
+
+
 def test_embedding_clear_removes_index(tmp_mk):
     tmp_mk.build_embeddings()
     idx_path = Path(tmp_mk._embedding_index_path())

@@ -536,23 +536,52 @@ class EmbeddingMixin:
         a = max(0.0, min(1.0, a))
         bm25_w = 1.0 - a
         sem_w = a
-        # RRF fusion.
+        # RRF fusion. BM25 results often use MemKraft-relative paths
+        # (``live-notes/foo.md``) while semantic results come from the
+        # embedding index as absolute paths. Fuse by canonical absolute
+        # key, but emit base_dir-relative paths where possible so recall
+        # benchmarks compare document identity instead of path spelling.
+        base_dir = Path(getattr(self, "base_dir", Path.cwd())).resolve()
+
+        def _fusion_key(raw_path: str) -> str:
+            p = Path(raw_path)
+            try:
+                return str(p.resolve() if p.is_absolute() else (base_dir / p).resolve())
+            except OSError:
+                return str(p if p.is_absolute() else base_dir / p)
+
+        def _display_path(raw_path: str) -> str:
+            p = Path(raw_path)
+            try:
+                abs_path = p.resolve() if p.is_absolute() else (base_dir / p).resolve()
+                return str(abs_path.relative_to(base_dir))
+            except (OSError, ValueError):
+                return str(p)
+
         scores: dict[str, float] = {}
         meta: dict[str, dict] = {}
         for rank, r in enumerate(bm25_results):
             f = r.get("file") if isinstance(r, dict) else None
             if not f:
                 continue
-            scores[f] = scores.get(f, 0.0) + bm25_w * (1.0 / (k + rank + 1))
-            meta.setdefault(f, dict(r))
+            raw_f = str(f)
+            key = _fusion_key(raw_f)
+            scores[key] = scores.get(key, 0.0) + bm25_w * (1.0 / (k + rank + 1))
+            rec = dict(r)
+            rec["file"] = _display_path(raw_f)
+            meta.setdefault(key, rec)
         for rank, r in enumerate(sem_results):
             f = r.get("file") if isinstance(r, dict) else None
             if not f:
                 continue
-            scores[f] = scores.get(f, 0.0) + sem_w * (1.0 / (k + rank + 1))
-            existing = meta.get(f)
+            raw_f = str(f)
+            key = _fusion_key(raw_f)
+            scores[key] = scores.get(key, 0.0) + sem_w * (1.0 / (k + rank + 1))
+            existing = meta.get(key)
             if existing is None:
-                meta[f] = dict(r)
+                rec = dict(r)
+                rec["file"] = _display_path(raw_f)
+                meta[key] = rec
             else:
                 # Annotate that this hit was found by both sides.
                 existing.setdefault("retrieval", r.get("retrieval", "bm25"))
