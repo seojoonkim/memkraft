@@ -3763,7 +3763,22 @@ class MemKraft:
         v2.4: search hit decay reset — refreshes access time so recently
         searched entities don't decay away.
         """
+        full_path = self.base_dir / rel_path
+        before = None
+        try:
+            st = full_path.stat()
+            before = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            pass
         _lh.touch_last_accessed(self.base_dir, rel_path, timestamp)
+        try:
+            st = full_path.stat()
+            after = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            return
+        if before != after:
+            from ._read_cache import get_cache
+            get_cache().invalidate(full_path)
 
     def _gather_memory_files(self, recent: int = 0, tag: str = "", date: str = ""):
         """Gather memory files with optional filters."""

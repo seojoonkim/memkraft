@@ -35,7 +35,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional, Set
 
 log = logging.getLogger("memkraft._corpus_index")
 
@@ -138,6 +138,8 @@ _BUILD_MISSES = 0
 _WRITE_GENERATION: int = 0
 _INDEX_GENERATION: int = -1  # generation captured when _INDEX_CACHE was built
 _FAST_HITS = 0
+_PENDING_INVALIDATIONS: Set[Path] = set()
+_INCREMENTAL_UPDATES = 0
 
 
 def _compute_fingerprint(files: Iterable[Path]) -> tuple[bytes, list[tuple[Path, dict]]]:
@@ -178,6 +180,129 @@ def _compute_path_set_hash(files: Iterable[Path]) -> bytes:
         h.update(str(p).encode("utf-8", "replace"))
         h.update(b"\x00")
     return h.digest()
+
+
+def _read_doc_tf(
+    path: Path,
+    search_tokens_fn: Callable[[str], list],
+    read_text_fn: Optional[Callable[[Path], Optional[str]]],
+) -> tuple[Dict[str, int], int] | None:
+    """Read one document and return its token-frequency map + length."""
+    try:
+        if read_text_fn is not None:
+            text = read_text_fn(path)
+            if text is None:
+                return None
+        else:
+            text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    tokens = search_tokens_fn(text.lower())
+    tf_map: Dict[str, int] = {}
+    for token in tokens:
+        tf_map[token] = tf_map.get(token, 0) + 1
+    return tf_map, len(tokens)
+
+
+def _derive_index_from_token_maps(
+    doc_token_freqs: Dict[Path, Dict[str, int]],
+    doc_lengths: Dict[Path, int],
+    items: list[tuple[Path, dict]],
+    search_tokens_fn: Callable[[str], list],
+    fingerprint: bytes,
+) -> CorpusIndex:
+    """Recompute global index structures from per-document token maps."""
+    token_doc_freq: Dict[str, int] = {}
+    content_postings: Dict[str, list] = {}
+    filename_postings: Dict[str, list] = {}
+    filename_lower_map: Dict[Path, str] = {}
+    doc_id_map: list = []
+    doc_to_id: Dict[Path, int] = {}
+    total_tokens = 0
+
+    for path, _stat in items:
+        tf_map = doc_token_freqs.get(path)
+        if tf_map is None:
+            continue
+        doc_id = len(doc_id_map)
+        doc_id_map.append(path)
+        doc_to_id[path] = doc_id
+        total_tokens += doc_lengths.get(path, 0)
+        for token in tf_map:
+            token_doc_freq[token] = token_doc_freq.get(token, 0) + 1
+            content_postings.setdefault(token, []).append(doc_id)
+        fname_lower = path.stem.lower().replace("-", " ")
+        filename_lower_map[path] = fname_lower
+        for token in search_tokens_fn(fname_lower):
+            filename_postings.setdefault(token, []).append(doc_id)
+
+    valid_docs = len(doc_id_map)
+    doc_count = max(valid_docs, 1)
+    avg_doc_len = (total_tokens / doc_count) if total_tokens > 0 else 0.0
+    token_bloom = set(content_postings.keys())
+    token_bloom.update(filename_postings.keys())
+
+    return CorpusIndex(
+        doc_count=doc_count,
+        avg_doc_len=avg_doc_len,
+        token_doc_freq=token_doc_freq,
+        doc_token_freqs=doc_token_freqs,
+        doc_lengths=doc_lengths,
+        fingerprint=fingerprint,
+        path_set_hash=_compute_path_set_hash(path for path, _ in items),
+        doc_stat={path: (stat["mtime_ns"], stat["size"]) for path, stat in items},
+        file_list=[path for path, _ in items],
+        content_postings=content_postings,
+        filename_postings=filename_postings,
+        filename_lower=filename_lower_map,
+        token_bloom=token_bloom,
+        filename_corpus="\x00".join(filename_lower_map.values()),
+        doc_id_map=doc_id_map,
+        doc_to_id=doc_to_id,
+    )
+
+
+def _try_incremental_update(
+    cached: CorpusIndex,
+    items: list[tuple[Path, dict]],
+    fingerprint: bytes,
+    pending_paths: Set[Path],
+    search_tokens_fn: Callable[[str], list],
+    read_text_fn: Optional[Callable[[Path], Optional[str]]],
+) -> CorpusIndex | None:
+    """Return an updated index if all observed changes match pending paths."""
+    current_stat = {path: (stat["mtime_ns"], stat["size"]) for path, stat in items}
+    current_paths = set(current_stat)
+    cached_paths = set(cached.doc_stat)
+    changed_paths = {
+        path
+        for path in (current_paths | cached_paths)
+        if cached.doc_stat.get(path) != current_stat.get(path)
+    }
+    if not changed_paths or not changed_paths.issubset(pending_paths):
+        return None
+
+    doc_token_freqs = dict(cached.doc_token_freqs)
+    doc_lengths = dict(cached.doc_lengths)
+    for path in changed_paths:
+        doc_token_freqs.pop(path, None)
+        doc_lengths.pop(path, None)
+        if path not in current_paths:
+            continue
+        parsed = _read_doc_tf(path, search_tokens_fn, read_text_fn)
+        if parsed is None:
+            continue
+        tf_map, doc_len = parsed
+        doc_token_freqs[path] = tf_map
+        doc_lengths[path] = doc_len
+
+    return _derive_index_from_token_maps(
+        doc_token_freqs=doc_token_freqs,
+        doc_lengths=doc_lengths,
+        items=items,
+        search_tokens_fn=search_tokens_fn,
+        fingerprint=fingerprint,
+    )
 
 
 def _build_index(
@@ -321,7 +446,7 @@ def get_corpus_index(
     CorpusIndex
         Treat as read-only.  Mutating it corrupts subsequent searches.
     """
-    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
 
     if trust_write_hooks and not _disabled():
         # v2.8.1 fast path: if no writes have happened since the
@@ -345,14 +470,17 @@ def get_corpus_index(
                 _BUILD_HITS += 1
                 return cached
             observed_generation = _WRITE_GENERATION
+            pending_snapshot = set(_PENDING_INVALIDATIONS)
     elif not _disabled():
         # Legacy slow-but-safe path: fingerprint scan always runs.
         with _INDEX_LOCK:
             observed_generation = _WRITE_GENERATION
+            pending_snapshot = set(_PENDING_INVALIDATIONS)
         files = list(all_md_files_fn())
         fingerprint, items = _compute_fingerprint(files)
     else:
         observed_generation = -1
+        pending_snapshot = set()
         files = list(all_md_files_fn())
         fingerprint, items = _compute_fingerprint(files)
 
@@ -365,8 +493,26 @@ def get_corpus_index(
     with _INDEX_LOCK:
         cached = _INDEX_CACHE
         if cached is not None and cached.fingerprint == fingerprint:
+            _INDEX_GENERATION = observed_generation
+            _PENDING_INVALIDATIONS.clear()
             _BUILD_HITS += 1
             return cached
+        if trust_write_hooks and cached is not None and pending_snapshot:
+            incremental = _try_incremental_update(
+                cached,
+                items,
+                fingerprint,
+                pending_snapshot,
+                search_tokens_fn,
+                read_text_fn,
+            )
+            if incremental is not None:
+                _INDEX_CACHE = incremental
+                _INDEX_GENERATION = observed_generation
+                _PENDING_INVALIDATIONS.difference_update(pending_snapshot)
+                _INCREMENTAL_UPDATES += 1
+                _BUILD_HITS += 1
+                return incremental
 
     # Build outside the lock — tokenization can be expensive on large
     # corpora and we don't want to block other threads' fingerprint
@@ -383,6 +529,7 @@ def get_corpus_index(
             return existing
         _INDEX_CACHE = fresh
         _INDEX_GENERATION = observed_generation
+        _PENDING_INVALIDATIONS.clear()
         _BUILD_MISSES += 1
         return fresh
 
@@ -395,19 +542,20 @@ def invalidate(path: Optional[Path] = None) -> None:
     the generation counter forces the next ``get_corpus_index`` call
     to re-fingerprint and rebuild as needed.
 
-    The ``path`` argument is accepted for forward compatibility (per-
-    file partial invalidation may land in a later release) but is
-    currently ignored — we always do a global bump because BM25 IDF
-    depends on every other doc's TF anyway.
+    When ``path`` is supplied, trusted callers may use it for an
+    incremental single-file index update on the next
+    ``get_corpus_index(..., trust_write_hooks=True)`` call.
     """
     global _WRITE_GENERATION
     with _INDEX_LOCK:
         _WRITE_GENERATION += 1
+        if path is not None:
+            _PENDING_INVALIDATIONS.add(Path(path))
 
 
 def reset_for_tests() -> None:
     """Drop the singleton + counters.  Test helper only."""
-    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _WRITE_GENERATION, _FAST_HITS
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _WRITE_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
     with _INDEX_LOCK:
         _INDEX_CACHE = None
         _BUILD_HITS = 0
@@ -415,6 +563,8 @@ def reset_for_tests() -> None:
         _INDEX_GENERATION = -1
         _WRITE_GENERATION = 0
         _FAST_HITS = 0
+        _PENDING_INVALIDATIONS.clear()
+        _INCREMENTAL_UPDATES = 0
 
 
 def stats() -> Dict[str, Any]:
@@ -428,6 +578,7 @@ def stats() -> Dict[str, Any]:
             "build_hits": _BUILD_HITS,
             "build_misses": _BUILD_MISSES,
             "fast_hits": _FAST_HITS,
+            "incremental_updates": _INCREMENTAL_UPDATES,
             "write_generation": _WRITE_GENERATION,
             "index_generation": _INDEX_GENERATION,
             "disabled": _disabled(),

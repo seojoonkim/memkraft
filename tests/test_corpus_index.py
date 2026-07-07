@@ -158,6 +158,75 @@ class TestInvalidation:
         idx2 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize)
         assert idx2 is not idx1
 
+    def test_trusted_single_file_modify_updates_index_incrementally(self, tmp_path: Path):
+        _make_files(tmp_path, {"a.md": "alpha alpha", "b.md": "beta"})
+        idx1 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx1.token_doc_freq.get("alpha") == 1
+        assert idx1.token_doc_freq.get("delta") is None
+        assert stats()["build_misses"] == 1
+
+        changed = tmp_path / "a.md"
+        changed.write_text("delta delta", encoding="utf-8")
+        ci.invalidate(changed)
+
+        idx2 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx2.token_doc_freq.get("alpha") is None
+        assert idx2.token_doc_freq.get("delta") == 1
+        assert idx2.doc_token_freqs[changed] == {"delta": 2}
+        s = stats()
+        assert s["build_misses"] == 1
+        assert s["incremental_updates"] == 1
+
+    def test_trusted_single_file_add_updates_index_incrementally(self, tmp_path: Path):
+        _make_files(tmp_path, {"a.md": "alpha"})
+        idx1 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx1.doc_count == 1
+
+        added = tmp_path / "b.md"
+        added.write_text("beta beta", encoding="utf-8")
+        ci.invalidate(added)
+
+        idx2 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx2.doc_count == 2
+        assert idx2.token_doc_freq.get("beta") == 1
+        assert idx2.doc_token_freqs[added] == {"beta": 2}
+        s = stats()
+        assert s["build_misses"] == 1
+        assert s["incremental_updates"] == 1
+
+    def test_trusted_single_file_delete_updates_index_incrementally(self, tmp_path: Path):
+        _make_files(tmp_path, {"a.md": "alpha", "b.md": "beta"})
+        idx1 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx1.doc_count == 2
+
+        deleted = tmp_path / "b.md"
+        deleted.unlink()
+        ci.invalidate(deleted)
+
+        idx2 = get_corpus_index(lambda: _list_md(tmp_path), _tokenize, trust_write_hooks=True)
+        assert idx2.doc_count == 1
+        assert idx2.token_doc_freq.get("beta") is None
+        assert deleted not in idx2.doc_token_freqs
+        s = stats()
+        assert s["build_misses"] == 1
+        assert s["incremental_updates"] == 1
+
+    def test_memkraft_write_after_search_uses_incremental_index(self, tmp_path: Path):
+        mk = MemKraft(str(tmp_path / "memory"))
+        mk.track("Alpha", source="test")
+        mk.update("Alpha", "alpha token", source="test")
+        mk.search("alpha", cache=False)
+        assert stats()["build_misses"] == 1
+
+        mk.track("Beta", source="test")
+        mk.update("Beta", "beta token", source="test")
+        result = mk.search("beta", cache=False)
+
+        assert any("beta" in r.get("file", "").lower() for r in result)
+        s = stats()
+        assert s["build_misses"] == 1
+        assert s["incremental_updates"] >= 1
+
 
 class TestEnvDisable:
     def test_disabled_via_env_rebuilds_every_call(
