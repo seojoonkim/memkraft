@@ -1,0 +1,50 @@
+name: Memory Gym Gate
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "benchmarks/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/gym-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "benchmarks/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/gym-gate.yml"
+
+jobs:
+  search-recall:
+    name: search_recall / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Run test suite
+        run: python -m pytest tests/ -q
+
+      - name: Run Memory Gym search_recall gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario search_recall \
+            --gate \
+            --out /tmp/memkraft-search-recall-gate.json
