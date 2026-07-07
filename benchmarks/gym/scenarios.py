@@ -2,9 +2,29 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Iterable, cast
+from typing import Any, Callable, Iterable, cast
 
 from benchmarks.search_recall_bench import run_one as run_search_recall_one
+
+ScenarioRunner = Callable[..., dict[str, Any]]
+
+# Registration point: new Gym scenarios (session_overlay_recall, resolver_verdicts, ...) register here.
+_SCENARIOS: dict[str, ScenarioRunner] = {}
+
+
+def register_scenario(name: str, runner: ScenarioRunner) -> None:
+    """Register a Memory Gym scenario runner under a unique name."""
+    label = str(name).strip()
+    if not label:
+        raise ValueError("Memory Gym scenario name must be a non-empty string")
+    if not callable(runner):
+        raise ValueError(f"Memory Gym scenario runner for {label!r} must be callable")
+    _SCENARIOS[label] = runner
+
+
+def registered_scenarios() -> list[str]:
+    """Return the sorted names of all registered Memory Gym scenarios."""
+    return sorted(_SCENARIOS)
 
 
 def _hybrid_search(alpha: float):
@@ -25,9 +45,19 @@ def run_scenario(
     hybrid_alpha: float = 0.025,
 ) -> dict[str, Any]:
     """Run a named Memory Gym scenario and return a JSON-serialisable payload."""
-    if scenario != "search_recall":
+    runner = _SCENARIOS.get(scenario)
+    if runner is None:
         raise ValueError(f"unknown Memory Gym scenario: {scenario}")
+    return runner(sizes=sizes, top_k=top_k, candidate=candidate, hybrid_alpha=hybrid_alpha)
 
+
+def _run_search_recall(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 20,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
     candidate_label = str(candidate).strip().lower()
     if candidate_label not in {"baseline", "legacy", "hybrid"}:
         raise ValueError(f"unknown Memory Gym candidate: {candidate}")
@@ -44,7 +74,7 @@ def run_scenario(
 
     candidate_fn = _hybrid_search(parsed_hybrid_alpha) if candidate_label == "hybrid" else None
     payload = {
-        "scenario": scenario,
+        "scenario": "search_recall",
         "candidate": candidate_label,
         "top_k": parsed_top_k,
         "results": [
@@ -55,3 +85,6 @@ def run_scenario(
     if candidate_label == "hybrid":
         payload["hybrid_alpha"] = parsed_hybrid_alpha
     return payload
+
+
+register_scenario("search_recall", _run_search_recall)

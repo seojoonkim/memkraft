@@ -8,7 +8,24 @@ from pathlib import Path
 
 import pytest
 
-from benchmarks.gym import gates, metrics, scenarios
+from benchmarks.gym import gates, metrics, run, scenarios
+
+
+@pytest.fixture
+def stub_scenario():
+    name = "stub_fixed"
+
+    def runner(*, sizes, top_k=20, candidate="baseline", hybrid_alpha=0.025):
+        return {
+            "scenario": name,
+            "candidate": candidate,
+            "top_k": int(top_k),
+            "results": [{"documents": 1, "mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}],
+        }
+
+    scenarios.register_scenario(name, runner)
+    yield name
+    scenarios._SCENARIOS.pop(name, None)
 
 
 def test_metrics_recall_at_k_matches_existing_benchmark_helper():
@@ -146,7 +163,6 @@ def test_memory_gym_cli_accepts_hybrid_alpha(tmp_path: Path):
 
 def test_memory_gym_cli_rejects_invalid_inputs_without_traceback(tmp_path: Path):
     cases = [
-        ["--scenario", "does_not_exist"],
         ["--sizes", "abc"],
         ["--sizes", "-1"],
         ["--top-k", "0"],
@@ -262,3 +278,58 @@ def test_memory_gym_cli_gate_failure_exits_nonzero(tmp_path: Path):
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert payload["gate"]["passed"] is False
     assert payload["gate"]["failures"]
+
+
+def test_register_scenario_enables_run_scenario(stub_scenario):
+    payload = scenarios.run_scenario(stub_scenario, sizes=[1], top_k=5)
+
+    assert payload["scenario"] == stub_scenario
+    assert payload["top_k"] == 5
+    assert payload["results"] == [{"documents": 1, "mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}]
+
+
+def test_register_scenario_enables_cli_scenario_name(stub_scenario, tmp_path: Path):
+    out = tmp_path / "stub.json"
+
+    exit_code = run.main(["--scenario", stub_scenario, "--out", str(out)])
+
+    assert exit_code == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["scenario"] == stub_scenario
+
+
+def test_unregistered_scenario_raises_structured_error(stub_scenario):
+    with pytest.raises(ValueError, match="unknown Memory Gym scenario"):
+        scenarios.run_scenario("definitely_not_registered", sizes=[1])
+
+
+def test_memory_gym_cli_unknown_scenario_writes_structured_error(tmp_path: Path, capsys):
+    out = tmp_path / "unknown-scenario.json"
+
+    exit_code = run.main(["--scenario", "definitely_not_registered", "--out", str(out)])
+
+    assert exit_code == 2
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    error = payload["error"]
+    assert error["kind"] == "unknown_scenario"
+    assert error["param"] == "scenario"
+    assert "definitely_not_registered" in error["message"]
+    printed = capsys.readouterr().out
+    assert json.loads(printed) == payload
+    assert "Traceback" not in printed
+
+
+def test_stub_scenario_end_to_end_gate_payload(stub_scenario, tmp_path: Path):
+    out = tmp_path / "stub-gate.json"
+
+    exit_code = run.main(["--scenario", stub_scenario, "--out", str(out), "--gate"])
+
+    assert exit_code == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["scenario"] == stub_scenario
+    assert payload["results"] == [{"documents": 1, "mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}]
+    assert payload["gate"] == {"passed": True, "failures": []}
+
+
+def test_search_recall_scenario_is_registered_by_default():
+    assert "search_recall" in scenarios.registered_scenarios()

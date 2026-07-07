@@ -54,9 +54,17 @@ def _hybrid_alpha(raw: str) -> float:
     return value
 
 
+def _write_output(payload: dict, out: str) -> None:
+    output = json.dumps(payload, indent=2)
+    out_path = Path(out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(output, encoding="utf-8")
+    print(output)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenario", choices=["search_recall"], default="search_recall")
+    parser.add_argument("--scenario", default="search_recall")
     parser.add_argument("--sizes", type=_parse_sizes, default=_parse_sizes("20"))
     parser.add_argument("--top-k", type=_positive_int, default=20)
     parser.add_argument("--candidate", choices=["baseline", "legacy", "hybrid"], default="baseline")
@@ -72,13 +80,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--min-min-recall-at-k", type=float, default=gates.DEFAULT_GATE["min_min_recall_at_k"])
     args = parser.parse_args(argv)
 
-    payload = scenarios.run_scenario(
-        args.scenario,
-        sizes=args.sizes,
-        top_k=args.top_k,
-        candidate=args.candidate,
-        hybrid_alpha=args.hybrid_alpha,
-    )
+    try:
+        payload = scenarios.run_scenario(
+            args.scenario,
+            sizes=args.sizes,
+            top_k=args.top_k,
+            candidate=args.candidate,
+            hybrid_alpha=args.hybrid_alpha,
+        )
+    except ValueError as exc:
+        if args.scenario in scenarios.registered_scenarios():
+            raise
+        error_payload = {
+            "error": {
+                "kind": "unknown_scenario",
+                "param": "scenario",
+                "message": str(exc),
+            }
+        }
+        _write_output(error_payload, args.out)
+        return 2
     exit_code = 0
 
     if args.gate:
@@ -92,11 +113,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         payload["gate"] = gate
         exit_code = 0 if gate["passed"] else 1
 
-    output = json.dumps(payload, indent=2)
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(output, encoding="utf-8")
-    print(output)
+    _write_output(payload, args.out)
     return exit_code
 
 
