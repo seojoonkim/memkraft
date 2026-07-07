@@ -47,3 +47,35 @@ def test_search_scale_bench_reports_limited_and_unlimited_paths():
     assert result["limited"]["top_k"] == 2
     assert result["limited"]["hits"] <= 2
     assert result["unlimited"]["hits"] >= result["limited"]["hits"]
+
+
+def test_search_recall_bench_metric_helpers():
+    mod = _load_module("search_recall_bench", "benchmarks/search_recall_bench.py")
+    assert mod.recall_at_k(["a", "b", "c"], ["b", "d", "a"], 2) == 0.5
+    assert mod.recall_at_k(["a", "b", "c"], ["b", "d", "a"], 3) == 2 / 3
+    summary = mod.evaluate_query(
+        "needle",
+        baseline=[{"file": "a.md"}, {"file": "b.md"}],
+        candidate=[{"file": "b.md"}, {"file": "c.md"}],
+        top_k=2,
+    )
+    assert summary == {
+        "query": "needle",
+        "baseline_hits": 2,
+        "candidate_hits": 2,
+        "recall_at_k": 0.5,
+        "baseline_top": ["a.md", "b.md"],
+        "candidate_top": ["b.md", "c.md"],
+    }
+
+
+def test_search_recall_bench_run_one_shape():
+    mod = _load_module("search_recall_bench", "benchmarks/search_recall_bench.py")
+    result = mod.run_one(size=12, top_k=3)
+    assert result["documents"] == 12
+    assert result["top_k"] == 3
+    assert result["queries"]
+    assert result["mean_recall_at_k"] == 1.0
+    assert result["min_recall_at_k"] == 1.0
+    assert result["baseline_latency_ms"]["n"] == len(result["queries"])
+    assert result["candidate_latency_ms"]["n"] == len(result["queries"])
