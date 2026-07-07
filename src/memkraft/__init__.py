@@ -41,6 +41,7 @@ from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
 from .struct_mem import StructMemMixin  # v2.9.2 StructMem regex extraction
 from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .provenance import ProvenanceMixin  # v3 M2 Provenance Core
+from .candidates import CandidateMixin  # v2.13 candidate memory preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
 # `_slugify` would clobber core._slugify (which has Korean/CJK support).
@@ -91,6 +92,7 @@ for _mixin in (
     StructMemMixin,
     EmbeddingMixin,
     ProvenanceMixin,
+    CandidateMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
