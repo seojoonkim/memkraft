@@ -1,0 +1,152 @@
+{
+  "positive": [
+    {
+      "id": "prefers_1",
+      "pattern": "prefers",
+      "text": "Alice prefers dark mode.",
+      "expected": {"subject": "Alice", "predicate": "prefers", "object_value": "dark mode", "source_quote": "Alice prefers dark mode"}
+    },
+    {
+      "id": "prefers_2",
+      "pattern": "prefers",
+      "text": "Bob prefers Python for scripts.",
+      "expected": {"subject": "Bob", "predicate": "prefers", "object_value": "Python for scripts", "source_quote": "Bob prefers Python for scripts"}
+    },
+    {
+      "id": "prefers_3",
+      "pattern": "prefers",
+      "text": "The team prefers weekly reviews.",
+      "expected": {"subject": "The team", "predicate": "prefers", "object_value": "weekly reviews", "source_quote": "The team prefers weekly reviews"}
+    },
+    {
+      "id": "prefers_4",
+      "pattern": "prefers",
+      "text": "Simon prefers concise updates when busy.",
+      "expected": {"subject": "Simon", "predicate": "prefers", "object_value": "concise updates when busy", "source_quote": "Simon prefers concise updates when busy"}
+    },
+    {
+      "id": "prefers_5",
+      "pattern": "prefers",
+      "text": "MemKraft prefers deterministic rules.",
+      "expected": {"subject": "MemKraft", "predicate": "prefers", "object_value": "deterministic rules", "source_quote": "MemKraft prefers deterministic rules"}
+    },
+
+    {
+      "id": "uses_1",
+      "pattern": "uses",
+      "text": "Alice uses Obsidian.",
+      "expected": {"subject": "Alice", "predicate": "uses", "object_value": "Obsidian", "source_quote": "Alice uses Obsidian"}
+    },
+    {
+      "id": "uses_2",
+      "pattern": "uses",
+      "text": "The pipeline uses SQLite for indexes.",
+      "expected": {"subject": "The pipeline", "predicate": "uses", "object_value": "SQLite for indexes", "source_quote": "The pipeline uses SQLite for indexes"}
+    },
+    {
+      "id": "uses_3",
+      "pattern": "uses",
+      "text": "Sano uses pytest before commits.",
+      "expected": {"subject": "Sano", "predicate": "uses", "object_value": "pytest before commits", "source_quote": "Sano uses pytest before commits"}
+    },
+    {
+      "id": "uses_4",
+      "pattern": "uses",
+      "text": "The app uses token overlap search.",
+      "expected": {"subject": "The app", "predicate": "uses", "object_value": "token overlap search", "source_quote": "The app uses token overlap search"}
+    },
+    {
+      "id": "uses_5",
+      "pattern": "uses",
+      "text": "Research mode uses archived notes.",
+      "expected": {"subject": "Research mode", "predicate": "uses", "object_value": "archived notes", "source_quote": "Research mode uses archived notes"}
+    },
+
+    {
+      "id": "located_1",
+      "pattern": "located",
+      "text": "Alice is located in Seoul.",
+      "expected": {"subject": "Alice", "predicate": "is_located", "object_value": "Seoul", "source_quote": "Alice is located in Seoul"}
+    },
+    {
+      "id": "located_2",
+      "pattern": "located",
+      "text": "The office is located at 12 River Road.",
+      "expected": {"subject": "The office", "predicate": "is_located", "object_value": "12 River Road", "source_quote": "The office is located at 12 River Road"}
+    },
+    {
+      "id": "located_3",
+      "pattern": "located",
+      "text": "The cache is located in .memkraft/cache.",
+      "expected": {"subject": "The cache", "predicate": "is_located", "object_value": ".memkraft/cache", "source_quote": "The cache is located in .memkraft/cache"}
+    },
+    {
+      "id": "located_4",
+      "pattern": "located",
+      "text": "Project files are located at /Users/gimseojun/memcraft.",
+      "expected": {"subject": "Project files", "predicate": "is_located", "object_value": "/Users/gimseojun/memcraft", "source_quote": "Project files are located at /Users/gimseojun/memcraft"}
+    },
+    {
+      "id": "located_5",
+      "pattern": "located",
+      "text": "The archive is located in cold storage.",
+      "expected": {"subject": "The archive", "predicate": "is_located", "object_value": "cold storage", "source_quote": "The archive is located in cold storage"}
+    },
+
+    {
+      "id": "changed_1",
+      "pattern": "changed",
+      "text": "Alice changed theme to light mode.",
+      "expected": {"subject": "Alice", "predicate": "changed", "object_value": {"field": "theme", "to": "light mode"}, "source_quote": "Alice changed theme to light mode"}
+    },
+    {
+      "id": "changed_2",
+      "pattern": "updated",
+      "text": "Bob updated default editor to vim on 2026-07-08.",
+      "expected": {"subject": "Bob", "predicate": "updated", "object_value": {"field": "default editor", "to": "vim"}, "source_quote": "Bob updated default editor to vim on 2026-07-08", "valid_from": "2026-07-08"}
+    },
+    {
+      "id": "changed_3",
+      "pattern": "corrected",
+      "text": "The team corrected routing policy to profile-isolated memory.",
+      "expected": {"subject": "The team", "predicate": "corrected", "object_value": {"field": "routing policy", "to": "profile-isolated memory"}, "source_quote": "The team corrected routing policy to profile-isolated memory"}
+    },
+    {
+      "id": "changed_4",
+      "pattern": "changed",
+      "text": "Simon changed notification channel to Telegram on 2026-06-25.",
+      "expected": {"subject": "Simon", "predicate": "changed", "object_value": {"field": "notification channel", "to": "Telegram"}, "source_quote": "Simon changed notification channel to Telegram on 2026-06-25", "valid_from": "2026-06-25"}
+    },
+    {
+      "id": "changed_5",
+      "pattern": "updated",
+      "text": "MemKraft updated storage layout to append-only JSONL.",
+      "expected": {"subject": "MemKraft", "predicate": "updated", "object_value": {"field": "storage layout", "to": "append-only JSONL"}, "source_quote": "MemKraft updated storage layout to append-only JSONL"}
+    }
+  ],
+  "negative": [
+    {"id": "prefers_neg_1", "text": "Alice preferred dark mode last year."},
+    {"id": "prefers_neg_2", "text": "Prefer dark mode for Alice."},
+    {"id": "prefers_neg_3", "text": "Alice preference is dark mode."},
+    {"id": "prefers_neg_4", "text": "Alice may prefer dark mode."},
+    {"id": "prefers_neg_5", "text": "Does Alice prefer dark mode?"},
+
+    {"id": "uses_neg_1", "text": "Alice used Obsidian yesterday."},
+    {"id": "uses_neg_2", "text": "Use Obsidian for Alice."},
+    {"id": "uses_neg_3", "text": "Alice usage includes Obsidian."},
+    {"id": "uses_neg_4", "text": "Alice may use Obsidian."},
+    {"id": "uses_neg_5", "text": "Does Alice use Obsidian?"},
+
+    {"id": "located_neg_1", "text": "Alice was located in Seoul."},
+    {"id": "located_neg_2", "text": "Alice location is Seoul."},
+    {"id": "located_neg_3", "text": "Locate Alice in Seoul."},
+    {"id": "located_neg_4", "text": "Alice may be located in Seoul."},
+    {"id": "located_neg_5", "text": "Is Alice located in Seoul?"},
+
+    {"id": "changed_neg_1", "text": "Alice changed theme."},
+    {"id": "changed_neg_2", "text": "Alice updated to light mode."},
+    {"id": "changed_neg_3", "text": "Change Alice theme to light mode."},
+    {"id": "changed_neg_4", "text": "Alice may update theme to light mode."},
+    {"id": "changed_neg_5", "text": "Did Alice change theme to light mode?"}
+  ]
+}
