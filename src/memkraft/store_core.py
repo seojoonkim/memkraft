@@ -21,7 +21,12 @@ exposes everything (compaction/audit path).
 
 Concurrency: append takes an ``fcntl.flock`` exclusive lock on the store
 file and writes the whole newline-terminated line with a single
-``os.write`` call, so concurrent appenders never interleave bytes.
+``os.write`` call, so concurrent appenders never interleave bytes. Because
+``compact`` swaps the store to a new inode with ``os.replace`` while
+holding that lock, every locker re-stats the path after acquiring the lock
+and retries on a fresh descriptor if the inode changed — otherwise a
+writer that queued on the old inode would append to an orphaned file and
+the record would be silently lost (S4 concurrency gate).
 
 Compaction (S3): ``compact`` physically drops tombstone markers, the
 records they target, and corrupt lines, preserving live lines byte-for-byte
@@ -45,6 +50,38 @@ from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Union
 
 SCHEMA_VERSION = 1
+
+
+def _lock_current_inode(path_str: str, flags: int) -> int:
+    """Open ``path_str`` and take an exclusive ``flock`` on its *current* inode.
+
+    ``flock`` binds to the open file, not the path: a process that opened
+    the store, then waited while ``compact`` held the lock and ran
+    ``os.replace``, would wake up holding a lock on an inode no path points
+    to — its write would be lost. So after acquiring the lock, re-stat the
+    path; if the file was replaced (or unlinked) in the meantime, release
+    and start over on the file now at the path. Raises whatever ``os.open``
+    raises (e.g. ``FileNotFoundError`` without ``O_CREAT``).
+    """
+    while True:
+        fd = os.open(path_str, flags, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            st_fd = os.fstat(fd)
+            try:
+                st_path = os.stat(path_str)
+            except FileNotFoundError:
+                st_path = None
+            if st_path is not None and (st_path.st_dev, st_path.st_ino) == (
+                st_fd.st_dev,
+                st_fd.st_ino,
+            ):
+                return fd
+        except BaseException:
+            os.close(fd)
+            raise
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 class RecordNotFoundError(KeyError):
@@ -95,14 +132,11 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     data = line.encode("utf-8")
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    fd = _lock_current_inode(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND)
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        try:
-            os.write(fd, data)
-        finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.write(fd, data)
     finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
     return enveloped
 
@@ -183,12 +217,11 @@ def compact(path: Union[str, Path]) -> CompactResult:
     path = Path(path)
     tmp = _compact_tmp_path(path)
     try:
-        fd = os.open(str(path), os.O_RDONLY)
+        fd = _lock_current_inode(str(path), os.O_RDONLY)
     except FileNotFoundError:
         tmp.unlink(missing_ok=True)
         return CompactResult(0, 0, 0, 0)
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
         try:
             raw = b""
             while True:
