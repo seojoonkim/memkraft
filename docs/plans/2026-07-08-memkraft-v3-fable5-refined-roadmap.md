@@ -260,3 +260,191 @@ last_interactions는 append 로그 + 주기 스냅샷 구조로 변경(단일 JS
 10. **feat:** last-interaction index(append 로그+스냅샷 구조) + `last_interaction` 시나리오(정확도 1.00, p95 <5ms @10k).
 
 이 10개가 끝나면 2.13.0은 릴리스 가능 상태이며, 임계 경로(store_core → claims → resolver)가 뚫려 2.14의 compiled_truth 작업을 즉시 시작할 수 있다.
+
+---
+
+## 10. 추가 개선 여지 — 실행 전 보강해야 할 빠진 안전장치
+
+위 재설계는 릴리스 절단면과 3.0 기준을 크게 개선했지만, 구현에 들어가기 전 아래 항목을 더 보강하면 실패 확률을 낮출 수 있다. 이 섹션은 “기능 추가”가 아니라 **로드맵 실행 안전장치**다.
+
+### 10.1 마이그레이션/호환성 계획을 별도 산출물로 분리
+
+**문제:** `store_core`와 envelope v1이 들어오면 기존 `.memkraft/` sidecar와 markdown 기반 데이터가 공존한다. 현재 계획은 새 스키마를 정의하지만, 기존 사용자의 디렉터리를 언제/어떻게 업그레이드하는지 명시하지 않는다.
+
+**보강:** 2.13 첫 PR 이후 바로 `docs/MIGRATIONS.md`를 만들고, 각 릴리스에 아래 표를 유지한다.
+
+```text
+from_version | to_version | automatic? | command | rollback | data_loss_risk
+2.12.x       | 2.13.0     | no/doctor  | memkraft doctor --migrations | backup dir | none expected
+```
+
+**추가 API/CLI 후보:**
+
+```bash
+memkraft doctor --base-dir <dir> --migrations
+memkraft migrate --base-dir <dir> --to 2.13 --dry-run
+memkraft migrate --base-dir <dir> --to 2.13 --apply
+```
+
+**게이트:**
+
+- 2.12 fixture 디렉터리에서 `migrate --dry-run`은 파일 변경 0바이트.
+- `migrate --apply` 후 기존 `search` 결과 무회귀.
+- 적용 전 자동 백업 디렉터리 생성 또는 명시적 `--no-backup` 필요.
+
+### 10.2 공개 API 표면을 “stable / preview / internal” 3단으로 문서화
+
+**문제:** 3.0에서 12개 코어 동사를 stable로 동결한다고 했지만, 2.13~2.15 사이 신규 API가 너무 빨리 stable처럼 굳어질 수 있다.
+
+**보강:** 모든 신규 API는 최초 출시 때 `preview`로 문서화하고, 3.0에서만 stable 승격한다.
+
+```text
+stable: remember, search, why
+preview: remember_candidate, extract_claims, resolver_dry_run, sleep, compile_context, report_outcome
+internal: store_core helpers, low-level JSONL readers, benchmark fixture generators
+```
+
+**게이트:** 3.0 전까지 README 상단에는 preview 경고를 유지하고, `docs/V3_API.md`에서 stable 승격/비승격 목록을 명시한다.
+
+### 10.3 threat model을 별도 문서로 작성
+
+**문제:** governance와 credential redaction이 있지만, “무엇을 막는가”가 아직 없다. 메모리 시스템은 실패 모드가 일반 라이브러리보다 위험하다.
+
+**보강:** 2.14 전에 `docs/THREAT_MODEL.md` 작성.
+
+최소 위협 목록:
+
+- secret capture: API key, token, cookie, password, private key 저장
+- prompt injection memory poisoning: 악성 문장이 future context에 주입
+- stale truth: 과거 사실이 현재 사실처럼 주입
+- cross-session leakage: session overlay가 다른 session에 노출
+- deletion failure: forget 후 derived view/export/search에 잔존
+- provenance laundering: derived record가 원 출처 없이 확정 사실처럼 보임
+- utility poisoning: 잘못된 outcome report가 ranking을 오염
+
+**게이트:** 각 위협은 최소 1개 regression test 또는 Gym fixture와 연결한다.
+
+### 10.4 외부 벤치마크는 “3.0 필수” 전에 현실성 spike 필요
+
+**문제:** LongMemEval/LoCoMo 스타일 외부 벤치 공표는 좋지만, 라이선스/데이터 형식/로컬 실행 비용이 릴리스 막판 리스크가 될 수 있다.
+
+**보강:** 2.13 중 `spike: external benchmark adapter feasibility`를 추가한다.
+
+**산출물:**
+
+- `benchmarks/external/README.md`
+- 사용 가능한 공개 dataset 후보와 라이선스
+- 최소 20문항 smoke adapter
+- 실행 시간/비용 기록
+
+**3.0 게이트 조정:** 외부 벤치 전체 통합이 막히면, 최소한 “외부 형식 adapter + 공개 fixture subset + 결과표”는 필수로 유지한다.
+
+### 10.5 release checklist와 rollback checklist를 문서화
+
+**문제:** 2.12 배포 때 PyPI/GitHub/Hermes smoke를 수동으로 잘 검증했지만, refined roadmap에는 릴리스 체크리스트가 직접 들어있지 않다.
+
+**보강:** `docs/RELEASE_CHECKLIST.md` 추가.
+
+최소 체크:
+
+```bash
+PYTHONPATH=src python3 -m pytest -q
+PYTHONPATH=src python3 benchmarks/gym/run.py --scenario search_recall --gate --out /tmp/memkraft-search.json
+python3 -m build
+python3 -m twine check dist/*
+python3 -m venv /tmp/memkraft-smoke && /tmp/memkraft-smoke/bin/pip install dist/*.whl
+/tmp/memkraft-smoke/bin/memkraft --version
+/tmp/memkraft-smoke/bin/memkraft doctor --base-dir /tmp/memkraft-smoke-memory
+```
+
+추가 Hermes smoke:
+
+- installed package import without `source_path`
+- remember/search smoke under `HERMES_HOME`
+- profile-local memory path 확인
+
+Rollback:
+
+- PyPI yanked release 기준
+- GitHub release note 수정 기준
+- post-release regression 발견 시 patch version cut 기준
+
+### 10.6 “텍스트/마크다운 원본 vs sidecar 파생”의 불변식 명문화
+
+**문제:** MemKraft는 markdown-first 역사와 `.memkraft/` sidecar가 공존한다. 구현자가 어느 쪽을 source of truth로 볼지 헷갈릴 수 있다.
+
+**보강:** 2.13 문서에 다음 불변식을 추가한다.
+
+```text
+- User-authored markdown remains durable source material.
+- .memkraft/*.jsonl records are machine-readable operational records.
+- compiled_truth and other derived views are always rebuildable caches unless explicitly documented otherwise.
+- search must never require derived caches to exist; caches improve quality/latency, not availability.
+```
+
+**게이트:** derived cache 삭제 후에도 기존 search/doctor가 동작해야 한다.
+
+### 10.7 `extract_claims` 범위를 매우 좁게 시작
+
+**문제:** 결정적 claim extractor는 욕심내면 바로 NLU 프로젝트가 된다.
+
+**보강:** 2.13에서 `extract_claims`는 아래 4종만 지원한다.
+
+1. `X prefers Y`
+2. `X uses Y`
+3. `X is located at/in Y`
+4. `X changed/updated/corrected Y to Z`
+
+한국어는 2.13에서 최소 패턴만:
+
+- `X는 Y를 선호`
+- `X는 Y를 사용`
+- `X는 Y에 있음`
+- `X를 Y로 수정/변경`
+
+그 외는 후보로만 남기고 `CANDIDATE_REVIEW`.
+
+**게이트:** false positive 최소화가 recall보다 우선. 2.13 목표는 “많이 뽑기”가 아니라 “틀린 active 승격 방지”.
+
+### 10.8 `compile_context`의 성공 기준에 “사용자에게 유용한 실패” 포함
+
+**문제:** `miss=True`일 때 환각하지 않는 것은 좋지만, agent 입장에서는 다음 행동도 필요하다.
+
+**보강:** `compile_context`가 miss일 때도 아래를 반환하게 한다.
+
+```json
+{
+  "miss": true,
+  "recommended_action": "ask_user|search_sessions|inspect_files|web_search|none",
+  "reason": "No source-backed memory matched the task"
+}
+```
+
+**게이트:** empty memory/context miss fixture에서 recommended_action이 deterministic하게 나온다.
+
+### 10.9 구현 순서를 더 작게 쪼개기
+
+현재 “즉시 다음 10개 태스크”는 PR 단위로 좋지만, 첫 구현자에게는 아직 크다. 2.13의 첫 3개 PR은 아래 micro-slice로 쪼갠다.
+
+1. `store_core` append/read only, no tombstone.
+2. tombstone filtering only.
+3. compaction only.
+4. concurrency test only.
+5. Gym registry accepts new names, returns stub metrics.
+6. Gym thresholds fail structured JSON.
+7. CI runs only `search_recall` first.
+8. `extract_claims` English 4-pattern only.
+9. `extract_claims` Korean 4-pattern only.
+10. `remember_candidate` writes envelope without resolver integration.
+
+### 10.10 최종 판단
+
+더 개선한다면 우선순위는 다음 5개다.
+
+1. `docs/MIGRATIONS.md`
+2. `docs/THREAT_MODEL.md`
+3. `docs/RELEASE_CHECKLIST.md`
+4. `benchmarks/external/README.md` spike
+5. 2.13 micro-slice implementation plan
+
+이 다섯 개를 추가하면 refined roadmap은 “좋은 전략 문서”에서 “다른 에이전트에게 바로 던져도 덜 망가지는 실행 문서”가 된다.
