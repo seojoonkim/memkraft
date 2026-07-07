@@ -1,5 +1,70 @@
 # CHANGELOG
 
+## [2.12.0] — 2026-07-08
+
+MemKraft v3 foundation release. **Public API additive only.**
+
+This release moves MemKraft toward a local-first memory operating system:
+retrieval remains fast and dependency-light, while new benchmark and
+provenance layers make memory behavior measurable and explainable.
+
+### Memory Gym benchmark harness
+
+- Added a scenario-based Memory Gym harness for repeatable recall testing.
+- Added `search_recall` adversarial benchmark coverage and gate-mode CLI
+  behavior so regressions can fail fast in release/CI workflows.
+- Added candidate selection support, including a conservative hybrid
+  candidate path with `--candidate hybrid` and `--hybrid-alpha` controls.
+- Hardened CLI validation for invalid/non-finite gate and alpha values.
+
+### Hybrid retrieval safety
+
+- Added real dense/BM25 hybrid evaluation support through the benchmark
+  harness.
+- Fixed hybrid fusion identity by canonicalizing result paths before RRF
+  fusion, then returning normalized `base_dir`-relative paths. This avoids
+  duplicate semantic/BM25 hits when one path is absolute and the other is
+  relative.
+- Adopted conservative Memory Gym defaults for v3-stage evaluation so dense
+  retrieval can be tested without sacrificing lexical recall in adversarial
+  scenarios.
+
+### Provenance Core
+
+- Added a minimal provenance ledger backed by append-only
+  `.memkraft/provenance.jsonl` records.
+- Added `mk.provenance_record(...)` for recording derived memory artifacts
+  with source references.
+- Added `mk.why(id)` for explaining where a derived memory came from.
+- Hardened provenance parsing so corrupt JSONL lines do not crash lookups.
+
+### Hermes Agent installability
+
+- Documented the Hermes Agent memory-provider installation flow in the
+  README: install `memkraft` in the Hermes Python environment, then set
+  `memory.provider: memkraft` and `plugins.memkraft.base_dir` per profile.
+- Clarified that `plugins.memkraft.source_path` is optional and reserved for
+  editable/source-checkout development. Normal wheel installs should import
+  the installed `memkraft` package directly.
+
+### Packaging
+
+- Updated package metadata to modern SPDX license syntax (`license = "MIT"`).
+- Removed the deprecated license classifier that triggered setuptools build
+  warnings.
+
+### Tests and validation
+
+- Memory Gym edge-case suite passes.
+- Provenance, Memory Gym, and embedding targeted suites pass.
+- Fresh wheel install, CLI `--version`, `memkraft doctor`, provenance smoke,
+  and Hermes provider smoke were validated before release.
+
+### Versions
+
+- `__init__.py` → `2.12.0`
+- `pyproject.toml` → `2.12.0`
+
 ## [2.11.0] — 2026-05-29
 
 Memory-injection quality release. **Public API additive only.**

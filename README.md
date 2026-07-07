@@ -104,6 +104,30 @@ pip install 'memkraft[watch]'    # + auto-reindex on save (`memkraft watch`)
 pip install 'memkraft[all]'      # everything
 ```
 
+### Hermes Agent memory provider
+
+Hermes Agent ships with a MemKraft memory-provider plugin. Install MemKraft in the same Python environment as Hermes, then point a Hermes profile at a MemKraft base directory:
+
+```bash
+# In the Hermes Agent venv/environment:
+pip install memkraft
+
+# In the profile's config.yaml:
+memory:
+  provider: memkraft
+plugins:
+  memkraft:
+    base_dir: $HERMES_HOME/memkraft-memory
+    prefetch_top_k: 5
+```
+
+`plugins.memkraft.source_path` is optional and only needed for editable/source checkouts; normal wheel installs import `memkraft` from the active Python environment.
+
+```bash
+HERMES_HOME=/path/to/profile hermes memory status
+HERMES_HOME=/path/to/profile hermes chat -Q --toolsets memory -q 'Call memkraft_status.'
+```
+
 ### Connect Any Agent in 30 Seconds
 
 `memkraft agents-hint <target>` prints copy-paste-ready integration snippets:
