@@ -79,3 +79,4 @@ def test_search_recall_bench_run_one_shape():
     assert result["min_recall_at_k"] == 1.0
     assert result["baseline_latency_ms"]["n"] == len(result["queries"])
     assert result["candidate_latency_ms"]["n"] == len(result["queries"])
+    assert any(q["query"] == "priority_topic" for q in result["queries"])

@@ -92,17 +92,21 @@ def _seed_corpus(mk: MemKraft, size: int) -> list[str]:
     with contextlib.redirect_stdout(io.StringIO()):
         for i in range(size):
             topic = topics[i % len(topics)]
-            name = f"Recall Doc {i:05d} {topic}"
+            suffix = " Priority Topic" if i >= max(0, size - 10) else ""
+            name = f"Recall Doc {i:05d} {topic}{suffix}"
             # The repeated topic controls broad queries; unique marker controls
             # exact retrieval.  A little common text keeps realistic overlap.
             info = (
                 f"topic {topic} common shared memory retrieval benchmark "
                 f"unique_marker_{i:05d} rank_signal_{size - i:05d} "
-                f"{topic} {topic}"
+                f"{topic} {topic} priority_topic"
             )
+            if i >= max(0, size - 10):
+                info += " " + " ".join(["priority_topic"] * 25)
+                info += " " + " ".join(["alpha", "zeta"] * 20)
             mk.track(name, source="bench")
             mk.update(name, info=info, source="bench")
-    queries = ["alpha", "beta", "gamma", "common shared"]
+    queries = ["alpha", "beta", "gamma", "common shared", "priority_topic", "alpha zeta"]
     if size:
         queries.extend(["unique_marker_00000", f"unique_marker_{size // 2:05d}"])
     return queries
