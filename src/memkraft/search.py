@@ -153,7 +153,7 @@ class SearchMixin:
 
         return variants[:max_variants]
 
-    def _v102_run_search(self, query: str, fuzzy: bool = False) -> list[dict]:
+    def _v102_run_search(self, query: str, fuzzy: bool = False, top_k: int | None = None) -> list[dict]:
         """Run the core ``search`` while suppressing its stdout side
         effects.  Returns the result list verbatim (may be empty)."""
         buf = io.StringIO()
@@ -163,7 +163,8 @@ class SearchMixin:
                 # SearchMixin is attached AFTER the class exists, so
                 # the base ``search`` is still reachable as the class
                 # method defined in core.py.
-                out = self.search(query, fuzzy=fuzzy)
+                search_fn = getattr(self, "search")
+                out = search_fn(query, fuzzy=fuzzy, top_k=top_k)
         except Exception:
             return []
         return out if isinstance(out, list) else []
@@ -249,10 +250,10 @@ class SearchMixin:
                 self._reset_decay(cached)
                 return cached
 
-        batches: list[list[dict]] = [self._v102_run_search(query, fuzzy=fuzzy)]
+        batches: list[list[dict]] = [self._v102_run_search(query, fuzzy=fuzzy, top_k=top_k)]
         if expand_query:
             for variant in self._v102_keyword_variants(query):
-                batches.append(self._v102_run_search(variant, fuzzy=fuzzy))
+                batches.append(self._v102_run_search(variant, fuzzy=fuzzy, top_k=top_k))
 
         merged = self._v102_merge(batches)
         result = merged[:top_k]

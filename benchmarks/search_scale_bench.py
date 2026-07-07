@@ -79,35 +79,45 @@ def _seed_corpus(base: Path, n: int, words_per_doc: int) -> None:
         )
 
 
-def _search(mk: MemKraft, query: str) -> list:
+def _search(mk: MemKraft, query: str, top_k: int | None = None) -> list:
     fn = getattr(mk, "search")
-    return fn(query)
+    if top_k is None:
+        return fn(query)
+    return fn(query, top_k=top_k)
 
 
-def run_one(size: int, iterations: int, words_per_doc: int) -> dict:
+def _time_searches(mk: MemKraft, query: str, iterations: int, top_k: int | None = None) -> tuple[List[float], int]:
+    times: List[float] = []
+    hit_count = 0
+    for _ in range(iterations):
+        with contextlib.redirect_stdout(io.StringIO()):
+            t0 = time.perf_counter()
+            hits = _search(mk, query, top_k=top_k)
+            times.append((time.perf_counter() - t0) * 1000.0)
+        hit_count = len(hits)
+    return times, hit_count
+
+
+def run_one(size: int, iterations: int, words_per_doc: int, top_k: int = 20) -> dict:
     root = Path(tempfile.mkdtemp(prefix="memkraft_search_scale_")) / "memory"
     try:
         _seed_corpus(root, size, words_per_doc)
         mk = MemKraft(base_dir=str(root))
         query = "search cache latency root cause"
-        with contextlib.redirect_stdout(io.StringIO()):
-            t0 = time.perf_counter()
-            cold_hits = _search(mk, query)
-            cold_ms = (time.perf_counter() - t0) * 1000.0
-        warm_times: List[float] = []
-        hit_count = len(cold_hits)
-        for _ in range(iterations):
-            with contextlib.redirect_stdout(io.StringIO()):
-                t1 = time.perf_counter()
-                hits = _search(mk, query)
-                warm_times.append((time.perf_counter() - t1) * 1000.0)
-            hit_count = len(hits)
+        unlimited_warm, unlimited_hits = _time_searches(mk, query, iterations, top_k=None)
+        limited_warm, limited_hits = _time_searches(mk, query, iterations, top_k=top_k)
         return {
             "documents": size,
             "words_per_doc": words_per_doc,
-            "cold_ms": round(cold_ms, 3),
-            "warm": summarise_samples("search_warm", warm_times),
-            "hits": hit_count,
+            "unlimited": {
+                "warm": summarise_samples("search_unlimited_warm", unlimited_warm),
+                "hits": unlimited_hits,
+            },
+            "limited": {
+                "top_k": top_k,
+                "warm": summarise_samples("search_limited_warm", limited_warm),
+                "hits": limited_hits,
+            },
         }
     finally:
         shutil.rmtree(root.parent, ignore_errors=True)
@@ -122,12 +132,16 @@ def main(argv: Iterable[str] | None = None) -> dict:
     parser.add_argument("--sizes", default=",".join(str(x) for x in DEFAULT_SIZES))
     parser.add_argument("--iterations", type=int, default=5)
     parser.add_argument("--words-per-doc", type=int, default=120)
+    parser.add_argument("--top-k", type=int, default=20)
     parser.add_argument("--out", default="/tmp/v2.12-search-scale-bench.json")
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     results = {
         "benchmark": "search_scale",
-        "sizes": [run_one(size, args.iterations, args.words_per_doc) for size in parse_sizes(args.sizes)],
+        "sizes": [
+            run_one(size, args.iterations, args.words_per_doc, top_k=args.top_k)
+            for size in parse_sizes(args.sizes)
+        ],
     }
     Path(args.out).write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(results, ensure_ascii=False, indent=2))

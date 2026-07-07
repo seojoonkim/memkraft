@@ -36,3 +36,14 @@ def test_search_scale_bench_summary_shape():
     assert summary["n"] == 3
     assert summary["median_ms"] == 20.0
     assert summary["p95_ms"] == 29.0
+
+
+def test_search_scale_bench_reports_limited_and_unlimited_paths():
+    mod = _load_module("search_scale_bench", "benchmarks/search_scale_bench.py")
+    result = mod.run_one(size=5, iterations=1, words_per_doc=10, top_k=2)
+    assert result["documents"] == 5
+    assert "unlimited" in result
+    assert "limited" in result
+    assert result["limited"]["top_k"] == 2
+    assert result["limited"]["hits"] <= 2
+    assert result["unlimited"]["hits"] >= result["limited"]["hits"]

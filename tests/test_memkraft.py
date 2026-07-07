@@ -218,6 +218,44 @@ class TestSearch:
         results = mk_with_data.search("Hashed")
         assert isinstance(results, list)
 
+    def test_search_top_k_limits_results(self, mk):
+        for i in range(5):
+            mk.track(f"Search Match {i}", source="test")
+            mk.update(f"Search Match {i}", info="shared latency token", source="test")
+
+        all_results = mk.search("shared latency token")
+        limited = mk.search("shared latency token", top_k=2)
+
+        assert len(all_results) >= 5
+        assert len(limited) == 2
+        assert limited == all_results[:2]
+
+    def test_search_invalid_top_k_keeps_legacy_all_results(self, mk):
+        for i in range(3):
+            mk.track(f"Legacy Match {i}", source="test")
+            mk.update(f"Legacy Match {i}", info="legacy all results token", source="test")
+
+        all_results = mk.search("legacy all results token")
+        assert mk.search("legacy all results token", top_k=0) == all_results
+        assert mk.search("legacy all results token", top_k=-1) == all_results
+        assert mk.search("legacy all results token", top_k="bad") == all_results  # type: ignore[arg-type]
+
+    def test_search_v2_passes_top_k_to_core_search(self, mk, monkeypatch):
+        calls = []
+
+        def fake_search(query, fuzzy=False, top_k=None):
+            calls.append({"query": query, "fuzzy": fuzzy, "top_k": top_k})
+            return [
+                {"file": f"hit-{i}.md", "score": 1.0 - i / 10, "match": f"hit-{i}", "snippet": ""}
+                for i in range(5)
+            ]
+
+        monkeypatch.setattr(mk, "search", fake_search)
+        result = mk.search_v2("needle", top_k=2, cache=False)
+
+        assert len(result) == 2
+        assert calls == [{"query": "needle", "fuzzy": False, "top_k": 2}]
+
 
 # ── Detect (Core) ────────────────────────────────────────
 class TestDetect:

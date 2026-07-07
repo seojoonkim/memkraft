@@ -9,6 +9,7 @@ hybrid search (exact + IDF-weighted + fuzzy), and agentic multi-hop search.
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 import logging
 import math
@@ -1110,11 +1111,17 @@ class MemKraft:
                 print(f"  {icon} {ctype}: {path} ({mtime})")
 
     # ── Search (Fuzzy) ────────────────────────────────────────
-    def search(self, query: str, fuzzy: bool = False) -> List[Dict[str, Any]]:
-        """Search memory with hybrid exact/token matching and optional fuzzy matching."""
+    def search(self, query: str, fuzzy: bool = False, top_k: Any = None) -> List[Dict[str, Any]]:
+        """Search memory with hybrid exact/token matching and optional fuzzy matching.
+
+        ``top_k`` is optional for backwards compatibility: omitted/invalid
+        values preserve the legacy behaviour of returning every matching
+        result, while a positive integer returns only the top K ranked hits.
+        """
         if not query or not query.strip():
             return []
         log.debug("search query=%r fuzzy=%s", query, fuzzy)
+        result_limit = top_k if isinstance(top_k, int) and top_k > 0 else None
 
         results = []
         query_lower = query.lower()
@@ -1507,11 +1514,8 @@ class MemKraft:
             if exact_score or token_score or bm25_score or (fuzzy and fuzzy_score >= 0.3):
                 results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
 
-        results.sort(key=lambda x: x["score"], reverse=True)
-
         # ── v2.4: Search dedup — group by entity slug, keep highest score ──
         seen_entities: Dict[str, Dict[str, Any]] = {}
-        deduped: List[Dict[str, Any]] = []
         for r in results:
             entity_key = r.get("match", "")
             if entity_key in seen_entities:
@@ -1520,23 +1524,40 @@ class MemKraft:
                     seen_entities[entity_key] = r
             else:
                 seen_entities[entity_key] = r
-        deduped = sorted(seen_entities.values(), key=lambda x: x["score"], reverse=True)
-        results = deduped
+
+        deduped_values = list(seen_entities.values())
+        if result_limit is None:
+            results = sorted(deduped_values, key=lambda x: x["score"], reverse=True)
+        else:
+            # Avoid sorting every matching document when callers only need a
+            # small top-K window.  Include the original index as a stable
+            # tie-breaker so equal-score output matches the legacy full-sort
+            # order for the visible prefix.
+            results = [
+                item[2]
+                for item in heapq.nlargest(
+                    result_limit,
+                    ((r.get("score", 0), -idx, r) for idx, r in enumerate(deduped_values)),
+                    key=lambda item: (item[0], item[1]),
+                )
+            ]
+
+        visible_results = results if result_limit is None else results[:result_limit]
 
         # ── v2.4: Search hit decay reset — update last_accessed_at ──
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for r in results[:20]:
+        for r in visible_results[:20]:
             self._touch_last_accessed(r.get("file", ""), now_str)
 
-        if not results:
+        if not visible_results:
             print(f"No results for '{query}'.")
             log.debug("search results=0")
         else:
-            for r in results[:20]:
+            for r in visible_results[:20]:
                 snippet_display = f"\n     {r['snippet'][:100]}" if r.get('snippet') else ""
                 print(f"  [{r['score']:.2f}] {r['file']}{snippet_display}")
-            log.debug("search results=%d top_score=%.3f", len(results), results[0].get('score', 0))
-        return results
+            log.debug("search results=%d top_score=%.3f", len(visible_results), visible_results[0].get('score', 0))
+        return visible_results
 
     # ── Links (Backlinks) ─────────────────────────────────────
     def links(self, name: str) -> None:
