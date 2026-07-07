@@ -1,5 +1,7 @@
 # MemKraft v3 Vooy-Informed Roadmap Implementation Plan
 
+> **Fable5 refinement:** This first vooy-informed roadmap has been superseded/refined by `docs/plans/2026-07-08-memkraft-v3-fable5-refined-roadmap.md`. Keep this file as the broader original planning record, but treat the Fable5-refined roadmap as the implementation source of truth for release slicing, gates, storage contracts, and 3.0.0 criteria.
+
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** Fold the vooy Memory master spec into MemKraft’s v3 roadmap without turning MemKraft into a vooy-specific consumer app.

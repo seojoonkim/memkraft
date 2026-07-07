@@ -505,7 +505,7 @@ These are ambitious but testable targets, not guaranteed marketing claims.
 
 ## 7. v3 Milestone Plan
 
-> **Vooy-informed roadmap update:** The original v3 milestones below are the conceptual spine. After reviewing the vooy Memory master spec, the implementation roadmap has been expanded in `docs/plans/2026-07-08-memkraft-v3-vooy-informed-roadmap.md` to add product-neutral lifecycle primitives: candidate memory, resolver dry-run, session read-your-writes overlay, generic last-interaction index, compiled truth/timeline views, local governance, and tool/API procedural memory lite. These additions keep MemKraft generic while making the “memory OS” claim concrete.
+> **Vooy-informed roadmap update:** The original v3 milestones below are the conceptual spine. After reviewing the vooy Memory master spec, the implementation roadmap was expanded in `docs/plans/2026-07-08-memkraft-v3-vooy-informed-roadmap.md` to add product-neutral lifecycle primitives: candidate memory, resolver dry-run, session read-your-writes overlay, generic last-interaction index, compiled truth/timeline views, local governance, and tool/API procedural memory lite. A follow-up Fable5 research pass refined the release train further in `docs/plans/2026-07-08-memkraft-v3-fable5-refined-roadmap.md`, especially by adding a storage/governance foundation, `extract_claims`, CI-gated Gym metrics, and a new `2.15.0` cut between context compilation and true `3.0.0`.
 
 ### Milestone 0 — Baseline Freeze
 
