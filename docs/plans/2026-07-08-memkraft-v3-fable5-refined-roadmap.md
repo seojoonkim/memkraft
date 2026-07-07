@@ -439,12 +439,12 @@ Rollback:
 
 ### 10.10 최종 판단
 
-더 개선한다면 우선순위는 다음 5개다.
+더 개선한다면 우선순위는 다음 5개다. **(2026-07-08 전부 작성 완료 — 아래 링크가 각 항목의 실행 문서다.)**
 
-1. `docs/MIGRATIONS.md`
-2. `docs/THREAT_MODEL.md`
-3. `docs/RELEASE_CHECKLIST.md`
-4. `benchmarks/external/README.md` spike
-5. 2.13 micro-slice implementation plan
+1. [`docs/MIGRATIONS.md`](../MIGRATIONS.md) — 2.12.x→2.13.0 dry-run/apply/rollback 정책, 마이그레이션 표, `doctor --migrations`/`migrate` CLI 계약, 테스트 게이트 (§10.1 구체화)
+2. [`docs/THREAT_MODEL.md`](../THREAT_MODEL.md) — 위협 7종(T1~T7) × 완화 × 테스트 연결, 위협×릴리스 매트릭스 (§10.3 구체화)
+3. [`docs/RELEASE_CHECKLIST.md`](../RELEASE_CHECKLIST.md) — 로컬 테스트→Gym 게이트→build/twine→wheel smoke→Hermes smoke→PyPI/GitHub 검증→rollback/yank/patch 정책 (§10.5 구체화)
+4. [`benchmarks/external/README.md`](../../benchmarks/external/README.md) — 외부 벤치마크 adapter spike: LongMemEval/LoCoMo 후보·라이선스 리스크·20문항 smoke adapter 계약·지표·비-목표 (§10.4 구체화)
+5. [`docs/plans/2026-07-08-memkraft-2.13-micro-slices.md`](2026-07-08-memkraft-2.13-micro-slices.md) — 2.13 TDD micro-slice 13개(S1~S13): store_core 축, gym/CI 축, extract_claims 축, candidate→overlay→resolver, last-interaction (§10.9 구체화)
 
-이 다섯 개를 추가하면 refined roadmap은 “좋은 전략 문서”에서 “다른 에이전트에게 바로 던져도 덜 망가지는 실행 문서”가 된다.
+이 다섯 개가 갖춰졌으므로 refined roadmap은 “좋은 전략 문서”에서 “다른 에이전트에게 바로 던져도 덜 망가지는 실행 문서”가 된다. 구현 착수점은 micro-slices의 S1(store_core append/read)이다.
