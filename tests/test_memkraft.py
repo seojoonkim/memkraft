@@ -243,8 +243,8 @@ class TestSearch:
     def test_search_v2_passes_top_k_to_core_search(self, mk, monkeypatch):
         calls = []
 
-        def fake_search(query, fuzzy=False, top_k=None):
-            calls.append({"query": query, "fuzzy": fuzzy, "top_k": top_k})
+        def fake_search(query, fuzzy=False, top_k=None, cache=True):
+            calls.append({"query": query, "fuzzy": fuzzy, "top_k": top_k, "cache": cache})
             return [
                 {"file": f"hit-{i}.md", "score": 1.0 - i / 10, "match": f"hit-{i}", "snippet": ""}
                 for i in range(5)
@@ -254,7 +254,7 @@ class TestSearch:
         result = mk.search_v2("needle", top_k=2, cache=False)
 
         assert len(result) == 2
-        assert calls == [{"query": "needle", "fuzzy": False, "top_k": 2}]
+        assert calls == [{"query": "needle", "fuzzy": False, "top_k": 2, "cache": False}]
 
 
 # ── Detect (Core) ────────────────────────────────────────

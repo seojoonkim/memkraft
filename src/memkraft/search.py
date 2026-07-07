@@ -153,7 +153,13 @@ class SearchMixin:
 
         return variants[:max_variants]
 
-    def _v102_run_search(self, query: str, fuzzy: bool = False, top_k: int | None = None) -> list[dict]:
+    def _v102_run_search(
+        self,
+        query: str,
+        fuzzy: bool = False,
+        top_k: int | None = None,
+        cache: bool = False,
+    ) -> list[dict]:
         """Run the core ``search`` while suppressing its stdout side
         effects.  Returns the result list verbatim (may be empty)."""
         buf = io.StringIO()
@@ -164,7 +170,7 @@ class SearchMixin:
                 # the base ``search`` is still reachable as the class
                 # method defined in core.py.
                 search_fn = getattr(self, "search")
-                out = search_fn(query, fuzzy=fuzzy, top_k=top_k)
+                out = search_fn(query, fuzzy=fuzzy, top_k=top_k, cache=cache)
         except Exception:
             return []
         return out if isinstance(out, list) else []

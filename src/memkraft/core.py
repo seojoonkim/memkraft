@@ -1111,17 +1111,54 @@ class MemKraft:
                 print(f"  {icon} {ctype}: {path} ({mtime})")
 
     # ── Search (Fuzzy) ────────────────────────────────────────
-    def search(self, query: str, fuzzy: bool = False, top_k: Any = None) -> List[Dict[str, Any]]:
+    def search(
+        self,
+        query: str,
+        fuzzy: bool = False,
+        top_k: Any = None,
+        cache: bool = True,
+    ) -> List[Dict[str, Any]]:
         """Search memory with hybrid exact/token matching and optional fuzzy matching.
 
         ``top_k`` is optional for backwards compatibility: omitted/invalid
         values preserve the legacy behaviour of returning every matching
         result, while a positive integer returns only the top K ranked hits.
+        ``cache=False`` bypasses the shared search-result cache for callers
+        that need a fresh uncached read.
         """
         if not query or not query.strip():
             return []
         log.debug("search query=%r fuzzy=%s", query, fuzzy)
         result_limit = top_k if isinstance(top_k, int) and top_k > 0 else None
+
+        cache_obj = None
+        cache_key = None
+        if cache and hasattr(self, "_get_search_cache"):
+            cache_obj = getattr(self, "_get_search_cache")()
+            cache_key = cache_obj.make_key(
+                _api="search",
+                query=query,
+                fuzzy=bool(fuzzy),
+                top_k=result_limit,
+                base_dir=str(getattr(self, "base_dir", "")),
+                generation=getattr(self, "_get_cache_generation")()
+                if hasattr(self, "_get_cache_generation")
+                else 0,
+            )
+            cached = cache_obj.get(cache_key)
+            if cached is not None:
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                for r in cached[:20]:
+                    self._touch_last_accessed(r.get("file", ""), now_str)
+                if not cached:
+                    print(f"No results for '{query}'.")
+                    log.debug("search results=0 cache_hit=True")
+                else:
+                    for r in cached[:20]:
+                        snippet_display = f"\n     {r['snippet'][:100]}" if r.get('snippet') else ""
+                        print(f"  [{r['score']:.2f}] {r['file']}{snippet_display}")
+                    log.debug("search results=%d top_score=%.3f cache_hit=True", len(cached), cached[0].get('score', 0))
+                return cached
 
         results = []
         query_lower = query.lower()
@@ -1543,6 +1580,9 @@ class MemKraft:
             ]
 
         visible_results = results if result_limit is None else results[:result_limit]
+
+        if cache_obj is not None and cache_key is not None:
+            cache_obj.set(cache_key, visible_results)
 
         # ── v2.4: Search hit decay reset — update last_accessed_at ──
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

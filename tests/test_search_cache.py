@@ -139,6 +139,44 @@ def test_cache_hit_on_repeat_query(mk):
     assert s["size"] == 1
 
 
+def test_legacy_search_cache_hit_on_repeat_query(mk):
+    r1 = mk.search("Alice")
+    r2 = mk.search("Alice")
+    assert r1 == r2
+    s = mk.cache_stats()
+    assert s["hits"] == 1
+    assert s["misses"] == 1
+    assert s["size"] == 1
+
+
+def test_legacy_search_cache_distinct_top_k_keys(mk):
+    mk.search("Alice", top_k=1)
+    mk.search("Alice", top_k=2)
+    s = mk.cache_stats()
+    assert s["misses"] == 2
+    assert s["size"] == 2
+
+
+def test_legacy_search_cache_false_bypasses_cache(mk):
+    mk.search("Alice")
+    s1 = mk.cache_stats()
+    r = mk.search("Alice", cache=False)
+    assert isinstance(r, list)
+    s2 = mk.cache_stats()
+    assert s2["hits"] == s1["hits"]
+    assert s2["misses"] == s1["misses"]
+
+
+def test_search_v2_cache_false_bypasses_core_legacy_cache(mk):
+    mk.search("Alice")
+    s1 = mk.cache_stats()
+    r = mk.search_v2("Alice", cache=False)
+    assert isinstance(r, list)
+    s2 = mk.cache_stats()
+    assert s2["hits"] == s1["hits"]
+    assert s2["misses"] == s1["misses"]
+
+
 def test_cache_miss_after_update(mk):
     mk.search_v2("Alice")
     gen_before = mk.cache_stats()["generation"]
