@@ -163,13 +163,13 @@ def test_memory_gym_cli_accepts_hybrid_alpha(tmp_path: Path):
 
 def test_memory_gym_cli_rejects_invalid_inputs_without_traceback(tmp_path: Path):
     cases = [
-        ["--sizes", "abc"],
-        ["--sizes", "-1"],
-        ["--top-k", "0"],
-        ["--hybrid-alpha", "nan"],
-        ["--hybrid-alpha", "1.5"],
+        (["--sizes", "abc"], "sizes"),
+        (["--sizes", "-1"], "sizes"),
+        (["--top-k", "0"], "top_k"),
+        (["--hybrid-alpha", "nan"], "hybrid_alpha"),
+        (["--hybrid-alpha", "1.5"], "hybrid_alpha"),
     ]
-    for extra in cases:
+    for extra, param in cases:
         out = tmp_path / ("invalid-" + "-".join(part.replace("-", "neg") for part in extra) + ".json")
         cmd = [
             sys.executable,
@@ -183,7 +183,44 @@ def test_memory_gym_cli_rejects_invalid_inputs_without_traceback(tmp_path: Path)
 
         assert completed.returncode == 2
         assert "Traceback" not in completed.stderr
-        assert not out.exists()
+        payload = json.loads(out.read_text(encoding="utf-8"))
+        error = payload["error"]
+        assert error["kind"] == "invalid_parameter"
+        assert error["param"] == param
+        assert error["message"]
+        assert json.loads(completed.stdout) == payload
+
+
+def test_memory_gym_cli_bad_params_write_structured_error(tmp_path: Path):
+    cases = [
+        (["--top-k", "-3"], "top_k"),
+        (["--gate", "--min-mean-recall-at-k", "nan"], "min_mean_recall_at_k"),
+        (["--gate", "--min-min-recall-at-k", "inf"], "min_min_recall_at_k"),
+    ]
+    for extra, param in cases:
+        out = tmp_path / f"usage-error-{param}.json"
+        cmd = [
+            sys.executable,
+            "benchmarks/gym/run.py",
+            "--scenario",
+            "search_recall",
+            "--sizes",
+            "20",
+            "--out",
+            str(out),
+            *extra,
+        ]
+
+        completed = subprocess.run(cmd, cwd=Path.cwd(), text=True, capture_output=True, check=False)
+
+        assert completed.returncode == 2
+        assert "Traceback" not in completed.stderr
+        payload = json.loads(out.read_text(encoding="utf-8"))
+        error = payload["error"]
+        assert error["kind"] == "invalid_parameter"
+        assert error["param"] == param
+        assert error["message"]
+        assert json.loads(completed.stdout) == payload
 
 
 def test_memory_gym_cli_creates_output_parent_directory(tmp_path: Path):
@@ -278,6 +315,53 @@ def test_memory_gym_cli_gate_failure_exits_nonzero(tmp_path: Path):
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert payload["gate"]["passed"] is False
     assert payload["gate"]["failures"]
+    assert payload["scenario"] == "search_recall"
+    assert payload["pass"] is False
+    assert payload["thresholds"]["min_mean_recall_at_k"] == 1.1
+    assert payload["observed"]["mean_recall_at_k"] == 1.0
+    assert payload["baseline_ref"] == gates.BASELINE_REF
+    assert json.loads(completed.stdout) == payload
+
+
+def test_memory_gym_cli_gate_failure_emits_structured_summary(stub_scenario, tmp_path: Path, capsys):
+    out = tmp_path / "stub-gate-fail.json"
+
+    exit_code = run.main(
+        ["--scenario", stub_scenario, "--out", str(out), "--gate", "--min-mean-recall-at-k", "1.1"]
+    )
+
+    assert exit_code == 1
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["scenario"] == stub_scenario
+    assert payload["pass"] is False
+    assert payload["thresholds"] == {"min_mean_recall_at_k": 1.1, "min_min_recall_at_k": 1.0}
+    assert payload["observed"] == {"mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}
+    assert payload["baseline_ref"] == gates.BASELINE_REF
+    assert payload["gate"]["passed"] is False
+    printed = capsys.readouterr().out
+    assert json.loads(printed) == payload
+    assert "Traceback" not in printed
+
+
+def test_gates_exposes_named_threshold_constants():
+    assert gates.DEFAULT_GATE == {
+        "min_mean_recall_at_k": gates.MIN_MEAN_RECALL_AT_K,
+        "min_min_recall_at_k": gates.MIN_MIN_RECALL_AT_K,
+    }
+    assert isinstance(gates.BASELINE_REF, str)
+    assert gates.BASELINE_REF
+
+
+def test_run_gate_defaults_come_from_gates_constants(stub_scenario, tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(gates.DEFAULT_GATE, "min_mean_recall_at_k", 1.1)
+    out = tmp_path / "constants.json"
+
+    exit_code = run.main(["--scenario", stub_scenario, "--out", str(out), "--gate"])
+
+    assert exit_code == 1
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["pass"] is False
+    assert payload["thresholds"]["min_mean_recall_at_k"] == 1.1
 
 
 def test_register_scenario_enables_run_scenario(stub_scenario):
@@ -329,6 +413,9 @@ def test_stub_scenario_end_to_end_gate_payload(stub_scenario, tmp_path: Path):
     assert payload["scenario"] == stub_scenario
     assert payload["results"] == [{"documents": 1, "mean_recall_at_k": 1.0, "min_recall_at_k": 1.0}]
     assert payload["gate"] == {"passed": True, "failures": []}
+    assert payload["pass"] is True
+    assert payload["thresholds"] == dict(gates.DEFAULT_GATE)
+    assert payload["baseline_ref"] == gates.BASELINE_REF
 
 
 def test_search_recall_scenario_is_registered_by_default():

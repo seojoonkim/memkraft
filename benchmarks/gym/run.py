@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-"""Command-line runner for MemKraft Memory Gym scenarios."""
+"""Command-line runner for MemKraft Memory Gym scenarios.
+
+Exit codes:
+    0 -- scenario ran and, when ``--gate`` is given, all thresholds passed.
+    1 -- gate failure: the scenario ran but at least one threshold failed.
+    2 -- usage error: invalid parameters or unknown scenario; a structured
+         ``{"error": {"kind", "message", "param"}}`` JSON is printed to stdout
+         (and written to ``--out`` when present) instead of a traceback.
+"""
 from __future__ import annotations
 
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -54,16 +63,57 @@ def _hybrid_alpha(raw: str) -> float:
     return value
 
 
-def _write_output(payload: dict, out: str) -> None:
+def _finite_float(raw: str) -> float:
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid threshold: {raw!r}") from exc
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError("threshold must be a finite number")
+    return value
+
+
+def _write_output(payload: dict, out: str | None) -> None:
     output = json.dumps(payload, indent=2)
-    out_path = Path(out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(output, encoding="utf-8")
+    if out is not None:
+        out_path = Path(out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(output, encoding="utf-8")
     print(output)
 
 
+class _UsageError(Exception):
+    def __init__(self, message: str, param: str | None):
+        super().__init__(message)
+        self.param = param
+
+
+class _GymArgumentParser(argparse.ArgumentParser):
+    """Parser that raises instead of exiting so errors can be reported as JSON."""
+
+    def error(self, message: str) -> None:  # type: ignore[override]
+        match = re.search(r"--([A-Za-z0-9-]+)", message)
+        param = match.group(1).replace("-", "_") if match else None
+        raise _UsageError(message, param)
+
+
+def _extract_out(argv: Sequence[str] | None) -> str | None:
+    """Best-effort ``--out`` lookup for reporting errors when parsing fails."""
+    tokens = list(sys.argv[1:] if argv is None else argv)
+    for index, token in enumerate(tokens):
+        if token == "--out" and index + 1 < len(tokens):
+            return tokens[index + 1]
+        if token.startswith("--out="):
+            return token.split("=", 1)[1]
+    return None
+
+
+def _usage_error_payload(kind: str, param: str | None, message: str) -> dict:
+    return {"error": {"kind": kind, "param": param, "message": message}}
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = _GymArgumentParser(description=__doc__)
     parser.add_argument("--scenario", default="search_recall")
     parser.add_argument("--sizes", type=_parse_sizes, default=_parse_sizes("20"))
     parser.add_argument("--top-k", type=_positive_int, default=20)
@@ -76,9 +126,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--out", required=True)
     parser.add_argument("--gate", action="store_true")
-    parser.add_argument("--min-mean-recall-at-k", type=float, default=gates.DEFAULT_GATE["min_mean_recall_at_k"])
-    parser.add_argument("--min-min-recall-at-k", type=float, default=gates.DEFAULT_GATE["min_min_recall_at_k"])
-    args = parser.parse_args(argv)
+    parser.add_argument("--min-mean-recall-at-k", type=_finite_float, default=gates.DEFAULT_GATE["min_mean_recall_at_k"])
+    parser.add_argument("--min-min-recall-at-k", type=_finite_float, default=gates.DEFAULT_GATE["min_min_recall_at_k"])
+    try:
+        args = parser.parse_args(argv)
+    except _UsageError as exc:
+        error_payload = _usage_error_payload("invalid_parameter", exc.param, str(exc))
+        _write_output(error_payload, _extract_out(argv))
+        return 2
 
     try:
         payload = scenarios.run_scenario(
@@ -90,27 +145,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     except ValueError as exc:
         if args.scenario in scenarios.registered_scenarios():
-            raise
-        error_payload = {
-            "error": {
-                "kind": "unknown_scenario",
-                "param": "scenario",
-                "message": str(exc),
-            }
-        }
+            error_payload = _usage_error_payload("invalid_parameter", None, str(exc))
+        else:
+            error_payload = _usage_error_payload("unknown_scenario", "scenario", str(exc))
         _write_output(error_payload, args.out)
         return 2
     exit_code = 0
 
     if args.gate:
-        gate = gates.evaluate_gate(
-            payload,
-            {
-                "min_mean_recall_at_k": args.min_mean_recall_at_k,
-                "min_min_recall_at_k": args.min_min_recall_at_k,
-            },
-        )
+        thresholds = {
+            "min_mean_recall_at_k": args.min_mean_recall_at_k,
+            "min_min_recall_at_k": args.min_min_recall_at_k,
+        }
+        gate = gates.evaluate_gate(payload, thresholds)
         payload["gate"] = gate
+        payload["thresholds"] = thresholds
+        payload["observed"] = gates.observed_metrics(payload)
+        payload["pass"] = gate["passed"]
+        payload["baseline_ref"] = gates.BASELINE_REF
         exit_code = 0 if gate["passed"] else 1
 
     _write_output(payload, args.out)

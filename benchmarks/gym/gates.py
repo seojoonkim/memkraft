@@ -4,10 +4,41 @@ from __future__ import annotations
 import math
 from typing import Any
 
+# Named threshold constants — the only source of default gate thresholds.
+# Scenario code must reference these instead of embedding magic numbers.
+MIN_MEAN_RECALL_AT_K: float = 1.0
+MIN_MIN_RECALL_AT_K: float = 1.0
+
+# Provenance of the default thresholds, reported as `baseline_ref` in gate payloads.
+BASELINE_REF: str = "benchmarks/gym/gates.py::DEFAULT_GATE"
+
 DEFAULT_GATE: dict[str, float] = {
-    "min_mean_recall_at_k": 1.0,
-    "min_min_recall_at_k": 1.0,
+    "min_mean_recall_at_k": MIN_MEAN_RECALL_AT_K,
+    "min_min_recall_at_k": MIN_MIN_RECALL_AT_K,
 }
+
+OBSERVED_METRIC_KEYS: tuple[str, ...] = ("mean_recall_at_k", "min_recall_at_k")
+
+
+def observed_metrics(payload: dict[str, Any]) -> dict[str, float | None]:
+    """Return the worst observed value per gated metric across all results.
+
+    Thresholds are minimums, so the minimum observed value is what a gate
+    compares against. Missing or non-finite metrics stay ``None``.
+    """
+    observed: dict[str, float | None] = {key: None for key in OBSERVED_METRIC_KEYS}
+    for result in payload.get("results", []):
+        for key in OBSERVED_METRIC_KEYS:
+            try:
+                value = float(result[key])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if not math.isfinite(value):
+                continue
+            current = observed[key]
+            if current is None or value < current:
+                observed[key] = value
+    return observed
 
 
 def evaluate_gate(payload: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
