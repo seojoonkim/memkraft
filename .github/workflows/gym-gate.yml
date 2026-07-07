@@ -48,3 +48,25 @@ jobs:
             --scenario search_recall \
             --gate \
             --out /tmp/memkraft-search-recall-gate.json
+
+      - name: Run Memory Gym session_overlay_recall scenario
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario session_overlay_recall \
+            --sizes 20 \
+            --top-k 5 \
+            --out /tmp/memkraft-session-overlay-gate.json
+
+      - name: Run Memory Gym resolver_verdicts scenario
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario resolver_verdicts \
+            --sizes 120 \
+            --out /tmp/memkraft-resolver-verdicts-gate.json
+
+      - name: Run Memory Gym last_interaction scenario
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario last_interaction \
+            --sizes 10000 \
+            --out /tmp/memkraft-last-interaction-gate.json
