@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import math
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, cast
 
 from benchmarks.search_recall_bench import run_one as run_search_recall_one
 from benchmarks.gym.gates import (
+    MAX_LAST_INTERACTION_P95_MS,
     MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
     MAX_SESSION_OVERLAY_LEAKS,
     MIN_RESOLVER_VERDICT_ACCURACY,
@@ -186,6 +188,51 @@ def _run_resolver_verdicts(
     return {"scenario": "resolver_verdicts", "results": results}
 
 
+def _run_last_interaction(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 5,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
+    from memkraft import MemKraft
+
+    parsed_sizes = [int(size) for size in sizes]
+    results = []
+    for size in parsed_sizes:
+        with tempfile.TemporaryDirectory() as tmp:
+            mk = MemKraft(str(Path(tmp)))
+            base = datetime(2026, 7, 8, tzinfo=timezone.utc)
+            for i in range(size):
+                mk.record_interaction(
+                    f"subject-{i:05d}",
+                    (base + timedelta(seconds=i)).isoformat(),
+                    f"interaction-{i:05d}",
+                )
+            ok = 0
+            durations = []
+            probes = min(200, size)
+            for i in range(probes):
+                subject = f"subject-{i:05d}"
+                start = time.perf_counter()
+                latest = mk.last_interaction(subject)
+                durations.append((time.perf_counter() - start) * 1000)
+                if latest and latest.get("interaction_id") == f"interaction-{i:05d}":
+                    ok += 1
+            durations.sort()
+            p95 = durations[int(len(durations) * 0.95) - 1] if durations else 0.0
+            results.append(
+                {
+                    "documents": size,
+                    "accuracy": ok / probes if probes else 0.0,
+                    "p95_ms": p95,
+                    "thresholds": {"max_p95_ms": MAX_LAST_INTERACTION_P95_MS},
+                }
+            )
+    return {"scenario": "last_interaction", "results": results}
+
+
 register_scenario("search_recall", _run_search_recall)
 register_scenario("session_overlay_recall", _run_session_overlay_recall)
 register_scenario("resolver_verdicts", _run_resolver_verdicts)
+register_scenario("last_interaction", _run_last_interaction)
