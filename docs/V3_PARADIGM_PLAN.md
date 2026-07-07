@@ -505,6 +505,8 @@ These are ambitious but testable targets, not guaranteed marketing claims.
 
 ## 7. v3 Milestone Plan
 
+> **Vooy-informed roadmap update:** The original v3 milestones below are the conceptual spine. After reviewing the vooy Memory master spec, the implementation roadmap has been expanded in `docs/plans/2026-07-08-memkraft-v3-vooy-informed-roadmap.md` to add product-neutral lifecycle primitives: candidate memory, resolver dry-run, session read-your-writes overlay, generic last-interaction index, compiled truth/timeline views, local governance, and tool/API procedural memory lite. These additions keep MemKraft generic while making the “memory OS” claim concrete.
+
 ### Milestone 0 — Baseline Freeze
 
 **Goal:** Establish v2.12 as the baseline.
