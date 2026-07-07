@@ -141,6 +141,63 @@ def test_reasoning_recall_finds_relevant_lesson(mk):
     assert hits[0]["score"] > 0
 
 
+# ── 7a. reasoning index is materialized for fast recall ─────────────
+def test_trajectory_complete_updates_reasoning_index(mk):
+    mk.trajectory_start("idx-1", title="Vercel deploy ready check", tags="deploy,vercel")
+    info = mk.trajectory_complete(
+        "idx-1",
+        status="success",
+        lesson="vercel deploy ready check critical for production",
+    )
+
+    index_path = Path(mk._reasoning_index_path())
+    assert index_path.exists()
+    rows = _read_jsonl(index_path)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["task_id"] == "idx-1"
+    assert row["status"] == "success"
+    assert row["title"] == "Vercel deploy ready check"
+    assert row["lesson"] == "vercel deploy ready check critical for production"
+    assert row["pattern_signature"] == info["pattern_signature"]
+    assert row["tags"] == ["deploy", "vercel"]
+    assert row["path"].endswith("idx-1.jsonl")
+
+
+def test_reasoning_index_later_rows_win_for_same_task(mk):
+    mk.trajectory_start("idx-update", title="Initial title", tags="deploy")
+    mk.trajectory_complete("idx-update", status="failure", lesson="first failure lesson")
+    mk.trajectory_complete("idx-update", status="success", lesson="second success lesson")
+
+    rows = _read_jsonl(Path(mk._reasoning_index_path()))
+    assert len(rows) == 2
+    hits = mk.reasoning_recall("second success lesson", top_k=5)
+    assert hits
+    assert hits[0]["task_id"] == "idx-update"
+    assert hits[0]["status"] == "success"
+    stats = mk.reasoning_stats()
+    assert stats["total"] == 1
+    assert stats["success"] == 1
+    assert stats["failure"] == 0
+
+
+def test_reasoning_recall_uses_index_without_reading_trajectory_files(mk):
+    mk.trajectory_start("idx-recall", title="Vercel production deploy", tags="deploy,vercel")
+    mk.trajectory_complete(
+        "idx-recall",
+        status="success",
+        lesson="vercel deploy ready check critical for production",
+    )
+    trajectory_path = Path(mk._trajectory_path("idx-recall"))
+    trajectory_path.write_text("", encoding="utf-8")
+
+    hits = mk.reasoning_recall("vercel deploy ready check", top_k=5)
+    assert hits
+    assert hits[0]["task_id"] == "idx-recall"
+    assert hits[0]["title"] == "Vercel production deploy"
+    assert hits[0]["step_count"] == 0
+
+
 # ── 8. reasoning_recall status filter ──────────────────────────────
 def test_reasoning_recall_status_filter(mk):
     mk.trajectory_start("ok-1")

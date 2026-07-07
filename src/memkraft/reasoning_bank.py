@@ -13,6 +13,7 @@ Design principles
 * Storage lives under ``<base_dir>/.memkraft/`` (never user markdown):
     - ``trajectories/<task_id>.jsonl`` (append-only)
     - ``patterns.json`` (atomic rename writes)
+    - ``reasoning_index.jsonl`` (one summary row per completed trajectory)
 * Forgiving — auto-starts trajectories, slugifies task ids,
   tolerates corrupt JSONL lines, idempotent on duplicate completes.
 
@@ -253,6 +254,34 @@ class ReasoningBankMixin:
         p.parent.mkdir(parents=True, exist_ok=True)
         return p
 
+    def _reasoning_index_path(self) -> Path:
+        p = Path(self.base_dir) / ".memkraft" / "reasoning_index.jsonl"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def _read_reasoning_index(self) -> Dict[str, Dict[str, Any]]:
+        """Summary rows keyed by task_id; later rows win, corrupt lines skipped."""
+        rows: Dict[str, Dict[str, Any]] = {}
+        for row in _read_jsonl(self._reasoning_index_path()):
+            if not isinstance(row, dict):
+                continue
+            tid = str(row.get("task_id") or "")
+            if tid:
+                rows[tid] = row
+        return rows
+
+    def _upsert_reasoning_index(self, row: Dict[str, Any]) -> None:
+        """Append the latest summary row for row['task_id'].
+
+        The reader keys rows by task_id and lets later rows win, so append-only
+        writes keep trajectory completion O(1) while preserving replace/update
+        semantics for recall and stats. Corrupt partial lines are tolerated by
+        ``_read_jsonl``.
+        """
+        path = self._reasoning_index_path()
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
     def _stopwords(self) -> set:
         sw = getattr(self, "stopwords", None)
         if isinstance(sw, set):
@@ -393,6 +422,23 @@ class ReasoningBankMixin:
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+        # Materialize a summary row so recall/stats don't re-read trajectories.
+        records = _read_jsonl(path)
+        start_rec = next((r for r in records if r.get("kind") == "start"), {})
+        self._upsert_reasoning_index({
+            "schema_version": SCHEMA_VERSION,
+            "task_id": tid,
+            "title": start_rec.get("title", ""),
+            "status": st,
+            "lesson": str(lesson or ""),
+            "pattern_signature": sig,
+            "tags": tag_list,
+            "started_at": start_rec.get("started_at"),
+            "completed_at": completed_at,
+            "step_count": sum(1 for r in records if r.get("kind") == "step"),
+            "path": str(path),
+        })
+
         # Update patterns.json (skip count bump if duplicate to stay idempotent).
         bucket = self._upsert_pattern(
             status=st,
@@ -460,7 +506,26 @@ class ReasoningBankMixin:
         if not tdir.exists():
             return []
 
+        # Prefer the summary index; fall back to per-file reads only for
+        # trajectories the index doesn't cover (old stores, corrupt index).
+        index_rows = self._read_reasoning_index()
+        candidates: List[Dict[str, Any]] = []
+        for row in index_rows.values():
+            candidates.append({
+                "task_id": row.get("task_id"),
+                "title": str(row.get("title") or ""),
+                "status": row.get("status"),
+                "lesson": str(row.get("lesson") or ""),
+                "pattern_signature": str(row.get("pattern_signature") or ""),
+                "completed_at": row.get("completed_at"),
+                "tags": list(row.get("tags") or []),
+                "step_count": _coerce_int(row.get("step_count"), 0),
+                "path": str(row.get("path") or ""),
+            })
+
         for jsonl_path in sorted(tdir.glob("*.jsonl")):
+            if jsonl_path.stem in index_rows:
+                continue
             records = _read_jsonl(jsonl_path)
             if not records:
                 continue
@@ -473,34 +538,32 @@ class ReasoningBankMixin:
             if complete_rec is None:
                 continue  # Skip in-flight trajectories.
 
-            if status_filter and complete_rec.get("status") != status_filter:
+            step_count = max(0, len(records) - (1 if start_rec else 0)
+                                          - (1 if complete_rec else 0))
+            candidates.append({
+                "task_id": complete_rec.get("task_id"),
+                "title": (start_rec or {}).get("title", "") if start_rec else "",
+                "status": complete_rec.get("status"),
+                "lesson": complete_rec.get("lesson", ""),
+                "pattern_signature": complete_rec.get("pattern_signature", ""),
+                "completed_at": complete_rec.get("completed_at"),
+                "tags": list(complete_rec.get("tags") or (start_rec or {}).get("tags") or []),
+                "step_count": step_count,
+                "path": str(jsonl_path),
+            })
+
+        for cand in candidates:
+            if status_filter and cand["status"] != status_filter:
                 continue
-
-            title = (start_rec or {}).get("title", "") if start_rec else ""
-            tags = list(complete_rec.get("tags") or (start_rec or {}).get("tags") or [])
-            lesson = complete_rec.get("lesson", "")
-            sig = complete_rec.get("pattern_signature", "")
-
-            doc_text = " ".join([title, lesson, sig, " ".join(tags)])
+            doc_text = " ".join([
+                cand["title"], cand["lesson"], cand["pattern_signature"],
+                " ".join(cand["tags"]),
+            ])
             d_tokens = _tokenize(doc_text, stopwords=sw)
             score = _jaccard(q_tokens, d_tokens)
             if score < min_score or score <= 0.0:
                 continue
-
-            step_count = max(0, len(records) - (1 if start_rec else 0)
-                                          - (1 if complete_rec else 0))
-            out.append({
-                "task_id": complete_rec.get("task_id"),
-                "title": title,
-                "status": complete_rec.get("status"),
-                "lesson": lesson,
-                "pattern_signature": sig,
-                "score": round(float(score), 4),
-                "completed_at": complete_rec.get("completed_at"),
-                "tags": tags,
-                "step_count": step_count,
-                "path": str(jsonl_path),
-            })
+            out.append({**cand, "score": round(float(score), 4)})
 
         out.sort(key=lambda r: (-r["score"], r.get("completed_at") or ""), reverse=False)
         # The above sort tuple makes "earlier completed_at" come first when
@@ -649,8 +712,19 @@ class ReasoningBankMixin:
         """
         tdir = self._trajectory_dir()
         counts = {"total": 0, "success": 0, "failure": 0, "partial": 0, "in_progress": 0}
+        # Indexed trajectories are counted from their summary rows; only files
+        # the index doesn't cover (old stores, corrupt index) get re-read.
+        index_rows = self._read_reasoning_index()
+        for row in index_rows.values():
+            counts["total"] += 1
+            st = str(row.get("status") or "partial").lower()
+            if st not in ("success", "failure", "partial"):
+                st = "partial"
+            counts[st] += 1
         if tdir.exists():
             for jsonl_path in tdir.glob("*.jsonl"):
+                if jsonl_path.stem in index_rows:
+                    continue
                 records = _read_jsonl(jsonl_path)
                 if not records:
                     continue

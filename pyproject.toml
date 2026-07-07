@@ -45,6 +45,9 @@ Documentation = "https://github.com/seojoonkim/memkraft/tree/main/docs"
 "Bug Tracker" = "https://github.com/seojoonkim/memkraft/issues"
 Changelog = "https://github.com/seojoonkim/memkraft/blob/main/CHANGELOG.md"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
