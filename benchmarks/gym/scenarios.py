@@ -11,6 +11,7 @@ from benchmarks.search_recall_bench import run_one as run_search_recall_one
 from benchmarks.gym.gates import (
     MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
     MAX_SESSION_OVERLAY_LEAKS,
+    MIN_RESOLVER_VERDICT_ACCURACY,
     MIN_SESSION_OVERLAY_RECALL,
 )
 
@@ -148,5 +149,43 @@ def _run_session_overlay_recall(
     return {"scenario": "session_overlay_recall", "top_k": parsed_top_k, "results": results}
 
 
+def _run_resolver_verdicts(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 5,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
+    import json
+
+    from memkraft.resolver import resolver_dry_run
+
+    fixture = Path(__file__).parents[2] / "tests" / "fixtures" / "resolver_cases.json"
+    cases = json.loads(fixture.read_text(encoding="utf-8"))
+    parsed_sizes = [int(size) for size in sizes]
+    results = []
+    for size in parsed_sizes:
+        subset = cases[:size]
+        outputs = resolver_dry_run([case["claim"] for case in subset])
+        correct = sum(out["verdict"] == case["expected_verdict"] for out, case in zip(outputs, subset))
+        repeated = resolver_dry_run([case["claim"] for case in subset])
+        missing_promotions = sum(
+            1
+            for out, case in zip(outputs, subset)
+            if case["expected_verdict"] == "MISSING_SOURCE_REJECT" and out["can_promote"]
+        )
+        results.append(
+            {
+                "documents": len(subset),
+                "accuracy": correct / len(subset) if subset else 0.0,
+                "determinism": 1.0 if repeated == outputs else 0.0,
+                "missing_source_promotions": missing_promotions,
+                "thresholds": {"min_accuracy": MIN_RESOLVER_VERDICT_ACCURACY},
+            }
+        )
+    return {"scenario": "resolver_verdicts", "results": results}
+
+
 register_scenario("search_recall", _run_search_recall)
 register_scenario("session_overlay_recall", _run_session_overlay_recall)
+register_scenario("resolver_verdicts", _run_resolver_verdicts)

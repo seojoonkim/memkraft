@@ -65,10 +65,11 @@ def test_list_candidates_hides_tombstoned_candidates(tmp_path: Path):
     ]
 
 
-def test_s10_candidates_do_not_extract_claims_yet(tmp_path: Path):
+def test_s10_candidates_start_with_claims_when_extractor_matches(tmp_path: Path):
     mk = MemKraft(str(tmp_path))
 
     mk.remember_candidate("Simon prefers concise updates", session_id="s1", entity_hint="Simon")
 
     record = mk.list_candidates(session_id="s1")[0]
-    assert record["claims"] == []
+    assert record["claims"]
+    assert record["review_state"] == "READY_FOR_RESOLVER"

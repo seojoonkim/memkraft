@@ -11,6 +11,7 @@ MIN_MIN_RECALL_AT_K: float = 1.0
 MIN_SESSION_OVERLAY_RECALL: float = 1.0
 MAX_SESSION_OVERLAY_LEAKS: float = 0.0
 MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES: float = 0.0
+MIN_RESOLVER_VERDICT_ACCURACY: float = 0.95
 
 # Provenance of the default thresholds, reported as `baseline_ref` in gate payloads.
 BASELINE_REF: str = "benchmarks/gym/gates.py::DEFAULT_GATE"

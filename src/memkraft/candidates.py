@@ -12,6 +12,7 @@ from typing import Any
 import re
 import uuid
 
+from .claims import extract_claims
 from .store_core import append, read_all
 
 DEFAULT_CANDIDATE_TTL_HOURS = 24
@@ -38,6 +39,7 @@ class CandidateMixin:
             datetime.now(timezone.utc) + timedelta(hours=DEFAULT_CANDIDATE_TTL_HOURS)
         ).isoformat(timespec="seconds")
         candidate_id = uuid.uuid4().hex
+        claims = extract_claims(str(text), entity_hint=entity_hint)
         record = append(
             self._candidates_path(),
             {
@@ -49,7 +51,8 @@ class CandidateMixin:
                 "entity_hint": entity_hint,
                 "expires_at": expires,
                 "provenance_id": provenance_id or "unknown",
-                "claims": [],
+                "claims": claims,
+                "review_state": "READY_FOR_RESOLVER" if claims else "CANDIDATE_REVIEW",
             },
         )
         return {
