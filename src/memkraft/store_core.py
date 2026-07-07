@@ -1,4 +1,4 @@
-"""store_core — envelope v1 append/read for JSONL stores (MemKraft 2.13, S1).
+"""store_core — envelope v1 append/read for JSONL stores (MemKraft 2.13, S1+S2).
 
 Atomic single-line appends and sequential reads over a JSONL file. Each
 record is wrapped in an envelope: ``id`` and ``created_at`` (UTC ISO-8601)
@@ -8,13 +8,21 @@ payload fields are preserved as-is.
 
 API (internal tier):
     append(path, record) -> dict          # the enveloped record as written
-    read_all(path) -> ReadResult          # .records list + .skipped count
+    read_all(path, include_tombstoned=False) -> ReadResult
+    mark_tombstone(path, record_id) -> dict   # the appended marker record
+
+Tombstones (S2): the store is append-only — ``mark_tombstone`` never
+rewrites existing lines; it appends a marker record
+``{"tombstone": true, "tombstone_of": <id>}``. ``read_all`` hides, by
+default, records carrying ``tombstone: true`` (markers included) and any
+record whose ``id`` is targeted by a marker; ``include_tombstoned=True``
+exposes everything (compaction/audit path).
 
 Concurrency: append takes an ``fcntl.flock`` exclusive lock on the store
 file and writes the whole newline-terminated line with a single
 ``os.write`` call, so concurrent appenders never interleave bytes.
 
-Tombstones, compaction and snapshots are out of scope here (S2/S3).
+Compaction (physical removal) and snapshots are out of scope here (S3).
 
 Zero dependencies — stdlib only.
 """
@@ -30,6 +38,18 @@ from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Union
 
 SCHEMA_VERSION = 1
+
+
+class RecordNotFoundError(KeyError):
+    """Raised when a store operation targets a record ``id`` not in the file."""
+
+    def __init__(self, path: Union[str, Path], record_id: str):
+        super().__init__(record_id)
+        self.path = Path(path)
+        self.record_id = record_id
+
+    def __str__(self) -> str:
+        return f"record {self.record_id!r} not found in {self.path}"
 
 
 class ReadResult(NamedTuple):
@@ -71,11 +91,15 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     return enveloped
 
 
-def read_all(path: Union[str, Path]) -> ReadResult:
+def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadResult:
     """Read all records from the JSONL store at ``path`` in file order.
 
-    Corrupt lines (invalid JSON or non-object values) are skipped and
-    counted in ``ReadResult.skipped``. A missing file reads as empty.
+    By default, records with ``tombstone: true`` (marker records included)
+    and records whose ``id`` is targeted by a marker's ``tombstone_of`` are
+    hidden; pass ``include_tombstoned=True`` to expose them (compaction and
+    audit path). Corrupt lines (invalid JSON or non-object values) are
+    skipped and counted in ``ReadResult.skipped``. A missing file reads as
+    empty.
     """
     path = Path(path)
     records: List[Dict[str, Any]] = []
@@ -97,4 +121,30 @@ def read_all(path: Union[str, Path]) -> ReadResult:
                 records.append(obj)
     except FileNotFoundError:
         pass
+    if not include_tombstoned:
+        tombstoned_ids = {
+            r["tombstone_of"]
+            for r in records
+            if r.get("tombstone") and r.get("tombstone_of") is not None
+        }
+        records = [
+            r
+            for r in records
+            if not r.get("tombstone") and r.get("id") not in tombstoned_ids
+        ]
     return ReadResult(records=records, skipped=skipped)
+
+
+def mark_tombstone(path: Union[str, Path], record_id: str) -> Dict[str, Any]:
+    """Tombstone ``record_id`` by appending a marker record (append-only).
+
+    Existing lines are never modified; the marker
+    ``{"tombstone": true, "tombstone_of": record_id}`` suppresses the target
+    ``id`` on default reads. Raises :class:`RecordNotFoundError` when no
+    record in the file has that ``id``. Returns the enveloped marker as
+    written.
+    """
+    existing = read_all(path, include_tombstoned=True).records
+    if not any(r.get("id") == record_id for r in existing):
+        raise RecordNotFoundError(path, record_id)
+    return append(path, {"tombstone": True, "tombstone_of": record_id})

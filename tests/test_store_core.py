@@ -1,4 +1,4 @@
-"""Tests for store_core S1 — envelope v1 append/read on JSONL (no tombstones)."""
+"""Tests for store_core — S1 envelope append/read, S2 tombstone filtering."""
 
 from __future__ import annotations
 
@@ -6,7 +6,9 @@ import datetime
 import json
 from pathlib import Path
 
-from memkraft.store_core import append, read_all
+import pytest
+
+from memkraft.store_core import RecordNotFoundError, append, mark_tombstone, read_all
 
 
 class TestAppendReadRoundtrip:
@@ -123,3 +125,80 @@ class TestWireFormat:
         raw = path.read_bytes()
         assert raw.count(b"\n") == 2
         assert raw.endswith(b"\n")
+
+
+class TestTombstoneFiltering:
+    """S2 — tombstone records are hidden from all default read paths."""
+
+    def test_tombstone_true_records_hidden_by_default(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "live"})
+        append(path, {"text": "dead", "tombstone": True})
+        result = read_all(path)
+        assert [r["text"] for r in result.records] == ["live"]
+        assert result.skipped == 0
+
+    def test_include_tombstoned_exposes_them(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "live"})
+        append(path, {"text": "dead", "tombstone": True})
+        result = read_all(path, include_tombstoned=True)
+        assert [r["text"] for r in result.records] == ["live", "dead"]
+
+
+class TestMarkTombstone:
+    """S2 — mark_tombstone is append-only marker + id-level suppression."""
+
+    def test_marker_appended_original_line_untouched(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        rec = append(path, {"text": "target"})
+        before = path.read_bytes()
+
+        mark_tombstone(path, rec["id"])
+
+        after = path.read_bytes()
+        # append-only invariant: original bytes are a strict prefix
+        assert after.startswith(before)
+        appended_lines = after[len(before):].decode("utf-8").splitlines()
+        assert len(appended_lines) == 1
+        marker = json.loads(appended_lines[0])
+        assert marker["tombstone"] is True
+        assert marker["tombstone_of"] == rec["id"]
+
+    def test_marked_id_hidden_from_default_read(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        keep = append(path, {"text": "keep"})
+        drop = append(path, {"text": "drop"})
+        mark_tombstone(path, drop["id"])
+
+        records = read_all(path).records
+        assert [r["id"] for r in records] == [keep["id"]]
+
+    def test_include_tombstoned_exposes_marked_record_and_marker(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        rec = append(path, {"text": "drop"})
+        mark_tombstone(path, rec["id"])
+
+        records = read_all(path, include_tombstoned=True).records
+        assert len(records) == 2
+        assert records[0]["id"] == rec["id"]
+        assert records[1]["tombstone_of"] == rec["id"]
+
+    def test_tombstone_of_without_tombstone_true_does_not_suppress(self, tmp_path: Path):
+        # tombstone_of as an ordinary payload field must not act as a marker:
+        # suppression requires tombstone == true on the same record.
+        path = tmp_path / "store.jsonl"
+        target = append(path, {"text": "target"})
+        ref = append(path, {"tombstone_of": target["id"], "text": "ordinary payload"})
+
+        records = read_all(path).records
+        assert [r["id"] for r in records] == [target["id"], ref["id"]]
+
+    def test_mark_tombstone_nonexistent_id_raises_structured_error(self, tmp_path: Path):
+        path = tmp_path / "store.jsonl"
+        append(path, {"text": "only"})
+        with pytest.raises(RecordNotFoundError) as excinfo:
+            mark_tombstone(path, "no-such-id")
+        assert excinfo.value.record_id == "no-such-id"
+        # no marker was appended
+        assert len(read_all(path, include_tombstoned=True).records) == 1
