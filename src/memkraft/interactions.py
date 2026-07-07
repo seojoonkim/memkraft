@@ -57,11 +57,22 @@ class LastInteractionMixin:
 
     def last_interaction(self, subject_id: str) -> dict[str, Any] | None:
         """Preview: return the latest interaction for a subject, rebuilding if needed."""
-        snapshot = self._load_last_interactions_snapshot()
         key = str(subject_id)
+        cached = getattr(self, "_last_interactions_snapshot_cache", None)
+        cached_mtime = getattr(self, "_last_interactions_snapshot_mtime", None)
+        try:
+            current_mtime = self._last_interactions_snapshot_path().stat().st_mtime_ns
+        except OSError:
+            current_mtime = None
+        if isinstance(cached, dict) and cached_mtime == current_mtime and key in cached:
+            return cached[key]
+        snapshot = self._load_last_interactions_snapshot()
+        self._last_interactions_snapshot_cache = snapshot
+        self._last_interactions_snapshot_mtime = current_mtime
         if key in snapshot:
             return snapshot[key]
         snapshot = self._rebuild_last_interactions_snapshot()
+        self._last_interactions_snapshot_cache = snapshot
         return snapshot.get(key)
 
     def _load_last_interactions_snapshot(self) -> dict[str, dict[str, Any]]:
@@ -95,6 +106,10 @@ class LastInteractionMixin:
         tmp = path.with_name(path.name + ".tmp")
         tmp.write_text(json.dumps(snapshot, ensure_ascii=False, sort_keys=True), encoding="utf-8")
         os.replace(tmp, path)
+        try:
+            self._last_interactions_snapshot_mtime = path.stat().st_mtime_ns
+        except OSError:
+            self._last_interactions_snapshot_mtime = None
 
 
 def _public_record(record: dict[str, Any]) -> dict[str, Any]:
