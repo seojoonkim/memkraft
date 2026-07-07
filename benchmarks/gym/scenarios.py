@@ -2,9 +2,17 @@
 from __future__ import annotations
 
 import math
+import tempfile
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Callable, Iterable, cast
 
 from benchmarks.search_recall_bench import run_one as run_search_recall_one
+from benchmarks.gym.gates import (
+    MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
+    MAX_SESSION_OVERLAY_LEAKS,
+    MIN_SESSION_OVERLAY_RECALL,
+)
 
 ScenarioRunner = Callable[..., dict[str, Any]]
 
@@ -87,4 +95,58 @@ def _run_search_recall(
     return payload
 
 
+def _run_session_overlay_recall(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 5,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
+    from memkraft import MemKraft
+
+    parsed_sizes = [int(size) for size in sizes]
+    parsed_top_k = int(top_k)
+    if any(size <= 0 for size in parsed_sizes):
+        raise ValueError("Memory Gym scenario sizes must be positive integers")
+    if parsed_top_k <= 0:
+        raise ValueError("Memory Gym scenario top_k must be positive")
+
+    results = []
+    for size in parsed_sizes:
+        with tempfile.TemporaryDirectory() as tmp:
+            mk = MemKraft(str(Path(tmp)))
+            for i in range(size):
+                mk.remember_candidate(f"session alpha topic {i}", session_id="alpha")
+                mk.remember_candidate(f"session beta topic {i}", session_id="beta")
+            expired = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat(timespec="seconds")
+            mk.remember_candidate("session alpha expired sentinel", session_id="alpha", expires_at=expired)
+
+            found = 0
+            leaks = 0
+            expired_hits = 0
+            for i in range(size):
+                hits = mk.session_overlay("alpha", f"topic {i}", top_k=parsed_top_k)
+                if any(hit["text"] == f"session alpha topic {i}" for hit in hits):
+                    found += 1
+                leaks += sum(1 for hit in hits if hit.get("session_id") != "alpha")
+                expired_hits += sum(1 for hit in hits if "expired sentinel" in hit.get("text", ""))
+
+            same_session_recall = found / size
+            results.append(
+                {
+                    "documents": size,
+                    "same_session_recall": same_session_recall,
+                    "cross_session_leaks": leaks,
+                    "expired_exposures": expired_hits,
+                    "thresholds": {
+                        "min_same_session_recall": MIN_SESSION_OVERLAY_RECALL,
+                        "max_cross_session_leaks": MAX_SESSION_OVERLAY_LEAKS,
+                        "max_expired_exposures": MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
+                    },
+                }
+            )
+    return {"scenario": "session_overlay_recall", "top_k": parsed_top_k, "results": results}
+
+
 register_scenario("search_recall", _run_search_recall)
+register_scenario("session_overlay_recall", _run_session_overlay_recall)
