@@ -1,0 +1,157 @@
+{
+  "positive": [
+    {
+      "id": "prefers_1",
+      "pattern": "prefers",
+      "text": "시몬은 정중한 문구를 선호한다.",
+      "expected": {"subject": "시몬", "predicate": "prefers", "object_value": "정중한 문구", "source_quote": "시몬은 정중한 문구를 선호"}
+    },
+    {
+      "id": "prefers_2",
+      "pattern": "prefers",
+      "text": "사노는 검증된 변경을 선호합니다.",
+      "expected": {"subject": "사노", "predicate": "prefers", "object_value": "검증된 변경", "source_quote": "사노는 검증된 변경을 선호"}
+    },
+    {
+      "id": "prefers_3",
+      "pattern": "prefers",
+      "text": "팀은 짧은 회의를 선호한다.",
+      "expected": {"subject": "팀", "predicate": "prefers", "object_value": "짧은 회의", "source_quote": "팀은 짧은 회의를 선호"}
+    },
+    {
+      "id": "prefers_4",
+      "pattern": "prefers",
+      "text": "사용자는 텔레그램 알림을 선호합니다.",
+      "expected": {"subject": "사용자", "predicate": "prefers", "object_value": "텔레그램 알림", "source_quote": "사용자는 텔레그램 알림을 선호"}
+    },
+    {
+      "id": "prefers_5",
+      "pattern": "prefers",
+      "text": "메모리는 결정적 규칙을 선호한다.",
+      "expected": {"subject": "메모리", "predicate": "prefers", "object_value": "결정적 규칙", "source_quote": "메모리는 결정적 규칙을 선호"}
+    },
+
+    {
+      "id": "uses_1",
+      "pattern": "uses",
+      "text": "시몬은 옵시디언을 사용한다.",
+      "expected": {"subject": "시몬", "predicate": "uses", "object_value": "옵시디언", "source_quote": "시몬은 옵시디언을 사용"}
+    },
+    {
+      "id": "uses_2",
+      "pattern": "uses",
+      "text": "사노는 pytest를 사용합니다.",
+      "expected": {"subject": "사노", "predicate": "uses", "object_value": "pytest", "source_quote": "사노는 pytest를 사용"}
+    },
+    {
+      "id": "uses_3",
+      "pattern": "uses",
+      "text": "파이프라인은 SQLite를 사용한다.",
+      "expected": {"subject": "파이프라인", "predicate": "uses", "object_value": "SQLite", "source_quote": "파이프라인은 SQLite를 사용"}
+    },
+    {
+      "id": "uses_4",
+      "pattern": "uses",
+      "text": "검색기는 토큰 겹침을 사용합니다.",
+      "expected": {"subject": "검색기", "predicate": "uses", "object_value": "토큰 겹침", "source_quote": "검색기는 토큰 겹침을 사용"}
+    },
+    {
+      "id": "uses_5",
+      "pattern": "uses",
+      "text": "게이트는 기준값을 사용한다.",
+      "expected": {"subject": "게이트", "predicate": "uses", "object_value": "기준값", "source_quote": "게이트는 기준값을 사용"}
+    },
+
+    {
+      "id": "located_1",
+      "pattern": "located",
+      "text": "시몬은 서울에 있음.",
+      "expected": {"subject": "시몬", "predicate": "is_located", "object_value": "서울", "source_quote": "시몬은 서울에 있음"}
+    },
+    {
+      "id": "located_2",
+      "pattern": "located",
+      "text": "저장소는 /Users/gimseojun/memcraft에 있음.",
+      "expected": {"subject": "저장소", "predicate": "is_located", "object_value": "/Users/gimseojun/memcraft", "source_quote": "저장소는 /Users/gimseojun/memcraft에 있음"}
+    },
+    {
+      "id": "located_3",
+      "pattern": "located",
+      "text": "캐시는 .memkraft/cache에 있음.",
+      "expected": {"subject": "캐시", "predicate": "is_located", "object_value": ".memkraft/cache", "source_quote": "캐시는 .memkraft/cache에 있음"}
+    },
+    {
+      "id": "located_4",
+      "pattern": "located",
+      "text": "문서는 docs/plans에 있음.",
+      "expected": {"subject": "문서", "predicate": "is_located", "object_value": "docs/plans", "source_quote": "문서는 docs/plans에 있음"}
+    },
+    {
+      "id": "located_5",
+      "pattern": "located",
+      "text": "아카이브는 콜드 스토리지에 있음.",
+      "expected": {"subject": "아카이브", "predicate": "is_located", "object_value": "콜드 스토리지", "source_quote": "아카이브는 콜드 스토리지에 있음"}
+    },
+
+    {
+      "id": "changed_1",
+      "pattern": "changed",
+      "text": "테마를 라이트 모드로 변경했다.",
+      "entity_hint": "시몬",
+      "expected": {"subject": "시몬", "predicate": "changed", "object_value": {"field": "테마", "to": "라이트 모드"}, "source_quote": "테마를 라이트 모드로 변경"}
+    },
+    {
+      "id": "changed_2",
+      "pattern": "changed",
+      "text": "알림 채널을 텔레그램으로 수정했습니다.",
+      "entity_hint": "사노",
+      "expected": {"subject": "사노", "predicate": "corrected", "object_value": {"field": "알림 채널", "to": "텔레그램"}, "source_quote": "알림 채널을 텔레그램으로 수정"}
+    },
+    {
+      "id": "changed_3",
+      "pattern": "changed",
+      "text": "라우팅 정책을 프로필 격리로 변경했다.",
+      "entity_hint": "팀",
+      "expected": {"subject": "팀", "predicate": "changed", "object_value": {"field": "라우팅 정책", "to": "프로필 격리"}, "source_quote": "라우팅 정책을 프로필 격리로 변경"}
+    },
+    {
+      "id": "changed_4",
+      "pattern": "changed",
+      "text": "기본 모델을 fable5로 수정했다.",
+      "entity_hint": "게이트웨이",
+      "expected": {"subject": "게이트웨이", "predicate": "corrected", "object_value": {"field": "기본 모델", "to": "fable5"}, "source_quote": "기본 모델을 fable5로 수정"}
+    },
+    {
+      "id": "changed_5_decomposed",
+      "pattern": "changed",
+      "text": "스킬을 검증 우선으로 변경했다.",
+      "entity_hint": "사노",
+      "expected": {"subject": "사노", "predicate": "changed", "object_value": {"field": "스킬", "to": "검증 우선"}, "source_quote": "스킬을 검증 우선으로 변경"}
+    }
+  ],
+  "negative": [
+    {"id": "prefers_neg_1", "text": "시몬은 정중한 문구를 선호했다."},
+    {"id": "prefers_neg_2", "text": "정중한 문구를 선호한다."},
+    {"id": "prefers_neg_3", "text": "시몬의 선호는 정중한 문구다."},
+    {"id": "prefers_neg_4", "text": "시몬은 정중한 문구를 선호할 수 있다."},
+    {"id": "prefers_neg_5", "text": "시몬은 정중한 문구 선호?"},
+
+    {"id": "uses_neg_1", "text": "시몬은 옵시디언을 사용했다."},
+    {"id": "uses_neg_2", "text": "옵시디언을 사용한다."},
+    {"id": "uses_neg_3", "text": "시몬의 사용 도구는 옵시디언이다."},
+    {"id": "uses_neg_4", "text": "시몬은 옵시디언을 사용할 수 있다."},
+    {"id": "uses_neg_5", "text": "시몬은 옵시디언 사용?"},
+
+    {"id": "located_neg_1", "text": "시몬은 서울에 있었다."},
+    {"id": "located_neg_2", "text": "시몬의 위치는 서울이다."},
+    {"id": "located_neg_3", "text": "서울에 있음."},
+    {"id": "located_neg_4", "text": "시몬은 서울에 있을 수 있다."},
+    {"id": "located_neg_5", "text": "시몬은 서울에 있음?"},
+
+    {"id": "changed_neg_1", "text": "테마를 변경했다."},
+    {"id": "changed_neg_2", "text": "테마를 라이트 모드로 바꿨다."},
+    {"id": "changed_neg_3", "text": "테마는 라이트 모드로 변경됐다."},
+    {"id": "changed_neg_4", "text": "테마를 라이트 모드로 변경할 수 있다."},
+    {"id": "changed_neg_5", "text": "테마를 라이트 모드로 변경?"}
+  ]
+}
