@@ -17,7 +17,7 @@ def main():
 
     # init
     init_parser = subparsers.add_parser("init", help="Initialize memory structure")
-    init_parser.add_argument("--path", default=".", help="Target directory (default: current)")
+    init_parser.add_argument("--path", default="", help="Target directory (default: MEMKRAFT_DIR or ./memory)")
     init_parser.add_argument("--template", default="", help="Apply a project scaffolding template (see `memkraft templates list`)")
 
     # templates

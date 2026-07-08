@@ -1,5 +1,82 @@
 # CHANGELOG
 
+## [2.13.0] — 2026-07-08
+
+Lifecycle Foundation release for MemKraft v3. **Public API additive only.**
+
+This release adds the first product-neutral lifecycle primitives for local-first
+agent memory: short-lived candidate memories, same-session read-your-writes
+overlays, deterministic resolver dry-runs, and a generic last-interaction index.
+All new lifecycle storage is additive sidecar data under `.memkraft/`; no
+existing memory files are migrated or rewritten.
+
+### Candidate memory preview
+
+- Added `mk.remember_candidate(...)` to capture untrusted or provisional memory
+  as short-lived candidate records instead of promoting it directly to active
+  memory.
+- Added `mk.list_candidates(...)` with session filtering, expiry handling, and
+  deterministic ordering.
+- Candidate records include provenance metadata and review state. Matching
+  deterministic claim extraction now attaches structured claims and marks the
+  record `READY_FOR_RESOLVER`; non-matching text remains `CANDIDATE_REVIEW`.
+- Added English and Korean stdlib-only claim extraction rules, including NFC
+  normalization for Korean input.
+
+### Session overlay retrieval
+
+- Added `mk.session_overlay(session_id, query="", top_k=5)` so newly captured
+  same-session candidates can be retrieved immediately without leaking into
+  other sessions or long-term truth.
+- Overlay results are explicitly labeled with `memory_state: "session_overlay"`
+  and skip expired candidates by default.
+- Added `session_overlay_recall` Memory Gym scenario covering same-session
+  recall, cross-session leakage, and expired exposure.
+
+### Resolver dry-run preview
+
+- Added `memkraft.resolver.resolve_claims_dry_run(...)` for deterministic
+  preview verdicts without writing or promoting memory.
+- Resolver verdict fixtures cover duplicate, update, contradiction, correction,
+  preference, missing-source rejection, weak-confidence rejection, and invalid
+  claim handling.
+- Added `resolver_verdicts` Memory Gym scenario with deterministic accuracy and
+  missing-source promotion checks.
+
+### Last-interaction index
+
+- Added `mk.record_interaction(...)` and `mk.last_interaction(...)` as a generic
+  append-only interaction log plus derived JSON snapshot.
+- The append-only `last_interactions.jsonl` log is the source of truth; the
+  `last_interactions.json` snapshot is rebuildable if missing or corrupt.
+- Stabilized lookup performance with mtime-aware snapshot caching. The 10k
+  Memory Gym scenario now remains far below the 5ms p95 release threshold.
+- Added `last_interaction` Memory Gym scenario covering accuracy and p95 latency.
+
+### CI and release gates
+
+- Added the Memory Gym scenario registry and structured Gym CLI errors for
+  unknown scenarios and gate failures.
+- Added GitHub Actions lifecycle Gym coverage for `search_recall`,
+  `session_overlay_recall`, `resolver_verdicts`, and `last_interaction`.
+- Local release validation for this cut: full pytest passed with 1469 passed,
+  3 skipped, and existing prompt-path warnings only.
+
+### Migration notes
+
+- No destructive migration is required.
+- New additive sidecars may be created under `<base_dir>/.memkraft/`:
+  - `candidates.jsonl`
+  - `last_interactions.jsonl`
+  - `last_interactions.json` derived snapshot
+- These files can be absent in existing memory directories; APIs create them on
+  demand.
+
+### Versions
+
+- `__init__.py` → `2.13.0`
+- `pyproject.toml` → `2.13.0`
+
 ## [2.12.0] — 2026-07-08
 
 MemKraft v3 foundation release. **Public API additive only.**

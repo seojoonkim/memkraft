@@ -1,0 +1,236 @@
+{
+  "scenarios": {
+    "last_interaction": {
+      "results": [
+        {
+          "accuracy": 1.0,
+          "documents": 10000,
+          "p95_ms": 0.0032919924706220627,
+          "thresholds": {
+            "max_p95_ms": 5.0
+          }
+        }
+      ],
+      "scenario": "last_interaction"
+    },
+    "resolver_verdicts": {
+      "results": [
+        {
+          "accuracy": 1.0,
+          "determinism": 1.0,
+          "documents": 120,
+          "missing_source_promotions": 0,
+          "thresholds": {
+            "min_accuracy": 0.95
+          }
+        }
+      ],
+      "scenario": "resolver_verdicts"
+    },
+    "search_recall": {
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE",
+      "candidate": "baseline",
+      "gate": {
+        "failures": [],
+        "passed": true
+      },
+      "observed": {
+        "mean_recall_at_k": 1.0,
+        "min_recall_at_k": 1.0
+      },
+      "pass": true,
+      "results": [
+        {
+          "baseline_latency_ms": {
+            "max_ms": 3.704,
+            "mean_ms": 0.896,
+            "median_ms": 0.56,
+            "min_ms": 0.191,
+            "n": 8,
+            "p50_ms": 0.56,
+            "p95_ms": 3.704,
+            "workload": "baseline_search"
+          },
+          "candidate_latency_ms": {
+            "max_ms": 1.03,
+            "mean_ms": 0.586,
+            "median_ms": 0.586,
+            "min_ms": 0.192,
+            "n": 8,
+            "p50_ms": 0.586,
+            "p95_ms": 1.03,
+            "workload": "candidate_search"
+          },
+          "documents": 20,
+          "mean_recall_at_k": 1.0,
+          "min_recall_at_k": 1.0,
+          "queries": [
+            {
+              "baseline_hits": 5,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md"
+              ],
+              "candidate_hits": 5,
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md"
+              ],
+              "query": "alpha",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 4,
+              "baseline_top": [
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "candidate_hits": 4,
+              "candidate_top": [
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "query": "beta",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 3,
+              "baseline_top": [
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ],
+              "candidate_hits": 3,
+              "candidate_top": [
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ],
+              "query": "gamma",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 5,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md"
+              ],
+              "candidate_hits": 5,
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md"
+              ],
+              "query": "common shared",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 5,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md"
+              ],
+              "candidate_hits": 5,
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md"
+              ],
+              "query": "priority_topic",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 5,
+              "baseline_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ],
+              "candidate_hits": 5,
+              "candidate_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ],
+              "query": "alpha zeta",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 1,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md"
+              ],
+              "candidate_hits": 1,
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md"
+              ],
+              "query": "unique_marker_00000",
+              "recall_at_k": 1.0
+            },
+            {
+              "baseline_hits": 1,
+              "baseline_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md"
+              ],
+              "candidate_hits": 1,
+              "candidate_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md"
+              ],
+              "query": "unique_marker_00010",
+              "recall_at_k": 1.0
+            }
+          ],
+          "top_k": 5
+        }
+      ],
+      "scenario": "search_recall",
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "top_k": 5
+    },
+    "session_overlay_recall": {
+      "results": [
+        {
+          "cross_session_leaks": 0,
+          "documents": 20,
+          "expired_exposures": 0,
+          "same_session_recall": 1.0,
+          "thresholds": {
+            "max_cross_session_leaks": 0.0,
+            "max_expired_exposures": 0.0,
+            "min_same_session_recall": 1.0
+          }
+        }
+      ],
+      "scenario": "session_overlay_recall",
+      "top_k": 5
+    }
+  },
+  "version": "2.13.0"
+}
