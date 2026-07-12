@@ -40,9 +40,12 @@ jobs:
           /tmp/memkraft-wheel-smoke/bin/python -m pip install dist/*.whl
           /tmp/memkraft-wheel-smoke/bin/python - <<'PY'
           from importlib.metadata import version
+          import tomllib
+
           import memkraft
 
-          assert version("memkraft") == memkraft.__version__ == "2.13.0"
+          project_version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
+          assert version("memkraft") == memkraft.__version__ == project_version
           PY
 
   search-recall:
