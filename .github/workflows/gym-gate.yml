@@ -108,6 +108,14 @@ jobs:
             --gate \
             --out /tmp/memkraft-lifecycle-governance-gate.json
 
+      - name: Run Memory Gym outcome/context gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario outcome_context \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-outcome-context-gate.json
+
   optional-dependencies:
     name: optional / ${{ matrix.extra }}
     runs-on: ubuntu-latest

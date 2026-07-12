@@ -96,6 +96,16 @@ mk.search("MemKraft")
 That's it. Your agent now has persistent memory as plain markdown files.
 No API keys. No database. No config. Just `.md` files you own.
 
+### 2.15 outcome-loop preview
+
+`compile_context(...)` returns a stable `usage_id`. Report a result with
+`report_outcome(usage_id, outcome, reward=None, metadata=None)`; retries may
+provide `metadata={"idempotency_key": "..."}`. Valid reports append to
+`.memkraft/outcomes.jsonl` and deterministically influence later ordering with
+a 30-day half-life and maximum ±20% update. Rewards clamp to `[-1, 1]`;
+unknown usage IDs are rejected. Provenance, hard budgets, tombstones, and
+explicit `pinned_sources` remain authoritative. `now=` is a preview replay hook.
+
 ### Optional extras
 
 ```bash

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
@@ -57,6 +58,8 @@ class ContextCompilerMixin:
         budget: int,
         objective: Optional[str] = None,
         session_id: Optional[str] = None,
+        now: Optional[datetime] = None,
+        pinned_sources: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         task = _required_text(task, "task")
         if type(budget) is not int or budget <= 0:
@@ -65,6 +68,12 @@ class ContextCompilerMixin:
             objective = _required_text(objective, "objective")
         if session_id is not None:
             session_id = _required_text(session_id, "session_id")
+        if pinned_sources is not None and (not isinstance(pinned_sources, list) or any(
+            not isinstance(source, str) or not source.strip() for source in pinned_sources
+        )):
+            raise ValueError("pinned_sources must be a list of non-empty strings")
+        pinned = set(pinned_sources or [])
+        utility = self.context_utility(now=now)
 
         truth = []
         for row in self.compile_truth(dry_run=True)["records"]:
@@ -80,7 +89,7 @@ class ContextCompilerMixin:
         for row in self.timeline():
             if not row.get("source") and not row.get("provenance"):
                 continue
-            item = {key: row[key] for key in ("subject_id", "key", "value", "source") if key in row}
+            item = {key: row[key] for key in ("id", "subject_id", "key", "value", "source") if key in row}
             for key in ("valid_from", "provenance"):
                 if row.get(key) is not None:
                     item[key] = row[key]
@@ -109,6 +118,12 @@ class ContextCompilerMixin:
         sources: List[str] = []
         used = _rendered_tokens(sections, sources)
         for name, candidates in (("truth", truth), ("timeline", timeline), ("session", session)):
+            baseline = {self._context_item_id(name, item): index for index, item in enumerate(candidates)}
+            candidates.sort(key=lambda item: (
+                0 if item.get("source") in pinned or item.get("provenance") in pinned else 1,
+                -utility.get(self._context_item_id(name, item), {}).get("score", 0.0),
+                baseline[self._context_item_id(name, item)],
+            ))
             for item in candidates:
                 proposed = {key: list(items) for key, items in sections.items()}
                 proposed.setdefault(name, []).append(item)
@@ -118,14 +133,18 @@ class ContextCompilerMixin:
                     sections = proposed
                     sources = proposed_sources
                     used = proposed_tokens
+        identity_sections = {
+            name: [{key: value for key, value in item.items() if key != "id"} for item in items]
+            for name, items in sections.items()
+        }
         identity = {
             "task": task, "budget": budget, "objective": objective,
-            "session_id": session_id, "sections": sections, "sources": sources,
+            "session_id": session_id, "sections": identity_sections, "sources": sources,
         }
         usage_id = hashlib.sha256(json.dumps(
             identity, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         ).encode("utf-8")).hexdigest()
-        return {
+        result = {
             "usage_id": usage_id,
             "task": task,
             "budget": budget,
@@ -133,3 +152,5 @@ class ContextCompilerMixin:
             "sections": sections,
             "sources": sources,
         }
+        self._record_context_usage(result)
+        return result

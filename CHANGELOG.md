@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Added the 2.15 A2 outcome-loop preview: append-only, usage-linked and
+  idempotent outcome reports; clamped/decayed context utility; deterministic
+  reranking with hard budget, provenance, tombstone, and pin protections; and
+  an `outcome_context` Memory Gym CI gate.
 - Added 2.14 preview sleep lifecycle with deterministic zero-write plans,
   governance-lock-coherent snapshot/compile/journal sequencing, stable
   transaction IDs, and idempotent missing-journal repair on retry. This is not

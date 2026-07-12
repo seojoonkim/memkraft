@@ -259,8 +259,34 @@ def _run_lifecycle_governance(**_kwargs: Any) -> dict[str, Any]:
         }]}
 
 
+def _run_outcome_context(**_kwargs: Any) -> dict[str, Any]:
+    """Prove feedback reranking, reward clamp, and explicit pin protection."""
+    from datetime import datetime, timezone
+    from memkraft import MemKraft
+    now = datetime(2026, 1, 31, tzinfo=timezone.utc)
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        mk.append_event("u", "alpha", "A", source="source:a")
+        mk.append_event("u", "beta", "B", source="source:b")
+        mk.compile_truth(dry_run=False)
+        before = mk.compile_context("gym", 500, now=now)
+        report = mk.report_outcome(before["usage_id"], "failure", reward=-99, now=now)
+        after = mk.compile_context("gym", 500, now=now)
+        pinned = mk.compile_context("gym", 500, now=now, pinned_sources=["source:a"])
+        changed = before["sections"]["truth"][0]["key"] != after["sections"]["truth"][0]["key"]
+        clamped = report["reward"] == -1.0 and report["max_update"] == 0.2
+        protected = pinned["sections"]["truth"][0]["source"] == "source:a"
+        passed = changed and clamped and protected
+        return {"scenario": "outcome_context", "results": [{
+            "documents": 2, "ordering_changed": changed, "reward_clamped": clamped,
+            "pin_protected": protected, "mean_recall_at_k": float(passed),
+            "min_recall_at_k": float(passed),
+        }]}
+
+
 register_scenario("search_recall", _run_search_recall)
 register_scenario("session_overlay_recall", _run_session_overlay_recall)
 register_scenario("resolver_verdicts", _run_resolver_verdicts)
 register_scenario("last_interaction", _run_last_interaction)
 register_scenario("lifecycle_governance", _run_lifecycle_governance)
+register_scenario("outcome_context", _run_outcome_context)
