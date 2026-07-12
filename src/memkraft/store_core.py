@@ -41,7 +41,6 @@ Zero dependencies — stdlib only.
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import uuid
@@ -49,7 +48,30 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Union
 
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None  # type: ignore[assignment]
+    import msvcrt
+
 SCHEMA_VERSION = 1
+
+
+def _lock_exclusive(fd: int) -> None:
+    """Take a blocking process-level exclusive lock on ``fd``."""
+    if fcntl is not None:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        return
+    os.lseek(fd, 0, os.SEEK_SET)
+    msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+
+
+def _unlock(fd: int) -> None:
+    if fcntl is not None:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        return
+    os.lseek(fd, 0, os.SEEK_SET)
+    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
 
 
 def _lock_current_inode(path_str: str, flags: int) -> int:
@@ -66,7 +88,7 @@ def _lock_current_inode(path_str: str, flags: int) -> int:
     while True:
         fd = os.open(path_str, flags, 0o644)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            _lock_exclusive(fd)
             st_fd = os.fstat(fd)
             try:
                 st_path = os.stat(path_str)
@@ -80,7 +102,7 @@ def _lock_current_inode(path_str: str, flags: int) -> int:
         except BaseException:
             os.close(fd)
             raise
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        _unlock(fd)
         os.close(fd)
 
 
@@ -136,7 +158,7 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     try:
         os.write(fd, data)
     finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        _unlock(fd)
         os.close(fd)
     return enveloped
 
@@ -217,7 +239,7 @@ def compact(path: Union[str, Path]) -> CompactResult:
     path = Path(path)
     tmp = _compact_tmp_path(path)
     try:
-        fd = _lock_current_inode(str(path), os.O_RDONLY)
+        fd = _lock_current_inode(str(path), os.O_RDWR)
     except FileNotFoundError:
         tmp.unlink(missing_ok=True)
         return CompactResult(0, 0, 0, 0)
@@ -272,7 +294,7 @@ def compact(path: Union[str, Path]) -> CompactResult:
                 os.close(out)
             os.replace(str(tmp), str(path))
         finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+            _unlock(fd)
     finally:
         os.close(fd)
     return CompactResult(

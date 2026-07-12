@@ -223,9 +223,7 @@ class TiersMixin:
             )
             def _in_agent(e: Dict[str, Any]) -> bool:
                 return e["path"].startswith(agent_prefix)
-            recall = [e for e in recall if _in_agent(e) or True]
-            # agent filter is additive (don't drop global core) — this
-            # matches the docstring.  Left as a future extension point.
+            recall = [e for e in recall if _in_agent(e)]
 
         out: List[Dict[str, Any]] = list(core)
         for e in recall:

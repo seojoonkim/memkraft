@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import datetime
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,29 @@ from memkraft.store_core import (
 def _compact_tmp(path: Path) -> Path:
     """Temp-file convention used by compact: ``<store>.compact.tmp`` alongside it."""
     return path.with_name(path.name + ".compact.tmp")
+
+
+def test_cli_imports_without_fcntl_and_runs_help():
+    """A Windows-style interpreter must not fail while importing store_core."""
+    script = r'''
+import builtins, runpy, sys, types
+real_import = builtins.__import__
+def windows_import(name, *args, **kwargs):
+    if name == "fcntl":
+        raise ImportError("fcntl is unavailable on Windows")
+    return real_import(name, *args, **kwargs)
+builtins.__import__ = windows_import
+fake = types.ModuleType("msvcrt")
+fake.LK_LOCK, fake.LK_UNLCK = 1, 0
+fake.locking = lambda *args: None
+sys.modules["msvcrt"] = fake
+sys.argv = ["memkraft", "--help"]
+runpy.run_module("memkraft.cli", run_name="__main__")
+'''
+    result = subprocess.run(
+        [sys.executable, "-c", script], text=True, capture_output=True, check=False
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
 
 
 class TestAppendReadRoundtrip:
