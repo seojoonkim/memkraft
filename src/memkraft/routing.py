@@ -23,6 +23,7 @@ Design constraints honoured:
   * Silent (no stdout side effects).
 """
 from __future__ import annotations
+import typing
 
 import contextlib
 import io
@@ -262,7 +263,7 @@ class RoutingMixin:
         if not base:
             return []
 
-        annotated: list[tuple[datetime | None, float, dict]] = []
+        annotated: list[tuple[typing.Optional[datetime], float, dict]] = []
         for r in base:
             fpath = r.get("file") or ""
             content = r.get("snippet", "") or ""
@@ -273,7 +274,7 @@ class RoutingMixin:
             except Exception:
                 pass
 
-            earliest: datetime | None = None
+            earliest: typing.Optional[datetime] = None
             for m in _DATE_RE.findall(content):
                 try:
                     d = datetime.strptime(m, "%Y-%m-%d")
@@ -492,7 +493,7 @@ class RoutingMixin:
         query: str,
         top_k: int = 5,
         *,
-        exhaustive: bool | None = None,
+        exhaustive: typing.Optional[bool] = None,
     ) -> dict:
         """Question-type aware retrieval.
 

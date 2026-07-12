@@ -21,6 +21,7 @@ Public API:
   * ``MemKraft._rerank_bonus(result, question_type) -> float`` (helper).
 """
 from __future__ import annotations
+import typing
 
 import re
 from datetime import datetime
@@ -199,8 +200,8 @@ class RerankMixin:
 
     def rerank_for_question_type(
         self,
-        results: Iterable[dict] | None,
-        question_type: str | None,
+        results: typing.Optional[Iterable[dict]],
+        question_type: typing.Optional[str],
     ) -> list[dict]:
         """Return a new list of results re-sorted for ``question_type``.
 

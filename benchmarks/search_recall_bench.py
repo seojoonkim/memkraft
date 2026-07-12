@@ -9,6 +9,7 @@ shipping.
 """
 from __future__ import annotations
 
+import typing
 import argparse
 import contextlib
 import io
@@ -26,7 +27,7 @@ from memkraft import MemKraft
 SearchFn = Callable[[MemKraft, str, int], list[dict[str, Any]]]
 
 
-def _file_ids(results: Iterable[dict[str, Any]], limit: int | None = None) -> list[str]:
+def _file_ids(results: Iterable[dict[str, Any]], limit: typing.Optional[int] = None) -> list[str]:
     files = [str(r.get("file", "")) for r in results if r.get("file")]
     return files if limit is None else files[:limit]
 
@@ -119,7 +120,7 @@ def _baseline_search(mk: MemKraft, query: str, top_k: int) -> list[dict[str, Any
 def run_one(
     size: int,
     top_k: int = 20,
-    candidate_fn: SearchFn | None = None,
+    candidate_fn: typing.Optional[SearchFn] = None,
 ) -> dict[str, Any]:
     """Run recall comparison on one corpus size.
 

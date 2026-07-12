@@ -116,6 +116,14 @@ jobs:
             --gate \
             --out /tmp/memkraft-outcome-context-gate.json
 
+      - name: Run deterministic v3 lifecycle replay gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario lifecycle_replay \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-lifecycle-replay-gate.json
+
   optional-dependencies:
     name: optional / ${{ matrix.extra }}
     runs-on: ubuntu-latest

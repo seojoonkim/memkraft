@@ -88,3 +88,11 @@ class ExternalAdapter:
 - **S4:** 실행 시간/비용을 §4 표 기준으로 기록하고, 3.0 게이트 문항 수(50)와 임계값 초안을 roadmap 이슈로 제출.
 
 **성공 판정:** S1~S4 완료 + "3.0 외부 벤치 게이트가 현실적인가"에 대한 yes/no/조건부 답. **no라도 spike는 성공이다** — 그 경우 3.0 게이트를 "외부 형식 adapter + 공개 fixture subset + 결과표"로 조정한다(roadmap §10.4).
+
+## 7. Phase-A offline sample
+
+`sample_adapter.py`와 `fixtures/sample.json`은 위 공통 인터페이스를 실행 가능한 최소 샘플로 고정한다. 네트워크, API key, 생성 모델, LLM judge가 필요 없으며 fixture SHA-256을 `dataset_version`으로 보고한다. 이는 LongMemEval 성능 수치가 아니라 adapter/채점/재현성 계약 smoke다.
+
+```bash
+python -c 'from benchmarks.external.sample_adapter import run_sample; print(run_sample())'
+```

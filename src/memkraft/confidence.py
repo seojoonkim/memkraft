@@ -31,6 +31,7 @@ Mechanics:
     once at import time inside ``ConfidenceMixin``.
 """
 from __future__ import annotations
+import typing
 
 import functools
 import re
@@ -104,7 +105,7 @@ def _classify_confidence(
     snippet: str,
     *,
     fuzzy_only: bool = False,
-    implicit_hit: bool | None = None,
+    implicit_hit: typing.Optional[bool] = None,
 ) -> str:
     """Map (score, snippet, fuzzy?) → ``"high"`` / ``"medium"`` / ``"low"``.
 
@@ -129,7 +130,7 @@ def _classify_confidence(
     return "low"
 
 
-def _attach_confidence(results: list[dict] | None, query: str = "") -> list[dict]:
+def _attach_confidence(results: typing.Optional[list[dict]], query: str = "") -> list[dict]:
     """Mutate-and-return ``results`` so every entry gains a ``confidence`` field.
 
     Safe on ``None`` / non-list inputs (returns ``[]`` / passes through).
@@ -166,7 +167,7 @@ def _attach_confidence(results: list[dict] | None, query: str = "") -> list[dict
 # LLM formatting helper
 # ---------------------------------------------------------------------------
 def _format_results_for_llm(
-    results: Iterable[dict] | None,
+    results: typing.Optional[Iterable[dict]],
     *,
     include_low: bool = True,
     max_snippet_chars: int = 220,
@@ -258,14 +259,14 @@ class ConfidenceMixin:
 
     def _attach_confidence(
         self,
-        results: list[dict] | None,
+        results: typing.Optional[list[dict]],
         query: str = "",
     ) -> list[dict]:
         return _attach_confidence(results, query)
 
     def format_results_for_llm(
         self,
-        results: list[dict] | None,
+        results: typing.Optional[list[dict]],
         *,
         include_low: bool = True,
         max_snippet_chars: int = 220,
@@ -317,12 +318,12 @@ class ConfidenceMixin:
 
     def format_context_for_llm(
         self,
-        results: list[dict] | None,
+        results: typing.Optional[list[dict]],
         query: str = "",
-        question_type: str | None = None,
+        question_type: typing.Optional[str] = None,
         *,
         max_chars: int = 5000,
-        max_lines: int | None = None,
+        max_lines: typing.Optional[int] = None,
         max_snippet_chars: int = 220,
         include_low: bool = True,
     ) -> str:

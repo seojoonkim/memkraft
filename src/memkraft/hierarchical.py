@@ -20,6 +20,7 @@ Design constraints honoured:
   * Additive — existing APIs unaffected.
 """
 from __future__ import annotations
+import typing
 
 import hashlib
 import os
@@ -107,7 +108,7 @@ class HierarchicalMixin:
     def track_hierarchical(
         self,
         text: str,
-        entity_name: str | None = None,
+        entity_name: typing.Optional[str] = None,
         chunk_size: int = 512,
     ) -> dict:
         """Index a document into both raw-chunk and keyword-summary layers.
@@ -166,7 +167,7 @@ class HierarchicalMixin:
     # _extract_key_facts — kept for backward compatibility
     # ------------------------------------------------------------------
     def _extract_key_facts(
-        self, text: str, entity_name: str | None = None
+        self, text: str, entity_name: typing.Optional[str] = None
     ) -> str:
         """Extract key relational facts from text using regex patterns."""
         facts: list[str] = []

@@ -226,9 +226,30 @@ def test_timeline_policy_filter(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.do_not_remember(subject='u',dry_run=False)
     assert m.timeline()==[]
 
-def test_export_policy_include_tombstoned_is_audit_escape_hatch(tmp_path):
-    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.do_not_remember(subject='u',dry_run=False)
-    assert len(m.export_memory(True))==1
+def test_deny_policy_cannot_be_bypassed_by_tombstone_audit_views(tmp_path):
+    m=mk(tmp_path)
+    denied=m.append_event('u','secret','release-blocking-token',source='s')
+    visible=m.append_event('u','public','ordinary-token',source='s')
+    m.sleep(dry_run=False)
+    m.forget(visible['id'],dry_run=False)
+    m.do_not_remember(subject='u',key='secret',dry_run=False)
+
+    exported=m.export_memory(include_tombstoned=True)
+    timeline=m.timeline(include_tombstoned=True)
+    assert denied['id'] not in {row.get('id') for row in exported}
+    assert denied['id'] not in {row.get('id') for row in timeline}
+    assert m.current_truth('u')=={}
+    assert 'release-blocking-token' not in json.dumps(
+        m.compile_context('release-blocking-token',budget=1000)['sections'],sort_keys=True
+    )
+    assert all('release-blocking-token' not in json.dumps(row,sort_keys=True)
+               for row in m.search('release-blocking-token'))
+
+    # The audit flag still exposes an otherwise-visible forgotten record and
+    # its marker; it grants no privilege over do-not-remember policy.
+    assert visible['id'] not in {row.get('id') for row in m.export_memory()}
+    assert visible['id'] in {row.get('id') for row in exported}
+    assert any(row.get('tombstone_of')==visible['id'] for row in exported)
 
 def test_sleep_records_equal_compile_records(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s')
@@ -752,8 +773,8 @@ def test_policy_subject_is_required_for_key_even_dry(tmp_path):
 def test_forget_subject_id_alias_normalized(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); assert m.forget({'subject_id':' u '})['matched']==1
 
-def test_timeline_include_policy_audit_escape(tmp_path):
-    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.do_not_remember(subject='u',dry_run=False); assert len(m.timeline(include_tombstoned=True))==1
+def test_timeline_include_tombstoned_does_not_bypass_policy(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.do_not_remember(subject='u',dry_run=False); assert m.timeline(include_tombstoned=True)==[]
 
 def test_sleep_policy_transaction_stable(tmp_path):
     m=mk(tmp_path); m.do_not_remember(subject='u',dry_run=False); assert m.sleep()==m.sleep()
@@ -1010,9 +1031,9 @@ def test_timeline_is_canonical_not_compiled(tmp_path):
     assert len(m.timeline())==2
 
 
-def test_export_memory_include_tombstoned_bypasses_policy_for_compliance(tmp_path):
+def test_export_memory_include_tombstoned_does_not_bypass_policy(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.do_not_remember(subject='u',dry_run=False)
-    assert m.export_memory(False)==[] and len(m.export_memory(True))==1
+    assert m.export_memory(False)==[] and m.export_memory(True)==[]
 
 
 def test_sleep_journal_exactly_append_only(tmp_path):

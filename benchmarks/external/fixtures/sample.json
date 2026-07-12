@@ -1,0 +1,4 @@
+[
+  {"case_id":"sample-1","memories":["Ada lives in Seoul.","Ada likes tea."],"question":"Where does Ada live?","expected":"Ada lives in Seoul.","match":"normalized"},
+  {"case_id":"sample-2","memories":["Lin uses Python.","Lin lives in Busan."],"question":"What does Lin use?","expected":"Lin uses Python.","match":"normalized"}
+]

@@ -6,6 +6,7 @@ Lifecycle API: flush / compact / digest / health
 "Memory should manage itself."
 """
 from __future__ import annotations
+import typing
 
 import json
 import re
@@ -442,7 +443,7 @@ class LifecycleMixin:
                 pass
         return total
 
-    def _extract_frontmatter_value(self, content: str, key: str) -> str | None:
+    def _extract_frontmatter_value(self, content: str, key: str) -> typing.Optional[str]:
         """Extract a value from YAML frontmatter."""
         m = re.search(rf"^{re.escape(key)}:\s*(.+)$", content, re.MULTILINE)
         return m.group(1).strip().strip("\"'") if m else None
@@ -451,7 +452,7 @@ class LifecycleMixin:
         self,
         tier: str,
         max_chars: int = 5000,
-        recent_days: int | None = None,
+        recent_days: typing.Optional[int] = None,
     ) -> str:
         """Render entities of a given tier as a bullet list."""
         entities_dir = Path(self.base_dir) / "live-notes"

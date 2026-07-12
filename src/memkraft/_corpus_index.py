@@ -28,6 +28,7 @@ subsequent search calls.
 """
 
 from __future__ import annotations
+import typing
 
 import hashlib
 import logging
@@ -186,7 +187,7 @@ def _read_doc_tf(
     path: Path,
     search_tokens_fn: Callable[[str], list],
     read_text_fn: Optional[Callable[[Path], Optional[str]]],
-) -> tuple[Dict[str, int], int] | None:
+) -> typing.Optional[tuple[Dict[str, int], int]]:
     """Read one document and return its token-frequency map + length."""
     try:
         if read_text_fn is not None:
@@ -269,7 +270,7 @@ def _try_incremental_update(
     pending_paths: Set[Path],
     search_tokens_fn: Callable[[str], list],
     read_text_fn: Optional[Callable[[Path], Optional[str]]],
-) -> CorpusIndex | None:
+) -> typing.Optional[CorpusIndex]:
     """Return an updated index if all observed changes match pending paths."""
     current_stat = {path: (stat["mtime_ns"], stat["size"]) for path, stat in items}
     current_paths = set(current_stat)

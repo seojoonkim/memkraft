@@ -19,7 +19,7 @@
 | from_version | to_version | automatic? | command | rollback | data_loss_risk |
 |---|---|---|---|---|---|
 | 2.12.x | 2.13.0 | no (doctor가 안내) | `memkraft migrate --base-dir <dir> --to 2.13 --apply` | backup dir 복원 | none expected |
-| 2.13.x | 2.14.0 | TBD (2.14 계획 시 확정) | TBD | TBD | TBD |
+| 2.13.x | 3.0 | no (additive/read-compatible) | 파생 뷰 재구축; 별도 schema rewrite 없음 | 2.13 binary + sidecar backup 복원 | preview 데이터만 재생성 필요 |
 
 ### 2.1 — 2.12.x → 2.13.0 상세
 
@@ -35,6 +35,20 @@
 | 사용자 markdown (`memory/` 등) | — | — | 불변. 마이그레이션이 읽기만 하고 쓰지 않음 |
 
 즉 2.12→2.13은 **구조적으로 additive**다. `migrate --apply`의 실제 작업은 (a) 디렉터리 구조 검증, (b) `.memkraft/meta.json`에 `storage_schema` 스탬프, (c) corrupt line 사전 검출 보고이며, 레코드 재작성은 없다. 그럼에도 dry-run/backup 규약은 동일하게 적용한다 — 이번에 규약을 세워야 2.14(파생 뷰)에서 진짜로 필요할 때 이미 검증된 경로가 있다.
+
+### 2.2 — 2.13.x → 3.0
+
+3.0은 2.13 envelope v1을 유지하는 additive 전환이다. 먼저 `.memkraft/`를 백업하고 기존 2.13 reader/search smoke를 기록한다. import/search가 자동 마이그레이션을 하지 않으며 전용 3.0 schema rewrite도 없다.
+
+- store/event: 기존 markdown과 2.13 sidecar는 그대로 읽힌다. 신규 canonical 원본은 `.memkraft/events.jsonl`에 source/provenance와 함께 append된다.
+- truth/sleep: `.memkraft/compiled_truth.jsonl`은 파생 캐시이므로 삭제 후 `compile_truth(dry_run=False)` 또는 `sleep(dry_run=False)`로 재구축한다. sleep journal은 append-only이며 재실행은 멱등이다.
+- context/outcome: `compile_context` usage와 `report_outcome` 레코드는 preview sidecar다. 기존 기억의 의미를 바꾸지 않으며 2.13은 이를 무시할 수 있다.
+- API compatibility: `append_event`, `compile_truth`, `current_truth`, `sleep`, `forget`, `compile_context`, `report_outcome`가 3.0 stable 이름이다. legacy alias는 경고 후 전달되며 3.x에서 제거되지 않는다.
+- preview caveats: candidate/resolver/session/context/outcome의 additive 필드와 ranking은 minor release에서 조정될 수 있다. 이를 영속 비즈니스 스키마로 복제하지 않는다.
+
+**검증:** 백업 → 3.0 설치 → `compile_truth` dry-run → lifecycle Gym gate → 기존 search smoke 순으로 수행한다. source 없는 event가 있으면 apply하지 말고 입력을 수정한다.
+
+**rollback:** 프로세스를 중지하고 3.0에서 쓴 `.memkraft/`를 감사용으로 보존한 뒤 사전 백업을 복원하고 2.13.x를 재설치한다. 2.13은 신규 preview 파일을 무시하지만, 3.0에서 추가한 canonical event를 유지해야 한다면 downgrade 전에 JSONL을 별도 export한다. 사용자 markdown은 복원 대상이 아니다. `compiled_truth.jsonl`, context usage, outcomes 같은 파생/preview 파일은 삭제해도 canonical event가 손실되지 않는다.
 
 ## 3. CLI 계약
 

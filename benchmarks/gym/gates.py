@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, Optional
 
 # Named threshold constants — the only source of default gate thresholds.
 # Scenario code must reference these instead of embedding magic numbers.
@@ -24,16 +24,33 @@ DEFAULT_GATE: dict[str, float] = {
 
 OBSERVED_METRIC_KEYS: tuple[str, ...] = ("mean_recall_at_k", "min_recall_at_k")
 
+# Explicit contracts avoid presenting scenario-specific correctness or latency as recall.
+SCENARIO_GATES: dict[str, tuple[tuple[str, str, float], ...]] = {
+    "session_overlay_recall": (
+        ("same_session_recall", "min", MIN_SESSION_OVERLAY_RECALL),
+        ("cross_session_leaks", "max", MAX_SESSION_OVERLAY_LEAKS),
+        ("expired_exposures", "max", MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES),
+    ),
+    "resolver_verdicts": (
+        ("accuracy", "min", MIN_RESOLVER_VERDICT_ACCURACY),
+        ("determinism", "min", 1.0),
+        ("missing_source_promotions", "max", 0.0),
+    ),
+    "last_interaction": (("accuracy", "min", 1.0), ("p95_ms", "max", MAX_LAST_INTERACTION_P95_MS)),
+}
 
-def observed_metrics(payload: dict[str, Any]) -> dict[str, float | None]:
+
+def observed_metrics(payload: dict[str, Any]) -> dict[str, Optional[float]]:
     """Return the worst observed value per gated metric across all results.
 
     Thresholds are minimums, so the minimum observed value is what a gate
     compares against. Missing or non-finite metrics stay ``None``.
     """
-    observed: dict[str, float | None] = {key: None for key in OBSERVED_METRIC_KEYS}
+    contract = SCENARIO_GATES.get(str(payload.get("scenario")))
+    keys = tuple(item[0] for item in contract) if contract else OBSERVED_METRIC_KEYS
+    observed: dict[str, Optional[float]] = {key: None for key in keys}
     for result in payload.get("results", []):
-        for key in OBSERVED_METRIC_KEYS:
+        for key in keys:
             try:
                 value = float(result[key])
             except (KeyError, TypeError, ValueError):
@@ -46,7 +63,7 @@ def observed_metrics(payload: dict[str, Any]) -> dict[str, float | None]:
     return observed
 
 
-def evaluate_gate(payload: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
+def evaluate_gate(payload: dict[str, Any], config: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """Evaluate a Memory Gym payload against simple scalar thresholds."""
     thresholds = dict(DEFAULT_GATE)
     failures: list[str] = []
@@ -63,6 +80,20 @@ def evaluate_gate(payload: dict[str, Any], config: dict[str, Any] | None = None)
     results = payload.get("results", [])
     if not results:
         failures.append("payload has no results")
+
+    contract = SCENARIO_GATES.get(str(payload.get("scenario")))
+    if contract:
+        for result in results:
+            documents = result.get("documents", "unknown")
+            for key, direction, required in contract:
+                value = _coerce_metric(result, key, documents, failures)
+                if value is None:
+                    continue
+                failed = value < required if direction == "min" else value > required
+                if failed:
+                    operator = "<" if direction == "min" else ">"
+                    failures.append(f"documents={documents} {key} {value} {operator} required {required}")
+        return {"passed": not failures, "failures": failures}
 
     for result in results:
         documents = result.get("documents", "unknown")
@@ -90,7 +121,7 @@ def _coerce_metric(
     key: str,
     documents: Any,
     failures: list[str],
-) -> float | None:
+) -> Optional[float]:
     if key not in result:
         failures.append(f"documents={documents} missing {key}")
         return None

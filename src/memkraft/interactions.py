@@ -5,6 +5,7 @@ snapshot is always rebuildable from the log.
 """
 
 from __future__ import annotations
+import typing
 
 import json
 import os
@@ -55,7 +56,7 @@ class LastInteractionMixin:
             self._write_last_interactions_snapshot(snapshot)
         return _public_record(record)
 
-    def last_interaction(self, subject_id: str) -> dict[str, Any] | None:
+    def last_interaction(self, subject_id: str) -> typing.Optional[dict[str, Any]]:
         """Preview: return the latest interaction for a subject, rebuilding if needed."""
         key = str(subject_id)
         cached = getattr(self, "_last_interactions_snapshot_cache", None)

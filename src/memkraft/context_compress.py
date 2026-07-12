@@ -26,6 +26,7 @@ confidence tag if present.  Each line is short (<=220 chars by
 default) so the LLM doesn't waste tokens on filler.
 """
 from __future__ import annotations
+import typing
 
 import re
 from typing import Any, Iterable
@@ -141,11 +142,11 @@ class ContextCompressMixin:
     # ------------------------------------------------------------------
     def _compress_select(
         self,
-        results: Iterable[dict] | None,
+        results: typing.Optional[Iterable[dict]],
         query: str = "",
         *,
         max_chars: int = 5000,
-        max_lines: int | None = None,
+        max_lines: typing.Optional[int] = None,
         max_line_chars: int = 220,
     ) -> list[dict]:
         if not results:
@@ -204,11 +205,11 @@ class ContextCompressMixin:
     # ------------------------------------------------------------------
     def compress_context(
         self,
-        results: Iterable[dict] | None,
+        results: typing.Optional[Iterable[dict]],
         query: str = "",
         *,
         max_chars: int = 5000,
-        max_lines: int | None = None,
+        max_lines: typing.Optional[int] = None,
         max_line_chars: int = 220,
     ) -> str:
         """Compress ``results`` into a tight context block <= ``max_chars``.

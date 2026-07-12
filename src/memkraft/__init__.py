@@ -247,6 +247,11 @@ install_confidence_wrappers(_BaseMemKraft)
 # final method body.
 install_cache_invalidation_wrappers(_BaseMemKraft)
 
+# v3 Phase A: additive canonical names and warned legacy aliases. This runs
+# after all wrappers so aliases preserve the already-shipped behavior.
+from .compat import install_v3_compat
+install_v3_compat(_BaseMemKraft)
+
 MemKraft = _BaseMemKraft
 
 __all__ = ["MemKraft", "__version__"]

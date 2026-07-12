@@ -18,6 +18,7 @@ Constraints honoured:
   * No external dependencies (stdlib only).
 """
 from __future__ import annotations
+import typing
 
 import logging
 import re
@@ -78,7 +79,7 @@ def _extract_entities_from_text(text: str, *, max_entities: int = 6) -> list[str
     return out
 
 
-def _entity_from_filename(stem: str) -> str | None:
+def _entity_from_filename(stem: str) -> typing.Optional[str]:
     """Treat first space-separated token of the file stem as an entity hint."""
     if not stem:
         return None
@@ -212,7 +213,7 @@ class MultiPassMixin:
             return []
 
         seen_keys: set[tuple[str, str, str]] = set()
-        rows: list[tuple[dict, datetime | None]] = []
+        rows: list[tuple[dict, typing.Optional[datetime]]] = []
 
         for ent in entities:
             ent = (ent or "").strip()
@@ -233,7 +234,7 @@ class MultiPassMixin:
                     continue
                 seen_keys.add(dedup)
 
-                rec_dt: datetime | None = None
+                rec_dt: typing.Optional[datetime] = None
                 if rec:
                     for fmt in (
                         "%Y-%m-%dT%H:%M:%S.%fZ",

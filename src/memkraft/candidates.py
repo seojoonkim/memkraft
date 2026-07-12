@@ -5,6 +5,7 @@ not promote, resolve, search global memory, or extract claims in S10.
 """
 
 from __future__ import annotations
+import typing
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -30,9 +31,9 @@ class CandidateMixin:
         text: str,
         *,
         session_id: str,
-        entity_hint: str | None = None,
-        provenance_id: str | None = None,
-        expires_at: str | None = None,
+        entity_hint: typing.Optional[str] = None,
+        provenance_id: typing.Optional[str] = None,
+        expires_at: typing.Optional[str] = None,
     ) -> dict[str, Any]:
         """Preview: append a short-lived candidate memory and return its id."""
         expires = expires_at or (
@@ -64,7 +65,7 @@ class CandidateMixin:
     def list_candidates(
         self,
         *,
-        session_id: str | None = None,
+        session_id: typing.Optional[str] = None,
         include_expired: bool = False,
     ) -> list[dict[str, Any]]:
         """Preview: list candidate memory records, excluding expired by default."""

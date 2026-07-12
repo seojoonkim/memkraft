@@ -8,6 +8,7 @@ Run:
 """
 from __future__ import annotations
 
+import typing
 import argparse
 import contextlib
 import io
@@ -79,14 +80,14 @@ def _seed_corpus(base: Path, n: int, words_per_doc: int) -> None:
         )
 
 
-def _search(mk: MemKraft, query: str, top_k: int | None = None) -> list:
+def _search(mk: MemKraft, query: str, top_k: typing.Optional[int] = None) -> list:
     fn = getattr(mk, "search")
     if top_k is None:
         return fn(query)
     return fn(query, top_k=top_k)
 
 
-def _time_searches(mk: MemKraft, query: str, iterations: int, top_k: int | None = None) -> tuple[List[float], int]:
+def _time_searches(mk: MemKraft, query: str, iterations: int, top_k: typing.Optional[int] = None) -> tuple[List[float], int]:
     times: List[float] = []
     hit_count = 0
     for _ in range(iterations):
@@ -127,7 +128,7 @@ def parse_sizes(raw: str) -> List[int]:
     return [int(part.strip()) for part in raw.split(",") if part.strip()]
 
 
-def main(argv: Iterable[str] | None = None) -> dict:
+def main(argv: typing.Optional[Iterable[str]] = None) -> dict:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sizes", default=",".join(str(x) for x in DEFAULT_SIZES))
     parser.add_argument("--iterations", type=int, default=5)

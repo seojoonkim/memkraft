@@ -9,6 +9,7 @@ Exit codes:
          (and written to ``--out`` when present) instead of a traceback.
 """
 from __future__ import annotations
+import typing
 
 import argparse
 import json
@@ -73,7 +74,7 @@ def _finite_float(raw: str) -> float:
     return value
 
 
-def _write_output(payload: dict, out: str | None) -> None:
+def _write_output(payload: dict, out: typing.Optional[str]) -> None:
     output = json.dumps(payload, indent=2)
     if out is not None:
         out_path = Path(out)
@@ -83,7 +84,7 @@ def _write_output(payload: dict, out: str | None) -> None:
 
 
 class _UsageError(Exception):
-    def __init__(self, message: str, param: str | None):
+    def __init__(self, message: str, param: typing.Optional[str]):
         super().__init__(message)
         self.param = param
 
@@ -97,7 +98,7 @@ class _GymArgumentParser(argparse.ArgumentParser):
         raise _UsageError(message, param)
 
 
-def _extract_out(argv: Sequence[str] | None) -> str | None:
+def _extract_out(argv: typing.Optional[Sequence[str]]) -> typing.Optional[str]:
     """Best-effort ``--out`` lookup for reporting errors when parsing fails."""
     tokens = list(sys.argv[1:] if argv is None else argv)
     for index, token in enumerate(tokens):
@@ -108,11 +109,11 @@ def _extract_out(argv: Sequence[str] | None) -> str | None:
     return None
 
 
-def _usage_error_payload(kind: str, param: str | None, message: str) -> dict:
+def _usage_error_payload(kind: str, param: typing.Optional[str], message: str) -> dict:
     return {"error": {"kind": kind, "param": param, "message": message}}
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: typing.Optional[Sequence[str]] = None) -> int:
     parser = _GymArgumentParser(description=__doc__)
     parser.add_argument("--scenario", default="search_recall")
     parser.add_argument("--sizes", type=_parse_sizes, default=_parse_sizes("20"))

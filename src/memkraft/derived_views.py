@@ -179,7 +179,7 @@ class DerivedViewsMixin:
 
     def export_memory(self,include_tombstoned=False):
         _bool(include_tombstoned,"include_tombstoned"); rows=read_all(self._canonical_events_path(),include_tombstoned).records
-        return [dict(r) for r in rows if include_tombstoned or (not r.get("tombstone") and not self._denied(r.get("subject_id"),r.get("key")))]
+        return [dict(r) for r in rows if (include_tombstoned or not r.get("tombstone")) and not self._denied(r.get("subject_id"),r.get("key"))]
     def timeline(self,subject_id=None,include_tombstoned=False):
         _bool(include_tombstoned,"include_tombstoned")
         if subject_id is not None: subject_id=_text(subject_id,"subject_id")
