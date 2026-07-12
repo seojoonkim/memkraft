@@ -44,6 +44,7 @@ from .provenance import ProvenanceMixin  # v3 M2 Provenance Core
 from .candidates import CandidateMixin  # v2.13 candidate memory preview
 from .interactions import LastInteractionMixin  # v2.13 last-interaction preview
 from .derived_views import DerivedViewsMixin  # v2.14 canonical truth preview
+from .context_compiler import ContextCompilerMixin  # v2.15 A1 context compiler preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
 # `_slugify` would clobber core._slugify (which has Korean/CJK support).
@@ -97,6 +98,7 @@ for _mixin in (
     CandidateMixin,
     LastInteractionMixin,
     DerivedViewsMixin,
+    ContextCompilerMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
