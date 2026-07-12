@@ -210,6 +210,17 @@ mk.last_interaction("alice")
 Their schemas and behavior may change before stabilization; do not treat preview
 records as durable storage contracts without pinning the MemKraft version.
 
+New in **2.14 preview**: `sleep()` returns a deterministic truth-compilation
+plan and writes nothing by default; use `sleep(dry_run=False)` or
+`memkraft sleep --apply` to apply one governance-lock-coherent event/policy
+snapshot and append its journal record. A crash can leave truth applied before
+the journal append; retry repairs the missing record idempotently. `forget` and
+`do_not_remember` use append-only tombstones/policies and stable operation IDs;
+they immediately fail closed on governed reads, but do not promise physical
+erasure (including backups or external copies). `export_memory`, `audit_log`,
+and `timeline` are local preview views, not transactional snapshots across
+separate calls. Sleep performs truth compilation only—no episode clustering.
+
 Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
 ### The 1.0 Self-Improvement Loop

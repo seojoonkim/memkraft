@@ -3,7 +3,8 @@
 
 import argparse
 import sys
-from .core import MemKraft
+import json
+from . import MemKraft
 from . import __version__
 
 
@@ -14,6 +15,12 @@ def main():
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    sleep_parser = subparsers.add_parser("sleep", help="Preview or apply canonical truth compilation")
+    sleep_mode = sleep_parser.add_mutually_exclusive_group()
+    sleep_mode.add_argument("--dry-run", action="store_true", help="Preview with zero writes (default)")
+    sleep_mode.add_argument("--apply", action="store_true", help="Apply the exact plan")
+    sleep_parser.add_argument("--strategy", default="default", choices=["default"])
 
     # init
     init_parser = subparsers.add_parser("init", help="Initialize memory structure")
@@ -526,6 +533,8 @@ def main():
             mc.search_debug_sessions(args.query)
         elif args.debug_command == "search-rejected":
             mc.search_rejected_hypotheses(args.query)
+    elif args.command == "sleep":
+        print(json.dumps(mc.sleep(strategy=args.strategy, dry_run=not args.apply), ensure_ascii=False, sort_keys=True))
     elif args.command == "snapshot":
         mc.snapshot(label=args.label, include_content=getattr(args, 'include_content', False))
     elif args.command == "snapshot-list":

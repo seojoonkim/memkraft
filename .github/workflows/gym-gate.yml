@@ -100,6 +100,14 @@ jobs:
             --sizes 10000 \
             --out /tmp/memkraft-last-interaction-gate.json
 
+      - name: Run Memory Gym lifecycle/governance scenario
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario lifecycle_governance \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-lifecycle-governance-gate.json
+
   optional-dependencies:
     name: optional / ${{ matrix.extra }}
     runs-on: ubuntu-latest

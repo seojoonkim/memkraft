@@ -232,7 +232,35 @@ def _run_last_interaction(
     return {"scenario": "last_interaction", "results": results}
 
 
+def _run_lifecycle_governance(**_kwargs: Any) -> dict[str, Any]:
+    from memkraft import MemKraft
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        event = mk.append_event("user", "city", "Seoul", source="gym")
+        dry = mk.sleep()
+        applied = mk.sleep(dry_run=False)
+        retry = mk.sleep(dry_run=False)
+        rebuilt = mk.current_truth("user") == {"city": "Seoul"}
+        mk.forget(event["id"], dry_run=False)
+        propagated = mk.current_truth("user") == {} and mk.export_memory() == []
+        passed = all((
+            rebuilt,
+            dry["transaction_id"] == applied["transaction_id"],
+            retry["status"] == "already_applied",
+            propagated,
+        ))
+        return {"scenario": "lifecycle_governance", "results": [{
+            "truth_rebuild": rebuilt,
+            "dry_apply_same_transaction": dry["transaction_id"] == applied["transaction_id"],
+            "idempotent_retry": retry["status"] == "already_applied",
+            "deletion_propagated": propagated,
+            "mean_recall_at_k": float(passed),
+            "min_recall_at_k": float(passed),
+        }]}
+
+
 register_scenario("search_recall", _run_search_recall)
 register_scenario("session_overlay_recall", _run_session_overlay_recall)
 register_scenario("resolver_verdicts", _run_resolver_verdicts)
 register_scenario("last_interaction", _run_last_interaction)
+register_scenario("lifecycle_governance", _run_lifecycle_governance)

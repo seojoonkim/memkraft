@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [Unreleased]
+
+- Added 2.14 preview sleep lifecycle with deterministic zero-write plans,
+  governance-lock-coherent snapshot/compile/journal sequencing, stable
+  transaction IDs, and idempotent missing-journal repair on retry. This is not
+  a multi-file atomic transaction: a crash may require that retry repair.
+- Added governance preview APIs (`forget`, `do_not_remember`, `export_memory`,
+  `audit_log`) with fail-closed tombstone/deny propagation and event-derived
+  `timeline`; tombstones do not claim physical erasure or removal from backups.
+- Added lifecycle/governance integration and Memory Gym CI coverage.
+
 ## [2.13.0] — 2026-07-08
 
 Lifecycle Foundation release for MemKraft v3. **Public API additive only.**
