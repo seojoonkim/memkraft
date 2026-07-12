@@ -55,6 +55,16 @@ def test_release_cut_version_and_changelog_metadata():
     assert f"## [{RELEASE_VERSION}] — {RELEASE_DATE}" in changelog
 
 
+def test_wheel_smoke_uses_canonical_project_version_without_release_literal():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github/workflows/gym-gate.yml").read_text(encoding="utf-8")
+
+    assert RELEASE_VERSION not in workflow
+    assert "import tomllib" in workflow
+    assert 'tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]' in workflow
+    assert 'version("memkraft") == memkraft.__version__ == project_version' in workflow
+
+
 def test_legacy_editable_shim_does_not_duplicate_metadata():
     root = Path(__file__).resolve().parents[1]
     shim = (root / "setup.py").read_text(encoding="utf-8")
