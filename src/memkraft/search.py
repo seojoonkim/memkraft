@@ -22,6 +22,7 @@ Design constraints honoured:
   * Silent by default — no stdout noise (unlike the legacy ``search``).
 """
 from __future__ import annotations
+import typing
 
 import contextlib
 import io
@@ -157,7 +158,7 @@ class SearchMixin:
         self,
         query: str,
         fuzzy: bool = False,
-        top_k: int | None = None,
+        top_k: typing.Optional[int] = None,
         cache: bool = False,
     ) -> list[dict]:
         """Run the core ``search`` while suppressing its stdout side
@@ -436,7 +437,7 @@ class SearchMixin:
         self,
         query: str,
         top_k: int = 20,
-        date_hint: str | None = None,
+        date_hint: typing.Optional[str] = None,
         fuzzy: bool = False,
         cache: bool = True,
     ) -> list[dict]:
@@ -722,7 +723,7 @@ class SearchMixin:
     def search_temporal(
         self,
         query: str,
-        date_hint: str | None = None,
+        date_hint: typing.Optional[str] = None,
         top_k: int = 20,
         fuzzy: bool = False,
         window_days: int = 30,

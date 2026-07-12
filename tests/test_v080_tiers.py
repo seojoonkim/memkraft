@@ -151,6 +151,30 @@ class TestTouch:
 # ---------------------------------------------------------------------------
 
 class TestWorkingSet:
+    def test_agent_filter_includes_own_recall_and_excludes_other_paths(self, tmp_path):
+        mk = _mk(tmp_path)
+        own = str(mk.base_dir / ".memkraft" / "agents" / "alice" / "own.md")
+        other = str(mk.base_dir / ".memkraft" / "agents" / "bob" / "other.md")
+        global_recall = str(mk.base_dir / "inbox" / "global.md")
+        mk.tier_list = lambda: [
+            {"path": own, "tier": "recall", "last_accessed": "2026-01-03"},
+            {"path": other, "tier": "recall", "last_accessed": "2026-01-02"},
+            {"path": global_recall, "tier": "recall", "last_accessed": "2026-01-01"},
+        ]
+
+        paths = {e["path"] for e in mk.working_set(agent="alice", limit=10)}
+
+        assert paths == {own}
+
+    def test_agent_filter_keeps_global_core(self, tmp_path):
+        mk = _mk(tmp_path)
+        core = str(mk.base_dir / "inbox" / "shared.md")
+        mk.tier_list = lambda: [
+            {"path": core, "tier": "core", "last_accessed": None},
+        ]
+
+        assert [e["path"] for e in mk.working_set(agent="alice", limit=10)] == [core]
+
     def test_working_set_includes_all_core(self, tmp_path):
         mk = _mk(tmp_path)
         a = _write(mk, "inbox/a.md")

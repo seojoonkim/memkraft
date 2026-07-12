@@ -32,6 +32,7 @@ Constraints honoured:
     v2.x mixins.
 """
 from __future__ import annotations
+import typing
 
 from typing import Any, Callable, Iterable
 
@@ -95,7 +96,7 @@ def _default_dedup_key(r: dict) -> tuple:
 def rrf_fuse(
     *result_lists: list[dict],
     k: int = RRF_K_DEFAULT,
-    key_fn: Callable[[dict], Any] | None = None,
+    key_fn: typing.Optional[Callable[[dict], Any]] = None,
 ) -> list[dict]:
     """Fuse multiple ranked result lists via Reciprocal Rank Fusion.
 
@@ -228,7 +229,7 @@ class RRFMixin:
         self,
         *result_lists: list[dict],
         k: int = RRF_K_DEFAULT,
-        key_fn: Callable[[dict], Any] | None = None,
+        key_fn: typing.Optional[Callable[[dict], Any]] = None,
     ) -> list[dict]:
         """Instance-method shim around :func:`rrf_fuse`.
 

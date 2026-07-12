@@ -5,6 +5,7 @@ patterns. It uses stdlib regular expressions only; broader NLP, LLM, or
 heuristic extraction belongs to later slices.
 """
 from __future__ import annotations
+import typing
 
 import re
 import unicodedata
@@ -68,7 +69,7 @@ _KO_IMPLICIT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 
-def extract_claims(text: str, *, entity_hint: str | None = None) -> list[dict[str, Any]]:
+def extract_claims(text: str, *, entity_hint: typing.Optional[str] = None) -> list[dict[str, Any]]:
     """Extract S8/S9 preview English and Korean claims from ``text``.
 
     Supported patterns only:
@@ -118,7 +119,7 @@ def _claim_from_match(
     predicate: str,
     match: re.Match[str],
     *,
-    subject_override: str | None = None,
+    subject_override: typing.Optional[str] = None,
 ) -> dict[str, Any]:
     subject = subject_override or match.group("subject").strip()
     quote = match.group("quote").strip()
@@ -151,7 +152,7 @@ def _ko_claim_from_match(
     predicate: str,
     match: re.Match[str],
     *,
-    subject_override: str | None = None,
+    subject_override: typing.Optional[str] = None,
 ) -> dict[str, Any]:
     subject = subject_override or match.group("subject").strip()
     quote = match.group("quote").strip()

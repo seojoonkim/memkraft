@@ -7,6 +7,7 @@ on:
       - "benchmarks/**"
       - "tests/**"
       - "pyproject.toml"
+      - "setup.py"
       - ".github/workflows/gym-gate.yml"
   push:
     branches: [main]
@@ -15,9 +16,35 @@ on:
       - "benchmarks/**"
       - "tests/**"
       - "pyproject.toml"
+      - "setup.py"
       - ".github/workflows/gym-gate.yml"
 
 jobs:
+  packaging:
+    name: wheel metadata smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build distributions
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Verify metadata from a fresh wheel install
+        run: |
+          python -m venv /tmp/memkraft-wheel-smoke
+          /tmp/memkraft-wheel-smoke/bin/python -m pip install dist/*.whl
+          /tmp/memkraft-wheel-smoke/bin/python - <<'PY'
+          from importlib.metadata import version
+          import memkraft
+
+          assert version("memkraft") == memkraft.__version__ == "2.13.0"
+          PY
+
   search-recall:
     name: search_recall / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
@@ -72,3 +99,54 @@ jobs:
             --scenario last_interaction \
             --sizes 10000 \
             --out /tmp/memkraft-last-interaction-gate.json
+
+      - name: Run Memory Gym lifecycle/governance scenario
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario lifecycle_governance \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-lifecycle-governance-gate.json
+
+      - name: Run Memory Gym outcome/context gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario outcome_context \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-outcome-context-gate.json
+
+      - name: Run deterministic v3 lifecycle replay gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario lifecycle_replay \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-lifecycle-replay-gate.json
+
+  optional-dependencies:
+    name: optional / ${{ matrix.extra }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: watch
+            tests: tests/test_v081_watch.py
+          - extra: schedule
+            tests: tests/test_v110_lifecycle.py
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install optional dependency and tests
+        run: python -m pip install ".[${{ matrix.extra }}]" pytest
+      - name: Run optional dependency tests
+        run: python -m pytest ${{ matrix.tests }} -q
+
+  # The embedding extra downloads a live model, so it intentionally remains
+  # outside default CI. Exercise it only from an explicit/periodic workflow.

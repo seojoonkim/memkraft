@@ -232,7 +232,147 @@ def _run_last_interaction(
     return {"scenario": "last_interaction", "results": results}
 
 
+def _run_lifecycle_governance(**_kwargs: Any) -> dict[str, Any]:
+    from memkraft import MemKraft
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        event = mk.append_event("user", "city", "Seoul", source="gym")
+        dry = mk.sleep()
+        applied = mk.sleep(dry_run=False)
+        retry = mk.sleep(dry_run=False)
+        rebuilt = mk.current_truth("user") == {"city": "Seoul"}
+        mk.forget(event["id"], dry_run=False)
+        propagated = mk.current_truth("user") == {} and mk.export_memory() == []
+        passed = all((
+            rebuilt,
+            dry["transaction_id"] == applied["transaction_id"],
+            retry["status"] == "already_applied",
+            propagated,
+        ))
+        return {"scenario": "lifecycle_governance", "results": [{
+            "truth_rebuild": rebuilt,
+            "dry_apply_same_transaction": dry["transaction_id"] == applied["transaction_id"],
+            "idempotent_retry": retry["status"] == "already_applied",
+            "deletion_propagated": propagated,
+            "mean_recall_at_k": float(passed),
+            "min_recall_at_k": float(passed),
+        }]}
+
+
+def _run_outcome_context(**_kwargs: Any) -> dict[str, Any]:
+    """Prove feedback reranking, reward clamp, and explicit pin protection."""
+    from datetime import datetime, timezone
+    from memkraft import MemKraft
+    now = datetime(2026, 1, 31, tzinfo=timezone.utc)
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        mk.append_event("u", "alpha", "A", source="source:a")
+        mk.append_event("u", "beta", "B", source="source:b")
+        mk.compile_truth(dry_run=False)
+        before = mk.compile_context("gym", 500, now=now)
+        report = mk.report_outcome(before["usage_id"], "failure", reward=-99, now=now)
+        after = mk.compile_context("gym", 500, now=now)
+        pinned = mk.compile_context("gym", 500, now=now, pinned_sources=["source:a"])
+        changed = before["sections"]["truth"][0]["key"] != after["sections"]["truth"][0]["key"]
+        clamped = report["reward"] == -1.0 and report["max_update"] == 0.2
+        protected = pinned["sections"]["truth"][0]["source"] == "source:a"
+        passed = changed and clamped and protected
+        return {"scenario": "outcome_context", "results": [{
+            "documents": 2, "ordering_changed": changed, "reward_clamped": clamped,
+            "pin_protected": protected, "mean_recall_at_k": float(passed),
+            "min_recall_at_k": float(passed),
+        }]}
+
+
+def _derived_rows_are_sourced(
+    derived: list[dict[str, Any]], canonical: list[dict[str, Any]], transaction_id: str
+) -> bool:
+    """Require each derived claim to match canonical content, or its sleep transaction."""
+    claims = {
+        (r.get("subject_id"), r.get("key"), r.get("value"), r.get("source"), r.get("provenance"))
+        for r in canonical if not r.get("tombstone")
+    }
+    for row in derived:
+        if row.get("action") == "sleep":
+            if row.get("source") != "sleep" or row.get("transaction_id") != transaction_id:
+                return False
+        elif (row.get("subject_id"), row.get("key"), row.get("value"),
+              row.get("source"), row.get("provenance")) not in claims:
+            return False
+    return True
+
+
+def run_lifecycle_fixture(fixture: dict[str, Any]) -> dict[str, Any]:
+    """Replay an offline fixture exclusively through the public v3 lifecycle."""
+    from memkraft import MemKraft
+    from memkraft.store_core import read_all
+    events = fixture.get("events")
+    if not isinstance(events, list) or not events:
+        raise ValueError("events must be a non-empty list")
+    if any(not isinstance(e, dict) or not (e.get("source") or e.get("provenance")) for e in events):
+        raise ValueError("source (or provenance) is required")
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        fixture_to_actual = {}
+        for event in events:
+            row = mk.append_event(
+                event.get("subject_id"), event.get("key"), event.get("value"),
+                source=event.get("source"), provenance=event.get("provenance"),
+                valid_from=event.get("valid_from"),
+            )
+            if event.get("id"):
+                fixture_to_actual[event["id"]] = row["id"]
+        mk.compile_truth(dry_run=False)
+        dry, applied = mk.sleep(), mk.sleep(dry_run=False)
+        forget_id = fixture_to_actual.get(fixture["forget_id"])
+        if forget_id is None:
+            raise ValueError("forget_id must reference a fixture event")
+        forgotten_event = next(e for e in events if e.get("id") == fixture["forget_id"])
+        forgotten = mk.forget(forget_id, dry_run=False)
+        context = mk.compile_context(fixture["task"], fixture["budget"])
+        outcome = fixture["outcome"]
+        report = mk.report_outcome(context["usage_id"], outcome["label"], reward=outcome["reward"])
+        canonical = read_all(mk._canonical_events_path(), True).records
+        derived = read_all(mk._compiled_truth_path()).records + read_all(mk._sleep_journal_path()).records
+        no_unsourced = _derived_rows_are_sourced(derived, canonical, applied["transaction_id"])
+        recalled = mk.current_truth("ada") == fixture["expected_truth"]
+        hidden_export = forget_id not in {row["id"] for row in mk.export_memory()} and forgotten["status"] == "applied"
+        hidden_truth = forgotten_event["key"] not in mk.current_truth(forgotten_event["subject_id"])
+        post_context = mk.compile_context(fixture["task"], fixture["budget"])
+        context_rows = [row for rows in post_context["sections"].values() for row in rows]
+        hidden_context = all(row.get("id") != forget_id and not (
+            row.get("subject_id") == forgotten_event["subject_id"] and row.get("key") == forgotten_event["key"]
+        ) for row in context_rows)
+        forgotten_value = str(forgotten_event["value"])
+        search_hits = mk.search(forgotten_value, fuzzy=True, top_k=20)
+        hidden_search = all(
+            forget_id not in str(hit) and forgotten_value.lower() not in str(hit.get("snippet", "")).lower()
+            for hit in search_hits
+        )
+        hidden = hidden_export and hidden_truth and hidden_context and hidden_search
+        stable = dry["transaction_id"] == applied["transaction_id"]
+        outcome_recorded = report["usage_id"] == context["usage_id"]
+        passed = all((recalled, hidden, no_unsourced, stable, outcome_recorded))
+        return {"scenario": "lifecycle_replay", "fixture_schema": fixture["schema_version"], "results": [{
+            "documents": len(events), "recall": recalled, "tombstone_hidden": hidden,
+            "tombstone_hidden_current_truth": hidden_truth,
+            "tombstone_hidden_context": hidden_context, "tombstone_hidden_search": hidden_search,
+            "no_unsourced_derived_writes": no_unsourced,
+            "sleep_transaction_stable": stable, "outcome_recorded": outcome_recorded,
+            "mean_recall_at_k": float(passed), "min_recall_at_k": float(passed),
+        }]}
+
+
+def _run_lifecycle_replay(**_kwargs: Any) -> dict[str, Any]:
+    import json
+    path = Path(__file__).with_name("fixtures") / "lifecycle_replay.json"
+    return run_lifecycle_fixture(json.loads(path.read_text(encoding="utf-8")))
+
+
 register_scenario("search_recall", _run_search_recall)
 register_scenario("session_overlay_recall", _run_session_overlay_recall)
 register_scenario("resolver_verdicts", _run_resolver_verdicts)
 register_scenario("last_interaction", _run_last_interaction)
+register_scenario("lifecycle_governance", _run_lifecycle_governance)
+register_scenario("outcome_context", _run_outcome_context)
+register_scenario("lifecycle_replay", _run_lifecycle_replay)

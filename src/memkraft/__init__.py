@@ -43,6 +43,9 @@ from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .provenance import ProvenanceMixin  # v3 M2 Provenance Core
 from .candidates import CandidateMixin  # v2.13 candidate memory preview
 from .interactions import LastInteractionMixin  # v2.13 last-interaction preview
+from .derived_views import DerivedViewsMixin  # v2.14 canonical truth preview
+from .context_compiler import ContextCompilerMixin  # v2.15 A1 context compiler preview
+from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
 # `_slugify` would clobber core._slugify (which has Korean/CJK support).
@@ -95,6 +98,9 @@ for _mixin in (
     ProvenanceMixin,
     CandidateMixin,
     LastInteractionMixin,
+    DerivedViewsMixin,
+    OutcomeLoopMixin,
+    ContextCompilerMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
@@ -240,6 +246,11 @@ install_confidence_wrappers(_BaseMemKraft)
 # result cache. MUST run last so the wrappers see every other mixin's
 # final method body.
 install_cache_invalidation_wrappers(_BaseMemKraft)
+
+# v3 Phase A: additive canonical names and warned legacy aliases. This runs
+# after all wrappers so aliases preserve the already-shipped behavior.
+from .compat import install_v3_compat
+install_v3_compat(_BaseMemKraft)
 
 MemKraft = _BaseMemKraft
 

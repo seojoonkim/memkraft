@@ -1,15 +1,9 @@
-from setuptools import setup, find_packages
+"""Compatibility shim for legacy pip editable installs.
 
-setup(
-    name="memkraft",
-    version="1.0.0",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
-    package_data={"memkraft": ["templates/*.md"]},
-    install_requires=[],
-    entry_points={
-        "console_scripts": [
-            "memkraft=memkraft.cli:main",
-        ],
-    },
-)
+All project metadata and package discovery live in ``pyproject.toml``.
+"""
+
+from setuptools import setup
+
+
+setup()

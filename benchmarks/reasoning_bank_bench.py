@@ -8,6 +8,7 @@ Run:
 """
 from __future__ import annotations
 
+import typing
 import argparse
 import contextlib
 import io
@@ -126,7 +127,7 @@ def parse_sizes(raw: str) -> List[int]:
     return [int(part.strip()) for part in raw.split(",") if part.strip()]
 
 
-def main(argv: Iterable[str] | None = None) -> dict:
+def main(argv: typing.Optional[Iterable[str]] = None) -> dict:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sizes", default=",".join(str(x) for x in DEFAULT_SIZES))
     parser.add_argument("--iterations", type=int, default=8)

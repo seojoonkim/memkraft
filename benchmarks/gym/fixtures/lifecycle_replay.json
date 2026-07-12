@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "task": "Where does Ada live?",
+  "budget": 500,
+  "events": [
+    {"id": "event-ada-city-old", "subject_id": "ada", "key": "city", "value": "London", "source": "fixture:session-1", "valid_from": "2025-01-01", "created_at": "2025-01-01T00:00:00+00:00"},
+    {"id": "event-ada-city-new", "subject_id": "ada", "key": "city", "value": "Seoul", "source": "fixture:session-2", "valid_from": "2026-01-01", "created_at": "2026-01-01T00:00:00+00:00"},
+    {"id": "event-ada-secret", "subject_id": "ada", "key": "secret", "value": "red", "source": "fixture:session-2", "created_at": "2026-01-01T00:00:01+00:00"}
+  ],
+  "forget_id": "event-ada-secret",
+  "expected_truth": {"city": "Seoul"},
+  "outcome": {"label": "success", "reward": 1.0}
+}

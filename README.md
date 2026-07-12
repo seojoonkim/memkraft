@@ -8,7 +8,7 @@
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
 _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
-**v2.7.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**v2.13.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
@@ -26,7 +26,7 @@ _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracl
 [pypi-badge]: https://img.shields.io/pypi/v/memkraft?style=for-the-badge&color=blue
 [python-badge]: https://img.shields.io/badge/python-3.9%2B-blue?style=for-the-badge
 [license-badge]: https://img.shields.io/badge/license-MIT-green?style=for-the-badge
-[tests-badge]: https://img.shields.io/badge/tests-1168%20passed-brightgreen?style=for-the-badge
+[tests-badge]: https://img.shields.io/github/actions/workflow/status/seojoonkim/memkraft/gym-gate.yml?style=for-the-badge&label=tests
 [deps-badge]: https://img.shields.io/badge/dependencies-zero-brightgreen?style=for-the-badge
 [pypi-url]: https://pypi.org/project/memkraft/
 [license-url]: LICENSE
@@ -96,6 +96,16 @@ mk.search("MemKraft")
 That's it. Your agent now has persistent memory as plain markdown files.
 No API keys. No database. No config. Just `.md` files you own.
 
+### 2.15 outcome-loop preview
+
+`compile_context(...)` returns a stable `usage_id`. Report a result with
+`report_outcome(usage_id, outcome, reward=None, metadata=None)`; retries may
+provide `metadata={"idempotency_key": "..."}`. Valid reports append to
+`.memkraft/outcomes.jsonl` and deterministically influence later ordering with
+a 30-day half-life and maximum ±20% update. Rewards clamp to `[-1, 1]`;
+unknown usage IDs are rejected. Provenance, hard budgets, tombstones, and
+explicit `pinned_sources` remain authoritative. `now=` is a preview replay hook.
+
 ### Optional extras
 
 ```bash
@@ -163,7 +173,7 @@ See [`examples/`](examples/) for runnable variants.
 | Local-first            | ✅             | —           | —        |
 | Git-friendly           | ✅             | —           | —        |
 
-### API overview (14 public methods)
+### API overview (selected public methods)
 
 | API | Since | Role |
 |-----|-------|------|
@@ -184,7 +194,42 @@ See [`examples/`](examples/) for runnable variants.
 
 Also new in **2.6**: silent contradiction detection on `fact_add`, plus 1-hop graph neighbor expansion for counting-style queries (`how many`, `list all`).
 
-New in **2.7**: in-process **search result caching** for `search_v2()` and `search_smart()` — thread-safe LRU + TTL (default capacity 256, TTL 300s). Mutations (`update`, `track`, `fact_add`, `log_event`, `consolidate`, `decision_record`, `dream_cycle`) auto-invalidate via a generation counter, so callers never need to think about cache coherence. Opt-out per call with `cache=False`. Measured **6.14x speedup** on a hot-path workload (152 → 931 qps) and **1.65x** on a 50/50 mixed workload — raw numbers in `benchmarks/v2.7.0-bench-result.json`. Zero breaking changes.
+Since **2.7**: in-process **search result caching** for `search_v2()` and `search_smart()` — thread-safe LRU + TTL (default capacity 256, TTL 300s). Mutations auto-invalidate via a generation counter; opt out per call with `cache=False`.
+
+New in **2.13**: preview APIs for agent-memory pipelines:
+
+```python
+candidate = mk.remember_candidate("User prefers concise answers", session_id="s1")
+mk.list_candidates(session_id="s1")
+mk.session_overlay("s1", query="answer style", top_k=5)
+
+from memkraft.claims import extract_claims
+from memkraft.resolver import resolver_dry_run
+claims = extract_claims("Alice uses MemKraft.")
+verdicts = resolver_dry_run(claims)  # deterministic classification; no writes
+
+mk.record_interaction(
+    "alice", "2026-07-13T10:00:00Z", "chat-42",
+    summary="Discussed launch timing",
+)
+mk.last_interaction("alice")
+```
+
+`remember_candidate`, `list_candidates`, `session_overlay`, `extract_claims`,
+`resolver_dry_run`, `record_interaction`, and `last_interaction` are **preview APIs**.
+Their schemas and behavior may change before stabilization; do not treat preview
+records as durable storage contracts without pinning the MemKraft version.
+
+New in **2.14 preview**: `sleep()` returns a deterministic truth-compilation
+plan and writes nothing by default; use `sleep(dry_run=False)` or
+`memkraft sleep --apply` to apply one governance-lock-coherent event/policy
+snapshot and append its journal record. A crash can leave truth applied before
+the journal append; retry repairs the missing record idempotently. `forget` and
+`do_not_remember` use append-only tombstones/policies and stable operation IDs;
+they immediately fail closed on governed reads, but do not promise physical
+erasure (including backups or external copies). `export_memory`, `audit_log`,
+and `timeline` are local preview views, not transactional snapshots across
+separate calls. Sleep performs truth compilation only—no episode clustering.
 
 Self-improvement loop: **register → tune → recall → decide**, every step auditable and time-travelable. See [MIGRATION.md](./MIGRATION.md) for upgrading from 0.9.x (zero breaking changes).
 
