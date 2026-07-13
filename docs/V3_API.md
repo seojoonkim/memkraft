@@ -16,7 +16,19 @@
 
 ## Preview and secondary
 
-`remember_candidate`, `list_candidates`, `session_overlay`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+
+### Candidate governance preview
+
+`do_not_remember(subject, key)`는 candidate의 **추출된 구조화 claim**만 검사한다. 3.0.1의 명시적 key 매핑은 `prefers`, `uses`, `is_located` predicate와 changed claim의 `field`다. subject와 매핑된 key가 정책에 일치하는 candidate는 `list_candidates()`에서 제외되고, `session_overlay()`도 이 단일 필터 경로를 상속한다. Claim이 없는 자유 텍스트 candidate는 정책 문구를 추측해 자동으로 숨기지 않는다.
+
+`forget_candidates(candidate_id=..., dry_run=True)` 또는 `forget_candidates(session_id=..., dry_run=True)`로 candidate를 명시적으로 tombstone 처리할 수 있다. 두 selector는 정확히 하나만 필요하며 상호 배타적이다. 기본 dry-run은 JSON-safe 계획만 반환한다. `dry_run=False`는 기존 tombstone 형식과 governance audit(`action=forget_candidates`)을 사용하며 재시도에 멱등이다. `session_id` selector는 claim 없는 자유 텍스트까지 해당 세션에서 명시적으로 제거하는 blunt option이다.
+
+### Local sidecar compaction preview
+
+`compact_memory(dry_run=True)`는 `.memkraft/events.jsonl`과 `.memkraft/candidates.jsonl`만 대상으로 per-store `kept`, `removed_tombstoned`, `removed_markers`, `removed_corrupt` 수를 보고한다. 기본 dry-run은 파일을 쓰지 않는다. `dry_run=False`는 store core의 기존 lock/compact 경로로 local active sidecar의 tombstoned 원본, marker, corrupt line을 물리적으로 제거한다. 없는 sidecar는 생성하지 않는 no-op 성공이다. Visible `export_memory`, `timeline`, `current_truth`, `list_candidates` 의미는 compaction 전후 동일하다.
+
+Compaction은 **현재 로컬 active sidecar 파일만** 정리한다. Backup, VCS, filesystem snapshot, 외부 복사본에서의 삭제를 보장하지 않으므로 필요한 backup 보존·삭제 정책은 운영자가 별도로 관리해야 한다.
 
 ## Search modes
 

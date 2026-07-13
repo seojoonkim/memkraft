@@ -14,12 +14,14 @@ from benchmarks.search_recall_bench import run_one as run_search_recall_one
 from benchmarks.gym.gates import (
     MAX_LAST_INTERACTION_P95_MS,
     MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
+    MAX_SESSION_OVERLAY_GOVERNED_EXPOSURES,
     MAX_SESSION_OVERLAY_LEAKS,
     MIN_CLAIM_EXTRACTION_ACCURACY,
     MIN_KO_SEARCH_RECALL_AT_K,
     MIN_MIN_RECALL_AT_K,
     MIN_RESOLVER_VERDICT_ACCURACY,
     MIN_SEARCH_PRECISION_AT_K,
+    MIN_SESSION_OVERLAY_FREE_TEXT_DISCOVERIES,
     MIN_SESSION_OVERLAY_RECALL,
     MIN_TRUTH_FRESHNESS_CONTRACT,
 )
@@ -130,6 +132,9 @@ def _run_session_overlay_recall(
                 mk.remember_candidate(f"session beta topic {i}", session_id="beta")
             expired = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat(timespec="seconds")
             mk.remember_candidate("session alpha expired sentinel", session_id="alpha", expires_at=expired)
+            mk.remember_candidate("GovernedUser prefers governed sentinel", session_id="alpha")
+            mk.remember_candidate("governed sentinel free text", session_id="alpha")
+            mk.do_not_remember(subject="GovernedUser", key="prefers", dry_run=False)
 
             found = 0
             leaks = 0
@@ -141,6 +146,19 @@ def _run_session_overlay_recall(
                 leaks += sum(1 for hit in hits if hit.get("session_id") != "alpha")
                 expired_hits += sum(1 for hit in hits if "expired sentinel" in hit.get("text", ""))
 
+            governed_hits = sum(
+                hit.get("text") == "GovernedUser prefers governed sentinel"
+                for hit in mk.session_overlay(
+                    "alpha", "GovernedUser prefers governed sentinel", top_k=parsed_top_k
+                )
+            )
+            free_text_discoveries = sum(
+                hit.get("text") == "governed sentinel free text"
+                for hit in mk.session_overlay(
+                    "alpha", "governed sentinel free text", top_k=parsed_top_k
+                )
+            )
+
             same_session_recall = found / size
             results.append(
                 {
@@ -148,10 +166,14 @@ def _run_session_overlay_recall(
                     "same_session_recall": same_session_recall,
                     "cross_session_leaks": leaks,
                     "expired_exposures": expired_hits,
+                    "governed_exposures": governed_hits,
+                    "governed_free_text_discoveries": free_text_discoveries,
                     "thresholds": {
                         "min_same_session_recall": MIN_SESSION_OVERLAY_RECALL,
                         "max_cross_session_leaks": MAX_SESSION_OVERLAY_LEAKS,
                         "max_expired_exposures": MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
+                        "max_governed_exposures": MAX_SESSION_OVERLAY_GOVERNED_EXPOSURES,
+                        "min_governed_free_text_discoveries": MIN_SESSION_OVERLAY_FREE_TEXT_DISCOVERIES,
                     },
                 }
             )

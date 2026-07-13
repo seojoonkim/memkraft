@@ -11,6 +11,8 @@ MIN_MIN_RECALL_AT_K: float = 1.0
 MIN_SESSION_OVERLAY_RECALL: float = 1.0
 MAX_SESSION_OVERLAY_LEAKS: float = 0.0
 MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES: float = 0.0
+MAX_SESSION_OVERLAY_GOVERNED_EXPOSURES: float = 0.0
+MIN_SESSION_OVERLAY_FREE_TEXT_DISCOVERIES: float = 1.0
 MIN_RESOLVER_VERDICT_ACCURACY: float = 0.95
 MAX_LAST_INTERACTION_P95_MS: float = 5.0
 # 3.0.1 correctness scenarios are binary: no measured numeric baseline exists,
@@ -36,6 +38,8 @@ SCENARIO_GATES: dict[str, tuple[tuple[str, str, float], ...]] = {
         ("same_session_recall", "min", MIN_SESSION_OVERLAY_RECALL),
         ("cross_session_leaks", "max", MAX_SESSION_OVERLAY_LEAKS),
         ("expired_exposures", "max", MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES),
+        ("governed_exposures", "max", MAX_SESSION_OVERLAY_GOVERNED_EXPOSURES),
+        ("governed_free_text_discoveries", "min", MIN_SESSION_OVERLAY_FREE_TEXT_DISCOVERIES),
     ),
     "resolver_verdicts": (
         ("accuracy", "min", MIN_RESOLVER_VERDICT_ACCURACY),

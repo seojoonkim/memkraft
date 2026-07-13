@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from memkraft import MemKraft
+from benchmarks.gym.gates import evaluate_gate
 from benchmarks.gym.scenarios import registered_scenarios, run_scenario
 
 
@@ -68,3 +69,29 @@ def test_session_overlay_gym_scenario_is_registered_and_passes_gate():
     assert result["same_session_recall"] == 1.0
     assert result["cross_session_leaks"] == 0
     assert result["expired_exposures"] == 0
+    assert result["governed_exposures"] == 0
+    assert result["governed_free_text_discoveries"] == 1
+    assert evaluate_gate(payload)["passed"] is True
+
+
+def test_session_overlay_gym_gate_fails_without_candidate_policy_filter(monkeypatch):
+    monkeypatch.setattr(MemKraft, "_denied", lambda self, subject, key: False)
+
+    payload = run_scenario("session_overlay_recall", sizes=[20], top_k=5)
+
+    result = payload["results"][0]
+    assert result["governed_exposures"] == 1
+    assert result["governed_free_text_discoveries"] == 1
+    gate = evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("governed_exposures" in failure for failure in gate["failures"])
+
+
+def test_session_overlay_inherits_structured_policy_filter_but_keeps_free_text(tmp_path: Path):
+    mk = MemKraft(str(tmp_path))
+    mk.remember_candidate("Simon prefers private mode", session_id="s1")
+    mk.remember_candidate("private mode free text", session_id="s1")
+    mk.do_not_remember(subject="Simon", key="prefers", dry_run=False)
+    assert [hit["text"] for hit in mk.session_overlay("s1", "private mode", top_k=5)] == [
+        "private mode free text"
+    ]

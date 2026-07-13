@@ -78,6 +78,10 @@ class CandidateMixin:
                 continue
             if not include_expired and _is_expired(record.get("expires_at"), now):
                 continue
+            if any(self._denied(claim.get("subject"), _claim_policy_key(claim))
+                   for claim in record.get("claims", [])
+                   if isinstance(claim, dict) and _claim_policy_key(claim) is not None):
+                continue
             normalized = dict(record)
             normalized.setdefault("candidate_id", normalized.get("id"))
             out.append(normalized)
@@ -123,6 +127,18 @@ class CandidateMixin:
 
 def _tokens(value: Any) -> set[str]:
     return {token.lower() for token in _TOKEN_RE.findall(str(value))}
+
+
+def _claim_policy_key(claim: dict[str, Any]) -> typing.Optional[str]:
+    """Map only explicitly supported structured claim shapes to policy keys."""
+    predicate = claim.get("predicate")
+    if predicate in {"prefers", "uses", "is_located"}:
+        return str(predicate)
+    if predicate in {"changed", "updated", "corrected"}:
+        value = claim.get("object_value")
+        if isinstance(value, dict) and isinstance(value.get("field"), str):
+            return value["field"]
+    return None
 
 
 def _is_expired(expires_at: Any, now: datetime) -> bool:

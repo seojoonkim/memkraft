@@ -20,6 +20,13 @@
 |---|---|---|---|---|---|
 | 2.12.x | 2.13.0 | no (doctor가 안내) | `memkraft migrate --base-dir <dir> --to 2.13 --apply` | backup dir 복원 | none expected |
 | 2.13.x | 3.0 | no (additive/read-compatible) | 파생 뷰 재구축; 별도 schema rewrite 없음 | 2.13 binary + sidecar backup 복원 | preview 데이터만 재생성 필요 |
+| 3.0 | 3.0.1 | no (additive/read-compatible) | schema rewrite 없음; 선택적으로 `compact_memory(dry_run=False)` | 적용 전 sidecar backup 복원 | tombstoned local lines의 물리 제거 |
+
+### 2.3 — 3.0 → 3.0.1 local maintenance
+
+3.0.1은 schema migration 없이 candidate preview governance와 `compact_memory` maintenance API를 추가한다. 먼저 기본 `dry_run=True` 결과를 검토하고, 필요할 때만 apply한다. Compaction 범위는 active local `.memkraft/events.jsonl` 및 `.memkraft/candidates.jsonl`뿐이며 사용자 markdown, outcomes, audit, policy, journal 또는 파생 truth 파일은 대상이 아니다. 없는 sidecar는 생성하지 않고 no-op 성공한다.
+
+Apply 전 필요한 sidecar backup을 별도로 생성한다. Compaction은 tombstoned 원본·marker·corrupt line을 active local 파일에서 물리적으로 제거하므로 rollback은 사전 backup 복원이다. 이 작업은 backup, VCS, filesystem snapshot 또는 외부 복사본의 삭제를 보장하지 않는다.
 
 ### 2.1 — 2.12.x → 2.13.0 상세
 

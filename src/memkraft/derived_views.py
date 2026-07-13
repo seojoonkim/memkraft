@@ -4,7 +4,7 @@ import fnmatch, hashlib, json, os, tempfile, time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
-from .store_core import _lock_current_inode, _unlock, append, read_all, mark_tombstone
+from .store_core import _lock_current_inode, _unlock, append, compact, read_all, mark_tombstone
 
 
 def _text(value: Any, field: str) -> str:
@@ -177,6 +177,41 @@ class DerivedViewsMixin:
             return {**plan,"matched":len(ids),"record_ids":ids,"status":status}
         finally:_unlock(fd); os.close(fd)
 
+    def forget_candidates(self, *, candidate_id=None, session_id=None, dry_run=True):
+        """Preview: tombstone candidates selected by id or by their session."""
+        _bool(dry_run,"dry_run")
+        if (candidate_id is None) == (session_id is None):
+            raise ValueError("exactly one of candidate_id or session_id is required")
+        selector = ({"candidate_id":_text(candidate_id,"candidate_id")} if candidate_id is not None
+                    else {"session_id":_text(session_id,"session_id")})
+        path=self._meta("candidates.jsonl")
+        def selected(row):
+            return row.get("kind")=="candidate_memory" and all(row.get(k)==v for k,v in selector.items())
+        ids=[str(r.get("candidate_id",r.get("id"))) for r in read_all(path).records if selected(r)]
+        plan={"schema_version":1,"dry_run":dry_run,"selector":selector,"matched":len(ids),"candidate_ids":ids,"status":"planned"}
+        if dry_run:return plan
+        fd=self._governance_lock()
+        try:
+            allrows=read_all(path,True).records
+            source=[r for r in allrows if not r.get("tombstone") and selected(r)]
+            ids=[str(r.get("candidate_id",r.get("id"))) for r in source]
+            tombstoned={r.get("tombstone_of") for r in allrows if r.get("tombstone") is True}
+            live_ids=[i for i in ids if i not in tombstoned]
+            if not ids:return {**plan,"matched":0,"candidate_ids":[],"status":"not_found"}
+            for candidate in live_ids:mark_tombstone(path,candidate)
+            op=_digest({"action":"forget_candidates","selector":selector,"candidate_ids":sorted(ids)})
+            self._append_audit({"action":"forget_candidates","source":"governance","operation_id":op,"selector":selector,"candidate_ids":ids})
+            return {**plan,"matched":len(ids),"candidate_ids":ids,"status":"applied" if live_ids else "already_forgotten"}
+        finally:_unlock(fd); os.close(fd)
+
+    def compact_memory(self,dry_run=True):
+        """Preview: compact only the active local event and candidate sidecars."""
+        _bool(dry_run,"dry_run")
+        paths={"events.jsonl":self._canonical_events_path(),"candidates.jsonl":self._meta("candidates.jsonl")}
+        stores=({name:_compaction_counts(path) for name,path in paths.items()} if dry_run else
+                {name:_compact_dict(compact(path)) for name,path in paths.items()})
+        return {"schema_version":1,"dry_run":dry_run,"stores":stores,"status":"planned" if dry_run else "applied"}
+
     def export_memory(self,include_tombstoned=False):
         _bool(include_tombstoned,"include_tombstoned"); rows=read_all(self._canonical_events_path(),include_tombstoned).records
         return [dict(r) for r in rows if (include_tombstoned or not r.get("tombstone")) and not self._denied(r.get("subject_id"),r.get("key"))]
@@ -206,3 +241,28 @@ class DerivedViewsMixin:
             # winner fails closed rather than exposing stale sensitive data.
             return not matches or any(e.get("id") not in tombstoned for e in matches)
         return {r["key"]:r["value"] for r in read_all(self._compiled_truth_path()).records if r.get("subject_id")==subject_id and "key" in r and "value" in r and safe(r)}
+
+
+def _compact_dict(result):
+    return {field:getattr(result,field) for field in ("kept","removed_tombstoned","removed_markers","removed_corrupt")}
+
+
+def _compaction_counts(path):
+    path=Path(path)
+    try: lines=path.read_bytes().splitlines(keepends=True)
+    except FileNotFoundError: lines=[]
+    records=[]; corrupt=0
+    for line in lines:
+        text=line.decode("utf-8",errors="replace").strip()
+        if not text: continue
+        try: row=json.loads(text)
+        except json.JSONDecodeError: row=None
+        if not isinstance(row,dict): row=None
+        if row is None:
+            if line.strip(): corrupt+=1
+        else: records.append(row)
+    markers=[r for r in records if r.get("tombstone")]
+    targets={r.get("tombstone_of") for r in markers if r.get("tombstone_of") is not None}
+    removed=sum(1 for r in records if not r.get("tombstone") and r.get("id") in targets)
+    kept=sum(1 for r in records if not r.get("tombstone") and r.get("id") not in targets)
+    return {"kept":kept,"removed_tombstoned":removed,"removed_markers":len(markers),"removed_corrupt":corrupt}
