@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "description": "Deterministic EN/KO claim extraction cases for the claim_extraction Memory Gym scenario. Positive cases must produce exactly the expected claim through remember_candidate and land in READY_FOR_RESOLVER; negative cases must extract nothing and stay in CANDIDATE_REVIEW.",
+  "cases": [
+    {
+      "id": "en-prefers-positive",
+      "lang": "en",
+      "text": "Alice prefers dark mode.",
+      "expect_claims": true,
+      "expected_claim": {"subject": "Alice", "predicate": "prefers", "object_value": "dark mode"}
+    },
+    {
+      "id": "en-uses-positive",
+      "lang": "en",
+      "text": "Bob uses Obsidian.",
+      "expect_claims": true,
+      "expected_claim": {"subject": "Bob", "predicate": "uses", "object_value": "Obsidian"}
+    },
+    {
+      "id": "ko-prefers-positive",
+      "lang": "ko",
+      "text": "철수가 파이썬을 선호한다",
+      "expect_claims": true,
+      "expected_claim": {"subject": "철수", "predicate": "prefers", "object_value": "파이썬"}
+    },
+    {
+      "id": "ko-uses-polite-positive",
+      "lang": "ko",
+      "text": "시몬이 OKR를 사용합니다",
+      "expect_claims": true,
+      "expected_claim": {"subject": "시몬", "predicate": "uses", "object_value": "OKR"}
+    },
+    {
+      "id": "en-changed-date-trailer-positive",
+      "lang": "en",
+      "text": "Bob changed editor to vim on 2026-07-08 during migration.",
+      "expect_claims": true,
+      "expected_claim": {"subject": "Bob", "predicate": "changed", "object_value": {"field": "editor", "to": "vim"}, "valid_from": "2026-07-08"}
+    },
+    {
+      "id": "en-maybe-negative",
+      "lang": "en",
+      "text": "Alice prefers dark mode (maybe).",
+      "expect_claims": false
+    },
+    {
+      "id": "en-think-negative",
+      "lang": "en",
+      "text": "I think Alice uses Obsidian.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-hearsay-negative",
+      "lang": "en",
+      "text": "It is said that Bob uses Obsidian.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-question-negative",
+      "lang": "en",
+      "text": "Does Alice use Obsidian?",
+      "expect_claims": false
+    },
+    {
+      "id": "en-unsupported-verb-negative",
+      "lang": "en",
+      "text": "Alice enjoys dark mode.",
+      "expect_claims": false
+    },
+    {
+      "id": "ko-question-negative",
+      "lang": "ko",
+      "text": "철수는 파이썬을 선호하나요?",
+      "expect_claims": false
+    },
+    {
+      "id": "ko-unsupported-verb-negative",
+      "lang": "ko",
+      "text": "철수는 파이썬을 좋아한다",
+      "expect_claims": false
+    }
+  ]
+}

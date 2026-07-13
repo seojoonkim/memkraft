@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,18 @@ from pathlib import Path
 import pytest
 
 from benchmarks.gym import gates, metrics, run, scenarios
+
+CLAIM_EXTRACTION_FIXTURE = Path(__file__).parent / "fixtures" / "claim_extraction_cases.json"
+_HANGUL_RE = re.compile(r"[가-힣]+")
+NEW_CORRECTNESS_SCENARIOS = ("search_precision", "search_recall_ko", "claim_extraction", "truth_freshness")
+MANDATORY_CLAIM_CASE_IDS = {
+    "ko-prefers-positive",
+    "ko-uses-polite-positive",
+    "en-changed-date-trailer-positive",
+    "en-maybe-negative",
+    "en-think-negative",
+    "en-hearsay-negative",
+}
 
 
 @pytest.fixture
@@ -420,3 +433,232 @@ def test_stub_scenario_end_to_end_gate_payload(stub_scenario, tmp_path: Path):
 
 def test_search_recall_scenario_is_registered_by_default():
     assert "search_recall" in scenarios.registered_scenarios()
+
+
+# ── MemKraft 3.0.1 deterministic correctness scenarios ──────────────────────
+
+
+def test_new_correctness_scenarios_are_registered():
+    registered = scenarios.registered_scenarios()
+    for name in NEW_CORRECTNESS_SCENARIOS:
+        assert name in registered
+
+
+def test_new_scenarios_have_binary_gate_contracts():
+    assert gates.SCENARIO_GATES["search_precision"] == (
+        ("precision_at_k", "min", 1.0),
+        ("recall_at_k", "min", 1.0),
+    )
+    assert gates.SCENARIO_GATES["search_recall_ko"] == (
+        ("recall_at_k", "min", 1.0),
+        ("broad_query_hit", "min", 1.0),
+    )
+    assert gates.SCENARIO_GATES["claim_extraction"] == (
+        ("positive_accuracy", "min", 1.0),
+        ("negative_accuracy", "min", 1.0),
+    )
+def test_new_scenario_gates_report_missing_metrics_structurally():
+    for scenario, key in [
+        ("search_precision", "precision_at_k"),
+        ("search_recall_ko", "recall_at_k"),
+        ("claim_extraction", "positive_accuracy"),
+    ]:
+        result = gates.evaluate_gate({"scenario": scenario, "results": [{"documents": 1}]})
+        assert result["passed"] is False
+        assert any(f"missing {key}" in failure for failure in result["failures"])
+
+
+def test_search_precision_scenario_passes_with_trap_documents():
+    payload = scenarios.run_scenario("search_precision", sizes=[5], top_k=20)
+
+    assert payload["scenario"] == "search_precision"
+    result = payload["results"][0]
+    assert result["documents"] == 5
+    assert result["trap_documents"] >= 2
+    assert result["precision_at_k"] == 1.0
+    assert result["recall_at_k"] == 1.0
+    assert gates.evaluate_gate(payload)["passed"] is True
+
+
+def test_search_precision_gate_fails_on_recall_only_inflation(monkeypatch):
+    from memkraft import MemKraft
+
+    original = MemKraft.search
+
+    def inflated(self, query, **kwargs):
+        hits = original(self, query, **kwargs)
+        seen = {hit.get("file") for hit in hits}
+        extras = [hit for hit in original(self, "decoy", **kwargs) if hit.get("file") not in seen]
+        return hits + extras
+
+    monkeypatch.setattr(MemKraft, "search", inflated)
+    payload = scenarios.run_scenario("search_precision", sizes=[5], top_k=20)
+
+    result = payload["results"][0]
+    assert result["recall_at_k"] == 1.0, "recall alone must not catch trap-document inflation"
+    assert result["precision_at_k"] < 1.0
+    gate = gates.evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("precision_at_k" in failure for failure in gate["failures"])
+
+
+def test_search_precision_rejects_top_k_smaller_than_relevant_set():
+    with pytest.raises(ValueError, match="top_k"):
+        scenarios.run_scenario("search_precision", sizes=[30], top_k=5)
+
+
+def test_search_recall_ko_scenario_finds_hangul_documents():
+    payload = scenarios.run_scenario("search_recall_ko", sizes=[5], top_k=5)
+
+    assert payload["scenario"] == "search_recall_ko"
+    result = payload["results"][0]
+    assert result["documents"] == 5
+    assert result["recall_at_k"] == 1.0
+    assert result["broad_query_hit"] == 1.0
+    assert gates.evaluate_gate(payload)["passed"] is True
+
+
+def test_search_recall_ko_gate_fails_when_hangul_tokens_are_dropped(monkeypatch):
+    from memkraft import MemKraft
+
+    original = MemKraft.search
+
+    def hangul_stripping_search(self, query, **kwargs):
+        stripped = _HANGUL_RE.sub(" ", str(query)).strip()
+        if not stripped:
+            return []
+        return original(self, stripped, **kwargs)
+
+    monkeypatch.setattr(MemKraft, "search", hangul_stripping_search)
+    payload = scenarios.run_scenario("search_recall_ko", sizes=[5], top_k=5)
+
+    result = payload["results"][0]
+    assert result["recall_at_k"] < 1.0
+    gate = gates.evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("recall_at_k" in failure for failure in gate["failures"])
+
+
+def test_claim_extraction_fixture_covers_en_and_ko_positive_and_negative_cases():
+    data = json.loads(CLAIM_EXTRACTION_FIXTURE.read_text(encoding="utf-8"))
+    cases_by_id = {case["id"]: case for case in data["cases"]}
+    assert MANDATORY_CLAIM_CASE_IDS <= cases_by_id.keys()
+    coverage = {(case["lang"], case["expect_claims"]) for case in data["cases"]}
+    assert {("en", True), ("en", False), ("ko", True), ("ko", False)} <= coverage
+    for case in data["cases"]:
+        assert case["id"] and case["text"]
+        if case["expect_claims"]:
+            assert case["expected_claim"]
+
+    assert cases_by_id["ko-prefers-positive"]["text"] == "철수가 파이썬을 선호한다"
+    assert cases_by_id["ko-uses-polite-positive"]["text"] == "시몬이 OKR를 사용합니다"
+    assert cases_by_id["en-maybe-negative"]["text"] == "Alice prefers dark mode (maybe)."
+    assert cases_by_id["en-think-negative"]["text"] == "I think Alice uses Obsidian."
+    assert cases_by_id["en-hearsay-negative"]["text"] == "It is said that Bob uses Obsidian."
+    changed = cases_by_id["en-changed-date-trailer-positive"]
+    assert changed["text"] == "Bob changed editor to vim on 2026-07-08 during migration."
+    assert changed["expected_claim"] == {
+        "subject": "Bob",
+        "predicate": "changed",
+        "object_value": {"field": "editor", "to": "vim"},
+        "valid_from": "2026-07-08",
+    }
+
+
+def test_claim_extraction_scenario_verifies_remember_candidate_end_to_end():
+    payload = scenarios.run_scenario("claim_extraction", sizes=[1])
+
+    assert payload["scenario"] == "claim_extraction"
+    result = payload["results"][0]
+    assert result["positive_cases"] >= 2
+    assert result["negative_cases"] >= 2
+    assert result["positive_accuracy"] == 1.0
+    assert result["negative_accuracy"] == 1.0
+    assert result["failed_case_ids"] == []
+    assert gates.evaluate_gate(payload)["passed"] is True
+
+
+def test_claim_extraction_gate_fails_when_extraction_is_suppressed(monkeypatch):
+    import memkraft.candidates as candidates_module
+
+    monkeypatch.setattr(candidates_module, "extract_claims", lambda text, entity_hint=None: [])
+    payload = scenarios.run_scenario("claim_extraction", sizes=[1])
+
+    result = payload["results"][0]
+    assert result["positive_accuracy"] == 0.0
+    assert result["negative_accuracy"] == 1.0
+    assert result["failed_case_ids"]
+    gate = gates.evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("positive_accuracy" in failure for failure in gate["failures"])
+
+
+def test_claim_extraction_gate_fails_when_extraction_returns_an_extra_claim(monkeypatch):
+    import memkraft.candidates as candidates_module
+
+    original = candidates_module.extract_claims
+
+    def extract_with_extra_claim(text, entity_hint=None):
+        claims = original(text, entity_hint=entity_hint)
+        if claims:
+            return claims + [{"subject": "synthetic", "predicate": "uses", "object_value": "extra"}]
+        return claims
+
+    monkeypatch.setattr(candidates_module, "extract_claims", extract_with_extra_claim)
+    payload = scenarios.run_scenario("claim_extraction", sizes=[1])
+
+    result = payload["results"][0]
+    assert result["positive_accuracy"] == 0.0
+    assert result["failed_case_ids"]
+    gate = gates.evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("positive_accuracy" in failure for failure in gate["failures"])
+
+
+def test_truth_freshness_scenario_is_a_provisional_scaffold_until_truth_status_exists():
+    from memkraft import MemKraft
+
+    payload = scenarios.run_scenario("truth_freshness", sizes=[1])
+
+    truth_status_available = callable(getattr(MemKraft, "truth_status", None))
+    assert payload["scenario"] == "truth_freshness"
+    assert payload["provisional"] is (not truth_status_available)
+    assert payload["pending_contract"] == "truth_status"
+    result = payload["results"][0]
+    assert result["truth_status_available"] is truth_status_available
+    assert result["compiled_read_stable"] == 1.0
+    assert result["sleep_refreshes_truth"] == 1.0
+
+
+@pytest.mark.parametrize(
+    "scenario,extra",
+    [
+        ("search_precision", ["--sizes", "5", "--top-k", "20"]),
+        ("search_recall_ko", ["--sizes", "5", "--top-k", "5"]),
+        ("claim_extraction", ["--sizes", "1"]),
+    ],
+)
+def test_memory_gym_cli_gates_new_scenarios(scenario: str, extra: list, tmp_path: Path):
+    out = tmp_path / f"{scenario}.json"
+
+    exit_code = run.main(["--scenario", scenario, *extra, "--gate", "--out", str(out)])
+
+    assert exit_code == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["scenario"] == scenario
+    assert payload["gate"] == {"passed": True, "failures": []}
+    assert payload["pass"] is True
+    assert all(value is not None for value in payload["observed"].values())
+
+
+def test_memory_gym_cli_smoke_checks_provisional_truth_freshness_without_gate(tmp_path: Path):
+    out = tmp_path / "truth_freshness.json"
+
+    exit_code = run.main(["--scenario", "truth_freshness", "--sizes", "1", "--out", str(out)])
+
+    assert exit_code == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["scenario"] == "truth_freshness"
+    assert payload["provisional"] is True
+    assert "gate" not in payload
+    assert "pass" not in payload

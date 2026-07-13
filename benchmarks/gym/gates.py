@@ -13,6 +13,12 @@ MAX_SESSION_OVERLAY_LEAKS: float = 0.0
 MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES: float = 0.0
 MIN_RESOLVER_VERDICT_ACCURACY: float = 0.95
 MAX_LAST_INTERACTION_P95_MS: float = 5.0
+# 3.0.1 correctness scenarios are binary: no measured numeric baseline exists,
+# so anything short of exact correctness is a regression.
+MIN_SEARCH_PRECISION_AT_K: float = 1.0
+MIN_KO_SEARCH_RECALL_AT_K: float = 1.0
+MIN_CLAIM_EXTRACTION_ACCURACY: float = 1.0
+MIN_TRUTH_FRESHNESS_CONTRACT: float = 1.0
 
 # Provenance of the default thresholds, reported as `baseline_ref` in gate payloads.
 BASELINE_REF: str = "benchmarks/gym/gates.py::DEFAULT_GATE"
@@ -37,6 +43,22 @@ SCENARIO_GATES: dict[str, tuple[tuple[str, str, float], ...]] = {
         ("missing_source_promotions", "max", 0.0),
     ),
     "last_interaction": (("accuracy", "min", 1.0), ("p95_ms", "max", MAX_LAST_INTERACTION_P95_MS)),
+    "search_precision": (
+        ("precision_at_k", "min", MIN_SEARCH_PRECISION_AT_K),
+        ("recall_at_k", "min", MIN_MIN_RECALL_AT_K),
+    ),
+    "search_recall_ko": (
+        ("recall_at_k", "min", MIN_KO_SEARCH_RECALL_AT_K),
+        ("broad_query_hit", "min", MIN_KO_SEARCH_RECALL_AT_K),
+    ),
+    "claim_extraction": (
+        ("positive_accuracy", "min", MIN_CLAIM_EXTRACTION_ACCURACY),
+        ("negative_accuracy", "min", MIN_CLAIM_EXTRACTION_ACCURACY),
+    ),
+    "truth_freshness": (
+        ("compiled_read_stable", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("sleep_refreshes_truth", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+    ),
 }
 
 

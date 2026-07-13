@@ -56,8 +56,8 @@ _IMPLICIT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 _KO_EXPLICIT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("prefers", re.compile(rf"^(?P<quote>{_KO_SUBJECT}[은는]\s+{_KO_OBJECT}[을를]\s+선호)(?:한다|합니다)?(?:[.?!]|$)")),
-    ("uses", re.compile(rf"^(?P<quote>{_KO_SUBJECT}[은는]\s+{_KO_OBJECT}[을를]\s+사용)(?:한다|합니다)?(?:[.?!]|$)")),
+    ("prefers", re.compile(rf"^(?P<quote>{_KO_SUBJECT}[은는이가]\s+{_KO_OBJECT}[을를]\s+선호)(?:한다|합니다)?(?:[.?!]|$)")),
+    ("uses", re.compile(rf"^(?P<quote>{_KO_SUBJECT}[은는이가]\s+{_KO_OBJECT}[을를]\s+사용)(?:한다|합니다)?(?:[.?!]|$)")),
     ("is_located", re.compile(rf"^(?P<quote>{_KO_SUBJECT}[은는]\s+{_KO_OBJECT}에\s+있음)(?:[.?!]|$)")),
 )
 
@@ -89,6 +89,8 @@ def extract_claims(text: str, *, entity_hint: typing.Optional[str] = None) -> li
         return []
     stripped = unicodedata.normalize("NFC", text.strip())
     if not stripped or stripped.endswith("?"):
+        return []
+    if stripped.startswith(("I think ", "It is said that ")) or "(maybe)" in stripped:
         return []
 
     for predicate, pattern in _EXPLICIT_PATTERNS:
@@ -178,4 +180,4 @@ def _ko_claim_from_match(
 
 
 def _strip_date_suffix(value: str) -> str:
-    return re.sub(r"\s+on\s+\d{4}-\d{2}-\d{2}$", "", value).strip()
+    return re.sub(r"\s+on\s+\d{4}-\d{2}-\d{2}(?:\s+during\s+migration)?$", "", value).strip()

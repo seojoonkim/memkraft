@@ -81,26 +81,29 @@ jobs:
             --gate \
             --out /tmp/memkraft-search-recall-gate.json
 
-      - name: Run Memory Gym session_overlay_recall scenario
+      - name: Run Memory Gym session_overlay_recall gate
         run: |
           python benchmarks/gym/run.py \
             --scenario session_overlay_recall \
             --sizes 20 \
             --top-k 5 \
+            --gate \
             --out /tmp/memkraft-session-overlay-gate.json
 
-      - name: Run Memory Gym resolver_verdicts scenario
+      - name: Run Memory Gym resolver_verdicts gate
         run: |
           python benchmarks/gym/run.py \
             --scenario resolver_verdicts \
             --sizes 120 \
+            --gate \
             --out /tmp/memkraft-resolver-verdicts-gate.json
 
-      - name: Run Memory Gym last_interaction scenario
+      - name: Run Memory Gym last_interaction gate
         run: |
           python benchmarks/gym/run.py \
             --scenario last_interaction \
             --sizes 10000 \
+            --gate \
             --out /tmp/memkraft-last-interaction-gate.json
 
       - name: Run Memory Gym lifecycle/governance scenario
@@ -126,6 +129,32 @@ jobs:
             --sizes 1 \
             --gate \
             --out /tmp/memkraft-lifecycle-replay-gate.json
+
+      - name: Run Memory Gym search_precision gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario search_precision \
+            --sizes 20 \
+            --top-k 40 \
+            --gate \
+            --out /tmp/memkraft-search-precision-gate.json
+
+      - name: Run Memory Gym search_recall_ko gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario search_recall_ko \
+            --sizes 20 \
+            --top-k 5 \
+            --gate \
+            --out /tmp/memkraft-search-recall-ko-gate.json
+
+      - name: Run Memory Gym claim_extraction gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario claim_extraction \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-claim-extraction-gate.json
 
   optional-dependencies:
     name: optional / ${{ matrix.extra }}

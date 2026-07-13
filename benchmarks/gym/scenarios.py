@@ -1,6 +1,8 @@
 """Scenario adapters for MemKraft Memory Gym."""
 from __future__ import annotations
 
+import contextlib
+import io
 import math
 import tempfile
 import time
@@ -13,8 +15,13 @@ from benchmarks.gym.gates import (
     MAX_LAST_INTERACTION_P95_MS,
     MAX_SESSION_OVERLAY_EXPIRED_EXPOSURES,
     MAX_SESSION_OVERLAY_LEAKS,
+    MIN_CLAIM_EXTRACTION_ACCURACY,
+    MIN_KO_SEARCH_RECALL_AT_K,
+    MIN_MIN_RECALL_AT_K,
     MIN_RESOLVER_VERDICT_ACCURACY,
+    MIN_SEARCH_PRECISION_AT_K,
     MIN_SESSION_OVERLAY_RECALL,
+    MIN_TRUTH_FRESHNESS_CONTRACT,
 )
 
 ScenarioRunner = Callable[..., dict[str, Any]]
@@ -363,6 +370,217 @@ def run_lifecycle_fixture(fixture: dict[str, Any]) -> dict[str, Any]:
         }]}
 
 
+def _parse_positive_sizes(sizes: Iterable[int]) -> list[int]:
+    parsed = [int(size) for size in sizes]
+    if not parsed or any(size <= 0 for size in parsed):
+        raise ValueError("Memory Gym scenario sizes must be positive integers")
+    return parsed
+
+
+def _run_search_precision(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 20,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
+    """Trap-document precision: recall-only inflation must fail this gate."""
+    from memkraft import MemKraft
+
+    parsed_sizes = _parse_positive_sizes(sizes)
+    parsed_top_k = int(top_k)
+    if parsed_top_k <= 0:
+        raise ValueError("Memory Gym scenario top_k must be positive")
+    if parsed_top_k < max(parsed_sizes):
+        raise ValueError("search_precision top_k must be at least the relevant document count")
+
+    results = []
+    for size in parsed_sizes:
+        traps = max(2, size)
+        with tempfile.TemporaryDirectory() as tmp:
+            mk = MemKraft(str(Path(tmp)))
+            with contextlib.redirect_stdout(io.StringIO()):
+                for i in range(size):
+                    name = f"Precision Relevant {i:05d}"
+                    mk.track(name, source="gym")
+                    mk.update(name, info=f"precision_needle shared payload marker{i:05d}", source="gym")
+                for i in range(traps):
+                    name = f"Precision Trap {i:05d}"
+                    mk.track(name, source="gym")
+                    mk.update(name, info="precision trap needle decoy shared payload", source="gym")
+                hits = mk.search("precision_needle", top_k=parsed_top_k, cache=False)
+            returned = [str(hit.get("file", "")) for hit in hits]
+            relevant_returned = {f for f in returned if "relevant" in f.lower()}
+            precision = len([f for f in returned if "relevant" in f.lower()]) / len(returned) if returned else 0.0
+            results.append(
+                {
+                    "documents": size,
+                    "trap_documents": traps,
+                    "returned_hits": len(returned),
+                    "precision_at_k": precision,
+                    "recall_at_k": len(relevant_returned) / size,
+                    "thresholds": {
+                        "min_precision_at_k": MIN_SEARCH_PRECISION_AT_K,
+                        "min_recall_at_k": MIN_MIN_RECALL_AT_K,
+                    },
+                }
+            )
+    return {"scenario": "search_precision", "top_k": parsed_top_k, "results": results}
+
+
+def _run_search_recall_ko(
+    *,
+    sizes: Iterable[int],
+    top_k: int = 5,
+    candidate: str = "baseline",
+    hybrid_alpha: float = 0.025,
+) -> dict[str, Any]:
+    """Hangul retrieval: a Korean-token regression must drop recall to zero."""
+    from memkraft import MemKraft
+
+    parsed_sizes = _parse_positive_sizes(sizes)
+    parsed_top_k = int(top_k)
+    if parsed_top_k <= 0:
+        raise ValueError("Memory Gym scenario top_k must be positive")
+
+    # Pure-Hangul unique markers: a Hangul-token regression must leave nothing
+    # searchable (ASCII digits in the marker would survive and mask the bug).
+    hangul_digits = "공일이삼사오육칠팔구"
+
+    def hangul_marker(index: int) -> str:
+        return "한글마커" + "".join(hangul_digits[int(digit)] for digit in f"{index:04d}")
+
+    results = []
+    for size in parsed_sizes:
+        with tempfile.TemporaryDirectory() as tmp:
+            mk = MemKraft(str(Path(tmp)))
+            with contextlib.redirect_stdout(io.StringIO()):
+                for i in range(size):
+                    name = f"KO Doc {i:04d}"
+                    mk.track(name, source="gym")
+                    mk.update(name, info=f"{hangul_marker(i)} 파이썬 메모리 검색 벤치마크", source="gym")
+                found = 0
+                for i in range(size):
+                    hits = mk.search(hangul_marker(i), top_k=parsed_top_k, cache=False)
+                    if any(f"{i:04d}" in str(hit.get("file", "")) for hit in hits):
+                        found += 1
+                broad_hits = mk.search("파이썬", top_k=parsed_top_k, cache=False)
+            results.append(
+                {
+                    "documents": size,
+                    "recall_at_k": found / size,
+                    "broad_query_hit": 1.0 if broad_hits else 0.0,
+                    "thresholds": {"min_recall_at_k": MIN_KO_SEARCH_RECALL_AT_K},
+                }
+            )
+    return {"scenario": "search_recall_ko", "top_k": parsed_top_k, "results": results}
+
+
+def _claim_matches(claims: list, expected: dict) -> bool:
+    if len(claims) != 1 or not isinstance(claims[0], dict):
+        return False
+    claim_projection = {key: claims[0].get(key) for key in expected}
+    return claim_projection == expected
+
+
+def _run_claim_extraction(**_kwargs: Any) -> dict[str, Any]:
+    """End-to-end EN/KO claim extraction through the remember_candidate preview API."""
+    import json
+
+    from memkraft import MemKraft
+
+    fixture_path = Path(__file__).parents[2] / "tests" / "fixtures" / "claim_extraction_cases.json"
+    cases = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    if not cases:
+        raise ValueError("claim_extraction fixture must contain at least one case")
+
+    positives = negatives = positives_ok = negatives_ok = 0
+    failed_case_ids = []
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(str(Path(tmp)))
+        with contextlib.redirect_stdout(io.StringIO()):
+            for case in cases:
+                receipt = mk.remember_candidate(
+                    case["text"], session_id="gym-claims", entity_hint=case.get("entity_hint")
+                )
+                records = [
+                    record
+                    for record in mk.list_candidates(session_id="gym-claims")
+                    if record.get("candidate_id") == receipt["candidate_id"]
+                ]
+                record = records[0] if records else {}
+                claims = record.get("claims") or []
+                if case["expect_claims"]:
+                    positives += 1
+                    ok = bool(records) and record.get("review_state") == "READY_FOR_RESOLVER" and _claim_matches(
+                        claims, case["expected_claim"]
+                    )
+                    positives_ok += ok
+                else:
+                    negatives += 1
+                    ok = bool(records) and record.get("review_state") == "CANDIDATE_REVIEW" and claims == []
+                    negatives_ok += ok
+                if not ok:
+                    failed_case_ids.append(case["id"])
+    return {
+        "scenario": "claim_extraction",
+        "fixture": str(fixture_path.relative_to(Path(__file__).parents[2])),
+        "results": [
+            {
+                "documents": len(cases),
+                "positive_cases": positives,
+                "negative_cases": negatives,
+                "positive_accuracy": positives_ok / positives if positives else 0.0,
+                "negative_accuracy": negatives_ok / negatives if negatives else 0.0,
+                "failed_case_ids": failed_case_ids,
+                "thresholds": {
+                    "min_positive_accuracy": MIN_CLAIM_EXTRACTION_ACCURACY,
+                    "min_negative_accuracy": MIN_CLAIM_EXTRACTION_ACCURACY,
+                },
+            }
+        ],
+    }
+
+
+def _run_truth_freshness(**_kwargs: Any) -> dict[str, Any]:
+    """Provisional scaffold: pins the documented compiled-truth staleness baseline.
+
+    Gating on freshness observability itself needs the ``truth_status`` preview
+    API, which does not exist yet; until it lands, this scenario only proves the
+    behavior the API must preserve (stale compiled reads until sleep applies).
+    """
+    from memkraft import MemKraft
+
+    with tempfile.TemporaryDirectory() as tmp:
+        mk = MemKraft(tmp)
+        truth_status_available = callable(getattr(mk, "truth_status", None))
+        with contextlib.redirect_stdout(io.StringIO()):
+            mk.append_event("user", "city", "old", source="gym")
+            mk.sleep(dry_run=False)
+            compiled = mk.current_truth("user") == {"city": "old"}
+            mk.append_event("user", "city", "new", source="gym")
+            stale_preserved = mk.current_truth("user") == {"city": "old"}
+            mk.sleep(dry_run=False)
+            refreshed = mk.current_truth("user") == {"city": "new"}
+        return {
+            "scenario": "truth_freshness",
+            "provisional": not truth_status_available,
+            "pending_contract": "truth_status",
+            "results": [
+                {
+                    "documents": 2,
+                    "truth_status_available": truth_status_available,
+                    "compiled_read_stable": float(compiled and stale_preserved),
+                    "sleep_refreshes_truth": float(refreshed),
+                    "thresholds": {
+                        "min_compiled_read_stable": MIN_TRUTH_FRESHNESS_CONTRACT,
+                        "min_sleep_refreshes_truth": MIN_TRUTH_FRESHNESS_CONTRACT,
+                    },
+                }
+            ],
+        }
+
+
 def _run_lifecycle_replay(**_kwargs: Any) -> dict[str, Any]:
     import json
     path = Path(__file__).with_name("fixtures") / "lifecycle_replay.json"
@@ -376,3 +594,7 @@ register_scenario("last_interaction", _run_last_interaction)
 register_scenario("lifecycle_governance", _run_lifecycle_governance)
 register_scenario("outcome_context", _run_outcome_context)
 register_scenario("lifecycle_replay", _run_lifecycle_replay)
+register_scenario("search_precision", _run_search_precision)
+register_scenario("search_recall_ko", _run_search_recall_ko)
+register_scenario("claim_extraction", _run_claim_extraction)
+register_scenario("truth_freshness", _run_truth_freshness)

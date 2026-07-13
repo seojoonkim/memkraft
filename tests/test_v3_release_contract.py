@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import warnings
 from pathlib import Path
 
@@ -98,7 +99,47 @@ def test_lifecycle_replay_fixture_is_deterministic_and_gated():
     assert gates.evaluate_gate(first)["passed"] is True
 
 
-@pytest.mark.parametrize("scenario", scenarios.registered_scenarios())
+def _gym_workflow_invocations(text=None) -> list[dict]:
+    """Parse every uncommented ``benchmarks/gym/run.py`` shell invocation."""
+    if text is None:
+        text = (ROOT / ".github" / "workflows" / "gym-gate.yml").read_text(encoding="utf-8")
+    uncommented = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
+    flattened = uncommented.replace("\\\n", " ")
+    invocations = []
+    for line in flattened.splitlines():
+        if "benchmarks/gym/run.py" not in line:
+            continue
+        match = re.search(r"--scenario[=\s]+([A-Za-z0-9_]+)", line)
+        invocations.append(
+            {"scenario": match.group(1) if match else None, "gated": "--gate" in line.split()}
+        )
+    return invocations
+
+
+def test_gym_gate_workflow_gates_every_invoked_scenario():
+    invocations = _gym_workflow_invocations()
+    assert invocations, "gym-gate.yml no longer invokes benchmarks/gym/run.py"
+    ungated = sorted(str(inv["scenario"]) for inv in invocations if not inv["gated"])
+    assert ungated == [], f"CI Gym scenarios invoked without --gate: {ungated}"
+
+
+def test_gym_workflow_parser_does_not_count_gate_in_shell_comment():
+    text = "run: python benchmarks/gym/run.py --scenario claim_extraction # --gate\n"
+    assert _gym_workflow_invocations(text) == [{"scenario": "claim_extraction", "gated": False}]
+
+
+def test_gym_gate_workflow_invokes_every_implemented_ci_scenario():
+    invoked = {inv["scenario"] for inv in _gym_workflow_invocations()}
+    pending_non_ci_scenarios = {"truth_freshness"}
+    missing = sorted(set(scenarios.registered_scenarios()) - pending_non_ci_scenarios - invoked)
+    assert missing == [], f"registered Gym scenarios missing from gym-gate.yml: {missing}"
+    assert "truth_freshness" not in invoked
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [name for name in scenarios.registered_scenarios() if name != "truth_freshness"],
+)
 def test_every_registered_gym_scenario_passes_its_advertised_gate(tmp_path: Path, scenario: str):
     out = tmp_path / f"{scenario}.json"
     assert gym_run.main(["--scenario", scenario, "--sizes", "1", "--gate", "--out", str(out)]) == 0
