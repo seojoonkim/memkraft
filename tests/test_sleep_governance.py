@@ -731,11 +731,15 @@ def test_sleep_apply_compiles_empty_file(tmp_path):
 def test_compile_empty_file(tmp_path):
     m=mk(tmp_path); m.compile_truth(False); assert (tmp_path/'.memkraft/compiled_truth.jsonl').read_text()==''
 
-def test_forget_existing_compiled_rebuild_empty(tmp_path):
-    m=mk(tmp_path); e=m.append_event('u','x',1,source='s'); m.compile_truth(False); m.forget(e['id'],False); assert (tmp_path/'.memkraft/compiled_truth.jsonl').read_text()==''
+def test_forget_existing_compiled_stays_stale_but_reads_hidden(tmp_path):
+    m=mk(tmp_path); e=m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    before=(tmp_path/'.memkraft/compiled_truth.jsonl').read_text(); m.forget(e['id'],False)
+    assert (tmp_path/'.memkraft/compiled_truth.jsonl').read_text()==before and m.current_truth('u')=={}
 
-def test_policy_existing_compiled_rebuild_empty(tmp_path):
-    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False); m.do_not_remember(subject='u',dry_run=False); assert (tmp_path/'.memkraft/compiled_truth.jsonl').read_text()==''
+def test_policy_existing_compiled_stays_stale_but_reads_hidden(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    before=(tmp_path/'.memkraft/compiled_truth.jsonl').read_text(); m.do_not_remember(subject='u',dry_run=False)
+    assert (tmp_path/'.memkraft/compiled_truth.jsonl').read_text()==before and m.current_truth('u')=={}
 
 def test_sleep_apply_result_records(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); assert m.sleep(dry_run=False)['records'][0]['value']==1

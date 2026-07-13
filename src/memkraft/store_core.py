@@ -66,6 +66,15 @@ def _lock_exclusive(fd: int) -> None:
     msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
 
 
+def _lock_shared(fd: int) -> None:
+    """Take a blocking shared lock, or the portable exclusive fallback."""
+    if fcntl is not None:
+        fcntl.flock(fd, fcntl.LOCK_SH)
+        return
+    os.lseek(fd, 0, os.SEEK_SET)
+    msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+
+
 def _unlock(fd: int) -> None:
     if fcntl is not None:
         fcntl.flock(fd, fcntl.LOCK_UN)

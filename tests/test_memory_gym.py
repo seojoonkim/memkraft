@@ -457,6 +457,25 @@ def test_new_scenarios_have_binary_gate_contracts():
         ("positive_accuracy", "min", 1.0),
         ("negative_accuracy", "min", 1.0),
     )
+    assert gates.SCENARIO_GATES["truth_freshness"] == tuple(
+        (metric, "min", 1.0)
+        for metric in (
+            "initial_status_fresh",
+            "initial_old_truth_visible",
+            "append_status_stale",
+            "append_pending_exactly_one",
+            "stale_old_truth_preserved",
+            "sleep_status_fresh",
+            "sleep_new_truth_visible",
+            "policy_value_cached_before_governance",
+            "policy_cached_value_hidden",
+            "tombstone_value_cached_before_forget",
+            "tombstoned_cached_value_hidden",
+            "tombstoned_value_hidden_after_compaction",
+        )
+    )
+
+
 def test_new_scenario_gates_report_missing_metrics_structurally():
     for scenario, key in [
         ("search_precision", "precision_at_k"),
@@ -615,19 +634,47 @@ def test_claim_extraction_gate_fails_when_extraction_returns_an_extra_claim(monk
     assert any("positive_accuracy" in failure for failure in gate["failures"])
 
 
-def test_truth_freshness_scenario_is_a_provisional_scaffold_until_truth_status_exists():
-    from memkraft import MemKraft
-
+def test_truth_freshness_scenario_exercises_public_freshness_and_governance_contract():
     payload = scenarios.run_scenario("truth_freshness", sizes=[1])
 
-    truth_status_available = callable(getattr(MemKraft, "truth_status", None))
     assert payload["scenario"] == "truth_freshness"
-    assert payload["provisional"] is (not truth_status_available)
-    assert payload["pending_contract"] == "truth_status"
+    assert "provisional" not in payload
+    assert "pending_contract" not in payload
     result = payload["results"][0]
-    assert result["truth_status_available"] is truth_status_available
-    assert result["compiled_read_stable"] == 1.0
-    assert result["sleep_refreshes_truth"] == 1.0
+    assert result["documents"] == 4
+    contract = gates.SCENARIO_GATES["truth_freshness"]
+    assert set(result) >= {metric for metric, _direction, _threshold in contract}
+    assert all(result[metric] == 1.0 for metric, _direction, _threshold in contract)
+    assert gates.evaluate_gate(payload) == {"passed": True, "failures": []}
+
+
+def test_truth_freshness_gate_fails_when_any_invariant_is_broken():
+    payload = scenarios.run_scenario("truth_freshness", sizes=[1])
+    for metric, _direction, _threshold in gates.SCENARIO_GATES["truth_freshness"]:
+        broken = json.loads(json.dumps(payload))
+        broken["results"][0][metric] = 0.0
+        gate = gates.evaluate_gate(broken)
+        assert gate["passed"] is False
+        assert any(metric in failure for failure in gate["failures"])
+
+
+def test_truth_freshness_gate_catches_post_compaction_resurrection(monkeypatch):
+    from memkraft import MemKraft
+    from memkraft.store_core import compact
+
+    def buggy_compaction(self, dry_run=True):
+        if dry_run:
+            return {"schema_version": 1, "dry_run": True, "stores": {}, "status": "planned"}
+        compact(self._canonical_events_path())
+        return {"schema_version": 1, "dry_run": False, "stores": {}, "status": "applied"}
+
+    monkeypatch.setattr(MemKraft, "compact_memory", buggy_compaction)
+    payload = scenarios.run_scenario("truth_freshness", sizes=[1])
+
+    assert payload["results"][0]["tombstoned_value_hidden_after_compaction"] == 0.0
+    gate = gates.evaluate_gate(payload)
+    assert gate["passed"] is False
+    assert any("tombstoned_value_hidden_after_compaction" in failure for failure in gate["failures"])
 
 
 @pytest.mark.parametrize(
@@ -636,6 +683,7 @@ def test_truth_freshness_scenario_is_a_provisional_scaffold_until_truth_status_e
         ("search_precision", ["--sizes", "5", "--top-k", "20"]),
         ("search_recall_ko", ["--sizes", "5", "--top-k", "5"]),
         ("claim_extraction", ["--sizes", "1"]),
+        ("truth_freshness", ["--sizes", "1"]),
     ],
 )
 def test_memory_gym_cli_gates_new_scenarios(scenario: str, extra: list, tmp_path: Path):
@@ -651,14 +699,34 @@ def test_memory_gym_cli_gates_new_scenarios(scenario: str, extra: list, tmp_path
     assert all(value is not None for value in payload["observed"].values())
 
 
-def test_memory_gym_cli_smoke_checks_provisional_truth_freshness_without_gate(tmp_path: Path):
-    out = tmp_path / "truth_freshness.json"
+def test_derived_views_benchmark_cli_writes_versioned_results(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    out = tmp_path / "nested" / "derived.json"
+    completed = subprocess.run(
+        [sys.executable, str(repo_root / "benchmarks/derived_views_bench.py"), "--sizes", "2,3", "--out", str(out)],
+        cwd=tmp_path, text=True, capture_output=True, check=False,
+    )
 
-    exit_code = run.main(["--scenario", "truth_freshness", "--sizes", "1", "--out", str(out)])
-
-    assert exit_code == 0
+    assert completed.returncode == 0, completed.stderr
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert payload["scenario"] == "truth_freshness"
-    assert payload["provisional"] is True
-    assert "gate" not in payload
-    assert "pass" not in payload
+    assert payload["schema"] == "memkraft.derived_views_benchmark"
+    assert payload["version"] == 1
+    assert payload["options"] == {"sizes": [2, 3]}
+    assert [row["events"] for row in payload["results"]] == [2, 3]
+    for row in payload["results"]:
+        assert row["cold_current_truth_ms"] >= 0.0
+        assert row["warm_current_truth_ms"] >= 0.0
+        assert row["truth_items"] == row["events"]
+
+
+def test_derived_views_benchmark_out_error_is_clean_argparse_failure(tmp_path: Path):
+    repo_root = Path(__file__).resolve().parents[1]
+    completed = subprocess.run(
+        [sys.executable, str(repo_root / "benchmarks/derived_views_bench.py"),
+         "--sizes", "1", "--out", "/dev/null/result.json"],
+        cwd=tmp_path, text=True, capture_output=True, check=False,
+    )
+
+    assert completed.returncode == 2
+    assert "error:" in completed.stderr
+    assert "Traceback" not in completed.stderr

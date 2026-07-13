@@ -1,0 +1,25 @@
+{
+  "options": {
+    "mode": "no-cache",
+    "sizes": [
+      100,
+      1000
+    ]
+  },
+  "results": [
+    {
+      "cold_current_truth_ms": 0.8836250053718686,
+      "events": 100,
+      "truth_items": 100,
+      "warm_current_truth_ms": 0.8480839896947145
+    },
+    {
+      "cold_current_truth_ms": 52.60508309584111,
+      "events": 1000,
+      "truth_items": 1000,
+      "warm_current_truth_ms": 50.41200004052371
+    }
+  ],
+  "schema": "memkraft.derived_views_benchmark",
+  "version": 1
+}

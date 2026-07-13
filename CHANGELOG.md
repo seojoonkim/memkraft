@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added Preview `truth_status()` freshness observability, fail-closed compiled-truth cache invalidation/governance checks, a gated `truth_freshness` Memory Gym scenario, and a stdlib-only cold/warm derived-view benchmark.
+
 ## [3.0.0] — 2026-07-12
 
 MemKraft 3.0 finalizes the local-first memory lifecycle: canonical event and

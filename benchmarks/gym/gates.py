@@ -60,8 +60,18 @@ SCENARIO_GATES: dict[str, tuple[tuple[str, str, float], ...]] = {
         ("negative_accuracy", "min", MIN_CLAIM_EXTRACTION_ACCURACY),
     ),
     "truth_freshness": (
-        ("compiled_read_stable", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
-        ("sleep_refreshes_truth", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("initial_status_fresh", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("initial_old_truth_visible", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("append_status_stale", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("append_pending_exactly_one", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("stale_old_truth_preserved", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("sleep_status_fresh", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("sleep_new_truth_visible", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("policy_value_cached_before_governance", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("policy_cached_value_hidden", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("tombstone_value_cached_before_forget", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("tombstoned_cached_value_hidden", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
+        ("tombstoned_value_hidden_after_compaction", "min", MIN_TRUTH_FRESHNESS_CONTRACT),
     ),
 }
 

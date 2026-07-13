@@ -130,15 +130,13 @@ def test_gym_workflow_parser_does_not_count_gate_in_shell_comment():
 
 def test_gym_gate_workflow_invokes_every_implemented_ci_scenario():
     invoked = {inv["scenario"] for inv in _gym_workflow_invocations()}
-    pending_non_ci_scenarios = {"truth_freshness"}
-    missing = sorted(set(scenarios.registered_scenarios()) - pending_non_ci_scenarios - invoked)
+    missing = sorted(set(scenarios.registered_scenarios()) - invoked)
     assert missing == [], f"registered Gym scenarios missing from gym-gate.yml: {missing}"
-    assert "truth_freshness" not in invoked
 
 
 @pytest.mark.parametrize(
     "scenario",
-    [name for name in scenarios.registered_scenarios() if name != "truth_freshness"],
+    scenarios.registered_scenarios(),
 )
 def test_every_registered_gym_scenario_passes_its_advertised_gate(tmp_path: Path, scenario: str):
     out = tmp_path / f"{scenario}.json"

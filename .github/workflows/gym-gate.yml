@@ -156,6 +156,14 @@ jobs:
             --gate \
             --out /tmp/memkraft-claim-extraction-gate.json
 
+      - name: Run Memory Gym truth_freshness gate
+        run: |
+          python benchmarks/gym/run.py \
+            --scenario truth_freshness \
+            --sizes 1 \
+            --gate \
+            --out /tmp/memkraft-truth-freshness-gate.json
+
   optional-dependencies:
     name: optional / ${{ matrix.extra }}
     runs-on: ubuntu-latest

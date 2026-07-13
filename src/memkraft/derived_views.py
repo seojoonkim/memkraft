@@ -4,7 +4,7 @@ import fnmatch, hashlib, json, os, tempfile, time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
-from .store_core import _lock_current_inode, _unlock, append, compact, read_all, mark_tombstone
+from .store_core import _lock_current_inode, _lock_shared, _unlock, append, compact, read_all, mark_tombstone
 
 
 def _text(value: Any, field: str) -> str:
@@ -40,10 +40,28 @@ class DerivedViewsMixin:
     def _governance_lock(self):
         p=self._meta("governance.lock"); p.parent.mkdir(parents=True,exist_ok=True)
         return _lock_current_inode(str(p),os.O_RDWR|os.O_CREAT)
+    def _governance_read_lock(self):
+        """Lock an existing governance inode without creating any path."""
+        p=self._meta("governance.lock")
+        while True:
+            try: fd=os.open(str(p),os.O_RDONLY)
+            except FileNotFoundError: return None
+            try:
+                _lock_shared(fd); opened=os.fstat(fd)
+                try: current=os.stat(str(p))
+                except FileNotFoundError:
+                    _unlock(fd); os.close(fd); return None
+                if (opened.st_dev,opened.st_ino)==(current.st_dev,current.st_ino): return fd
+                _unlock(fd); os.close(fd)
+            except BaseException:
+                os.close(fd); raise
     def _policies(self): return read_all(self._policies_path()).records
-    def _denied(self,subject,key):
+    @staticmethod
+    def _denied_by(policies,subject,key):
         token=f"{subject}:{key}"
-        return any((p.get("subject")==subject and (p.get("key") is None or p.get("key")==key)) or (p.get("pattern") and (fnmatch.fnmatchcase(token,p["pattern"]) or fnmatch.fnmatchcase(key,p["pattern"]))) for p in self._policies())
+        return any((p.get("subject")==subject and (p.get("key") is None or p.get("key")==key)) or (p.get("pattern") and (fnmatch.fnmatchcase(token,p["pattern"]) or fnmatch.fnmatchcase(key,p["pattern"]))) for p in policies)
+    def _denied(self,subject,key):
+        return self._denied_by(self._policies(),subject,key)
     def _append_audit(self,row):
         operation_id=row.get("operation_id")
         if operation_id and any(r.get("operation_id")==operation_id for r in read_all(self._audit_path()).records): return None
@@ -107,9 +125,11 @@ class DerivedViewsMixin:
             # Re-plan under the governance lock: events or policies may have
             # changed after the optimistic preview above.
             base=self.sleep(strategy=strategy,dry_run=True); tx=base["transaction_id"]
-            if any(r.get("transaction_id")==tx for r in read_all(self._sleep_journal_path()).records): return {**base,"status":"already_applied"}
+            sleeps=[r for r in read_all(self._sleep_journal_path()).records if r.get("action")=="sleep"]
+            if sleeps and sleeps[-1].get("transaction_id")==tx: return {**base,"status":"already_applied"}
             self.compile_truth(False)
-            append(self._sleep_journal_path(),{"action":"sleep","source":"sleep","strategy":strategy,"transaction_id":tx,"record_count":base["record_count"],"audit_seq":time.time_ns()})
+            event_ids=sorted(r["id"] for r in read_all(self._canonical_events_path(),True).records if not r.get("tombstone") and isinstance(r.get("id"),str))
+            append(self._sleep_journal_path(),{"action":"sleep","source":"sleep","strategy":strategy,"transaction_id":tx,"event_count":base["event_count"],"event_ids":event_ids,"record_count":base["record_count"],"audit_seq":time.time_ns()})
             return {**base,"applied":True,"status":"applied"}
         finally:_unlock(fd); os.close(fd)
 
@@ -133,7 +153,6 @@ class DerivedViewsMixin:
             audit={"action":"do_not_remember","source":"governance","operation_id":policy["id"],**{k:v for k,v in policy.items() if k!="id"}}
             self._append_audit(audit)
             if exists: return {**plan,"status":"already_applied"}
-            if self._compiled_truth_path().exists(): self.compile_truth(False)
             return {**plan,"status":"applied"}
         finally:_unlock(fd); os.close(fd)
 
@@ -173,7 +192,6 @@ class DerivedViewsMixin:
             op=_digest({"action":"forget","record_ids":sorted(ids)})
             self._append_audit({"action":"forget","source":"governance","operation_id":op,"target":shown,"record_ids":ids})
             status="applied" if live_ids else "already_forgotten"
-            if live_ids and self._compiled_truth_path().exists(): self.compile_truth(False)
             return {**plan,"matched":len(ids),"record_ids":ids,"status":status}
         finally:_unlock(fd); os.close(fd)
 
@@ -208,9 +226,31 @@ class DerivedViewsMixin:
         """Preview: compact only the active local event and candidate sidecars."""
         _bool(dry_run,"dry_run")
         paths={"events.jsonl":self._canonical_events_path(),"candidates.jsonl":self._meta("candidates.jsonl")}
-        stores=({name:_compaction_counts(path) for name,path in paths.items()} if dry_run else
-                {name:_compact_dict(compact(path)) for name,path in paths.items()})
-        return {"schema_version":1,"dry_run":dry_run,"stores":stores,"status":"planned" if dry_run else "applied"}
+        if dry_run:
+            stores={name:_compaction_counts(path) for name,path in paths.items()}
+            return {"schema_version":1,"dry_run":True,"stores":stores,"status":"planned"}
+        if not any(path.exists() for path in paths.values()):
+            stores={name:_compaction_counts(path) for name,path in paths.items()}
+            return {"schema_version":1,"dry_run":False,"stores":stores,"status":"applied"}
+        fd=self._governance_lock()
+        try:
+            compiled=self._compiled_truth_path(); filtered=None
+            if paths["events.jsonl"].exists() and compiled.exists():
+                canonical=read_all(paths["events.jsonl"],True); policies=read_all(self._policies_path()); prior=read_all(compiled)
+                if canonical.skipped or policies.skipped or prior.skipped: filtered=[]
+                else:
+                    tombstoned={r.get("tombstone_of") for r in canonical.records if r.get("tombstone") is True}
+                    sources=[r for r in canonical.records if not r.get("tombstone")]
+                    def keep(row):
+                        subject=row.get("subject_id"); key=row.get("key")
+                        if self._denied_by(policies.records,subject,key): return False
+                        matches=[e for e in sources if e.get("subject_id")==subject and e.get("key")==key and all(e.get(k)==row.get(k) for k in ("value","source","valid_from","provenance"))]
+                        return not matches or any(e.get("id") not in tombstoned for e in matches)
+                    filtered=[r for r in prior.records if keep(r)]
+            stores={name:_compact_dict(compact(path)) for name,path in paths.items()}
+            if filtered is not None:_atomic_records(compiled,filtered)
+            return {"schema_version":1,"dry_run":False,"stores":stores,"status":"applied"}
+        finally:_unlock(fd); os.close(fd)
 
     def export_memory(self,include_tombstoned=False):
         _bool(include_tombstoned,"include_tombstoned"); rows=read_all(self._canonical_events_path(),include_tombstoned).records
@@ -229,22 +269,83 @@ class DerivedViewsMixin:
         rows=[r for r in rows if (action is None or r.get("action")==action) and (subject is None or r.get("subject")==subject)]
         rows.sort(key=lambda r:(r.get("audit_seq",0),r.get("created_at","")),reverse=True)
         return rows[:limit] if limit else rows
+    def truth_status(self):
+        fd=self._governance_read_lock()
+        try:
+            raw=read_all(self._canonical_events_path(),True).records
+            policies=read_all(self._policies_path()).records; strategy="default"
+            live=_digest({"events":raw,"policies":policies,"strategy":strategy})
+            sleeps=[r for r in read_all(self._sleep_journal_path()).records if r.get("action")=="sleep"]
+            sleeps.sort(key=lambda r:(r.get("audit_seq",0),r.get("created_at","")),reverse=True)
+            latest=sleeps[0] if sleeps else None; applied=latest.get("transaction_id") if latest else None
+            stale=applied!=live
+            current_ids={r["id"] for r in raw if not r.get("tombstone") and isinstance(r.get("id"),str)}
+            if not stale: pending=0
+            elif latest and isinstance(latest.get("event_ids"),list): pending=len(current_ids-set(latest["event_ids"]))
+            else:
+                # Old journals have only a scalar count, which cannot identify
+                # events after compaction. Deterministically treat every current
+                # raw source event as pending rather than under-reporting.
+                pending=len(current_ids)
+            return {"schema_version":1,"stale":stale,"live_transaction_id":live,"applied_transaction_id":applied,"pending_event_count":pending}
+        finally:
+            if fd is not None: _unlock(fd); os.close(fd)
     def current_truth(self,subject_id):
         subject_id=_text(subject_id,"subject_id")
-        all_events=read_all(self._canonical_events_path(),True).records
-        tombstoned={r.get("tombstone_of") for r in all_events if r.get("tombstone") is True}
-        def safe(row):
-            if self._denied(subject_id,row.get("key")): return False
-            matches=[e for e in all_events if not e.get("tombstone") and e.get("subject_id")==subject_id and e.get("key")==row.get("key") and all(e.get(k)==row.get(k) for k in ("value","source","valid_from","provenance"))]
-            # Standalone/legacy compiled files remain readable. If canonical
-            # provenance exists, however, a tombstone of that exact compiled
-            # winner fails closed rather than exposing stale sensitive data.
-            return not matches or any(e.get("id") not in tombstoned for e in matches)
-        return {r["key"]:r["value"] for r in read_all(self._compiled_truth_path()).records if r.get("subject_id")==subject_id and "key" in r and "value" in r and safe(r)}
+        fd=self._governance_read_lock()
+        try:
+            policies=read_all(self._policies_path())
+            if policies.skipped:return {}
+            canonical=self._cached_read(self._canonical_events_path(),"_event_snapshot_cache",True)
+            if canonical.skipped:return {}
+            all_events=canonical.records
+            tombstoned={r.get("tombstone_of") for r in all_events if r.get("tombstone") is True}
+            def safe(row):
+                if self._denied_by(policies.records,subject_id,row.get("key")):return False
+                matches=[e for e in all_events if not e.get("tombstone") and e.get("subject_id")==subject_id and e.get("key")==row.get("key") and all(e.get(k)==row.get(k) for k in ("value","source","valid_from","provenance"))]
+                return not matches or any(e.get("id") not in tombstoned for e in matches)
+            result=self._cached_read(self._compiled_truth_path(),"_truth_snapshot_cache")
+            records=[] if result.skipped else result.records
+            return {r["key"]:r["value"] for r in records if r.get("subject_id")==subject_id and "key" in r and "value" in r and safe(r)}
+        finally:
+            if fd is not None:_unlock(fd); os.close(fd)
+
+    def _cached_read(self,path,attribute,include_tombstoned=False):
+        path=Path(path)
+        try:
+            st=path.stat(); stamp=(st.st_mtime_ns,st.st_size); identity=(st.st_dev,st.st_ino)
+        except OSError:
+            return read_all(path,include_tombstoned)
+        cache=getattr(self,attribute,None)
+        if cache is not None and cache[0]==stamp and cache[1]==identity:return cache[2]
+        try:result=read_all(path,include_tombstoned)
+        except (OSError,UnicodeError,ValueError):
+            from .store_core import ReadResult
+            result=ReadResult([],1)
+        try:
+            after=path.stat(); current=((after.st_mtime_ns,after.st_size),(after.st_dev,after.st_ino))
+        except OSError:return read_all(path,include_tombstoned)
+        if current!=(stamp,identity):return self._cached_read(path,attribute,include_tombstoned)
+        setattr(self,attribute,(stamp,identity,result)); return result
 
 
 def _compact_dict(result):
     return {field:getattr(result,field) for field in ("kept","removed_tombstoned","removed_markers","removed_corrupt")}
+
+
+def _atomic_records(target,records):
+    """Atomically replace a snapshot with only filtered prior rows."""
+    target=Path(target); tmp=None
+    fd=_lock_current_inode(str(target)+".rebuild.lock",os.O_RDWR|os.O_CREAT)
+    try:
+        h=tempfile.NamedTemporaryFile(dir=str(target.parent),prefix=target.name+".",suffix=".tmp",delete=False,mode="w",encoding="utf-8")
+        tmp=Path(h.name)
+        with h:
+            for row in records:h.write(json.dumps(row,ensure_ascii=False,separators=(",",":"))+"\n")
+        os.replace(tmp,target)
+    finally:
+        if tmp:tmp.unlink(missing_ok=True)
+        _unlock(fd); os.close(fd)
 
 
 def _compaction_counts(path):

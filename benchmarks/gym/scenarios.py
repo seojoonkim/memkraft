@@ -565,39 +565,60 @@ def _run_claim_extraction(**_kwargs: Any) -> dict[str, Any]:
 
 
 def _run_truth_freshness(**_kwargs: Any) -> dict[str, Any]:
-    """Provisional scaffold: pins the documented compiled-truth staleness baseline.
-
-    Gating on freshness observability itself needs the ``truth_status`` preview
-    API, which does not exist yet; until it lands, this scenario only proves the
-    behavior the API must preserve (stale compiled reads until sleep applies).
-    """
+    """Exercise compiled-truth freshness and fail-closed governance via public APIs."""
     from memkraft import MemKraft
 
     with tempfile.TemporaryDirectory() as tmp:
         mk = MemKraft(tmp)
-        truth_status_available = callable(getattr(mk, "truth_status", None))
         with contextlib.redirect_stdout(io.StringIO()):
             mk.append_event("user", "city", "old", source="gym")
             mk.sleep(dry_run=False)
-            compiled = mk.current_truth("user") == {"city": "old"}
+            initial_status = mk.truth_status()
+            initial_truth = mk.current_truth("user")
+
             mk.append_event("user", "city", "new", source="gym")
-            stale_preserved = mk.current_truth("user") == {"city": "old"}
+            append_status = mk.truth_status()
+            stale_truth = mk.current_truth("user")
+
             mk.sleep(dry_run=False)
-            refreshed = mk.current_truth("user") == {"city": "new"}
+            sleep_status = mk.truth_status()
+            refreshed_truth = mk.current_truth("user")
+
+            mk.append_event("user", "secret", "deny-me", source="gym")
+            mk.sleep(dry_run=False)
+            policy_cached_truth = mk.current_truth("user")
+            mk.do_not_remember(subject="user", key="secret", dry_run=False)
+            policy_truth = mk.current_truth("user")
+
+            disposable = mk.append_event("user", "temporary", "forget-me", source="gym")
+            mk.sleep(dry_run=False)
+            tombstone_cached_truth = mk.current_truth("user")
+            mk.forget(disposable["id"], dry_run=False)
+            tombstone_truth = mk.current_truth("user")
+            mk.compact_memory(dry_run=False)
+            compacted_truth = mk.current_truth("user")
+
+        metrics = {
+            "initial_status_fresh": float(initial_status["stale"] is False and initial_status["pending_event_count"] == 0),
+            "initial_old_truth_visible": float(initial_truth == {"city": "old"}),
+            "append_status_stale": float(append_status["stale"] is True),
+            "append_pending_exactly_one": float(append_status["pending_event_count"] == 1),
+            "stale_old_truth_preserved": float(stale_truth == {"city": "old"}),
+            "sleep_status_fresh": float(sleep_status["stale"] is False and sleep_status["pending_event_count"] == 0),
+            "sleep_new_truth_visible": float(refreshed_truth == {"city": "new"}),
+            "policy_value_cached_before_governance": float(policy_cached_truth.get("secret") == "deny-me"),
+            "policy_cached_value_hidden": float("secret" not in policy_truth),
+            "tombstone_value_cached_before_forget": float(tombstone_cached_truth.get("temporary") == "forget-me"),
+            "tombstoned_cached_value_hidden": float("temporary" not in tombstone_truth),
+            "tombstoned_value_hidden_after_compaction": float("temporary" not in compacted_truth),
+        }
         return {
             "scenario": "truth_freshness",
-            "provisional": not truth_status_available,
-            "pending_contract": "truth_status",
             "results": [
                 {
-                    "documents": 2,
-                    "truth_status_available": truth_status_available,
-                    "compiled_read_stable": float(compiled and stale_preserved),
-                    "sleep_refreshes_truth": float(refreshed),
-                    "thresholds": {
-                        "min_compiled_read_stable": MIN_TRUTH_FRESHNESS_CONTRACT,
-                        "min_sleep_refreshes_truth": MIN_TRUTH_FRESHNESS_CONTRACT,
-                    },
+                    "documents": 4,
+                    **metrics,
+                    "thresholds": {f"min_{key}": MIN_TRUTH_FRESHNESS_CONTRACT for key in metrics},
                 }
             ],
         }

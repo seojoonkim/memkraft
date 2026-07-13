@@ -16,7 +16,21 @@
 
 ## Preview and secondary
 
-`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+
+### Compiled truth freshness preview
+
+`truth_status()`는 인자 없이 호출하는 additive Preview API이며 정확히 다음 필드를 반환한다.
+
+- `schema_version`: 현재 `1`
+- `stale`: 현재 canonical event/policy snapshot과 마지막으로 적용된 sleep transaction이 다른지 나타내는 boolean
+- `live_transaction_id`: 현재 event, policy, 기본 sleep strategy로 계산한 결정적 transaction id
+- `applied_transaction_id`: 최신 적용 sleep transaction id 또는 적용 이력이 없으면 `null`
+- `pending_event_count`: 마지막 적용 snapshot 이후 추가된 canonical source event 수
+
+이 상태 조회는 compiled truth를 자동 재구축하지 않으며 filesystem에 파일이나 레코드를 쓰지 않는다. 따라서 `stale=true`여도 `current_truth(subject_id)`는 마지막으로 적용된 compiled snapshot을 계속 읽고, 명시적인 `sleep(dry_run=False)` 뒤에 새 값으로 바뀐다. `event_ids`가 없는 legacy sleep journal은 compaction 전후의 정확한 차집합을 증명할 수 없으므로, stale 상태에서 현재 raw source event 전체를 pending으로 세는 보수적인 동작을 한다.
+
+`current_truth`의 process-local snapshot cache는 compiled file과 canonical event file 각각의 mtime/size 및 inode identity가 바뀌면 무효화된다. deny policy는 캐시하지 않고 매 호출마다 한 번 읽으며, corrupt line이 있으면 fail-closed로 `{}`를 반환한다. 또한 캐시된 compiled 행도 현재 deny policy와 canonical tombstone에 대조한다. compiled 파일뿐 아니라 canonical event/provenance 읽기에서 corrupt line이 하나라도 발견되면 값을 되살리지 않고 fail-closed로 숨긴다. `do_not_remember(..., dry_run=False)`와 `forget(..., dry_run=False)`는 compiled snapshot을 즉시 재구축하지 않지만, 이미 캐시된 값은 per-read policy/tombstone 검사로 즉시 숨긴다. 정규 snapshot 재구축은 다음 `sleep(dry_run=False)`가 수행한다.
 
 ### Candidate governance preview
 
@@ -41,6 +55,17 @@ Compaction은 **현재 로컬 active sidecar 파일만** 정리한다. Backup, V
 ## Lifecycle
 
 capture → truth → sleep → governance → context → outcome 순서는 동일 fixture에서 결정적이다. Truth는 event log에서 재구축 가능하고, sleep apply는 transaction-id 기반 멱등이며, `forget` tombstone과 do-not-remember 정책은 truth/context/export에 전파된다. 파생 캐시는 권위 데이터가 아니며 삭제 후 재구축할 수 있다.
+
+같은 sleep transaction id가 journal의 **최신 sleep 항목**일 때만 apply 재시도가 `already_applied`다. Canonical 상태가 과거 snapshot으로 되돌아온 경우(예: forget 후 compaction)에는 과거에 같은 id가 있어도 새 sleep 항목을 적용하여 `truth_status()`의 최신 적용 상태를 갱신한다.
+
+## Derived-view benchmark artifacts
+
+`benchmarks/results/derived-views-before.json`은 같은 코드·데이터에서 warm 읽기 전에 compiled/event process-local snapshot cache를 모두 비우는 `--mode no-cache` 측정이며, `derived-views-after.json`은 두 snapshot cache를 사용하는 기본 production 측정이다. deny policy parse와 캐시된 행의 provenance/policy 필터 비용은 양쪽 모두 포함된다. 두 artifact는 single-run 진단용 cache/no-cache baseline이며 의미 있는 성능 향상을 입증하는 hard performance claim이 아니다. 재현 명령은 각각 다음과 같다.
+
+```bash
+PYTHONPATH=src python3 benchmarks/derived_views_bench.py --mode no-cache --sizes 100,1000 --out benchmarks/results/derived-views-before.json
+PYTHONPATH=src python3 benchmarks/derived_views_bench.py --sizes 100,1000 --out benchmarks/results/derived-views-after.json
+```
 
 ## Governance boundary
 
