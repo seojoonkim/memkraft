@@ -1,0 +1,305 @@
+"""Provenance-preserving, query-focused evidence context compilation."""
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from .context_compiler import estimate_tokens
+
+
+_TOKEN_RE = re.compile(r"[\w']+", re.UNICODE)
+# Keep this deliberately small and language-specific: it only removes English
+# grammatical glue from evidence anchors. If nothing remains, tokenization
+# falls back to the full query so non-English and terse queries retain recall.
+_ENGLISH_FUNCTION_TOKENS = {
+    "a", "an", "and", "are", "at", "be", "by", "can", "could", "did", "do",
+    "does", "for", "from", "had", "has", "have", "how", "i", "if", "in", "is",
+    "it", "me", "my", "of", "on", "or", "our", "should", "that", "the", "their",
+    "them", "there", "these", "they", "this", "to", "was", "we", "were", "what",
+    "when", "where", "which", "who", "why", "with", "would", "you", "your",
+}
+_NUMERIC_INTENT_TOKENS = {
+    "age", "count", "how", "long", "many", "much", "number", "old", "time", "total",
+    "years",
+}
+_NUMBER_RE = re.compile(r"\d")
+
+
+def _required_text(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{field} must be a string")
+    value = value.strip()
+    if not value:
+        raise ValueError(f"{field} must not be empty")
+    return value
+
+
+def _positive_int(value: Any, field: str) -> int:
+    if type(value) is not int or value <= 0:
+        raise ValueError(f"{field} must be a positive integer")
+    return value
+
+
+def _nonnegative_int(value: Any, field: str) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError(f"{field} must be a non-negative integer")
+    return value
+
+
+def _query_tokens(query: str) -> List[str]:
+    tokens = list(dict.fromkeys(token.lower() for token in _TOKEN_RE.findall(query)))
+    anchors = [token for token in tokens if token not in _ENGLISH_FUNCTION_TOKENS]
+    return anchors or tokens
+
+
+def _has_numeric_intent(query: str) -> bool:
+    """Whether a question plausibly requires composing a numeric fact."""
+    tokens = {token.lower() for token in _TOKEN_RE.findall(query)}
+    return bool(tokens & _NUMERIC_INTENT_TOKENS)
+
+
+def _numeric_fact_window(content: str, window_chars: int) -> Optional[tuple[int, int]]:
+    """Return the first bounded source line containing a numeric fact."""
+    cursor = 0
+    for line in content.splitlines(keepends=True):
+        end = cursor + len(line)
+        if _NUMBER_RE.search(line):
+            return cursor, min(end, cursor + window_chars)
+        cursor = end
+    return None
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a deterministic JSON-safe projection of a supplied hit."""
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if isinstance(value, int):
+        # Avoid Python's decimal-string safety limit and unreasonable context
+        # metadata while preserving ordinary retrieval IDs and scores.
+        return value if value.bit_length() <= 1024 else _UNSAFE
+    if isinstance(value, float):
+        return value if math.isfinite(value) else _UNSAFE
+    if isinstance(value, (list, tuple)):
+        projected_items = []
+        for item in value:
+            projected = _json_safe(item)
+            if projected is not _UNSAFE:
+                projected_items.append(projected)
+        return projected_items
+    if isinstance(value, dict):
+        safe = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                continue
+            projected = _json_safe(item)
+            if projected is not _UNSAFE:
+                safe[key] = projected
+        return safe
+    return _UNSAFE
+
+
+_UNSAFE = object()
+
+
+def _render(evidence: List[Dict[str, Any]]) -> str:
+    """Use JSONL framing so source text cannot forge a citation boundary."""
+    return "\n".join(
+        json.dumps(
+            {"file": item["file"], "span": item["span"], "text": item["text"]},
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        for item in evidence
+    )
+
+
+class EvidenceContextMixin:
+    """Compile broad search hits into compact, verbatim evidence windows."""
+
+    def compile_evidence_context(
+        self,
+        query: str,
+        *,
+        results: Optional[List[Dict[str, Any]]] = None,
+        top_k: int = 20,
+        budget: int = 1000,
+        window_chars: int = 400,
+        adjacent_windows: int = 1,
+        pinned_sources: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        query = _required_text(query, "query")
+        _positive_int(top_k, "top_k")
+        _positive_int(budget, "budget")
+        _positive_int(window_chars, "window_chars")
+        _nonnegative_int(adjacent_windows, "adjacent_windows")
+        if results is not None and not isinstance(results, list):
+            raise TypeError("results must be a list or None")
+        if pinned_sources is not None and (
+            not isinstance(pinned_sources, list)
+            or any(not isinstance(item, str) or not item.strip() for item in pinned_sources)
+        ):
+            raise ValueError("pinned_sources must be a list of non-empty strings")
+
+        query_tokens = _query_tokens(query)
+        if not query_tokens:
+            raise ValueError("query must contain a searchable token")
+        longest_token = max(len(token) for token in query_tokens)
+        if window_chars < longest_token:
+            raise ValueError("window_chars must fit the longest query token")
+
+        supplied_results = results is not None
+        hits = self.search_v2(query, top_k=top_k) if results is None else list(results)
+        indexed_hits = list(enumerate(hits))
+        # Direct caller results are an audit boundary. Pins may prioritize only
+        # automatically searched candidates, never the supplied hit order.
+        if not supplied_results and pinned_sources:
+            pinned = {item.strip() for item in pinned_sources}
+            indexed_hits.sort(
+                key=lambda pair: (
+                    0 if isinstance(pair[1], dict) and pair[1].get("file") in pinned else 1,
+                    pair[0],
+                )
+            )
+
+        base = Path(self.base_dir).resolve()
+        per_hit: List[Dict[str, Any]] = []
+        for hit_rank, hit in indexed_hits:
+            if not isinstance(hit, dict) or not isinstance(hit.get("file"), str):
+                continue
+            file_name = hit["file"]
+            relative = Path(file_name)
+            if relative.is_absolute():
+                continue
+            try:
+                path = (base / relative).resolve()
+                path.relative_to(base)
+                content = path.read_text(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                continue
+            windows = self._evidence_windows(content, query_tokens, window_chars, adjacent_windows)
+            numeric_windows = []
+            if not windows and _has_numeric_intent(query):
+                numeric_window = _numeric_fact_window(content, window_chars)
+                if numeric_window is not None:
+                    numeric_windows.append(numeric_window)
+            if not windows and not numeric_windows:
+                continue
+            score = hit.get("score", 0.0)
+            try:
+                numeric_score = float(score)
+            except (OverflowError, TypeError, ValueError):
+                numeric_score = 0.0
+            if not math.isfinite(numeric_score):
+                numeric_score = 0.0
+            identity = _json_safe(hit)
+            per_hit.append({
+                "file": file_name,
+                "hit_rank": hit_rank,
+                "score": numeric_score,
+                "hit": identity if isinstance(identity, dict) else {"file": file_name},
+                "content": content,
+                "windows": windows + numeric_windows,
+            })
+
+        selected: List[Dict[str, Any]] = []
+        omitted: List[str] = []
+        included_files = set()
+        for window_index in range(max((len(item["windows"]) for item in per_hit), default=0)):
+            for item in per_hit:
+                if window_index >= len(item["windows"]):
+                    continue
+                start, end = item["windows"][window_index]
+                evidence = {
+                    "file": item["file"],
+                    "span": [start, end],
+                    "text": item["content"][start:end],
+                    "score": item["score"],
+                    "hit_rank": item["hit_rank"],
+                    "hit": item["hit"],
+                }
+                proposed = selected + [evidence]
+                if estimate_tokens(_render(proposed)) <= budget:
+                    selected = proposed
+                    included_files.add(item["file"])
+                elif window_index == 0 and item["file"] not in included_files and item["file"] not in omitted:
+                    omitted.append(item["file"])
+
+        text = _render(selected)
+        sources = []
+        for item in selected:
+            if item["file"] not in sources:
+                sources.append(item["file"])
+        identity = {
+            "query": query,
+            "budget": budget,
+            "evidence": selected,
+            "sources": sources,
+            "omitted_hits": omitted,
+        }
+        usage_id = hashlib.sha256(json.dumps(
+            identity,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")).hexdigest()
+        return {
+            "query": query,
+            "budget": budget,
+            "estimated_tokens": estimate_tokens(text),
+            "text": text,
+            "evidence": selected,
+            "sources": sources,
+            "omitted_hits": omitted,
+            "usage_id": usage_id,
+        }
+
+    @staticmethod
+    def _evidence_windows(
+        content: str,
+        query_tokens: List[str],
+        window_chars: int,
+        adjacent_windows: int,
+    ) -> List[tuple]:
+        lines = content.splitlines(keepends=True)
+        offsets = []
+        cursor = 0
+        for line in lines:
+            offsets.append(cursor)
+            cursor += len(line)
+
+        candidates = []
+        token_set = set(query_tokens)
+        for index, line in enumerate(lines):
+            line_start = offsets[index]
+            line_end = line_start + len(line)
+            for match in _TOKEN_RE.finditer(line):
+                if match.group(0).lower() not in token_set:
+                    continue
+                context_start = offsets[max(0, index - adjacent_windows)]
+                context_end = offsets[min(len(lines), index + adjacent_windows + 1)] if index + adjacent_windows + 1 < len(lines) else len(content)
+                if context_end - context_start <= window_chars:
+                    candidates.append((context_start, context_end))
+                    continue
+                match_start = line_start + match.start()
+                match_end = line_start + match.end()
+                before = max(0, (window_chars - (match_end - match_start)) // 2)
+                start = max(line_start, match_start - before)
+                end = min(line_end, start + window_chars)
+                start = max(line_start, end - window_chars)
+                candidates.append((start, end))
+
+        # Merge only when the merged source span remains inside the configured
+        # per-item ceiling; otherwise keep separate evidence records.
+        windows = []
+        for start, end in sorted(set(candidates)):
+            if windows and start <= windows[-1][1] and end - windows[-1][0] <= window_chars:
+                windows[-1] = (windows[-1][0], max(windows[-1][1], end))
+            else:
+                windows.append((start, end))
+        return windows
