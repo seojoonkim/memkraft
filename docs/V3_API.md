@@ -16,7 +16,19 @@
 
 ## Preview and secondary
 
-`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`, `compile_evidence_context`, `aggregate_numeric_evidence`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+
+### Evidence context preview
+
+`compile_evidence_context(query, *, results=None, top_k=..., budget=..., adjacent_windows=...)`는 검색 hit의 원문 span과 provenance를 hard budget 안의 JSONL evidence context로 컴파일한다. `results`가 주어지면 caller의 hit 순서와 원래 `hit_rank`를 감사 경계로 보존하며 입력을 변경하지 않는다. Query anchor가 있는 span이 numeric auxiliary span보다 우선한다.
+
+명시적인 latest/past/compare intent가 있을 때만 hit metadata의 유효한 `valid_from` 또는 Markdown `Date`를 사용해 anchored evidence 선택 순서를 조정한다. 날짜가 없거나 유효하지 않으면 supplied order로 fallback하고, timestamp만 있다는 이유로 unanchored source를 포함하지 않는다. Neutral query는 기존 ordering을 유지한다. 반환에는 렌더링된 `text`, 구조화된 `evidence`, source 목록, 생략 수, token 추정치, 결정적 `usage_id`가 포함된다. 반환 필드는 Preview이므로 additive 확장이 가능하지만 verbatim span, provenance, hard-budget, deterministic ordering 계약은 유지한다.
+
+### Numeric aggregation preview
+
+`aggregate_numeric_evidence(query, *, results=None, top_k=50)`는 명시적인 `sum`, `count`, `duration` intent에 한해 검색 hit 원문에서 구조화된 수치 결과와 provenance를 만든다. 반환은 `operation`, `status`, `value`, `unit`, `facts`, `excluded`, `reason`, `scope`를 포함한다. 금액과 수량은 binary float가 아닌 decimal 의미로 계산하며 source file/span/text와 caller hit rank를 보존한다.
+
+이 API는 **fail-closed**다. 혼합 단위·통화, unitful/unitless 혼합, 한 줄의 복수 수량, 상충하는 동일 `fact_id`, provenance 없는 cross-file duplicate, 불명확한 event predicate, 두 개가 아닌 duration endpoint, 읽을 수 없거나 base directory 밖의 source가 있으면 부분 합계를 확정하지 않고 `ambiguous`, `incomplete`, 또는 `unsupported`를 반환한다. 단위 환산, 단가×수량, 평균·비율, 상대 날짜, 숫자 단어, 전체 corpus 완전성 추정은 3.0.1 계약에 포함되지 않는다.
 
 ### Compiled truth freshness preview
 

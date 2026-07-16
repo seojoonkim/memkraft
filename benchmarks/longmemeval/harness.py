@@ -139,11 +139,28 @@ class LongMemEvalHarness:
     # ------------------------------------------------------------------
     # Retrieval + LLM
     # ------------------------------------------------------------------
-    def _format_context(self, results: Any, mk: MemKraft, max_context: int = 30000) -> str:
-        """mk.search 결과를 프롬프트용 문자열로.
-        search 결과는 {"file": rel_path, "score": ..., "snippet": ...} 형식.
-        각 파일 전체를 읽어서 LLM 에 전달 (snippet은 너무 짧음).
+    def _format_context(
+        self,
+        results: Any,
+        mk: MemKraft,
+        max_context: int = 30000,
+        question: str = "",
+    ) -> str:
+        """Format search hits, optionally through MemKraft evidence compilation.
+
+        ``MK_EVIDENCE_CONTEXT=1`` makes this consumer use the product's
+        provenance-preserving evidence API. The legacy full-document format is
+        retained as the default comparison path.
         """
+        if not results:
+            return ""
+        if os.environ.get("MK_EVIDENCE_CONTEXT") == "1" and question:
+            compiled = mk.compile_evidence_context(
+                question,
+                results=results if isinstance(results, list) else [],
+                budget=max_context // 4,
+            )
+            return compiled["text"]
         if not results:
             return ""
         out: list[str] = []
@@ -512,7 +529,9 @@ class LongMemEvalHarness:
 
         # aggregation은 컨텍스트 윈도 확장 (counting은 enumeration 필요)
         max_ctx = 60000 if is_agg else 30000
-        context = self._format_context(results, mk, max_context=max_ctx)
+        context = self._format_context(
+            results, mk, max_context=max_ctx, question=question
+        )
 
         when = f"Today's date is {question_date}. Use this as 'now' when answering time-related questions.\n" if question_date else ""
 

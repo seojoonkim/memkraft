@@ -44,6 +44,48 @@
       "expect_claims": false
     },
     {
+      "id": "en-maybe-paren-capitalized-negative",
+      "lang": "en",
+      "text": "Alice prefers dark mode (Maybe).",
+      "expect_claims": false
+    },
+    {
+      "id": "en-maybe-trailing-negative",
+      "lang": "en",
+      "text": "Alice prefers dark mode maybe.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-maybe-trailing-comma-negative",
+      "lang": "en",
+      "text": "Alice prefers dark mode, maybe.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-reportedly-negative",
+      "lang": "en",
+      "text": "Alice reportedly uses Obsidian.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-perhaps-paren-negative",
+      "lang": "en",
+      "text": "Alice uses Obsidian (perhaps).",
+      "expect_claims": false
+    },
+    {
+      "id": "en-think-uppercase-negative",
+      "lang": "en",
+      "text": "I THINK Alice uses Obsidian.",
+      "expect_claims": false
+    },
+    {
+      "id": "en-hearsay-past-negative",
+      "lang": "en",
+      "text": "It was said that Bob uses Obsidian.",
+      "expect_claims": false
+    },
+    {
       "id": "en-think-negative",
       "lang": "en",
       "text": "I think Alice uses Obsidian.",

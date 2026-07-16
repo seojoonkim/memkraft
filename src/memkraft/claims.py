@@ -14,6 +14,18 @@ from typing import Any
 _CONFIDENCE = 0.9
 _DATE_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
 
+# Explicit uncertainty/attribution markers that disqualify a high-confidence
+# claim: "I think" / "It is|was said that" prefixes, a "reportedly" hedge,
+# parenthesized "(maybe)"/"(perhaps)", or a trailing ", maybe"/" maybe".
+_UNCERTAINTY_RE = re.compile(
+    r"^i\s+think\b"
+    r"|^it\s+(?:is|was)\s+said\s+that\b"
+    r"|\breportedly\b"
+    r"|\(\s*(?:maybe|perhaps)\s*\)"
+    r"|[\s,]maybe\s*[.?!]*$",
+    re.IGNORECASE,
+)
+
 _SUBJECT = r"(?P<subject>[A-Z][A-Za-z0-9]*(?:[ ._/-]+[A-Za-z0-9][A-Za-z0-9._/-]*){0,5})"
 _OBJECT = r"(?P<object>.+?)"
 _FIELD = r"(?P<field>[A-Za-z0-9][A-Za-z0-9 ._/-]*?)"
@@ -90,7 +102,7 @@ def extract_claims(text: str, *, entity_hint: typing.Optional[str] = None) -> li
     stripped = unicodedata.normalize("NFC", text.strip())
     if not stripped or stripped.endswith("?"):
         return []
-    if stripped.startswith(("I think ", "It is said that ")) or "(maybe)" in stripped:
+    if _UNCERTAINTY_RE.search(stripped):
         return []
 
     for predicate, pattern in _EXPLICIT_PATTERNS:

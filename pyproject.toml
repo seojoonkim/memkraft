@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memkraft"
-version = "3.0.0"
+version = "3.0.1"
 description = "The compound knowledge system for AI agents"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.9"
 authors = [
     {name = "Seojun Kim", email = "simonkim.nft@gmail.com"},

@@ -30,6 +30,53 @@ DATA_FILES = {
     "m": os.path.join(HERE, "data/longmemeval_m.json"),
 }
 RESULTS_DIR = os.path.join(HERE, "results")
+DEFAULT_LLM_BACKEND = "anthropic"
+DEFAULT_LLM_BACKEND_MODEL = "<backend default>"
+
+
+def llm_backend_metadata() -> dict[str, str]:
+    """Return JSON-safe env-selected LLM identity for result metadata.
+
+    Unset variables retain the runner's documented display fallbacks:
+    ``anthropic`` and ``<backend default>``.
+    """
+    return {
+        "llm_backend": os.environ.get("MK_LME_LLM_BACKEND", DEFAULT_LLM_BACKEND),
+        "llm_backend_model": os.environ.get(
+            "MK_LME_LLM_MODEL", DEFAULT_LLM_BACKEND_MODEL
+        ),
+    }
+
+
+def _percentile(values: list[float], pct: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = (len(ordered) - 1) * pct
+    lower = int(index)
+    upper = min(lower + 1, len(ordered) - 1)
+    if lower == upper:
+        return ordered[lower]
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (index - lower)
+
+
+def summarise_elapsed_ms(samples: list[float]) -> dict:
+    """Return stable, JSON-ready end-to-end sample latency metrics."""
+    if not samples:
+        return {
+            "latency_count": 0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+        }
+    return {
+        "latency_count": len(samples),
+        "p50_ms": round(_percentile(samples, 0.50), 3),
+        "p95_ms": round(_percentile(samples, 0.95), 3),
+        "min_ms": round(min(samples), 3),
+        "max_ms": round(max(samples), 3),
+    }
 
 
 def load_samples(dataset: str, n: int, stratified: bool = True, seed: int = 42) -> list[dict]:
@@ -82,9 +129,11 @@ def main():
     print(f"Tag:   {tag}")
     # Show which LLM backend the harness will use — selected via
     # MK_LME_LLM_BACKEND (anthropic default | openai | openrouter | litellm-vhh).
-    backend_env = os.environ.get("MK_LME_LLM_BACKEND", "anthropic")
-    backend_model = os.environ.get("MK_LME_LLM_MODEL", "<backend default>")
-    print(f"LLM:   backend={backend_env} model={backend_model}")
+    llm_meta = llm_backend_metadata()
+    print(
+        f"LLM:   backend={llm_meta['llm_backend']} "
+        f"model={llm_meta['llm_backend_model']}"
+    )
     print("-" * 60)
 
     print("Loading samples...", flush=True)
@@ -94,10 +143,11 @@ def main():
 
     harness = LongMemEvalHarness(model=model, top_k=15, verbose=False)
     results: list[dict] = []
+    elapsed_ms: list[float] = []
 
     t_run0 = time.time()
     for i, sample in enumerate(samples):
-        t_s = time.time()
+        t_s = time.perf_counter()
         try:
             r = harness.run_sample(sample)
         except Exception as e:
@@ -111,7 +161,9 @@ def main():
             }
             traceback.print_exc()
         results.append(r)
-        dt = time.time() - t_s
+        dt_ms = (time.perf_counter() - t_s) * 1000.0
+        elapsed_ms.append(dt_ms)
+        dt = dt_ms / 1000.0
 
         if (i + 1) % 5 == 0 or i + 1 == len(samples):
             partial = score_results(results)
@@ -162,6 +214,8 @@ def main():
                     "ingest_time_total": harness.ingest_time_total,
                     "search_time_total": harness.search_time_total,
                     "llm_time_total": harness.llm_time_total,
+                    **summarise_elapsed_ms(elapsed_ms),
+                    **llm_meta,
                 },
                 "scores": scores,
                 "results": results,

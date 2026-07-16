@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 
@@ -36,6 +37,75 @@ def test_search_scale_bench_summary_shape():
     assert summary["n"] == 3
     assert summary["median_ms"] == 20.0
     assert summary["p95_ms"] == 29.0
+
+
+def _load_longmemeval_run():
+    benchmark_dir = Path("benchmarks/longmemeval").resolve()
+    sys.path.insert(0, str(benchmark_dir))
+    try:
+        return _load_module("longmemeval_run", str(benchmark_dir / "run.py"))
+    finally:
+        sys.path.remove(str(benchmark_dir))
+
+
+def test_longmemeval_sample_latency_summary_is_deterministic():
+    mod = _load_longmemeval_run()
+
+    assert mod.summarise_elapsed_ms([30.0, 10.0, 20.0]) == {
+        "latency_count": 3,
+        "p50_ms": 20.0,
+        "p95_ms": 29.0,
+        "min_ms": 10.0,
+        "max_ms": 30.0,
+    }
+
+
+def _load_longmemeval_harness():
+    benchmark_dir = Path("benchmarks/longmemeval").resolve()
+    sys.path.insert(0, str(benchmark_dir))
+    try:
+        return _load_module("longmemeval_harness", str(benchmark_dir / "harness.py"))
+    finally:
+        sys.path.remove(str(benchmark_dir))
+
+
+def test_longmemeval_evidence_context_is_opt_in_and_uses_core_api(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+    calls = []
+
+    class FakeMemKraft:
+        base_dir = tmp_path
+
+        def compile_evidence_context(self, question, *, results, budget):
+            calls.append((question, results, budget))
+            return {"text": "{\"file\":\"inbox/a.md\",\"span\":[0,6],\"text\":\"proof\"}"}
+
+    harness = object.__new__(mod.LongMemEvalHarness)
+    monkeypatch.setenv("MK_EVIDENCE_CONTEXT", "1")
+    rendered = harness._format_context(
+        [{"file": "inbox/a.md", "score": 0.9}], FakeMemKraft(), question="where is proof?"
+    )
+
+    assert rendered == "{\"file\":\"inbox/a.md\",\"span\":[0,6],\"text\":\"proof\"}"
+    assert calls == [("where is proof?", [{"file": "inbox/a.md", "score": 0.9}], 7500)]
+
+
+def test_longmemeval_llm_metadata_uses_env_and_stable_fallbacks(monkeypatch):
+    mod = _load_longmemeval_run()
+
+    monkeypatch.setenv("MK_LME_LLM_BACKEND", "openrouter")
+    monkeypatch.setenv("MK_LME_LLM_MODEL", "vendor/model-v1")
+    assert mod.llm_backend_metadata() == {
+        "llm_backend": "openrouter",
+        "llm_backend_model": "vendor/model-v1",
+    }
+
+    monkeypatch.delenv("MK_LME_LLM_BACKEND")
+    monkeypatch.delenv("MK_LME_LLM_MODEL")
+    assert mod.llm_backend_metadata() == {
+        "llm_backend": "anthropic",
+        "llm_backend_model": "<backend default>",
+    }
 
 
 def test_search_scale_bench_reports_limited_and_unlimited_paths():

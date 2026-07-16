@@ -21,6 +21,13 @@ MANDATORY_CLAIM_CASE_IDS = {
     "en-maybe-negative",
     "en-think-negative",
     "en-hearsay-negative",
+    "en-maybe-paren-capitalized-negative",
+    "en-maybe-trailing-negative",
+    "en-maybe-trailing-comma-negative",
+    "en-reportedly-negative",
+    "en-perhaps-paren-negative",
+    "en-think-uppercase-negative",
+    "en-hearsay-past-negative",
 }
 
 
@@ -574,6 +581,13 @@ def test_claim_extraction_fixture_covers_en_and_ko_positive_and_negative_cases()
     assert cases_by_id["en-maybe-negative"]["text"] == "Alice prefers dark mode (maybe)."
     assert cases_by_id["en-think-negative"]["text"] == "I think Alice uses Obsidian."
     assert cases_by_id["en-hearsay-negative"]["text"] == "It is said that Bob uses Obsidian."
+    assert cases_by_id["en-maybe-paren-capitalized-negative"]["text"] == "Alice prefers dark mode (Maybe)."
+    assert cases_by_id["en-maybe-trailing-negative"]["text"] == "Alice prefers dark mode maybe."
+    assert cases_by_id["en-maybe-trailing-comma-negative"]["text"] == "Alice prefers dark mode, maybe."
+    assert cases_by_id["en-reportedly-negative"]["text"] == "Alice reportedly uses Obsidian."
+    assert cases_by_id["en-perhaps-paren-negative"]["text"] == "Alice uses Obsidian (perhaps)."
+    assert cases_by_id["en-think-uppercase-negative"]["text"] == "I THINK Alice uses Obsidian."
+    assert cases_by_id["en-hearsay-past-negative"]["text"] == "It was said that Bob uses Obsidian."
     changed = cases_by_id["en-changed-date-trailer-positive"]
     assert changed["text"] == "Bob changed editor to vim on 2026-07-08 during migration."
     assert changed["expected_claim"] == {

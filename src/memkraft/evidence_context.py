@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -27,6 +28,25 @@ _NUMERIC_INTENT_TOKENS = {
     "years",
 }
 _NUMBER_RE = re.compile(r"\d")
+_SOURCE_DATE_RE = re.compile(
+    r"(?im)^\s*\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2}"
+    r"(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?)"
+    r"(?=$|[ \t]+[A-Za-z])"
+)
+_LATEST_TOKENS = {"currently", "latest", "newest", "now", "recent"}
+_PAST_TOKENS = {
+    "before", "earlier", "former", "formerly", "initial", "oldest", "past", "previous",
+    "previously",
+}
+_COMPARE_TOKENS = {"change", "changed", "compare", "compared", "difference", "evolve", "evolved"}
+_TEMPORAL_CONTROL_TOKENS = (
+    _LATEST_TOKENS | _PAST_TOKENS | _COMPARE_TOKENS | {"current", "history"}
+)
+_ELECTRICAL_CURRENT_TOKENS = {
+    "amp", "amps", "ampere", "amperes", "amperage", "charger", "circuit", "consumption",
+    "draw", "electrical", "rating", "voltage", "watt", "watts",
+}
+_CURRENT_TRANSFER_TOKENS = {"delivers", "flow", "flows", "output", "outputs", "provide", "provides"}
 
 
 def _required_text(value: Any, field: str) -> str:
@@ -52,14 +72,96 @@ def _nonnegative_int(value: Any, field: str) -> int:
 
 def _query_tokens(query: str) -> List[str]:
     tokens = list(dict.fromkeys(token.lower() for token in _TOKEN_RE.findall(query)))
-    anchors = [token for token in tokens if token not in _ENGLISH_FUNCTION_TOKENS]
-    return anchors or tokens
+    anchors = [
+        token for token in tokens
+        if token not in _ENGLISH_FUNCTION_TOKENS
+        and token not in _TEMPORAL_CONTROL_TOKENS
+    ]
+    if anchors:
+        return anchors
+    # Temporal control words steer ordering but never establish relevance.
+    # Preserve the historical fallback only for non-temporal terse queries.
+    return [] if tokens and all(
+        token in _ENGLISH_FUNCTION_TOKENS or token in _TEMPORAL_CONTROL_TOKENS
+        for token in tokens
+    ) else tokens
 
 
 def _has_numeric_intent(query: str) -> bool:
     """Whether a question plausibly requires composing a numeric fact."""
     tokens = {token.lower() for token in _TOKEN_RE.findall(query)}
     return bool(tokens & _NUMERIC_INTENT_TOKENS)
+
+
+def _temporal_intent(query: str) -> str:
+    """Classify generic temporal wording without benchmark-specific cases."""
+    tokens = {token.lower() for token in _TOKEN_RE.findall(query)}
+    lowered = query.lower()
+    # Electrical uses of "current" describe a measured quantity, not recency.
+    electrical_quantity = (
+        bool(tokens & _ELECTRICAL_CURRENT_TOKENS)
+        or ("how much" in lowered and bool(tokens & _CURRENT_TRANSFER_TOKENS))
+    )
+    if "current" in tokens and electrical_quantity:
+        return "neutral"
+    if tokens & _COMPARE_TOKENS or "over time" in lowered or "then and now" in lowered:
+        return "compare"
+    if tokens & _LATEST_TOKENS or "most recent" in lowered:
+        return "latest"
+    # ``current`` is temporal as an adjective ("current status"), but is also
+    # a common electrical noun ("what current does ... provide").
+    if "current" in tokens and not re.search(r"\bwhat\s+current\b", lowered):
+        return "latest"
+    if tokens & _PAST_TOKENS:
+        return "past"
+    return "neutral"
+
+
+def _parse_source_time(value: Any) -> Optional[datetime]:
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip().replace(" ", "T")
+    try:
+        parsed = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _source_time(hit: Dict[str, Any], content: str) -> Optional[datetime]:
+    """Prefer explicit validity metadata, then the Markdown source date."""
+    explicit = _parse_source_time(hit.get("valid_from"))
+    if explicit is not None:
+        return explicit
+    match = _SOURCE_DATE_RE.search(content)
+    return _parse_source_time(match.group(1)) if match else None
+
+
+def _temporal_order(items: List[Dict[str, Any]], intent: str) -> List[Dict[str, Any]]:
+    if intent == "neutral":
+        return items
+    dated = [item for item in items if item["source_time"] is not None]
+    undated = [item for item in items if item["source_time"] is None]
+    ascending = sorted(dated, key=lambda item: (item["source_time"], item["hit_rank"]))
+    if intent == "past":
+        return ascending + undated
+    if intent == "latest":
+        newest_first = sorted(
+            dated,
+            key=lambda item: (item["source_time"], -item["hit_rank"]),
+            reverse=True,
+        )
+        return newest_first + undated
+    if len(ascending) < 2:
+        return list(reversed(ascending)) + undated
+    middle = sorted(
+        ascending[1:-1],
+        key=lambda item: (item["source_time"], -item["hit_rank"]),
+        reverse=True,
+    )
+    return [ascending[-1], ascending[0], *middle, *undated]
 
 
 def _numeric_fact_window(content: str, window_chars: int) -> Optional[tuple[int, int]]:
@@ -145,14 +247,15 @@ class EvidenceContextMixin:
         ):
             raise ValueError("pinned_sources must be a list of non-empty strings")
 
-        query_tokens = _query_tokens(query)
-        if not query_tokens:
+        raw_query_tokens = _TOKEN_RE.findall(query)
+        if not raw_query_tokens:
             raise ValueError("query must contain a searchable token")
-        longest_token = max(len(token) for token in query_tokens)
-        if window_chars < longest_token:
+        query_tokens = _query_tokens(query)
+        if query_tokens and window_chars < max(len(token) for token in query_tokens):
             raise ValueError("window_chars must fit the longest query token")
 
         supplied_results = results is not None
+        temporal_intent = _temporal_intent(query)
         hits = self.search_v2(query, top_k=top_k) if results is None else list(results)
         indexed_hits = list(enumerate(hits))
         # Direct caller results are an audit boundary. Pins may prioritize only
@@ -204,7 +307,20 @@ class EvidenceContextMixin:
                 "hit": identity if isinstance(identity, dict) else {"file": file_name},
                 "content": content,
                 "windows": windows + numeric_windows,
+                "anchored": bool(windows),
+                "source_time": _source_time(hit, content),
             })
+
+        # A source timestamp never makes a hit relevant by itself. Temporal
+        # ordering applies to query anchors first and numeric auxiliaries last.
+        if temporal_intent != "neutral":
+            anchored = _temporal_order(
+                [item for item in per_hit if item["anchored"]], temporal_intent
+            )
+            auxiliary = _temporal_order(
+                [item for item in per_hit if not item["anchored"]], temporal_intent
+            )
+            per_hit = anchored + auxiliary
 
         selected: List[Dict[str, Any]] = []
         omitted: List[str] = []

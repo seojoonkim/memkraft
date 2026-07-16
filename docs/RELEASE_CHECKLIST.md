@@ -51,13 +51,18 @@ python3 -m twine check dist/*
 rm -rf /tmp/memkraft-smoke /tmp/memkraft-smoke-memory
 python3 -m venv /tmp/memkraft-smoke
 /tmp/memkraft-smoke/bin/pip install dist/*.whl
+export MEMKRAFT_DIR=/tmp/memkraft-smoke-memory
 /tmp/memkraft-smoke/bin/memkraft --version
-/tmp/memkraft-smoke/bin/memkraft doctor --base-dir /tmp/memkraft-smoke-memory
+/tmp/memkraft-smoke/bin/memkraft init
+/tmp/memkraft-smoke/bin/memkraft doctor
+/tmp/memkraft-smoke/bin/memkraft track ReleaseSmoke --type concept
+/tmp/memkraft-smoke/bin/memkraft update ReleaseSmoke --info "wheel roundtrip verified"
+/tmp/memkraft-smoke/bin/memkraft search "wheel roundtrip"
 ```
 
 - [ ] `--version`이 릴리스 버전 출력
 - [ ] `doctor` 통과 (fresh 디렉터리에서)
-- [ ] 최소 왕복: smoke venv에서 `remember` → `search`가 방금 저장한 항목을 반환
+- [ ] 최소 왕복: smoke venv에서 `track` → `update` → `search`가 방금 저장한 항목을 반환
 - [ ] **repo 밖 디렉터리에서 실행** (개발 트리의 `src/`가 우연히 import되지 않음을 보장 — `python3 -c "import memkraft; print(memkraft.__file__)"`가 venv 경로를 가리키는지 확인)
 - [ ] 마이그레이션이 포함된 릴리스라면: 이전 버전 fixture 디렉터리에 대해 `doctor --migrations` → `migrate --dry-run` → `migrate --apply` 왕복 수행 ([MIGRATIONS.md](MIGRATIONS.md) §4)
 
@@ -96,6 +101,11 @@ gh release create v<version> --title "MemKraft <version>" --notes-file <릴리�
 
 - [ ] GitHub release 노트가 CHANGELOG 섹션과 일치, 마이그레이션/기지 이슈(known issues) 명시
 - [ ] (3.0부터) 릴리스 노트에 외부 벤치마크 (정확도, p95) 표 포함 — roadmap §7.8
+- [ ] 외부 벤치마크가 최종 릴리스 코드보다 이전/dirty tree에서 생성됐다면
+  해당 결과를 역사적 candidate 증거로 명시하고, 이후 기능의 검증으로
+  주장하지 않으며, 실패한 실행(예: 전건 연결 오류)은 결과에서 제외
+- [ ] 외부 artifact의 공개 URL, 최종 commit SHA/tag는 실제 생성·게시되기
+  전에는 추측해 기재하지 않음
 
 ## 7. 사후 확인 (배포 후 24h 이내)
 

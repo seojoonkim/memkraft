@@ -12,8 +12,8 @@ except ImportError:  # Python 3.9/3.10
 import memkraft
 
 
-RELEASE_VERSION = "3.0.0"
-RELEASE_DATE = "2026-07-12"
+RELEASE_VERSION = "3.0.1"
+RELEASE_DATE = "2026-07-17"
 
 
 def _project_version() -> str:
@@ -53,6 +53,15 @@ def test_release_cut_version_and_changelog_metadata():
     assert _project_version() == RELEASE_VERSION
     assert memkraft.__version__ == RELEASE_VERSION
     assert f"## [{RELEASE_VERSION}] — {RELEASE_DATE}" in changelog
+
+
+def test_release_public_evidence_apis_are_documented_as_preview():
+    root = Path(__file__).resolve().parents[1]
+    api_contract = (root / "docs" / "V3_API.md").read_text(encoding="utf-8")
+
+    assert "compile_evidence_context" in api_contract
+    assert "aggregate_numeric_evidence" in api_contract
+    assert "fail-closed" in api_contract
 
 
 def test_wheel_smoke_uses_canonical_project_version_without_release_literal():

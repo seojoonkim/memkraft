@@ -1,8 +1,24 @@
 # CHANGELOG
 
-## [Unreleased]
+## [3.0.1] — 2026-07-17
 
-- Added Preview `truth_status()` freshness observability, fail-closed compiled-truth cache invalidation/governance checks, a gated `truth_freshness` Memory Gym scenario, and a stdlib-only cold/warm derived-view benchmark.
+Reliability patch for claim precision, candidate lifecycle governance, and
+compiled-truth freshness. This release is additive and read-compatible; it does
+not rewrite existing memory or require a destructive migration.
+
+- Improved deterministic English claim precision and Korean claim extraction,
+  with stricter Memory Gym precision, retrieval, and extraction gates.
+- Extended Preview candidate governance, added auditable candidate forgetting,
+  and added dry-run-first local compaction for event and candidate sidecars.
+- Added Preview `truth_status()` freshness observability, fail-closed
+  compiled-truth cache invalidation and governance checks, a gated
+  `truth_freshness` Gym scenario, and cold/warm derived-view benchmarks.
+- Added the public `compile_evidence_context(...)` API and MemKraft wiring. Its
+  temporal latest/past/compare selection uses validated source timestamps and
+  preserves numeric evidence in compact, provenance-bearing evidence windows.
+- Added public `aggregate_numeric_evidence(...)` for strict sum, count, and
+  duration aggregation with provenance; ambiguous or unsupported evidence
+  fails closed rather than producing a guessed total.
 
 ## [3.0.0] — 2026-07-12
 

@@ -7,4 +7,4 @@ recursive-include src/memkraft/prompts/templates *.md
 recursive-include src/memkraft/templates *.md
 recursive-include src/memkraft/templates_pkg *.json
 include src/memkraft/stopwords.json
-recursive-include docs *.md
+recursive-include docs *.md *.json
