@@ -39,6 +39,148 @@ def test_search_scale_bench_summary_shape():
     assert summary["p95_ms"] == 29.0
 
 
+def _load_reasoning_injection_ab():
+    return _load_module(
+        "reasoning_injection_ab",
+        "benchmarks/reasoning_injection_ab.py",
+    )
+
+
+def test_reasoning_injection_ab_exact_scoring_is_strict():
+    mod = _load_reasoning_injection_ab()
+
+    assert mod.score_exact("233168", "233168")
+    assert mod.score_exact(" 233168\n", "233168")
+    assert not mod.score_exact("The answer is 233168", "233168")
+    assert not mod.score_exact("233,168", "233168")
+    assert not mod.score_exact("The answer is 233168 because 3+5", "233168")
+    assert not mod.score_exact("2331680", "233168")
+
+
+def test_reasoning_injection_ab_paired_summary_preserves_quality_contract():
+    mod = _load_reasoning_injection_ab()
+    rows = [
+        {
+            "pair_id": "a:0", "condition": "control", "latency_ms": 100.0,
+            "correct": True,
+            "usage": {"total_tokens": 30, "reasoning_tokens": 10},
+        },
+        {
+            "pair_id": "a:0", "condition": "injected", "latency_ms": 70.0,
+            "correct": True,
+            "usage": {"total_tokens": 20, "reasoning_tokens": 4},
+        },
+        {
+            "pair_id": "b:0", "condition": "control", "latency_ms": 120.0,
+            "correct": True,
+            "usage": {"total_tokens": 35, "reasoning_tokens": 12},
+        },
+        {
+            "pair_id": "b:0", "condition": "injected", "latency_ms": 90.0,
+            "correct": False,
+            "usage": {"total_tokens": 25, "reasoning_tokens": 5},
+        },
+    ]
+
+    summary = mod.paired_summary(rows)
+
+    assert summary["complete_pairs"] == 2
+    assert summary["accuracy"]["control"] == 1.0
+    assert summary["accuracy"]["injected"] == 0.5
+    assert summary["accuracy"]["paired_losses"] == 1
+    assert summary["latency_ms"]["paired_delta_injected_minus_control"]["median"] == -30.0
+    assert summary["total_tokens_paired_delta_injected_minus_control"]["median"] == -10.0
+    assert summary["reasoning_tokens_observable"] is True
+    assert summary["latency_ms"]["paired_median_bootstrap_95_ci"] == [-30.0, -30.0]
+
+
+def test_reasoning_injection_ab_exact_sign_test_is_deterministic():
+    mod = _load_reasoning_injection_ab()
+
+    assert mod.exact_sign_test_two_sided([-1, -2, -3, -4, -5]) == 0.0625
+    assert mod.exact_sign_test_two_sided([0, 0]) == 1.0
+
+
+def test_reasoning_injection_ab_rejects_duplicate_pair_conditions():
+    mod = _load_reasoning_injection_ab()
+    row = {
+        "pair_id": "a:0", "condition": "control", "latency_ms": 1.0,
+        "correct": True, "usage": {"total_tokens": 1, "reasoning_tokens": 0},
+    }
+
+    import pytest
+    with pytest.raises(ValueError, match="duplicate condition"):
+        mod.paired_summary([row, dict(row)])
+
+
+def test_reasoning_injection_ab_aggregator_namespaces_runs(tmp_path):
+    mod = _load_module(
+        "analyze_reasoning_injection_ab",
+        "benchmarks/analyze_reasoning_injection_ab.py",
+    )
+    import json
+
+    def artifact(delta):
+        rows = []
+        for condition, latency in (("control", 100.0), ("injected", 100.0 + delta)):
+            rows.append({
+                "pair_id": "same:0", "case_id": "same", "condition": condition,
+                "latency_ms": latency, "correct": True, "error": "",
+                "usage": {"reasoning_tokens": 1, "completion_tokens": 2, "total_tokens": 3},
+            })
+        return {"rows": rows}
+
+    paths = [tmp_path / "a.json", tmp_path / "b.json"]
+    paths[0].write_text(json.dumps(artifact(-10)))
+    paths[1].write_text(json.dumps(artifact(20)))
+    summary = mod.summarize(paths)
+
+    assert summary["paired_calls"] == 2
+    assert summary["unique_tasks"] == 1
+    assert summary["descriptive_call_level"]["paired_median_latency_delta_ms"] == 5.0
+
+
+def test_reasoning_injection_ab_aggregator_allows_missing_token_telemetry(tmp_path):
+    mod = _load_module(
+        "analyze_reasoning_injection_ab_nullable",
+        "benchmarks/analyze_reasoning_injection_ab.py",
+    )
+    import json
+
+    rows = []
+    for condition, latency in (("control", 100.0), ("injected", 90.0)):
+        rows.append({
+            "pair_id": "a:0", "case_id": "a", "condition": condition,
+            "latency_ms": latency, "correct": True, "error": "",
+            "usage": {
+                "reasoning_tokens": None,
+                "completion_tokens": None,
+                "total_tokens": None,
+            },
+        })
+    path = tmp_path / "nullable.json"
+    path.write_text(json.dumps({"rows": rows}))
+
+    summary = mod.summarize([path])
+
+    assert summary["descriptive_call_level"]["median_reasoning_token_delta"] is None
+    assert summary["descriptive_call_level"]["median_total_token_delta"] is None
+
+
+def test_reasoning_injection_ab_builds_nonempty_memkraft_hint(tmp_path):
+    mod = _load_reasoning_injection_ab()
+    from typing import Any
+    from memkraft import MemKraft
+
+    mk: Any = MemKraft(base_dir=str(tmp_path))
+    cases = mod.benchmark_cases()
+    mod.seed_reasoning(mk, cases)
+    hint = mk.reasoning_inject_for_task(cases[0].task)
+
+    assert hint.startswith("## ReasoningBank task context")
+    assert "inclusion-exclusion" in hint
+
+
 def _load_longmemeval_run():
     benchmark_dir = Path("benchmarks/longmemeval").resolve()
     sys.path.insert(0, str(benchmark_dir))

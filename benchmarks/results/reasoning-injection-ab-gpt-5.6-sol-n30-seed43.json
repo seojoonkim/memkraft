@@ -1,0 +1,2209 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-07-17T15:05:15.599443+00:00",
+  "memkraft_version": "3.0.2",
+  "model": "gpt-5.6-sol",
+  "endpoint_host": "codex.nekos.me",
+  "settings": {
+    "repeats": 5,
+    "seed": 43,
+    "temperature": 0,
+    "reasoning_effort": "medium"
+  },
+  "cases": [
+    {
+      "case_id": "multiples-sum",
+      "task": "Find the sum of every positive integer below 10,000,000 that is divisible by 3 or 5.",
+      "expected": "23333331666668",
+      "lesson": "Use inclusion-exclusion. For divisor d below limit L, let m=floor((L-1)/d) and sum=d*m*(m+1)/2; add d=3 and d=5, then subtract d=15."
+    },
+    {
+      "case_id": "factorial-zeros",
+      "task": "How many trailing zeroes are in 100,000 factorial?",
+      "expected": "24999",
+      "lesson": "Trailing zeroes of n! equal floor(n/5)+floor(n/25)+... until the quotient is zero; no factorial expansion is needed."
+    },
+    {
+      "case_id": "lattice-paths",
+      "task": "How many shortest paths are there from one corner to the opposite corner of a 30 by 30 square grid when moves are only right or down?",
+      "expected": "118264581564861424",
+      "lesson": "A shortest path has 60 moves with exactly 30 right moves, so the count is the binomial coefficient C(60,30)."
+    },
+    {
+      "case_id": "divisor-count",
+      "task": "How many positive divisors does 2^12 * 3^7 * 5^4 have?",
+      "expected": "520",
+      "lesson": "For prime factorization product p_i^a_i, the positive-divisor count is the product of (a_i+1)."
+    },
+    {
+      "case_id": "squares-sum",
+      "task": "Find the exact sum of the squares of all integers from 1 through 100,000 inclusive.",
+      "expected": "333338333350000",
+      "lesson": "Use the closed form 1^2+...+n^2=n(n+1)(2n+1)/6 and perform exact integer arithmetic."
+    },
+    {
+      "case_id": "modular-power",
+      "task": "Compute the exact remainder when 7^22222 is divided by 1,000,003.",
+      "expected": "345063",
+      "lesson": "Use modular exponentiation by repeated squaring, reducing modulo 1,000,003 after every multiply and square."
+    }
+  ],
+  "summary": {
+    "complete_pairs": 30,
+    "accuracy": {
+      "control": 1.0,
+      "injected": 1.0,
+      "paired_losses": 0,
+      "paired_gains": 0
+    },
+    "latency_ms": {
+      "control": {
+        "n": 30,
+        "mean": 15289.792,
+        "median": 3891.153,
+        "p95": 69841.535,
+        "min": 1295.779,
+        "max": 72574.247
+      },
+      "injected": {
+        "n": 30,
+        "mean": 14455.72,
+        "median": 4501.534,
+        "p95": 66572.445,
+        "min": 1560.586,
+        "max": 70974.29
+      },
+      "paired_delta_injected_minus_control": {
+        "n": 30,
+        "mean": -834.072,
+        "median": -351.312,
+        "p95": 2416.445,
+        "min": -8729.49,
+        "max": 2690.936
+      },
+      "median_change_pct": -9.028,
+      "pairs_faster": 16,
+      "pairs_slower": 14
+    },
+    "total_tokens_paired_delta_injected_minus_control": {
+      "n": 30,
+      "mean": 210.8,
+      "median": 237.0,
+      "p95": 444.2,
+      "min": -337.0,
+      "max": 842.0
+    },
+    "reasoning_tokens_paired_delta_injected_minus_control": {
+      "n": 30,
+      "mean": -25.033,
+      "median": 0.0,
+      "p95": 195.6,
+      "min": -573.0,
+      "max": 606.0
+    },
+    "reasoning_tokens_observable": true
+  },
+  "errors": 0,
+  "rows": [
+    {
+      "pair_id": "modular-power:4",
+      "case_id": "modular-power",
+      "repeat": 4,
+      "order": 0,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 62709.585,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 4017,
+        "total_tokens": 4305,
+        "reasoning_tokens": 4009
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:4",
+      "case_id": "modular-power",
+      "repeat": 4,
+      "order": 1,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 67116.998,
+      "prompt_chars": 202,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 3762,
+        "total_tokens": 3814,
+        "reasoning_tokens": 3754
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:3",
+      "case_id": "modular-power",
+      "repeat": 3,
+      "order": 0,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 69644.244,
+      "prompt_chars": 202,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 4205,
+        "total_tokens": 4257,
+        "reasoning_tokens": 4197
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:3",
+      "case_id": "modular-power",
+      "repeat": 3,
+      "order": 1,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 66329.656,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 3632,
+        "total_tokens": 3920,
+        "reasoning_tokens": 3624
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:4",
+      "case_id": "factorial-zeros",
+      "repeat": 4,
+      "order": 0,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 4674.791,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 100,
+        "total_tokens": 386,
+        "reasoning_tokens": 92
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:4",
+      "case_id": "factorial-zeros",
+      "repeat": 4,
+      "order": 1,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 3033.946,
+      "prompt_chars": 187,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 54,
+        "total_tokens": 99,
+        "reasoning_tokens": 46
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:4",
+      "case_id": "divisor-count",
+      "repeat": 4,
+      "order": 0,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 2048.728,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:4",
+      "case_id": "divisor-count",
+      "repeat": 4,
+      "order": 1,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1431.913,
+      "prompt_chars": 191,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 54,
+        "completion_tokens": 5,
+        "total_tokens": 59,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:3",
+      "case_id": "multiples-sum",
+      "repeat": 3,
+      "order": 0,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 7770.341,
+      "prompt_chars": 221,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 367,
+        "total_tokens": 423,
+        "reasoning_tokens": 356
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:3",
+      "case_id": "multiples-sum",
+      "repeat": 3,
+      "order": 1,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 6128.892,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 361,
+        "total_tokens": 616,
+        "reasoning_tokens": 350
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:1",
+      "case_id": "factorial-zeros",
+      "repeat": 1,
+      "order": 0,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 4491.929,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 99,
+        "total_tokens": 385,
+        "reasoning_tokens": 91
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:1",
+      "case_id": "factorial-zeros",
+      "repeat": 1,
+      "order": 1,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 5982.867,
+      "prompt_chars": 187,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 109,
+        "total_tokens": 154,
+        "reasoning_tokens": 101
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:2",
+      "case_id": "multiples-sum",
+      "repeat": 2,
+      "order": 0,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 8226.168,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 347,
+        "total_tokens": 602,
+        "reasoning_tokens": 336
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:2",
+      "case_id": "multiples-sum",
+      "repeat": 2,
+      "order": 1,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 10833.096,
+      "prompt_chars": 221,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 588,
+        "total_tokens": 644,
+        "reasoning_tokens": 577
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:2",
+      "case_id": "modular-power",
+      "repeat": 2,
+      "order": 0,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 63161.72,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 3598,
+        "total_tokens": 3886,
+        "reasoning_tokens": 3590
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:2",
+      "case_id": "modular-power",
+      "repeat": 2,
+      "order": 1,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 70002.955,
+      "prompt_chars": 202,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 4063,
+        "total_tokens": 4115,
+        "reasoning_tokens": 4055
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:0",
+      "case_id": "lattice-paths",
+      "repeat": 0,
+      "order": 0,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 4532.648,
+      "prompt_chars": 270,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 62,
+        "completion_tokens": 107,
+        "total_tokens": 169,
+        "reasoning_tokens": 95
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:0",
+      "case_id": "lattice-paths",
+      "repeat": 0,
+      "order": 1,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3710.008,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 59,
+        "total_tokens": 359,
+        "reasoning_tokens": 47
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:1",
+      "case_id": "squares-sum",
+      "repeat": 1,
+      "order": 0,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 4511.139,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 202,
+        "total_tokens": 518,
+        "reasoning_tokens": 191
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:1",
+      "case_id": "squares-sum",
+      "repeat": 1,
+      "order": 1,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 3948.49,
+      "prompt_chars": 220,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 167,
+        "total_tokens": 219,
+        "reasoning_tokens": 156
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:1",
+      "case_id": "multiples-sum",
+      "repeat": 1,
+      "order": 0,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 6675.899,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 393,
+        "total_tokens": 648,
+        "reasoning_tokens": 382
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:1",
+      "case_id": "multiples-sum",
+      "repeat": 1,
+      "order": 1,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 10093.907,
+      "prompt_chars": 221,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 511,
+        "total_tokens": 567,
+        "reasoning_tokens": 500
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:1",
+      "case_id": "lattice-paths",
+      "repeat": 1,
+      "order": 0,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3121.2,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 58,
+        "total_tokens": 358,
+        "reasoning_tokens": 46
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:1",
+      "case_id": "lattice-paths",
+      "repeat": 1,
+      "order": 1,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3833.815,
+      "prompt_chars": 270,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 62,
+        "completion_tokens": 76,
+        "total_tokens": 138,
+        "reasoning_tokens": 64
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:3",
+      "case_id": "lattice-paths",
+      "repeat": 3,
+      "order": 0,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 5772.892,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 72,
+        "total_tokens": 372,
+        "reasoning_tokens": 60
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:3",
+      "case_id": "lattice-paths",
+      "repeat": 3,
+      "order": 1,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3147.369,
+      "prompt_chars": 270,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 62,
+        "completion_tokens": 61,
+        "total_tokens": 123,
+        "reasoning_tokens": 49
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:0",
+      "case_id": "modular-power",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 70974.29,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 3994,
+        "total_tokens": 4282,
+        "reasoning_tokens": 3986
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:0",
+      "case_id": "modular-power",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 72574.247,
+      "prompt_chars": 202,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 4070,
+        "total_tokens": 4122,
+        "reasoning_tokens": 4062
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:4",
+      "case_id": "squares-sum",
+      "repeat": 4,
+      "order": 0,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 3093.635,
+      "prompt_chars": 220,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 155,
+        "total_tokens": 207,
+        "reasoning_tokens": 144
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:4",
+      "case_id": "squares-sum",
+      "repeat": 4,
+      "order": 1,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 4805.55,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 191,
+        "total_tokens": 507,
+        "reasoning_tokens": 180
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:2",
+      "case_id": "factorial-zeros",
+      "repeat": 2,
+      "order": 0,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 3001.36,
+      "prompt_chars": 187,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 83,
+        "total_tokens": 128,
+        "reasoning_tokens": 75
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:2",
+      "case_id": "factorial-zeros",
+      "repeat": 2,
+      "order": 1,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 3049.201,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 104,
+        "total_tokens": 390,
+        "reasoning_tokens": 96
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:2",
+      "case_id": "squares-sum",
+      "repeat": 2,
+      "order": 0,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 3791.593,
+      "prompt_chars": 220,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 165,
+        "total_tokens": 217,
+        "reasoning_tokens": 154
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:2",
+      "case_id": "squares-sum",
+      "repeat": 2,
+      "order": 1,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 3204.571,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 126,
+        "total_tokens": 442,
+        "reasoning_tokens": 115
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:0",
+      "case_id": "multiples-sum",
+      "repeat": 0,
+      "order": 0,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 14058.026,
+      "prompt_chars": 221,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 748,
+        "total_tokens": 804,
+        "reasoning_tokens": 737
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:0",
+      "case_id": "multiples-sum",
+      "repeat": 0,
+      "order": 1,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 5328.536,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 337,
+        "total_tokens": 592,
+        "reasoning_tokens": 326
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:2",
+      "case_id": "divisor-count",
+      "repeat": 2,
+      "order": 0,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1677.226,
+      "prompt_chars": 191,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 54,
+        "completion_tokens": 5,
+        "total_tokens": 59,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:2",
+      "case_id": "divisor-count",
+      "repeat": 2,
+      "order": 1,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1717.036,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:3",
+      "case_id": "factorial-zeros",
+      "repeat": 3,
+      "order": 0,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 2381.78,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 103,
+        "total_tokens": 389,
+        "reasoning_tokens": 95
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:3",
+      "case_id": "factorial-zeros",
+      "repeat": 3,
+      "order": 1,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 3599.74,
+      "prompt_chars": 187,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 87,
+        "total_tokens": 132,
+        "reasoning_tokens": 79
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:4",
+      "case_id": "lattice-paths",
+      "repeat": 4,
+      "order": 0,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3457.279,
+      "prompt_chars": 270,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 62,
+        "completion_tokens": 107,
+        "total_tokens": 169,
+        "reasoning_tokens": 95
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:4",
+      "case_id": "lattice-paths",
+      "repeat": 4,
+      "order": 1,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 2089.574,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 58,
+        "total_tokens": 358,
+        "reasoning_tokens": 46
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:0",
+      "case_id": "divisor-count",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1827.378,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:0",
+      "case_id": "divisor-count",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1450.307,
+      "prompt_chars": 191,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 54,
+        "completion_tokens": 5,
+        "total_tokens": 59,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:3",
+      "case_id": "divisor-count",
+      "repeat": 3,
+      "order": 0,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1295.779,
+      "prompt_chars": 191,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 54,
+        "completion_tokens": 5,
+        "total_tokens": 59,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:3",
+      "case_id": "divisor-count",
+      "repeat": 3,
+      "order": 1,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 3456.685,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:1",
+      "case_id": "modular-power",
+      "repeat": 1,
+      "order": 0,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 64080.154,
+      "prompt_chars": 202,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 3342,
+        "total_tokens": 3394,
+        "reasoning_tokens": 3334
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:1",
+      "case_id": "modular-power",
+      "repeat": 1,
+      "order": 1,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 66771.09,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 3948,
+        "total_tokens": 4236,
+        "reasoning_tokens": 3940
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:2",
+      "case_id": "lattice-paths",
+      "repeat": 2,
+      "order": 0,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 3240.579,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 55,
+        "total_tokens": 355,
+        "reasoning_tokens": 43
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:2",
+      "case_id": "lattice-paths",
+      "repeat": 2,
+      "order": 1,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 2493.939,
+      "prompt_chars": 270,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 62,
+        "completion_tokens": 55,
+        "total_tokens": 117,
+        "reasoning_tokens": 43
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:0",
+      "case_id": "squares-sum",
+      "repeat": 0,
+      "order": 0,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 5648.218,
+      "prompt_chars": 220,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 196,
+        "total_tokens": 248,
+        "reasoning_tokens": 185
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:0",
+      "case_id": "squares-sum",
+      "repeat": 0,
+      "order": 1,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 6734.537,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 319,
+        "total_tokens": 635,
+        "reasoning_tokens": 308
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:4",
+      "case_id": "multiples-sum",
+      "repeat": 4,
+      "order": 0,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 8596.188,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 505,
+        "total_tokens": 760,
+        "reasoning_tokens": 494
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:4",
+      "case_id": "multiples-sum",
+      "repeat": 4,
+      "order": 1,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 7871.042,
+      "prompt_chars": 221,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 56,
+        "completion_tokens": 432,
+        "total_tokens": 488,
+        "reasoning_tokens": 421
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:3",
+      "case_id": "squares-sum",
+      "repeat": 3,
+      "order": 0,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 4056.249,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 200,
+        "total_tokens": 516,
+        "reasoning_tokens": 189
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:3",
+      "case_id": "squares-sum",
+      "repeat": 3,
+      "order": 1,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 5448.508,
+      "prompt_chars": 220,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 52,
+        "completion_tokens": 156,
+        "total_tokens": 208,
+        "reasoning_tokens": 145
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:1",
+      "case_id": "divisor-count",
+      "repeat": 1,
+      "order": 0,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1560.586,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:1",
+      "case_id": "divisor-count",
+      "repeat": 1,
+      "order": 1,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1676.188,
+      "prompt_chars": 191,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 54,
+        "completion_tokens": 5,
+        "total_tokens": 59,
+        "reasoning_tokens": 0
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:0",
+      "case_id": "factorial-zeros",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 2315.169,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 99,
+        "total_tokens": 385,
+        "reasoning_tokens": 91
+      },
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:0",
+      "case_id": "factorial-zeros",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 2103.944,
+      "prompt_chars": 187,
+      "hint_chars": 0,
+      "hint_metadata": null,
+      "usage": {
+        "prompt_tokens": 45,
+        "completion_tokens": 62,
+        "total_tokens": 107,
+        "reasoning_tokens": 54
+      },
+      "error": ""
+    }
+  ]
+}

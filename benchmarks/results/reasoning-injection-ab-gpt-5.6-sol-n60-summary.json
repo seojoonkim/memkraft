@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "analysis_unit": "unique task; call-level results are descriptive only",
+  "source_artifacts": [
+    "reasoning-injection-ab-gpt-5.6-sol-n30.json",
+    "reasoning-injection-ab-gpt-5.6-sol-n30-seed43.json"
+  ],
+  "unique_tasks": 6,
+  "paired_calls": 60,
+  "accuracy_control": 1.0,
+  "accuracy_injected": 1.0,
+  "paired_losses": 0,
+  "descriptive_call_level": {
+    "control_median_latency_ms": 4108.988,
+    "paired_median_latency_delta_ms": -281.613,
+    "paired_median_latency_change_pct": -6.854,
+    "mean_latency_delta_ms": -1083.897,
+    "pairs_faster": 35,
+    "pairs_slower": 25,
+    "median_reasoning_token_delta": -1.0,
+    "mean_reasoning_token_delta": -55.317,
+    "median_completion_token_delta": -1.0,
+    "median_total_token_delta": 237.0
+  },
+  "task_level": {
+    "tasks_with_lower_median_latency": 3,
+    "tasks_with_higher_median_latency": 3,
+    "median_of_task_median_latency_deltas_ms": -365.934,
+    "effects": [
+      {
+        "case_id": "divisor-count",
+        "pairs": 10,
+        "median_latency_delta_ms": 11.757,
+        "median_reasoning_token_delta": 0.0,
+        "pairs_faster": 5
+      },
+      {
+        "case_id": "factorial-zeros",
+        "pairs": 10,
+        "median_latency_delta_ms": 258.961,
+        "median_reasoning_token_delta": 13.0,
+        "pairs_faster": 3
+      },
+      {
+        "case_id": "lattice-paths",
+        "pairs": 10,
+        "median_latency_delta_ms": -743.624,
+        "median_reasoning_token_delta": -22.0,
+        "pairs_faster": 7
+      },
+      {
+        "case_id": "modular-power",
+        "pairs": 10,
+        "median_latency_delta_ms": -2457.273,
+        "median_reasoning_token_delta": -321.5,
+        "pairs_faster": 7
+      },
+      {
+        "case_id": "multiples-sum",
+        "pairs": 10,
+        "median_latency_delta_ms": -1677.6,
+        "median_reasoning_token_delta": -68.5,
+        "pairs_faster": 8
+      },
+      {
+        "case_id": "squares-sum",
+        "pairs": 10,
+        "median_latency_delta_ms": 52.538,
+        "median_reasoning_token_delta": 28.5,
+        "pairs_faster": 5
+      }
+    ]
+  },
+  "errors": 0
+}
