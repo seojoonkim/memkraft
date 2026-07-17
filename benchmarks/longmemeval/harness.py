@@ -16,6 +16,7 @@ import os
 import sys
 import io
 import json
+import re
 import time
 import tempfile
 import traceback
@@ -495,11 +496,33 @@ class LongMemEvalHarness:
         return ordinal
 
     @staticmethod
+    def _is_recommendation_recall(question: str) -> bool:
+        """Detect recall of a past recommendation, not a new recommendation request."""
+        q = question.lower()
+        if re.search(r"\bremind me to (?:recommend|suggest|advise)\b", q):
+            return False
+
+        recall_patterns = (
+            r"\b(?:what|which)[^?]{0,120}\bdid you\s+(?:specifically\s+)?(?:recommend|suggest|advise)\b",
+            r"\b(?:what|which)[^?]{0,120}\bwas your\s+(?:recommendation|suggestion|suggested)\b",
+            r"\b(?:you\s+)?(?:recommended|suggested|advised)\b[^?]{0,120}\bremind me\b",
+            r"\bremind me\b[^?]{0,120}\byou\s+(?:recommended|suggested|advised)\b",
+            r"\bremind me\b[^?]{0,120}\b(?:what|which)\b[^?]{0,120}\byou\s+(?:specifically\s+)?(?:recommended|suggested|advised)\b",
+            r"\bdid you say i should\b",
+        )
+        return any(re.search(pattern, q) for pattern in recall_patterns)
+
+    @staticmethod
     def _is_preference_question(question: str) -> bool:
         """Heuristic: detect preference/suggestion-style questions from wording only.
         Used to switch prompt into preference-framing mode (no access to gold labels).
         """
         q = question.lower()
+        if (
+            os.environ.get("MK_SPLIT_RECOMMENDATION_ROUTE") == "1"
+            and LongMemEvalHarness._is_recommendation_recall(question)
+        ):
+            return False
         triggers = [
             "suggest", "recommend", "recommendation", "what should i",
             "any ideas", "any suggestions", "any tips", "advice",

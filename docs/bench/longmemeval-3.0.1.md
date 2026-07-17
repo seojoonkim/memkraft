@@ -106,3 +106,24 @@ regressed a 19-day cross-session calculation to zero. Preserving validated
 source-time metadata restored that sample to 19 days. This supports the
 selective route with the documented fallbacks; it does not justify applying
 selective evidence to aggregation or preference routes.
+
+### Recommendation recall routing candidate
+
+A subsequent opt-in candidate (`MK_SPLIT_RECOMMENDATION_ROUTE=1`) changed only
+recommendation routing. Requests to recall a prior recommendation (for example,
+"remind me what you recommended") used the factual standard route, while current
+requests such as "Can you suggest..." and "What do you recommend?" retained the
+preference route. Selective-evidence settings, model, subset, seed, and `top_k`
+were unchanged.
+
+Exactly three of 50 samples changed route. All three returned the requested past
+facts, and the three true preference samples remained on the preference route.
+For changed samples, total prediction length fell from **996 to 145 characters**
+(**-85.4%**) and median end-to-end latency fell from **2,961 to 2,701 ms**
+(**-8.8%**). Whole-suite canonical accuracy remained **80%**, with no paired
+canonical loss on changed samples. Whole-suite contains match moved from **66%
+to 64%** because of one non-routed sample's model variation; none of the three
+changed samples lost contains or canonical credit relative to the baseline.
+Two of the three changed answers receive neither contains nor canonical credit
+in either run despite being concise factual paraphrases, because conservative
+canonical matching intentionally does not infer sentence-level equivalence.

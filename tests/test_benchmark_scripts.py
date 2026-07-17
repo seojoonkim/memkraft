@@ -123,6 +123,44 @@ def test_longmemeval_scores_add_canonical_without_changing_legacy_metrics():
 
 
 
+def test_longmemeval_split_recommendation_route_is_opt_in(monkeypatch):
+    mod = _load_longmemeval_harness()
+    recall_questions = [
+        "You recommended five bottles. Can you remind me what the fifth bottle was?",
+        "Can you remind me of the languages you recommended I learn?",
+        "What type of beer did you specifically recommend?",
+    ]
+    recall_questions.extend(
+        [
+            "Which hotel was your recommendation?",
+            "What was your suggested hotel?",
+            "Which language did you advise me to learn?",
+            "Did you say I should learn Rust?",
+            "Could you remind me what type of beer you specifically recommended?",
+            "What did you recommend for my upcoming trip?",
+            "What was your recommendation for tomorrow?",
+        ]
+    )
+    current_questions = [
+        "Can you suggest a hotel for my upcoming trip?",
+        "Any suggestions for staying connected with colleagues?",
+        "What do you recommend I learn next?",
+        "In our previous conversation, what do you recommend now?",
+        "Can you suggest another hotel based on what we discussed?",
+        "Remind me to recommend a hotel tomorrow.",
+    ]
+
+    monkeypatch.delenv("MK_SPLIT_RECOMMENDATION_ROUTE", raising=False)
+    assert all(
+        mod.LongMemEvalHarness._is_preference_question(q)
+        for q in recall_questions[:3]
+    )
+
+    monkeypatch.setenv("MK_SPLIT_RECOMMENDATION_ROUTE", "1")
+    assert not any(mod.LongMemEvalHarness._is_preference_question(q) for q in recall_questions)
+    assert all(mod.LongMemEvalHarness._is_preference_question(q) for q in current_questions)
+
+
 def test_longmemeval_run_sample_records_route_and_stage_latency(monkeypatch, tmp_path):
     mod = _load_longmemeval_harness()
 
