@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## [3.0.2] — 2026-07-17
+
+Post-release evidence-context reliability patch. This release is additive and
+read-compatible; it does not rewrite existing memory or require a destructive
+migration.
+
+- Preserved validated UTC source timestamps in compiled evidence so temporal
+  questions can compute intervals without losing date provenance. Invalid,
+  missing, or weekday-mismatched timestamps fail closed.
+- Kept evidence text ahead of optional timestamps under hard context budgets,
+  and retained the full legacy context for aggregation, preference, ordinal,
+  and empty-compiler cases.
+- Added conservative canonical benchmark scoring for equivalent date, time,
+  number, unit, and explicitly allowed answer forms while preserving the
+  historical exact and contains metrics.
+- Added sample-level route, latency, and context-size instrumentation to the
+  LongMemEval harness.
+- Added opt-in `MK_SPLIT_RECOMMENDATION_ROUTE=1` routing so explicit past
+  recommendation recall can use the factual path while new recommendations and
+  meta-reminders remain on the preference path. Default routing is unchanged.
+
 ## [3.0.1] — 2026-07-17
 
 Reliability patch for claim precision, candidate lifecycle governance, and

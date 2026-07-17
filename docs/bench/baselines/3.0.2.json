@@ -1,0 +1,612 @@
+{
+  "generated_at": "2026-07-17",
+  "scenarios": {
+    "claim_extraction": {
+      "scenario": "claim_extraction",
+      "fixture": "tests/fixtures/claim_extraction_cases.json",
+      "results": [
+        {
+          "documents": 19,
+          "positive_cases": 5,
+          "negative_cases": 14,
+          "positive_accuracy": 1.0,
+          "negative_accuracy": 1.0,
+          "failed_case_ids": [],
+          "thresholds": {
+            "min_positive_accuracy": 1.0,
+            "min_negative_accuracy": 1.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "positive_accuracy": 1.0,
+        "negative_accuracy": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "last_interaction": {
+      "scenario": "last_interaction",
+      "results": [
+        {
+          "documents": 20,
+          "accuracy": 1.0,
+          "p95_ms": 0.004125060513615608,
+          "thresholds": {
+            "max_p95_ms": 5.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "accuracy": 1.0,
+        "p95_ms": 0.004125060513615608
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "lifecycle_governance": {
+      "scenario": "lifecycle_governance",
+      "results": [
+        {
+          "truth_rebuild": true,
+          "dry_apply_same_transaction": true,
+          "idempotent_retry": true,
+          "deletion_propagated": true,
+          "mean_recall_at_k": 1.0,
+          "min_recall_at_k": 1.0
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "mean_recall_at_k": 1.0,
+        "min_recall_at_k": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "lifecycle_replay": {
+      "scenario": "lifecycle_replay",
+      "fixture_schema": 1,
+      "results": [
+        {
+          "documents": 3,
+          "recall": true,
+          "tombstone_hidden": true,
+          "tombstone_hidden_current_truth": true,
+          "tombstone_hidden_context": true,
+          "tombstone_hidden_search": true,
+          "no_unsourced_derived_writes": true,
+          "sleep_transaction_stable": true,
+          "outcome_recorded": true,
+          "mean_recall_at_k": 1.0,
+          "min_recall_at_k": 1.0
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "mean_recall_at_k": 1.0,
+        "min_recall_at_k": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "outcome_context": {
+      "scenario": "outcome_context",
+      "results": [
+        {
+          "documents": 2,
+          "ordering_changed": true,
+          "reward_clamped": true,
+          "pin_protected": true,
+          "mean_recall_at_k": 1.0,
+          "min_recall_at_k": 1.0
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "mean_recall_at_k": 1.0,
+        "min_recall_at_k": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "resolver_verdicts": {
+      "scenario": "resolver_verdicts",
+      "results": [
+        {
+          "documents": 20,
+          "accuracy": 1.0,
+          "determinism": 1.0,
+          "missing_source_promotions": 0,
+          "thresholds": {
+            "min_accuracy": 0.95
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "accuracy": 1.0,
+        "determinism": 1.0,
+        "missing_source_promotions": 0.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "search_precision": {
+      "scenario": "search_precision",
+      "top_k": 20,
+      "results": [
+        {
+          "documents": 20,
+          "trap_documents": 20,
+          "returned_hits": 20,
+          "precision_at_k": 1.0,
+          "recall_at_k": 1.0,
+          "thresholds": {
+            "min_precision_at_k": 1.0,
+            "min_recall_at_k": 1.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "precision_at_k": 1.0,
+        "recall_at_k": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "search_recall": {
+      "scenario": "search_recall",
+      "candidate": "baseline",
+      "top_k": 20,
+      "results": [
+        {
+          "documents": 20,
+          "top_k": 20,
+          "queries": [
+            {
+              "query": "alpha",
+              "baseline_hits": 12,
+              "candidate_hits": 12,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ]
+            },
+            {
+              "query": "beta",
+              "baseline_hits": 4,
+              "candidate_hits": 4,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ]
+            },
+            {
+              "query": "gamma",
+              "baseline_hits": 3,
+              "candidate_hits": 3,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md"
+              ]
+            },
+            {
+              "query": "common shared",
+              "baseline_hits": 20,
+              "candidate_hits": 20,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00009-delta.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00009-delta.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ]
+            },
+            {
+              "query": "priority_topic",
+              "baseline_hits": 20,
+              "candidate_hits": 20,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00009-delta.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00001-beta.md",
+                "live-notes/recall-doc-00002-gamma.md",
+                "live-notes/recall-doc-00003-delta.md",
+                "live-notes/recall-doc-00004-epsilon.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00006-alpha.md",
+                "live-notes/recall-doc-00007-beta.md",
+                "live-notes/recall-doc-00008-gamma.md",
+                "live-notes/recall-doc-00009-delta.md",
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md"
+              ]
+            },
+            {
+              "query": "alpha zeta",
+              "baseline_hits": 13,
+              "candidate_hits": 13,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00011-zeta-priority-topic.md",
+                "live-notes/recall-doc-00012-alpha-priority-topic.md",
+                "live-notes/recall-doc-00013-beta-priority-topic.md",
+                "live-notes/recall-doc-00014-gamma-priority-topic.md",
+                "live-notes/recall-doc-00015-delta-priority-topic.md",
+                "live-notes/recall-doc-00016-epsilon-priority-topic.md",
+                "live-notes/recall-doc-00017-zeta-priority-topic.md",
+                "live-notes/recall-doc-00018-alpha-priority-topic.md",
+                "live-notes/recall-doc-00019-beta-priority-topic.md",
+                "live-notes/recall-doc-00005-zeta.md",
+                "live-notes/recall-doc-00000-alpha.md",
+                "live-notes/recall-doc-00006-alpha.md"
+              ]
+            },
+            {
+              "query": "unique_marker_00000",
+              "baseline_hits": 1,
+              "candidate_hits": 1,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00000-alpha.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00000-alpha.md"
+              ]
+            },
+            {
+              "query": "unique_marker_00010",
+              "baseline_hits": 1,
+              "candidate_hits": 1,
+              "recall_at_k": 1.0,
+              "baseline_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md"
+              ],
+              "candidate_top": [
+                "live-notes/recall-doc-00010-epsilon-priority-topic.md"
+              ]
+            }
+          ],
+          "mean_recall_at_k": 1.0,
+          "min_recall_at_k": 1.0,
+          "baseline_latency_ms": {
+            "workload": "baseline_search",
+            "n": 8,
+            "mean_ms": 0.948,
+            "median_ms": 0.508,
+            "p50_ms": 0.508,
+            "p95_ms": 4.027,
+            "min_ms": 0.184,
+            "max_ms": 4.027
+          },
+          "candidate_latency_ms": {
+            "workload": "candidate_search",
+            "n": 8,
+            "mean_ms": 0.663,
+            "median_ms": 0.537,
+            "p50_ms": 0.537,
+            "p95_ms": 1.611,
+            "min_ms": 0.187,
+            "max_ms": 1.611
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "mean_recall_at_k": 1.0,
+        "min_recall_at_k": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "search_recall_ko": {
+      "scenario": "search_recall_ko",
+      "top_k": 20,
+      "results": [
+        {
+          "documents": 20,
+          "recall_at_k": 1.0,
+          "broad_query_hit": 1.0,
+          "thresholds": {
+            "min_recall_at_k": 1.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "recall_at_k": 1.0,
+        "broad_query_hit": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "session_overlay_recall": {
+      "scenario": "session_overlay_recall",
+      "top_k": 20,
+      "results": [
+        {
+          "documents": 20,
+          "same_session_recall": 1.0,
+          "cross_session_leaks": 0,
+          "expired_exposures": 0,
+          "governed_exposures": 0,
+          "governed_free_text_discoveries": 1,
+          "thresholds": {
+            "min_same_session_recall": 1.0,
+            "max_cross_session_leaks": 0.0,
+            "max_expired_exposures": 0.0,
+            "max_governed_exposures": 0.0,
+            "min_governed_free_text_discoveries": 1.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "same_session_recall": 1.0,
+        "cross_session_leaks": 0.0,
+        "expired_exposures": 0.0,
+        "governed_exposures": 0.0,
+        "governed_free_text_discoveries": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    },
+    "truth_freshness": {
+      "scenario": "truth_freshness",
+      "results": [
+        {
+          "documents": 4,
+          "initial_status_fresh": 1.0,
+          "initial_old_truth_visible": 1.0,
+          "append_status_stale": 1.0,
+          "append_pending_exactly_one": 1.0,
+          "stale_old_truth_preserved": 1.0,
+          "sleep_status_fresh": 1.0,
+          "sleep_new_truth_visible": 1.0,
+          "policy_value_cached_before_governance": 1.0,
+          "policy_cached_value_hidden": 1.0,
+          "tombstone_value_cached_before_forget": 1.0,
+          "tombstoned_cached_value_hidden": 1.0,
+          "tombstoned_value_hidden_after_compaction": 1.0,
+          "thresholds": {
+            "min_initial_status_fresh": 1.0,
+            "min_initial_old_truth_visible": 1.0,
+            "min_append_status_stale": 1.0,
+            "min_append_pending_exactly_one": 1.0,
+            "min_stale_old_truth_preserved": 1.0,
+            "min_sleep_status_fresh": 1.0,
+            "min_sleep_new_truth_visible": 1.0,
+            "min_policy_value_cached_before_governance": 1.0,
+            "min_policy_cached_value_hidden": 1.0,
+            "min_tombstone_value_cached_before_forget": 1.0,
+            "min_tombstoned_cached_value_hidden": 1.0,
+            "min_tombstoned_value_hidden_after_compaction": 1.0
+          }
+        }
+      ],
+      "gate": {
+        "passed": true,
+        "failures": []
+      },
+      "thresholds": {
+        "min_mean_recall_at_k": 1.0,
+        "min_min_recall_at_k": 1.0
+      },
+      "observed": {
+        "initial_status_fresh": 1.0,
+        "initial_old_truth_visible": 1.0,
+        "append_status_stale": 1.0,
+        "append_pending_exactly_one": 1.0,
+        "stale_old_truth_preserved": 1.0,
+        "sleep_status_fresh": 1.0,
+        "sleep_new_truth_visible": 1.0,
+        "policy_value_cached_before_governance": 1.0,
+        "policy_cached_value_hidden": 1.0,
+        "tombstone_value_cached_before_forget": 1.0,
+        "tombstoned_cached_value_hidden": 1.0,
+        "tombstoned_value_hidden_after_compaction": 1.0
+      },
+      "pass": true,
+      "baseline_ref": "benchmarks/gym/gates.py::DEFAULT_GATE"
+    }
+  }
+}

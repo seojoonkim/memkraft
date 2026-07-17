@@ -15,11 +15,17 @@
 
 ## 1. 로컬 테스트
 
+테스트 전에 실제 실행할 interpreter가 `pytest`를 import하는지 확인한다. 셸이나
+백그라운드 실행 환경에 따라 `python3`가 시스템 Python으로 바뀔 수 있으므로,
+import가 실패하면 프로젝트가 사용하는 venv interpreter를 명시한다.
+
 ```bash
 cd /path/to/memkraft
+python3 -c 'import pytest'
 PYTHONPATH=src python3 -m pytest -q
 ```
 
+- [ ] 선택한 interpreter에서 `import pytest` 성공
 - [ ] 전체 테스트 통과 (skip은 허용, fail/error 0건)
 
 ## 2. Memory Gym 게이트
