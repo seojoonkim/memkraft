@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import sys
+import types
 from pathlib import Path
 
 
@@ -55,6 +57,38 @@ def test_reasoning_injection_ab_exact_scoring_is_strict():
     assert not mod.score_exact("233,168", "233168")
     assert not mod.score_exact("The answer is 233168 because 3+5", "233168")
     assert not mod.score_exact("2331680", "233168")
+
+
+def test_reasoning_injection_ab_latency_attribution_uses_span_union():
+    mod = _load_reasoning_injection_ab()
+    spans = [
+        {"phase": "S", "start": 0.000, "end": 0.002},
+        {"phase": "M", "start": 0.001, "end": 0.006},
+        {"phase": "T", "start": 0.004, "end": 0.008},
+        {"phase": "V", "start": 0.008, "end": 0.009},
+    ]
+
+    attribution = mod.summarize_phase_spans(
+        spans,
+        total_start=0.000,
+        total_end=0.010,
+        accounting_target=0.95,
+    )
+
+    assert attribution["phase_ms"] == {
+        "S": 2.0,
+        "M": 5.0,
+        "T": 4.0,
+        "V": 1.0,
+        "R": 0.0,
+    }
+    assert attribution["total_wall_ms"] == 10.0
+    assert attribution["accounted_union_ms"] == 9.0
+    assert attribution["overlap_ms"] == 3.0
+    assert attribution["unaccounted_ms"] == 1.0
+    assert attribution["accounted_wall_ratio"] == 0.9
+    assert attribution["accounting_target"] == 0.95
+    assert attribution["accounting_target_met"] is False
 
 
 def test_reasoning_injection_ab_paired_summary_preserves_quality_contract():
@@ -179,6 +213,155 @@ def test_reasoning_injection_ab_builds_nonempty_memkraft_hint(tmp_path):
 
     assert hint.startswith("## ReasoningBank task context")
     assert "inclusion-exclusion" in hint
+
+
+def _run_fake_reasoning_injection_benchmark(monkeypatch, tmp_path, **kwargs):
+    mod = _load_reasoning_injection_ab()
+    case = mod.Case("case", "Add 1 and 1.", "2", "Add the integers.")
+    injection_calls = []
+    prompts = []
+    client_kwargs = []
+
+    class FakeMemKraft:
+        def __init__(self, base_dir):
+            self.base_dir = base_dir
+
+        def trajectory_start(self, *args, **kwargs):
+            return None
+
+        def trajectory_complete(self, *args, **kwargs):
+            return None
+
+        def reasoning_inject_for_task(self, task, **call_kwargs):
+            injection_calls.append((task, dict(call_kwargs)))
+            style = call_kwargs.get("style", "full")
+            hints = {"full": "FULL HINT", "compact": "COMPACT HINT"}
+            return hints[style], {"style": style}
+
+    class FakeCompletions:
+        def create(self, **call_kwargs):
+            prompts.append(call_kwargs["messages"][0]["content"])
+            return types.SimpleNamespace(
+                choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="2"))],
+                model="response-model",
+                usage=types.SimpleNamespace(
+                    prompt_tokens=10,
+                    completion_tokens=1,
+                    total_tokens=11,
+                    completion_tokens_details=types.SimpleNamespace(reasoning_tokens=0),
+                ),
+            )
+
+    class FakeOpenAI:
+        def __init__(self, **call_kwargs):
+            client_kwargs.append(dict(call_kwargs))
+            self.chat = types.SimpleNamespace(completions=FakeCompletions())
+
+    monkeypatch.setattr(mod, "MemKraft", FakeMemKraft)
+    monkeypatch.setattr(mod, "benchmark_cases", lambda: [case])
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(OpenAI=FakeOpenAI))
+    monkeypatch.setenv("MK_RB_BENCH_BASE_URL", "https://benchmark.invalid/v1")
+    monkeypatch.setenv("MK_RB_BENCH_API_KEY", "do-not-store-this-secret")
+    monkeypatch.setenv("MK_RB_BENCH_MODEL", "requested-model")
+
+    artifact = mod.run_benchmark(
+        repeats=1,
+        seed=7,
+        timeout=5.0,
+        out=tmp_path / "artifact.json",
+        **kwargs,
+    )
+    return mod, case, artifact, injection_calls, prompts, client_kwargs
+
+
+def test_reasoning_injection_ab_comparison_default_is_compatible():
+    mod = _load_reasoning_injection_ab()
+
+    comparison = inspect.signature(mod.run_benchmark).parameters["comparison"]
+
+    assert comparison.default == "no-hint-vs-full"
+
+
+def test_reasoning_injection_ab_default_maps_control_to_none_and_injected_to_full(
+    monkeypatch, tmp_path
+):
+    mod, case, artifact, injection_calls, prompts, client_kwargs = (
+        _run_fake_reasoning_injection_benchmark(monkeypatch, tmp_path)
+    )
+
+    assert artifact["settings"]["comparison"] == "no-hint-vs-full"
+    assert artifact["settings"]["control_style"] == "none"
+    assert artifact["settings"]["injected_style"] == "full"
+    assert {row["condition"] for row in artifact["rows"]} == {"control", "injected"}
+    assert injection_calls == [(
+        case.task,
+        {"k": 3, "max_chars": 900, "per_item_chars": 240, "return_metadata": True},
+    )]
+    assert set(prompts) == {mod.build_prompt(case), mod.build_prompt(case, "FULL HINT")}
+    assert "do-not-store-this-secret" not in (tmp_path / "artifact.json").read_text()
+    assert artifact["schema_version"] == 1
+    assert artifact["settings"]["sdk_max_retries"] == 0
+    assert client_kwargs[0]["max_retries"] == 0
+    assert set(artifact["latency_attribution"]["phase_ms"]) == {"S", "M", "T", "V", "R"}
+    assert artifact["latency_attribution"]["accounting_target"] == 0.95
+    assert artifact["latency_attribution"]["phase_ms"]["T"] == 0.0
+    assert artifact["latency_attribution"]["phase_ms"]["R"] == 0.0
+    for row in artifact["rows"]:
+        assert set(row["phase_ms"]) == {"S", "M", "T", "V", "R"}
+        assert row["phase_ms"]["M"] >= 0.0
+        assert row["phase_ms"]["T"] == 0.0
+        assert row["phase_ms"]["R"] == 0.0
+        assert row["model_round_trips"] == 1
+
+
+def test_reasoning_injection_ab_full_vs_compact_maps_styles_and_only_changes_hint(
+    monkeypatch, tmp_path
+):
+    mod, case, artifact, injection_calls, prompts, _client_kwargs = (
+        _run_fake_reasoning_injection_benchmark(
+            monkeypatch, tmp_path, comparison="full-vs-compact"
+        )
+    )
+
+    assert artifact["settings"]["comparison"] == "full-vs-compact"
+    assert artifact["settings"]["control_style"] == "full"
+    assert artifact["settings"]["injected_style"] == "compact"
+    assert [call[1]["style"] for call in injection_calls] == ["full", "compact"]
+    rows_by_condition = {row["condition"]: row for row in artifact["rows"]}
+    assert rows_by_condition["control"]["hint_chars"] == len("FULL HINT")
+    assert rows_by_condition["injected"]["hint_chars"] == len("COMPACT HINT")
+    prompt_by_condition = {
+        row["condition"]: prompts[index]
+        for index, row in enumerate(artifact["rows"])
+    }
+    base_prompt = mod.build_prompt(case)
+    assert prompt_by_condition["control"] == base_prompt + "\n\nFULL HINT"
+    assert prompt_by_condition["injected"] == base_prompt + "\n\nCOMPACT HINT"
+
+
+def test_reasoning_injection_ab_cli_forwards_comparison(monkeypatch, tmp_path):
+    mod = _load_reasoning_injection_ab()
+    captured = {}
+
+    def fake_run_benchmark(**kwargs):
+        captured.update(kwargs)
+        return {"summary": {}, "errors": 0}
+
+    monkeypatch.setattr(mod, "run_benchmark", fake_run_benchmark)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "reasoning_injection_ab.py",
+            "--comparison",
+            "full-vs-compact",
+            "--out",
+            str(tmp_path / "artifact.json"),
+        ],
+    )
+
+    assert mod.main() == 0
+    assert captured["comparison"] == "full-vs-compact"
 
 
 def _load_longmemeval_run():

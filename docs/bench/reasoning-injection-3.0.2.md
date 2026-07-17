@@ -90,6 +90,37 @@ work and lower latency on tasks where the retrieved procedure is directly useful
 Endpoint-reported reasoning tokens are provider telemetry, not an independently
 validated measure of hidden computation.
 
+## Full vs compact follow-up and latency attribution
+
+A separate one-repeat pilot compared the same six tasks with full and compact
+ReasoningBank rendering. This is a **12-call diagnostic pilot**, not an inferential
+speed benchmark. The OpenAI client used `max_retries=0`, so each row represents
+exactly one provider attempt and the explicit retry phase is absent.
+
+- exact accuracy: **6/6 full and 6/6 compact**; paired losses: **0**
+- total-token paired median delta, compact minus full: **-129.5 tokens**
+- reasoning-token paired median delta: **-12.5 tokens**; bootstrap interval includes zero
+- latency paired median delta: **+950.2 ms (+17.1%)**
+- faster/slower pairs: **2 / 4**; bootstrap interval includes zero
+- accounted wall ratio: **0.999997**, above the predefined 0.95 instrumentation target
+- phase totals: S **61.956 ms**, M **178,268.497 ms**, T **0 ms**, V **0.023 ms**, R **0 ms**
+- unaccounted wall time: **0.507 ms**
+
+The supported conclusion is narrow: compact rendering reduced total tokens in this
+pilot without an observed exact-answer loss, but it did **not** demonstrate a wall-
+latency improvement. Model/provider time (M) accounted for approximately 99.97% of
+the measured wall time, so prompt construction and local verification are not the
+next meaningful latency bottlenecks. Endpoint-reported token telemetry and this
+small task set do not establish a universal token or reasoning reduction.
+
+Evidence artifact:
+
+- `benchmarks/results/reasoning-injection-full-vs-compact-attributed-pilot.json`
+
+The runner preserves schema version 1 and adds latency fields additively. It records
+S/M/T/V/R phase durations, interval-union accounted time to avoid overlap double-
+counting, and one model round trip per row under the retry-disabled client contract.
+
 ## Remaining evidence needed
 
 A stronger product-level speed claim requires:

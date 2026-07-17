@@ -3,7 +3,7 @@ import argparse
 import json
 import statistics
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 def load_pairs(paths: list[Path]) -> list[dict[str, Any]]:
@@ -35,11 +35,11 @@ def optional_deltas(pairs: list[dict[str, Any]], field: str) -> list[float]:
     return deltas
 
 
-def optional_median(values: list[float]) -> float | None:
+def optional_median(values: list[float]) -> Optional[float]:
     return round(statistics.median(values), 3) if values else None
 
 
-def optional_mean(values: list[float]) -> float | None:
+def optional_mean(values: list[float]) -> Optional[float]:
     return round(statistics.mean(values), 3) if values else None
 
 

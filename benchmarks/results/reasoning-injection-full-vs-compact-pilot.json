@@ -1,0 +1,739 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-07-17T16:08:03.833458+00:00",
+  "memkraft_version": "3.0.2",
+  "requested_model": "gpt-5.6-sol",
+  "response_models": [
+    "gpt-5.6-sol"
+  ],
+  "endpoint_host": "codex.nekos.me",
+  "settings": {
+    "repeats": 1,
+    "seed": 71,
+    "temperature": 0,
+    "reasoning_effort": "medium",
+    "max_tokens_requested": 512,
+    "timeout_seconds": 120.0,
+    "comparison": "full-vs-compact",
+    "control_style": "full",
+    "injected_style": "compact"
+  },
+  "cases": [
+    {
+      "case_id": "multiples-sum",
+      "task": "Find the sum of every positive integer below 10,000,000 that is divisible by 3 or 5.",
+      "expected": "23333331666668",
+      "lesson": "Use inclusion-exclusion. For divisor d below limit L, let m=floor((L-1)/d) and sum=d*m*(m+1)/2; add d=3 and d=5, then subtract d=15."
+    },
+    {
+      "case_id": "factorial-zeros",
+      "task": "How many trailing zeroes are in 100,000 factorial?",
+      "expected": "24999",
+      "lesson": "Trailing zeroes of n! equal floor(n/5)+floor(n/25)+... until the quotient is zero; no factorial expansion is needed."
+    },
+    {
+      "case_id": "lattice-paths",
+      "task": "How many shortest paths are there from one corner to the opposite corner of a 30 by 30 square grid when moves are only right or down?",
+      "expected": "118264581564861424",
+      "lesson": "A shortest path has 60 moves with exactly 30 right moves, so the count is the binomial coefficient C(60,30)."
+    },
+    {
+      "case_id": "divisor-count",
+      "task": "How many positive divisors does 2^12 * 3^7 * 5^4 have?",
+      "expected": "520",
+      "lesson": "For prime factorization product p_i^a_i, the positive-divisor count is the product of (a_i+1)."
+    },
+    {
+      "case_id": "squares-sum",
+      "task": "Find the exact sum of the squares of all integers from 1 through 100,000 inclusive.",
+      "expected": "333338333350000",
+      "lesson": "Use the closed form 1^2+...+n^2=n(n+1)(2n+1)/6 and perform exact integer arithmetic."
+    },
+    {
+      "case_id": "modular-power",
+      "task": "Compute the exact remainder when 7^22222 is divided by 1,000,003.",
+      "expected": "345063",
+      "lesson": "Use modular exponentiation by repeated squaring, reducing modulo 1,000,003 after every multiply and square."
+    }
+  ],
+  "summary": {
+    "complete_pairs": 6,
+    "accuracy": {
+      "control": 1.0,
+      "injected": 1.0,
+      "paired_losses": 0,
+      "paired_gains": 0
+    },
+    "latency_ms": {
+      "control": {
+        "n": 6,
+        "mean": 11663.212,
+        "median": 2628.633,
+        "p95": 42631.682,
+        "min": 1619.779,
+        "max": 54578.876
+      },
+      "injected": {
+        "n": 6,
+        "mean": 10777.751,
+        "median": 4642.898,
+        "p95": 35034.62,
+        "min": 1400.313,
+        "max": 44502.331
+      },
+      "paired_delta_injected_minus_control": {
+        "n": 6,
+        "mean": -885.462,
+        "median": 412.035,
+        "p95": 2562.716,
+        "min": -10076.545,
+        "max": 3045.848
+      },
+      "median_change_pct": 15.675,
+      "pairs_faster": 3,
+      "pairs_slower": 3,
+      "paired_median_bootstrap_95_ci": [
+        -5148.005,
+        2079.585
+      ],
+      "exact_sign_test_two_sided_p": 1.0
+    },
+    "total_tokens_paired_delta_injected_minus_control": {
+      "n": 6,
+      "mean": -275.0,
+      "median": -135.0,
+      "p95": -121.0,
+      "min": -976.0,
+      "max": -121.0
+    },
+    "reasoning_tokens_paired_delta_injected_minus_control": {
+      "n": 6,
+      "mean": -162.833,
+      "median": -13.5,
+      "p95": 1.5,
+      "min": -855.0,
+      "max": 2.0
+    },
+    "reasoning_tokens_observable": true,
+    "reasoning_tokens_paired_median_bootstrap_95_ci": [
+      -476.0,
+      1.0
+    ],
+    "reasoning_tokens_exact_sign_test_two_sided_p": 0.375
+  },
+  "errors": 0,
+  "rows": [
+    {
+      "pair_id": "modular-power:0",
+      "case_id": "modular-power",
+      "repeat": 0,
+      "order": 0,
+      "condition": "control",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 54578.876,
+      "prompt_chars": 1071,
+      "hint_chars": 867,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 867,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "completion_tokens": 4396,
+        "total_tokens": 4684,
+        "reasoning_tokens": 4388
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "modular-power:0",
+      "case_id": "modular-power",
+      "repeat": 0,
+      "order": 1,
+      "condition": "injected",
+      "expected": "345063",
+      "prediction": "345063",
+      "correct": true,
+      "latency_ms": 44502.331,
+      "prompt_chars": 656,
+      "hint_chars": 452,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 452,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 167,
+        "completion_tokens": 3541,
+        "total_tokens": 3708,
+        "reasoning_tokens": 3533
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:0",
+      "case_id": "divisor-count",
+      "repeat": 0,
+      "order": 0,
+      "condition": "control",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1619.779,
+      "prompt_chars": 1061,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "completion_tokens": 5,
+        "total_tokens": 296,
+        "reasoning_tokens": 0
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "divisor-count:0",
+      "case_id": "divisor-count",
+      "repeat": 0,
+      "order": 1,
+      "condition": "injected",
+      "expected": "520",
+      "prediction": "520",
+      "correct": true,
+      "latency_ms": 1400.313,
+      "prompt_chars": 656,
+      "hint_chars": 463,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 463,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 170,
+        "completion_tokens": 5,
+        "total_tokens": 175,
+        "reasoning_tokens": 0
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:0",
+      "case_id": "factorial-zeros",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 3356.026,
+      "prompt_chars": 628,
+      "hint_chars": 439,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 439,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 164,
+        "completion_tokens": 81,
+        "total_tokens": 245,
+        "reasoning_tokens": 73
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "factorial-zeros:0",
+      "case_id": "factorial-zeros",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "24999",
+      "prediction": "24999",
+      "correct": true,
+      "latency_ms": 2373.343,
+      "prompt_chars": 1027,
+      "hint_chars": 838,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 838,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "completion_tokens": 100,
+        "total_tokens": 386,
+        "reasoning_tokens": 92
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:0",
+      "case_id": "multiples-sum",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 6631.489,
+      "prompt_chars": 691,
+      "hint_chars": 468,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 468,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 190,
+        "completion_tokens": 366,
+        "total_tokens": 556,
+        "reasoning_tokens": 355
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "multiples-sum:0",
+      "case_id": "multiples-sum",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "23333331666668",
+      "prediction": "23333331666668",
+      "correct": true,
+      "latency_ms": 6790.101,
+      "prompt_chars": 893,
+      "hint_chars": 670,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 2,
+          "total": 2
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 1
+        },
+        "output_chars": 670,
+        "truncated": true,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 255,
+        "completion_tokens": 463,
+        "total_tokens": 718,
+        "reasoning_tokens": 452
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:0",
+      "case_id": "squares-sum",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 5929.771,
+      "prompt_chars": 699,
+      "hint_chars": 477,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 477,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 193,
+        "completion_tokens": 153,
+        "total_tokens": 346,
+        "reasoning_tokens": 142
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "squares-sum:0",
+      "case_id": "squares-sum",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "333338333350000",
+      "prediction": "333338333350000",
+      "correct": true,
+      "latency_ms": 2883.923,
+      "prompt_chars": 1122,
+      "hint_chars": 900,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 900,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 151,
+        "total_tokens": 467,
+        "reasoning_tokens": 140
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:0",
+      "case_id": "lattice-paths",
+      "repeat": 0,
+      "order": 0,
+      "condition": "injected",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 2846.575,
+      "prompt_chars": 735,
+      "hint_chars": 463,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "compact",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 463,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 179,
+        "completion_tokens": 55,
+        "total_tokens": 234,
+        "reasoning_tokens": 43
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    },
+    {
+      "pair_id": "lattice-paths:0",
+      "case_id": "lattice-paths",
+      "repeat": 0,
+      "order": 1,
+      "condition": "control",
+      "expected": "118264581564861424",
+      "prediction": "118264581564861424",
+      "correct": true,
+      "latency_ms": 1733.253,
+      "prompt_chars": 1140,
+      "hint_chars": 868,
+      "hint_metadata": {
+        "task_query_empty": false,
+        "requested_k": 3,
+        "effective_k": 3,
+        "style": "full",
+        "max_chars": 900,
+        "per_item_chars": 240,
+        "max_items": null,
+        "dedupe": true,
+        "min_score": 0.0,
+        "candidates": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "emitted": {
+          "failures": 0,
+          "successes": 3,
+          "total": 3
+        },
+        "omitted": {
+          "deduped": 0,
+          "min_score": 0,
+          "max_items": 0,
+          "char_budget": 0
+        },
+        "output_chars": 868,
+        "truncated": false,
+        "empty_reason": ""
+      },
+      "usage": {
+        "prompt_tokens": 300,
+        "completion_tokens": 63,
+        "total_tokens": 363,
+        "reasoning_tokens": 51
+      },
+      "response_model": "gpt-5.6-sol",
+      "error": ""
+    }
+  ]
+}
