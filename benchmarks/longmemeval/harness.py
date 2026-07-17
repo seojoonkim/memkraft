@@ -139,6 +139,16 @@ class LongMemEvalHarness:
     # ------------------------------------------------------------------
     # Retrieval + LLM
     # ------------------------------------------------------------------
+    def _use_selective_evidence(self, question: str) -> bool:
+        """Use compact evidence only where broad/ordinal context is not required."""
+        if os.environ.get("MK_EVIDENCE_CONTEXT") != "1" or not question:
+            return False
+        if self._needs_full_assistant_content(question):
+            return False
+        if self._is_preference_question(question):
+            return False
+        return not self._is_aggregation_question(question)
+
     def _format_context(
         self,
         results: Any,
@@ -152,17 +162,19 @@ class LongMemEvalHarness:
         provenance-preserving evidence API. The legacy full-document format is
         retained as the default comparison path.
         """
+        self._last_context_used_evidence = False
+        self._last_context_used_full_sidecar = False
         if not results:
             return ""
-        if os.environ.get("MK_EVIDENCE_CONTEXT") == "1" and question:
+        if self._use_selective_evidence(question):
             compiled = mk.compile_evidence_context(
                 question,
                 results=results if isinstance(results, list) else [],
                 budget=max_context // 4,
             )
-            return compiled["text"]
-        if not results:
-            return ""
+            if compiled.get("text"):
+                self._last_context_used_evidence = True
+                return compiled["text"]
         out: list[str] = []
         total_chars = 0
         MAX_CONTEXT = max_context  # haiku 기준 여유 있는 크기
@@ -227,6 +239,8 @@ class LongMemEvalHarness:
                 out.append(f"[context truncated at {max_context} chars, {len(blocks)} total results available]")
                 break
             out.append(block)
+            if use_full_everywhere and full_content and body == full_content:
+                self._last_context_used_full_sidecar = True
             total_chars += len(block)
         return "\n".join(out)
 
@@ -624,17 +638,30 @@ class LongMemEvalHarness:
     # Sample runner
     # ------------------------------------------------------------------
     def run_sample(self, sample: dict[str, Any]) -> dict[str, Any]:
+        sample_started = time.perf_counter()
         qid = sample.get("question_id", "?")
         question = sample.get("question", "")
         answer = sample.get("answer", "")
         qtype = sample.get("question_type", "unknown")
         qdate = sample.get("question_date", "")
 
+        is_pref = self._is_preference_question(question)
+        is_agg = self._is_aggregation_question(question) and not is_pref
+        route = "preference" if is_pref else ("aggregation" if is_agg else "standard")
+
         with tempfile.TemporaryDirectory(prefix="mk_lme_") as tmp:
             mk = MemKraft(base_dir=tmp)
+            ingest_before = self.ingest_time_total
             msg_count = self.ingest_sessions(mk, sample)
+            ingest_ms = (self.ingest_time_total - ingest_before) * 1000.0
             try:
+                search_before = self.search_time_total
+                llm_before = self.llm_time_total
+                self._last_context_used_evidence = False
+                self._last_context_used_full_sidecar = False
                 pred, ctx = self.retrieve_and_answer(mk, question, qdate)
+                used_evidence = getattr(self, "_last_context_used_evidence", False)
+                used_full = getattr(self, "_last_context_used_full_sidecar", False)
                 return {
                     "question_id": qid,
                     "question": question,
@@ -643,6 +670,17 @@ class LongMemEvalHarness:
                     "question_type": qtype,
                     "n_messages": msg_count,
                     "context_used_chars": len(ctx),
+                    "prediction_chars": len(pred),
+                    "prediction_words": len(pred.split()),
+                    "route": route,
+                    "used_evidence_context": used_evidence,
+                    "used_full_assistant_content": used_full,
+                    "ingest_ms": round(ingest_ms, 3),
+                    "search_ms": round(
+                        (self.search_time_total - search_before) * 1000.0, 3
+                    ),
+                    "llm_ms": round((self.llm_time_total - llm_before) * 1000.0, 3),
+                    "e2e_ms": round((time.perf_counter() - sample_started) * 1000.0, 3),
                 }
             except Exception as e:
                 return {

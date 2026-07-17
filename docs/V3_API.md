@@ -22,7 +22,7 @@
 
 `compile_evidence_context(query, *, results=None, top_k=..., budget=..., adjacent_windows=...)`는 검색 hit의 원문 span과 provenance를 hard budget 안의 JSONL evidence context로 컴파일한다. `results`가 주어지면 caller의 hit 순서와 원래 `hit_rank`를 감사 경계로 보존하며 입력을 변경하지 않는다. Query anchor가 있는 span이 numeric auxiliary span보다 우선한다.
 
-명시적인 latest/past/compare intent가 있을 때만 hit metadata의 유효한 `valid_from` 또는 Markdown `Date`를 사용해 anchored evidence 선택 순서를 조정한다. 날짜가 없거나 유효하지 않으면 supplied order로 fallback하고, timestamp만 있다는 이유로 unanchored source를 포함하지 않는다. Neutral query는 기존 ordering을 유지한다. 반환에는 렌더링된 `text`, 구조화된 `evidence`, source 목록, 생략 수, token 추정치, 결정적 `usage_id`가 포함된다. 반환 필드는 Preview이므로 additive 확장이 가능하지만 verbatim span, provenance, hard-budget, deterministic ordering 계약은 유지한다.
+명시적인 latest/past/compare intent가 있을 때만 hit metadata의 유효한 `valid_from` 또는 Markdown `Date`를 사용해 anchored evidence 선택 순서를 조정한다. 날짜가 없거나 유효하지 않으면 supplied order로 fallback하고, timestamp만 있다는 이유로 unanchored source를 포함하지 않는다. Neutral query는 기존 ordering을 유지한다. 유효한 source timestamp는 UTC ISO 형식의 선택적 `source_time`으로 evidence record와 JSONL에 보존된다. Hard budget이 부족하면 본문 evidence를 우선하고 `source_time`만 생략한다. 반환에는 렌더링된 `text`, 구조화된 `evidence`, source 목록, 생략 수, token 추정치, 결정적 `usage_id`가 포함된다. 반환 필드는 Preview이므로 additive 확장이 가능하지만 verbatim span, provenance, hard-budget, deterministic ordering 계약은 유지한다.
 
 ### Numeric aggregation preview
 

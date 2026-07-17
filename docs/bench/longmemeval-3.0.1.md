@@ -75,3 +75,34 @@ claimed.
   final tree or a final release commit. It cannot validate changes made after
   that candidate, including the final evidence-context, temporal, and numeric
   behavior.
+
+## Post-release local candidate experiment (2026-07-17)
+
+This section is a local post-release development experiment, not evidence for
+the immutable published `v3.0.1` tag or PyPI artifact. Both runs used the same
+OpenAI-compatible provider endpoint, model `gpt-5.6-sol`, deterministic
+stratified `oracle` subset (`N=50`, seed `42`), and `top_k=15`. Provider/model
+results are not directly comparable to the historical Terra run above.
+
+The baseline used legacy context formatting. The candidate enabled selective
+`compile_evidence_context(...)` use for standard/temporal questions while
+retaining legacy/full-sidecar fallback for aggregation, preference, ordinal
+assistant-list, and empty-compiler cases. Valid source timestamps were retained
+as optional UTC ISO `source_time` evidence metadata. Of 50 samples, 16 used the
+selective path and 34 used fallback.
+
+- Legacy exact / contains / canonical: **8% / 64% / 80%**; errors **0**.
+- Candidate exact / contains / canonical: **8% / 66% / 80%**; errors **0**.
+- Paired canonical losses: **0**; paired contains gains: **1**; losses: **0**.
+- Overall p50: **4,067 ms → 3,779 ms** (**-7.1%**).
+- Overall p95: **11,069 ms → 12,579 ms**; the five slowest candidate samples
+  all used fallback aggregation/preference routes, so this run does not support
+  a whole-suite p95 improvement claim.
+- Candidate selective-path latency: p50 **2,120 ms**, p95 **5,548 ms**.
+- Overall median context: **20,252 → 19,450 characters**.
+
+An initial candidate omitted per-source dates from selected windows and
+regressed a 19-day cross-session calculation to zero. Preserving validated
+source-time metadata restored that sample to 19 days. This supports the
+selective route with the documented fallbacks; it does not justify applying
+selective evidence to aggregation or preference routes.

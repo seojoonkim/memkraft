@@ -153,6 +153,105 @@ def test_compile_evidence_context_ignores_function_words_when_selecting_evidence
     assert result["evidence"][0]["text"] == "You stop checking work emails and messages by 7 pm.\n"
 
 
+def test_compile_evidence_context_preserves_valid_source_time_per_window(tmp_path):
+    _write(
+        tmp_path,
+        "inbox/session.md",
+        "**Date:** 2023-03-06T09:30:00-05:00\nWebsite launched.\n",
+    )
+    result = MemKraft(str(tmp_path)).compile_evidence_context(
+        "When was the website launched?",
+        results=[{"file": "inbox/session.md", "score": 1.0}],
+        budget=100,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+    assert result["evidence"][0]["source_time"] == "2023-03-06T14:30:00+00:00"
+    rendered = json.loads(result["text"])
+    assert rendered["source_time"] == "2023-03-06T14:30:00+00:00"
+    assert rendered["text"] == "Website launched.\n"
+
+
+def test_compile_evidence_context_strips_selected_timestamps_before_omitting_body(tmp_path):
+    _write(tmp_path, "inbox/first.md", "target one\n")
+    _write(tmp_path, "inbox/second.md", "target two\n")
+    results = [
+        {"file": "inbox/first.md", "score": 1.0, "valid_from": "2023-03-01T00:00:00Z"},
+        {"file": "inbox/second.md", "score": 0.9, "valid_from": "2023-03-02T00:00:00Z"},
+    ]
+
+    result = MemKraft(str(tmp_path)).compile_evidence_context(
+        "target",
+        results=results,
+        budget=31,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+    assert [item["file"] for item in result["evidence"]] == [
+        "inbox/first.md",
+        "inbox/second.md",
+    ]
+    assert all("source_time" not in item for item in result["evidence"])
+    assert result["estimated_tokens"] <= result["budget"]
+    assert result == MemKraft(str(tmp_path)).compile_evidence_context(
+        "target",
+        results=results,
+        budget=31,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+
+def test_compile_evidence_context_parses_longmemeval_source_time(tmp_path):
+    _write(
+        tmp_path,
+        "inbox/session.md",
+        "**Date:** 2023/03/01 (Wed) 16:51\nWebsite launched.\n",
+    )
+    result = MemKraft(str(tmp_path)).compile_evidence_context(
+        "When was the website launched?",
+        results=[{"file": "inbox/session.md", "score": 1.0}],
+        budget=100,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+    assert result["evidence"][0]["source_time"] == "2023-03-01T16:51:00+00:00"
+
+
+def test_compile_evidence_context_rejects_mismatched_longmemeval_weekday(tmp_path):
+    _write(
+        tmp_path,
+        "inbox/session.md",
+        "**Date:** 2023/03/01 (Mon) 16:51\nWebsite launched.\n",
+    )
+    result = MemKraft(str(tmp_path)).compile_evidence_context(
+        "When was the website launched?",
+        results=[{"file": "inbox/session.md", "score": 1.0}],
+        budget=100,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+    assert "source_time" not in result["evidence"][0]
+
+
+def test_compile_evidence_context_omits_invalid_source_time(tmp_path):
+    _write(tmp_path, "inbox/session.md", "**Date:** not-a-date\nWebsite launched.\n")
+    result = MemKraft(str(tmp_path)).compile_evidence_context(
+        "When was the website launched?",
+        results=[{"file": "inbox/session.md", "score": 1.0}],
+        budget=100,
+        window_chars=100,
+        adjacent_windows=0,
+    )
+
+    assert "source_time" not in result["evidence"][0]
+    assert "source_time" not in json.loads(result["text"])
+
+
 def test_compile_evidence_context_keeps_numeric_facts_for_quantitative_cross_hit_reasoning(tmp_path):
     _write(tmp_path, "inbox/rachel.md", "Rachel gets married next year.\n")
     _write(tmp_path, "inbox/profile.md", "32\n")

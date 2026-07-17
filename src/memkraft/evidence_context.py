@@ -33,6 +33,10 @@ _SOURCE_DATE_RE = re.compile(
     r"(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?)"
     r"(?=$|[ \t]+[A-Za-z])"
 )
+_LONGMEMEVAL_SOURCE_DATE_RE = re.compile(
+    r"(?im)^\s*\*\*Date:\*\*\s*(\d{4}/\d{2}/\d{2})\s+"
+    r"\(([A-Za-z]{3})\)\s+(\d{2}:\d{2})\s*$"
+)
 _LATEST_TOKENS = {"currently", "latest", "newest", "now", "recent"}
 _PAST_TOKENS = {
     "before", "earlier", "former", "formerly", "initial", "oldest", "past", "previous",
@@ -131,12 +135,25 @@ def _parse_source_time(value: Any) -> Optional[datetime]:
 
 
 def _source_time(hit: Dict[str, Any], content: str) -> Optional[datetime]:
-    """Prefer explicit validity metadata, then the Markdown source date."""
+    """Prefer explicit validity metadata, then a validated Markdown source date."""
     explicit = _parse_source_time(hit.get("valid_from"))
     if explicit is not None:
         return explicit
     match = _SOURCE_DATE_RE.search(content)
-    return _parse_source_time(match.group(1)) if match else None
+    if match:
+        return _parse_source_time(match.group(1))
+    longmemeval = _LONGMEMEVAL_SOURCE_DATE_RE.search(content)
+    if not longmemeval:
+        return None
+    try:
+        parsed = datetime.strptime(
+            f"{longmemeval.group(1)} {longmemeval.group(3)}", "%Y/%m/%d %H:%M"
+        )
+    except ValueError:
+        return None
+    if parsed.strftime("%a").lower() != longmemeval.group(2).lower():
+        return None
+    return parsed.replace(tzinfo=timezone.utc)
 
 
 def _temporal_order(items: List[Dict[str, Any]], intent: str) -> List[Dict[str, Any]]:
@@ -209,15 +226,18 @@ _UNSAFE = object()
 
 def _render(evidence: List[Dict[str, Any]]) -> str:
     """Use JSONL framing so source text cannot forge a citation boundary."""
-    return "\n".join(
-        json.dumps(
-            {"file": item["file"], "span": item["span"], "text": item["text"]},
+    rendered = []
+    for item in evidence:
+        record = {"file": item["file"], "span": item["span"], "text": item["text"]}
+        if item.get("source_time"):
+            record["source_time"] = item["source_time"]
+        rendered.append(json.dumps(
+            record,
             ensure_ascii=False,
             separators=(",", ":"),
             allow_nan=False,
-        )
-        for item in evidence
-    )
+        ))
+    return "\n".join(rendered)
 
 
 class EvidenceContextMixin:
@@ -338,7 +358,24 @@ class EvidenceContextMixin:
                     "hit_rank": item["hit_rank"],
                     "hit": item["hit"],
                 }
+                if item["source_time"] is not None:
+                    evidence["source_time"] = item["source_time"].isoformat()
                 proposed = selected + [evidence]
+                if estimate_tokens(_render(proposed)) > budget and "source_time" in evidence:
+                    # Evidence text outranks optional timestamp metadata under a
+                    # hard budget. Temporal ordering was already applied above.
+                    evidence = dict(evidence)
+                    evidence.pop("source_time")
+                    proposed = selected + [evidence]
+                if estimate_tokens(_render(proposed)) > budget:
+                    # Reclaim optional metadata from prior records before
+                    # dropping a new evidence body. Work on copies so a body
+                    # that still cannot fit does not alter prior selections.
+                    proposed = [dict(record) for record in proposed]
+                    for record in reversed(proposed[:-1]):
+                        record.pop("source_time", None)
+                        if estimate_tokens(_render(proposed)) <= budget:
+                            break
                 if estimate_tokens(_render(proposed)) <= budget:
                     selected = proposed
                     included_files.add(item["file"])

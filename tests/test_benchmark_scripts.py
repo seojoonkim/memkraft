@@ -69,6 +69,216 @@ def _load_longmemeval_harness():
         sys.path.remove(str(benchmark_dir))
 
 
+def _load_longmemeval_evaluator():
+    benchmark_dir = Path("benchmarks/longmemeval").resolve()
+    return _load_module("longmemeval_evaluator", str(benchmark_dir / "evaluator.py"))
+
+
+def test_longmemeval_canonical_match_recovers_known_surface_variants():
+    mod = _load_longmemeval_evaluator()
+
+    assert mod.canonical_match("June 3, 2023.", "June 3rd")
+    assert mod.canonical_match("You get home around 6:30 p.m.", "6:30 pm")
+    assert mod.canonical_match("The latest total is 7.", "seven")
+    assert mod.canonical_match("You upgraded to 16 GB of RAM.", "16GB")
+    assert mod.canonical_match(
+        "It took 18 days.",
+        "18 days. 19 days (including the last day) is also acceptable.",
+    )
+
+
+def test_longmemeval_canonical_match_stays_conservative():
+    mod = _load_longmemeval_evaluator()
+
+    assert not mod.canonical_match("June 4, 2023.", "June 3rd")
+    assert not mod.canonical_match("It took 17 days.", "18 days. 19 days is also acceptable.")
+    assert not mod.canonical_match("There were 0 footballs.", "The information is not enough.")
+
+
+def test_longmemeval_canonical_match_rejects_numeric_and_date_prefixes():
+    mod = _load_longmemeval_evaluator()
+
+    assert not mod.canonical_match("17", "seven")
+    assert not mod.canonical_match("10", "one")
+    assert not mod.canonical_match("June 30", "June 3rd")
+
+
+def test_longmemeval_scores_add_canonical_without_changing_legacy_metrics():
+    mod = _load_longmemeval_evaluator()
+    results = [
+        {
+            "prediction": "You get home around 6:30 p.m.",
+            "answer": "6:30 pm",
+            "question_type": "single-session-user",
+        }
+    ]
+
+    scores = mod.score_results(results)
+
+    assert scores["exact_match"] == 0.0
+    assert scores["contains_match"] == 0.0
+    assert scores["canonical_match"] == 1.0
+    assert scores["by_category"]["single-session-user"]["canonical"] == 1.0
+
+
+
+
+def test_longmemeval_run_sample_records_route_and_stage_latency(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+
+    class FakeMemKraft:
+        def __init__(self, base_dir):
+            self.base_dir = Path(base_dir)
+
+    monkeypatch.setattr(mod, "MemKraft", FakeMemKraft)
+    harness = object.__new__(mod.LongMemEvalHarness)
+    harness.ingest_time_total = 1.0
+    harness.search_time_total = 2.0
+    harness.llm_time_total = 3.0
+
+    def ingest(mk, sample):
+        harness.ingest_time_total += 0.010
+        return 4
+
+    harness.ingest_sessions = ingest
+
+    def answer(mk, question, question_date):
+        harness.search_time_total += 0.020
+        harness.llm_time_total += 0.030
+        return "7", "proof"
+
+    harness.retrieve_and_answer = answer
+    harness._is_preference_question = lambda question: False
+    harness._is_aggregation_question = lambda question: True
+    harness._needs_full_assistant_content = lambda question: False
+
+    result = harness.run_sample(
+        {
+            "question_id": "qid",
+            "question": "How many?",
+            "answer": "seven",
+            "question_type": "multi-session",
+            "question_date": "2026-01-01",
+        }
+    )
+
+    assert result["route"] == "aggregation"
+    assert result["used_evidence_context"] is False
+    assert result["used_full_assistant_content"] is False
+    assert result["context_used_chars"] == 5
+    assert result["prediction_chars"] == 1
+    assert result["prediction_words"] == 1
+    assert result["ingest_ms"] == 10.0
+    assert result["search_ms"] == 20.0
+    assert result["llm_ms"] == 30.0
+    assert result["e2e_ms"] >= 0.0
+
+
+def test_longmemeval_selective_evidence_bypasses_risky_routes(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+    inbox = tmp_path / "inbox" / "a.md"
+    inbox.parent.mkdir(parents=True)
+    inbox.write_text("legacy full context\n", encoding="utf-8")
+    calls = []
+
+    class FakeMemKraft:
+        base_dir = tmp_path
+
+        def compile_evidence_context(self, question, *, results, budget):
+            calls.append(question)
+            return {"text": "compiled"}
+
+    harness = object.__new__(mod.LongMemEvalHarness)
+    monkeypatch.setenv("MK_EVIDENCE_CONTEXT", "1")
+    results = [{"file": "inbox/a.md", "score": 0.9}]
+
+    aggregation = harness._format_context(results, FakeMemKraft(), question="How many albums did I buy?")
+    preference = harness._format_context(results, FakeMemKraft(), question="Can you suggest a hotel?")
+
+    assert "legacy full context" in aggregation
+    assert "legacy full context" in preference
+    assert calls == []
+
+
+def test_longmemeval_selective_evidence_preserves_ordinal_full_sidecar(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+    inbox = tmp_path / "inbox" / "a.md"
+    inbox.parent.mkdir(parents=True)
+    inbox.write_text("truncated inbox\n", encoding="utf-8")
+    sidecar = tmp_path / "_full_sessions" / "a.md"
+    sidecar.parent.mkdir(parents=True)
+    sidecar.write_text("FULL ITEM 27\n", encoding="utf-8")
+
+    class FakeMemKraft:
+        base_dir = tmp_path
+
+        def compile_evidence_context(self, *args, **kwargs):
+            raise AssertionError("ordinal route must not compile selective evidence")
+
+    harness = object.__new__(mod.LongMemEvalHarness)
+    harness._current_question = "What was the 27th item you listed?"
+    monkeypatch.setenv("MK_EVIDENCE_CONTEXT", "1")
+    rendered = harness._format_context(
+        [{"file": "inbox/a.md", "score": 0.9}],
+        FakeMemKraft(),
+        question=harness._current_question,
+    )
+
+    assert "FULL ITEM 27" in rendered
+
+
+def test_longmemeval_selective_evidence_falls_back_when_compiler_is_empty(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+    inbox = tmp_path / "inbox" / "a.md"
+    inbox.parent.mkdir(parents=True)
+    inbox.write_text("legacy fallback proof\n", encoding="utf-8")
+
+    class FakeMemKraft:
+        base_dir = tmp_path
+
+        def compile_evidence_context(self, question, *, results, budget):
+            return {"text": "", "evidence": []}
+
+    harness = object.__new__(mod.LongMemEvalHarness)
+    monkeypatch.setenv("MK_EVIDENCE_CONTEXT", "1")
+    rendered = harness._format_context(
+        [{"file": "inbox/a.md", "score": 0.9}], FakeMemKraft(), question="Where is the proof?"
+    )
+
+    assert "legacy fallback proof" in rendered
+    assert harness._last_context_used_evidence is False
+
+
+def test_longmemeval_context_instrumentation_reports_actual_full_sidecar_use(monkeypatch, tmp_path):
+    mod = _load_longmemeval_harness()
+    inbox = tmp_path / "inbox" / "a.md"
+    inbox.parent.mkdir(parents=True)
+    inbox.write_text("truncated inbox\n", encoding="utf-8")
+    sidecar = tmp_path / "_full_sessions" / "a.md"
+    sidecar.parent.mkdir(parents=True)
+    sidecar.write_text("FULL ITEM 27\n", encoding="utf-8")
+
+    class FakeMemKraft:
+        base_dir = tmp_path
+
+    harness = object.__new__(mod.LongMemEvalHarness)
+    question = "What was the 27th item you listed?"
+    harness._current_question = question
+    rendered = harness._format_context(
+        [{"file": "inbox/a.md", "score": 0.9}], FakeMemKraft(), question=question
+    )
+
+    assert "FULL ITEM 27" in rendered
+    assert harness._last_context_used_full_sidecar is True
+
+    sidecar.unlink()
+    rendered = harness._format_context(
+        [{"file": "inbox/a.md", "score": 0.9}], FakeMemKraft(), question=question
+    )
+    assert "truncated inbox" in rendered
+    assert harness._last_context_used_full_sidecar is False
+
+
 def test_longmemeval_evidence_context_is_opt_in_and_uses_core_api(monkeypatch, tmp_path):
     mod = _load_longmemeval_harness()
     calls = []
