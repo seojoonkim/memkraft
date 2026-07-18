@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## [3.0.3] — 2026-07-18
+
+Additive ReasoningBank deterministic execution release. Existing natural-language
+recall/injection APIs and schema-v1 trajectories remain compatible; no destructive
+migration is required.
+
+- Added `reasoning_procedure_ref()`, `reasoning_build_authorization()`, and
+  `reasoning_execute()` for bounded `retrieve -> provenance validate ->
+  deterministic execute -> exact-once fallback` routing.
+- Added six versioned, allowlisted exact procedure grammars (A-F). Lesson prose,
+  dynamic code, shell commands, `eval`, and `exec` are never execution inputs;
+  unsupported or ambiguous tasks use the caller-provided fallback.
+- Bound canonical task identity, exact trajectory bytes, and registry identity in
+  process-local HMAC-sealed authorizations. Strict schema-v1 provenance reads use
+  a no-follow directory-descriptor chain so validation, hashing, and parsing act
+  on bytes from the same file descriptor.
+- Hardened malformed input, symlink/race, hostile subclass, oversized input,
+  numeric overflow, authorization mutation, and fallback-exception boundaries.
+  Every rejected execution path invokes fallback exactly once.
+- On the frozen 28-case product matrix, accuracy remained 28/28 with 24 local
+  executions and four fallbacks, reducing observed model calls from 28 to 4
+  (85.714%). In one live sequential campaign, wall time was 305.406 s for the
+  28-call baseline and 12.894 s for the router. The 95.778% observed reduction is
+  descriptive evidence from that campaign, not a universal latency claim.
+- Release validation: 112 focused tests, 2,240 full-suite passes with 3 skips,
+  exact-commit Memory Gym CI success, and independent review with zero Critical
+  or Important findings.
+
+Authorization trust is intentionally process-local and does not persist across
+restarts. Arbitrary same-process code/key access, debugger or fork compromise,
+paraphrase coverage, and noisy-store generalization remain outside this release's
+claims.
+
 ## [3.0.2] — 2026-07-17
 
 Post-release evidence-context reliability patch. This release is additive and
