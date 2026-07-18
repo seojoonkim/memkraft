@@ -38,6 +38,7 @@ from .cache import (  # v2.7.0 search result caching
     install_cache_invalidation_wrappers,
 )
 from .reasoning_bank import ReasoningBankMixin  # v2.7.1 ReasoningBank
+from .reasoning_execution import ReasoningAuthorization, ReasoningExecutionResult
 from .struct_mem import StructMemMixin  # v2.9.2 StructMem regex extraction
 from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .provenance import ProvenanceMixin  # v3 M2 Provenance Core
@@ -266,4 +267,9 @@ install_v3_compat(_BaseMemKraft)
 
 MemKraft = _BaseMemKraft
 
-__all__ = ["MemKraft", "__version__"]
+__all__ = [
+    "MemKraft",
+    "ReasoningAuthorization",
+    "ReasoningExecutionResult",
+    "__version__",
+]

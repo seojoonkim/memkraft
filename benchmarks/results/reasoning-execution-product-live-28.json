@@ -1,0 +1,739 @@
+{
+  "schema_version": 1,
+  "mode": "provider",
+  "memkraft_version": "3.0.2",
+  "matrix": {
+    "cases": 28,
+    "families": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G"
+    ],
+    "splits": [
+      "dev",
+      "holdout"
+    ],
+    "difficulties": [
+      "easy",
+      "hard"
+    ]
+  },
+  "provider": {
+    "provider": "custom:codex-lb",
+    "model_requested": "gpt-5.6-sol",
+    "host": "codex.nekos.me"
+  },
+  "router": {
+    "rows": [
+      {
+        "case_id": "a-dev-easy",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 1.3425829820334911,
+        "correct": true
+      },
+      {
+        "case_id": "a-dev-hard",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.6946248468011618,
+        "correct": true
+      },
+      {
+        "case_id": "a-holdout-easy",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.580458901822567,
+        "correct": true
+      },
+      {
+        "case_id": "a-holdout-hard",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.8398750796914101,
+        "correct": true
+      },
+      {
+        "case_id": "b-dev-easy",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.6934581324458122,
+        "correct": true
+      },
+      {
+        "case_id": "b-dev-hard",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.5791669245809317,
+        "correct": true
+      },
+      {
+        "case_id": "b-holdout-easy",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.5739158950746059,
+        "correct": true
+      },
+      {
+        "case_id": "b-holdout-hard",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.573707977309823,
+        "correct": true
+      },
+      {
+        "case_id": "c-dev-easy",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 1.3576250057667494,
+        "correct": true
+      },
+      {
+        "case_id": "c-dev-hard",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.8142080623656511,
+        "correct": true
+      },
+      {
+        "case_id": "c-holdout-easy",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.9385840967297554,
+        "correct": true
+      },
+      {
+        "case_id": "c-holdout-hard",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.6257500499486923,
+        "correct": true
+      },
+      {
+        "case_id": "d-dev-easy",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.692291185259819,
+        "correct": true
+      },
+      {
+        "case_id": "d-dev-hard",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.5669158417731524,
+        "correct": true
+      },
+      {
+        "case_id": "d-holdout-easy",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.49229199066758156,
+        "correct": true
+      },
+      {
+        "case_id": "d-holdout-hard",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.5042089615017176,
+        "correct": true
+      },
+      {
+        "case_id": "e-dev-easy",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.7102920208126307,
+        "correct": true
+      },
+      {
+        "case_id": "e-dev-hard",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.29987492598593235,
+        "correct": true
+      },
+      {
+        "case_id": "e-holdout-easy",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.23150001652538776,
+        "correct": true
+      },
+      {
+        "case_id": "e-holdout-hard",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.2138749696314335,
+        "correct": true
+      },
+      {
+        "case_id": "f-dev-easy",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.21595810540020466,
+        "correct": true
+      },
+      {
+        "case_id": "f-dev-hard",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.20529096946120262,
+        "correct": true
+      },
+      {
+        "case_id": "f-holdout-easy",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.1987079158425331,
+        "correct": true
+      },
+      {
+        "case_id": "f-holdout-hard",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.19545899704098701,
+        "correct": true
+      },
+      {
+        "case_id": "g-dev-easy",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "grammar_mismatch",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 1,
+        "latency_ms": 1237.814167048782,
+        "correct": true,
+        "provider_call": {
+          "latency_ms": 1237.5387500505894,
+          "usage": {
+            "prompt_tokens": 41,
+            "completion_tokens": 6,
+            "total_tokens": 47
+          },
+          "response_model": "gpt-5.6-sol"
+        }
+      },
+      {
+        "case_id": "g-dev-hard",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 4777.755375020206,
+        "correct": true,
+        "provider_call": {
+          "latency_ms": 4777.494041016325,
+          "usage": {
+            "prompt_tokens": 48,
+            "completion_tokens": 72,
+            "total_tokens": 120
+          },
+          "response_model": "gpt-5.6-sol"
+        }
+      },
+      {
+        "case_id": "g-holdout-easy",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 4650.932624936104,
+        "correct": true,
+        "provider_call": {
+          "latency_ms": 4650.700584053993,
+          "usage": {
+            "prompt_tokens": 47,
+            "completion_tokens": 131,
+            "total_tokens": 178
+          },
+          "response_model": "gpt-5.6-sol"
+        }
+      },
+      {
+        "case_id": "g-holdout-hard",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 2213.030416984111,
+        "correct": true,
+        "provider_call": {
+          "latency_ms": 2212.520624976605,
+          "usage": {
+            "prompt_tokens": 40,
+            "completion_tokens": 88,
+            "total_tokens": 128
+          },
+          "response_model": "gpt-5.6-sol"
+        }
+      }
+    ],
+    "summary": {
+      "completed": 28,
+      "correct": 28,
+      "executor": 24,
+      "fallback": 4,
+      "model_calls": 4,
+      "observed_fallback_calls": 4,
+      "executor_latency": {
+        "n": 24,
+        "sum_ms": 14.141,
+        "mean_ms": 0.589,
+        "median_ms": 0.577,
+        "p95_ms": 1.282,
+        "min_ms": 0.195,
+        "max_ms": 1.358
+      },
+      "fallback_latency": {
+        "n": 4,
+        "sum_ms": 12879.533,
+        "mean_ms": 3219.883,
+        "median_ms": 3431.982,
+        "p95_ms": 4758.732,
+        "min_ms": 1237.814,
+        "max_ms": 4777.755
+      },
+      "wall_ms": 12893.868
+    }
+  },
+  "errors": [],
+  "campaign_wall_ms": 318342.658,
+  "baseline": {
+    "rows": [
+      {
+        "case_id": "a-dev-easy",
+        "family": "A",
+        "latency_ms": 3657.55004202947,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 45,
+          "completion_tokens": 161,
+          "total_tokens": 206
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "a-dev-hard",
+        "family": "A",
+        "latency_ms": 19020.854332949966,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 1168,
+          "total_tokens": 1218
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "a-holdout-easy",
+        "family": "A",
+        "latency_ms": 5191.130333114415,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 45,
+          "completion_tokens": 205,
+          "total_tokens": 250
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "a-holdout-hard",
+        "family": "A",
+        "latency_ms": 17243.895541178063,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 899,
+          "total_tokens": 949
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "b-dev-easy",
+        "family": "B",
+        "latency_ms": 2555.730832973495,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 5,
+          "total_tokens": 46
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "b-dev-hard",
+        "family": "B",
+        "latency_ms": 3605.8171670883894,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 47,
+          "completion_tokens": 176,
+          "total_tokens": 223
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "b-holdout-easy",
+        "family": "B",
+        "latency_ms": 2164.5722910761833,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 50,
+          "total_tokens": 91
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "b-holdout-hard",
+        "family": "B",
+        "latency_ms": 4575.41958312504,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 48,
+          "completion_tokens": 204,
+          "total_tokens": 252
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "c-dev-easy",
+        "family": "C",
+        "latency_ms": 2091.474917018786,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 44,
+          "completion_tokens": 57,
+          "total_tokens": 101
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "c-dev-hard",
+        "family": "C",
+        "latency_ms": 4093.050583032891,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 44,
+          "completion_tokens": 121,
+          "total_tokens": 165
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "c-holdout-easy",
+        "family": "C",
+        "latency_ms": 2643.2608331087977,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 44,
+          "completion_tokens": 81,
+          "total_tokens": 125
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "c-holdout-hard",
+        "family": "C",
+        "latency_ms": 13184.596790932119,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 44,
+          "completion_tokens": 346,
+          "total_tokens": 390
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "d-dev-easy",
+        "family": "D",
+        "latency_ms": 1068.6206249520183,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 45,
+          "completion_tokens": 5,
+          "total_tokens": 50
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "d-dev-hard",
+        "family": "D",
+        "latency_ms": 4714.226082898676,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 60,
+          "completion_tokens": 6,
+          "total_tokens": 66
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "d-holdout-easy",
+        "family": "D",
+        "latency_ms": 1190.7772500999272,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 5,
+          "total_tokens": 55
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "d-holdout-hard",
+        "family": "D",
+        "latency_ms": 1373.0077501386404,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 55,
+          "completion_tokens": 6,
+          "total_tokens": 61
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "e-dev-easy",
+        "family": "E",
+        "latency_ms": 1125.295041827485,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 7,
+          "total_tokens": 48
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "e-dev-hard",
+        "family": "E",
+        "latency_ms": 4567.983584012836,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 258,
+          "total_tokens": 299
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "e-holdout-easy",
+        "family": "E",
+        "latency_ms": 3499.4871669914573,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 116,
+          "total_tokens": 157
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "e-holdout-hard",
+        "family": "E",
+        "latency_ms": 11490.770208882168,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 635,
+          "total_tokens": 676
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "f-dev-easy",
+        "family": "F",
+        "latency_ms": 4635.049334028736,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 40,
+          "completion_tokens": 37,
+          "total_tokens": 77
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "f-dev-hard",
+        "family": "F",
+        "latency_ms": 67896.7516659759,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 42,
+          "completion_tokens": 4150,
+          "total_tokens": 4192
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "f-holdout-easy",
+        "family": "F",
+        "latency_ms": 24305.891334079206,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 1544,
+          "total_tokens": 1585
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "f-holdout-hard",
+        "family": "F",
+        "latency_ms": 90350.70287482813,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 4943,
+          "total_tokens": 4984
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "g-dev-easy",
+        "family": "G",
+        "latency_ms": 1308.6129170842469,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 41,
+          "completion_tokens": 6,
+          "total_tokens": 47
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "g-dev-hard",
+        "family": "G",
+        "latency_ms": 2288.2444579154253,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 48,
+          "completion_tokens": 61,
+          "total_tokens": 109
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "g-holdout-easy",
+        "family": "G",
+        "latency_ms": 3444.083208916709,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 47,
+          "completion_tokens": 124,
+          "total_tokens": 171
+        },
+        "response_model": "gpt-5.6-sol"
+      },
+      {
+        "case_id": "g-holdout-hard",
+        "family": "G",
+        "latency_ms": 2118.662750115618,
+        "correct": true,
+        "usage": {
+          "prompt_tokens": 40,
+          "completion_tokens": 65,
+          "total_tokens": 105
+        },
+        "response_model": "gpt-5.6-sol"
+      }
+    ],
+    "summary": {
+      "completed": 28,
+      "correct": 28,
+      "model_calls": 28,
+      "latency": {
+        "n": 28,
+        "sum_ms": 305405.52,
+        "mean_ms": 10907.34,
+        "median_ms": 3631.684,
+        "p95_ms": 52639.951,
+        "min_ms": 1068.621,
+        "max_ms": 90350.703
+      },
+      "wall_ms": 305405.81
+    }
+  },
+  "comparison": {
+    "model_call_reduction_pct": 85.714,
+    "campaign_wall_reduction_pct": 95.778,
+    "wall_ratio_router_over_baseline": 0.042219
+  }
+}

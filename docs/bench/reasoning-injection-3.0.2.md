@@ -177,14 +177,51 @@ different mechanism: `retrieve -> validate provenance -> execute an allowlisted
 exact grammar -> fallback`. They do not execute lesson prose and do not read the
 benchmark's expected-answer functions at runtime.
 
-On the frozen 28-case matrix, the router produced **24 deterministic executor
-routes and four model fallbacks**, preserving **28/28 fake-harness accuracy** and
-reducing modeled calls from 28 to 4 (**85.714%**). The result is a feasibility
-claim, not a live latency or broad semantic-coverage claim. Authorization is bound
-to exact trajectory bytes and a process-local HMAC-sealed manifest; arbitrary code
-execution or key access inside that process and persistence across restarts remain
-out of scope. Final focused verification was **90 passed**, and independent
-security review reported zero Critical or Important findings.
+The production API now implements that bounded mechanism additively as
+`reasoning_procedure_ref()`, `reasoning_build_authorization()`, and
+`reasoning_execute()`. Existing natural-language ReasoningBank recall/injection and
+schema-v1 trajectories remain compatible. It executes only six versioned,
+allowlisted exact grammars; lesson prose, dynamic code, shell, `eval`, and `exec`
+are never execution inputs. Authorization binds canonical task identity, exact
+trajectory bytes, and registry identity with a process-local HMAC seal. File reads
+use a no-follow, directory-descriptor-anchored chain from the configured base to
+`.memkraft/trajectories/<task>.jsonl`, so validation, hashing, and parsing operate
+on bytes from the same descriptor. Malformed recall, provenance, authorization,
+grammar, or safety bounds fail closed to exactly one fallback call.
+
+On the frozen 28-case matrix, the production API produced **24 deterministic
+executor routes and four fallbacks**, preserved **28/28 accuracy**, and reduced
+observed fallback/model calls from 28 to 4 (**85.714%**). Local executor latency
+across the 24 A-F cases had median **0.184 ms** and mean **0.193 ms** in the
+isolated local run.
+
+A separate live sequential campaign used the same requested model alias and
+OpenAI-compatible endpoint settings as the earlier benchmark, with SDK retries
+disabled. It first sent all 28 tasks directly to the provider, then ran all 28
+through the product router:
+
+- model-only baseline: **28 calls, 28/28 correct, zero endpoint errors**;
+  total sequential wall **305.406 s**, median call **3.632 s**, p95 **52.640 s**,
+  maximum **90.351 s**;
+- production router: **24 executor + 4 fallback, 28/28 correct, zero endpoint
+  errors**; total sequential wall **12.894 s**;
+- observed model calls: **28 -> 4 (-85.714%)**;
+- router executor median: **0.577 ms**; live fallback median: **3.432 s**;
+- observed sequential campaign wall reduction: **95.778%**.
+
+The wall reduction is descriptive evidence from one campaign, not a universal
+latency claim. It exceeds the call reduction because the baseline had a large
+provider tail. The exact grammar set does not establish paraphrase, noisy-store,
+or broad semantic coverage. Arbitrary same-process code/key access, debugger or
+fork compromise, and trust persistence across process restarts remain outside the
+current threat model. Production focused verification finished at **112 passed**;
+the full repository suite finished at **2,240 passed / 3 skipped**. Independent
+review ended with **Critical 0 / Important 0**.
+
+Evidence artifacts (credentials are not serialized):
+
+- `benchmarks/results/reasoning-execution-product-local-28.json`
+- `benchmarks/results/reasoning-execution-product-live-28.json`
 
 ## Token trade-off
 

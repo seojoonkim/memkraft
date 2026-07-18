@@ -30,6 +30,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+from .reasoning_execution import (
+    ReasoningAuthorization,
+    ReasoningExecutionResult,
+    _build_authorization,
+    _procedure_ref,
+    _reasoning_execute,
+)
+
 
 __all__ = ["ReasoningBankMixin"]
 
@@ -293,6 +301,26 @@ class ReasoningBankMixin:
         return _FALLBACK_STOPWORDS
 
     # ── public API ────────────────────────────────────────────────
+    def reasoning_procedure_ref(self, procedure_id: str) -> Dict[str, Any]:
+        """Return public registry metadata; this is not authorization."""
+        return _procedure_ref(procedure_id)
+
+    def reasoning_build_authorization(
+        self, completed: Iterable[Tuple[str, str]]
+    ) -> ReasoningAuthorization:
+        """Validate and seal exact successful trajectory bytes."""
+        return _build_authorization(self.base_dir, completed)
+
+    def reasoning_execute(
+        self,
+        task: str,
+        *,
+        authorization: Optional[ReasoningAuthorization],
+        fallback,
+    ) -> ReasoningExecutionResult:
+        """Execute an authorized allowlisted procedure or fall back once."""
+        return _reasoning_execute(self, task, authorization, fallback)
+
     def trajectory_start(
         self,
         task_id: str,

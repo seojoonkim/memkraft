@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "mode": "local",
+  "memkraft_version": "3.0.2",
+  "matrix": {
+    "cases": 28,
+    "families": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G"
+    ],
+    "splits": [
+      "dev",
+      "holdout"
+    ],
+    "difficulties": [
+      "easy",
+      "hard"
+    ]
+  },
+  "provider": null,
+  "router": {
+    "rows": [
+      {
+        "case_id": "a-dev-easy",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.31637493520975113,
+        "correct": true
+      },
+      {
+        "case_id": "a-dev-hard",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.24620885960757732,
+        "correct": true
+      },
+      {
+        "case_id": "a-holdout-easy",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.2127080224454403,
+        "correct": true
+      },
+      {
+        "case_id": "a-holdout-hard",
+        "family": "A",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "A.inclusion_exclusion_sum",
+        "model_calls": 0,
+        "latency_ms": 0.1896668691188097,
+        "correct": true
+      },
+      {
+        "case_id": "b-dev-easy",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.18899980932474136,
+        "correct": true
+      },
+      {
+        "case_id": "b-dev-hard",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.19145803526043892,
+        "correct": true
+      },
+      {
+        "case_id": "b-holdout-easy",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.1793750561773777,
+        "correct": true
+      },
+      {
+        "case_id": "b-holdout-hard",
+        "family": "B",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "B.legendre_factorial_exponent",
+        "model_calls": 0,
+        "latency_ms": 0.19395817071199417,
+        "correct": true
+      },
+      {
+        "case_id": "c-dev-easy",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.1919169444590807,
+        "correct": true
+      },
+      {
+        "case_id": "c-dev-hard",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.18162489868700504,
+        "correct": true
+      },
+      {
+        "case_id": "c-holdout-easy",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.18454180099070072,
+        "correct": true
+      },
+      {
+        "case_id": "c-holdout-hard",
+        "family": "C",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "C.shortest_grid_paths",
+        "model_calls": 0,
+        "latency_ms": 0.17929216846823692,
+        "correct": true
+      },
+      {
+        "case_id": "d-dev-easy",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.18724985420703888,
+        "correct": true
+      },
+      {
+        "case_id": "d-dev-hard",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.1910421997308731,
+        "correct": true
+      },
+      {
+        "case_id": "d-holdout-easy",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.18179207108914852,
+        "correct": true
+      },
+      {
+        "case_id": "d-holdout-hard",
+        "family": "D",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "D.divisor_count_prime_powers",
+        "model_calls": 0,
+        "latency_ms": 0.18470780923962593,
+        "correct": true
+      },
+      {
+        "case_id": "e-dev-easy",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.18283282406628132,
+        "correct": true
+      },
+      {
+        "case_id": "e-dev-hard",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.1818749587982893,
+        "correct": true
+      },
+      {
+        "case_id": "e-holdout-easy",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.18058298155665398,
+        "correct": true
+      },
+      {
+        "case_id": "e-holdout-hard",
+        "family": "E",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 0,
+        "latency_ms": 0.17783301882445812,
+        "correct": true
+      },
+      {
+        "case_id": "f-dev-easy",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.17791683785617352,
+        "correct": true
+      },
+      {
+        "case_id": "f-dev-hard",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.18216692842543125,
+        "correct": true
+      },
+      {
+        "case_id": "f-holdout-easy",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.1788330264389515,
+        "correct": true
+      },
+      {
+        "case_id": "f-holdout-hard",
+        "family": "F",
+        "route": "executor",
+        "reason": "executor_executed",
+        "procedure_id": "F.modular_exponentiation",
+        "model_calls": 0,
+        "latency_ms": 0.1794169656932354,
+        "correct": true
+      },
+      {
+        "case_id": "g-dev-easy",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "grammar_mismatch",
+        "procedure_id": "E.sum_squares_or_cubes",
+        "model_calls": 1,
+        "latency_ms": 0.1801669131964445,
+        "correct": true
+      },
+      {
+        "case_id": "g-dev-hard",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 0.09691598825156689,
+        "correct": true
+      },
+      {
+        "case_id": "g-holdout-easy",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 0.09150011464953423,
+        "correct": true
+      },
+      {
+        "case_id": "g-holdout-hard",
+        "family": "G",
+        "route": "model_fallback",
+        "reason": "recall_empty",
+        "procedure_id": null,
+        "model_calls": 1,
+        "latency_ms": 0.0891250092536211,
+        "correct": true
+      }
+    ],
+    "summary": {
+      "completed": 28,
+      "correct": 28,
+      "executor": 24,
+      "fallback": 4,
+      "model_calls": 4,
+      "observed_fallback_calls": 4,
+      "executor_latency": {
+        "n": 24,
+        "sum_ms": 4.642,
+        "mean_ms": 0.193,
+        "median_ms": 0.184,
+        "p95_ms": 0.241,
+        "min_ms": 0.178,
+        "max_ms": 0.316
+      },
+      "fallback_latency": {
+        "n": 4,
+        "sum_ms": 0.458,
+        "mean_ms": 0.114,
+        "median_ms": 0.094,
+        "p95_ms": 0.168,
+        "min_ms": 0.089,
+        "max_ms": 0.18
+      }
+    }
+  },
+  "errors": [],
+  "campaign_wall_ms": 9.823
+}
