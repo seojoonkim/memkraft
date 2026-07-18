@@ -80,6 +80,112 @@ The runner records only the parsed endpoint hostname and exception class names.
 New artifacts record the requested model separately from any response model string.
 They never serialize the API key.
 
+## Expanded evidence collection
+
+The expanded harness adds 28 deterministic tasks (24 transfer tasks across six
+procedural families plus four unrelated abstention tasks), explicit dev/holdout
+and easy/hard metadata, and frozen selective retrieval. The nine-artifact live
+campaign completed on 2026-07-18 with 1,260 model calls and zero endpoint errors.
+Its predeclared gate **failed**, so compact natural-language injection is not an
+accepted product optimization. From the repository root, after setting the three
+credential variables above, run these exact nine collection commands. Dev uses
+seeds 42 and 43 with five repeats each (ten pairs per task after pooling); holdout
+uses seed 42 and five repeats.
+
+```bash
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison no-hint-vs-full --repeats 5 --seed 42 --timeout 120 --out /tmp/rb-dev-42-no-hint-vs-full.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison no-hint-vs-full --repeats 5 --seed 43 --timeout 120 --out /tmp/rb-dev-43-no-hint-vs-full.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison no-hint-vs-compact --repeats 5 --seed 42 --timeout 120 --out /tmp/rb-dev-42-no-hint-vs-compact.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison no-hint-vs-compact --repeats 5 --seed 43 --timeout 120 --out /tmp/rb-dev-43-no-hint-vs-compact.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison full-vs-compact --repeats 5 --seed 42 --timeout 120 --out /tmp/rb-dev-42-full-vs-compact.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split dev --comparison full-vs-compact --repeats 5 --seed 43 --timeout 120 --out /tmp/rb-dev-43-full-vs-compact.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split holdout --comparison no-hint-vs-full --repeats 5 --seed 42 --timeout 120 --holdout-ledger /tmp/rb-holdout-campaign.json --holdout-artifact no-hint-vs-full=/tmp/rb-holdout-42-no-hint-vs-full.json --holdout-artifact no-hint-vs-compact=/tmp/rb-holdout-42-no-hint-vs-compact.json --holdout-artifact full-vs-compact=/tmp/rb-holdout-42-full-vs-compact.json --out /tmp/rb-holdout-42-no-hint-vs-full.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split holdout --comparison no-hint-vs-compact --repeats 5 --seed 42 --timeout 120 --holdout-ledger /tmp/rb-holdout-campaign.json --holdout-artifact no-hint-vs-full=/tmp/rb-holdout-42-no-hint-vs-full.json --holdout-artifact no-hint-vs-compact=/tmp/rb-holdout-42-no-hint-vs-compact.json --holdout-artifact full-vs-compact=/tmp/rb-holdout-42-full-vs-compact.json --out /tmp/rb-holdout-42-no-hint-vs-compact.json
+PYTHONPATH=src python benchmarks/reasoning_injection_ab.py --expanded --split holdout --comparison full-vs-compact --repeats 5 --seed 42 --timeout 120 --holdout-ledger /tmp/rb-holdout-campaign.json --holdout-artifact no-hint-vs-full=/tmp/rb-holdout-42-no-hint-vs-full.json --holdout-artifact no-hint-vs-compact=/tmp/rb-holdout-42-no-hint-vs-compact.json --holdout-artifact full-vs-compact=/tmp/rb-holdout-42-full-vs-compact.json --out /tmp/rb-holdout-42-full-vs-compact.json
+```
+
+The first holdout command atomically initializes one campaign containing all
+three expected paths and frozen settings; each command reserves and completes
+exactly one member. The persistent `flock` lock is crash-safe and bounded when
+held by a live process. A justified full-campaign rerun requires a nonempty
+`--holdout-rerun-reason 'provider outage'`, creating a new generation while
+preserving campaign history. All three `--holdout-artifact` values for that rerun
+must use new, generation-unique paths; reusing any prior generation's path is
+rejected before reservation. Pending retries within one generation continue to
+use that generation's preregistered paths.
+
+Project exactly those nine artifacts, then evaluate the holdout-only gate:
+
+```bash
+PYTHONPATH=src python benchmarks/project_reasoning_injection_gate.py \
+  /tmp/rb-dev-42-no-hint-vs-full.json /tmp/rb-dev-43-no-hint-vs-full.json \
+  /tmp/rb-dev-42-no-hint-vs-compact.json /tmp/rb-dev-43-no-hint-vs-compact.json \
+  /tmp/rb-dev-42-full-vs-compact.json /tmp/rb-dev-43-full-vs-compact.json \
+  /tmp/rb-holdout-42-no-hint-vs-full.json /tmp/rb-holdout-42-no-hint-vs-compact.json \
+  /tmp/rb-holdout-42-full-vs-compact.json --bootstrap-samples 20000 --bootstrap-seed 42 \
+  --out /tmp/rb-expanded-gate-input.json
+PYTHONPATH=src python benchmarks/gate_reasoning_injection.py \
+  /tmp/rb-expanded-gate-input.json --out /tmp/rb-expanded-gate.json
+```
+
+The four general CIs resample only the 12 relevant procedural holdout tasks; the
+hard CI uses the six hard holdout tasks. Dev is used only for family-sign
+comparison, and family G only for abstention. Every easy-task slowdown above 8%
+is non-passing; two or more above 10% are an explicit rejection diagnostic.
+Prompt overhead is serialized as `compact_vs_no_hint_prompt_overhead_tokens`.
+
+The projector and gate fail closed when required comparability metadata or
+telemetry is missing or malformed. A CI containing zero is neutral; a directional
+CI is measured evidence rather than an additional performance gate, except for
+the separately predeclared hard-speed claim. Gate output prohibits a universal
+speed claim.
+
+### Expanded live result
+
+The authenticated holdout campaign completed all three comparisons in one shared
+generation. Projection used 20,000 task-cluster bootstrap samples. The gate result
+was `FAIL` rather than malformed:
+
+- holdout accuracy rejected: one compact paired loss on `f-holdout-hard`;
+- dev also had compact losses, concentrated on `d-dev-hard`, plus one
+  `f-dev-hard` loss;
+- relevant holdout latency task CI: **-3.505% to +25.536%**;
+- hard holdout latency task CI: **-10.616% to +35.139%**;
+- relevant holdout reasoning-change task CI: **-3.831% to +27.673%**;
+- maximum easy-task slowdown: **+32.362%**;
+- maximum relevant per-task slowdown: **+75.731%**;
+- compact prompt rendering did pass economy checks: **47.436% minimum reduction
+  versus full**, with **45 tokens maximum overhead versus no hint**;
+- selective behavior was correct: **12/12** relevant holdout tasks covered and
+  **2/2** unrelated tasks abstained.
+
+Reasoning-token change uses a bounded symmetric percentage for nonnegative token
+counts: `(new - baseline) / max(new, baseline) * 100`, with `0 -> 0` defined as
+zero. This keeps `0 -> positive` observable as a +100% regression without division
+by zero. Raw malformed, negative, nonfinite, and unrepresentable telemetry fails
+closed.
+
+The supported conclusion is therefore negative but useful: compact rendering
+reduces prompt overhead and retrieves selectively, but natural-language procedure
+injection did not preserve exact accuracy or establish lower reasoning use or wall
+latency on the expanded transfer set.
+
+### Deterministic execution feasibility
+
+Disposable spikes under `spikes/001-*`, `spikes/002-*`, and `spikes/003-*` test a
+different mechanism: `retrieve -> validate provenance -> execute an allowlisted
+exact grammar -> fallback`. They do not execute lesson prose and do not read the
+benchmark's expected-answer functions at runtime.
+
+On the frozen 28-case matrix, the router produced **24 deterministic executor
+routes and four model fallbacks**, preserving **28/28 fake-harness accuracy** and
+reducing modeled calls from 28 to 4 (**85.714%**). The result is a feasibility
+claim, not a live latency or broad semantic-coverage claim. Authorization is bound
+to exact trajectory bytes and a process-local HMAC-sealed manifest; arbitrary code
+execution or key access inside that process and persistence across restarts remain
+out of scope. Final focused verification was **90 passed**, and independent
+security review reported zero Critical or Important findings.
+
 ## Token trade-off
 
 The hint adds prompt context. Call-level paired median total-token delta was
@@ -123,10 +229,14 @@ counting, and one model round trip per row under the retry-disabled client contr
 
 ## Remaining evidence needed
 
-A stronger product-level speed claim requires:
+A stronger product-level speed claim now requires:
 
-1. substantially more **unique** tasks rather than more repeats of the same six;
-2. similar-but-not-identical prior tasks, not only exact-task oracle lessons;
+1. replacement of rejected free-form hint injection with a production-grade,
+   versioned deterministic procedure registry and durable authorization model;
+2. live paired evaluation of executor routing versus no-hint and compact arms,
+   including exact fallback behavior and end-to-end latency;
 3. agentic coding/tool-use workloads with end-to-end success scoring;
 4. model/provider replication and attested served-model identity where possible;
-5. task-clustered or hierarchical analysis defined before data collection.
+5. broader paraphrase and noisy-store coverage beyond the exact grammars; and
+6. preregistered hierarchical analysis when expanding beyond the implemented
+   task-cluster bootstrap.

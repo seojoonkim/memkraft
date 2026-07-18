@@ -174,6 +174,27 @@ def test_reasoning_injection_ab_aggregator_namespaces_runs(tmp_path):
     assert summary["descriptive_call_level"]["paired_median_latency_delta_ms"] == 5.0
 
 
+def test_reasoning_injection_ab_aggregator_rejects_duplicate_conditions(tmp_path):
+    mod = _load_module(
+        "analyze_reasoning_injection_ab_duplicates",
+        "benchmarks/analyze_reasoning_injection_ab.py",
+    )
+    import json
+    import pytest
+
+    row = {
+        "pair_id": "same:0", "case_id": "same", "condition": "control",
+        "latency_ms": 100.0, "correct": True,
+        "usage": {"prompt_tokens": 1, "completion_tokens": 1,
+                  "total_tokens": 2, "reasoning_tokens": 0},
+    }
+    path = tmp_path / "duplicate.json"
+    path.write_text(json.dumps({"rows": [row, dict(row)]}))
+
+    with pytest.raises(ValueError, match="duplicate 'control' row"):
+        mod.load_pairs([path])
+
+
 def test_reasoning_injection_ab_aggregator_allows_missing_token_telemetry(tmp_path):
     mod = _load_module(
         "analyze_reasoning_injection_ab_nullable",
