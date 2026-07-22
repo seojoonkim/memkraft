@@ -8,7 +8,7 @@
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
 _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
-**v2.13.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**v3.0.3** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
@@ -934,33 +934,24 @@ pip install -U memkraft
 
 Highlights from recent releases. Full history: [CHANGELOG.md](CHANGELOG.md).
 
-### v2.6.0 (current)
+### [v3.0.3](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.3) (current)
 
-- **`auto_tier`** — recommend `core` / `recall` / `archival` from `(recency, frequency, importance)`; `dry_run=True` by default.
-- **`fact_type`** on `fact_add` — `episodic` / `semantic` / `procedural` taxonomy with silent contradiction detection.
-- **1-hop graph neighbor expansion** for counting-style queries (`how many`, `list all`).
-- **1168 tests** passing; zero breaking changes from 2.5.x.
+- Added a bounded deterministic execution path for ReasoningBank with six versioned, allowlisted procedure grammars.
+- Added strict provenance validation, process-local sealed authorization, and exact-once fallback.
+- Preserved existing ReasoningBank recall/injection APIs and schema-v1 records without a destructive migration.
+- Release validation: 112 focused tests and 2,240 full-suite passes with 3 skips.
 
-### v2.5.0
+### [v3.0.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.2)
 
-- Hybrid search upgraded to **exact + IDF + fuzzy + BM25**.
-- Smarter ranking on multi-token queries; better recall for short answers.
+- Improved post-release evidence-context reliability and ReasoningBank evaluation coverage.
 
-### v2.4.0
+### [v3.0.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.1)
 
-- Cross-entity link graph hardened; faster `link_scan`, more reliable backlinks index.
-- Performance improvements on large memory directories.
+- Hardened temporal evidence selection, numeric aggregation previews, claim precision, and compiled-truth freshness.
 
-### v2.3.x
+### [v3.0.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.0)
 
-- Watchdog-based `memkraft watch` stability fixes.
-- Doctor health hints; richer `--check-updates` output.
-
-### v2.0.0
-
-- Major API consolidation around the **register → tune → recall → decide** loop.
-- Bitemporal facts, tier labels, reversible decay, link graph become first-class.
-- **Zero breaking changes** from 0.9.x — see [MIGRATION.md](./MIGRATION.md).
+- Introduced lifecycle-computed memory, canonical event/truth views, governance, context compilation, outcome-linked ranking, deterministic replay, and Memory Gym release gates.
 
 ### v1.1.0 — Autonomous Memory Management
 
