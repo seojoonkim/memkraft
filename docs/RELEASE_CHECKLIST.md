@@ -11,6 +11,9 @@
 - [ ] `main` 클린 (`git status` 무변경, 릴리스 대상 커밋이 push됨)
 - [ ] `CHANGELOG.md`에 이번 버전 섹션 작성 완료 (마이그레이션 유무 명시 — [MIGRATIONS.md](MIGRATIONS.md) §5)
 - [ ] `pyproject.toml`의 `version`이 릴리스 버전과 일치
+- [ ] `README.md` 상단 버전과 최근 릴리스의 유일한 `(current)` 항목이 릴리스 버전과 일치하고, 해당 GitHub Release 링크가 포함됨
+- [ ] `docs/releases/<version>.md`가 존재하고 제목 및 내용이 이번 릴리스와 일치
+- [ ] `python3 -m pytest tests/test_packaging_version.py -q` 통과. 이 검사는 패키지 버전, README, CHANGELOG, 릴리스 노트의 정합성을 함께 확인함
 - [ ] [THREAT_MODEL.md](THREAT_MODEL.md) §2 매트릭스에서 이번 릴리스에 "게이트 그린 필수"인 위협의 게이트가 전부 그린
 
 ## 1. 로컬 테스트
