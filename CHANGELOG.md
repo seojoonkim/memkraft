@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## [3.1.0] — 2026-07-25
+
+Canonical truth performance release. This release is additive and
+read-compatible; it does not rewrite existing memory or require a destructive
+migration.
+
+- Made `current_truth()` build a single per-call event signature index instead
+  of rescanning every canonical event for each compiled truth row. The dominant
+  path moves from quadratic toward linear in the number of events, so the win
+  grows with store size.
+- Preserved the legacy equality scan as an explicit fallback: when any compared
+  value resists canonicalisation (unhashable or otherwise unsupported), the
+  read falls back to the original literal scan, so results are unchanged.
+- Made `compile_truth()` read deny policies once per call instead of once per
+  candidate event.
+- Measured on a local single-subject workload (one subject, N unique-key
+  events, compiled once; cold = first `current_truth()` read from a fresh
+  instance, warm = immediate second read):
+
+  | events | read | before | after | speedup | latency reduction |
+  | --- | --- | --- | --- | --- | --- |
+  | 3,000 | cold | 429.7 ms | 12.8 ms | 33.5× | 97.0% |
+  | 3,000 | warm | 422.6 ms | 5.4 ms | 78.4× | 98.7% |
+  | 8,000 | cold | 3520.191 ms | 38.021 ms | 92.6× | 98.9% |
+  | 8,000 | warm | 2961.463 ms | 17.471 ms | 169.5× | 99.4% |
+
+- Compatibility semantics covered by focused tests: duplicate identical events,
+  partial and full tombstones, deny policies, compiled rows with no surviving
+  source event, corrupt event/policy/compiled snapshots, nested list and dict
+  values with order-independent dict equality, and Python scalar equality such
+  as `False == 0` and `1 == 1.0`.
+- Release validation: 2,256 full-suite passes with 3 skips and 258 pre-existing
+  warnings. An Opus 5 release audit confirmed the implementation and compatibility
+  coverage; its only pre-release blocker was resolved by including the new
+  release-note file in the release commit.
+
+Existing APIs, on-disk storage, and read behaviour remain compatible; no
+migration step is required. The numbers above are local workload evidence for
+this specific derived-view path, not a universal latency claim and not an
+external benchmark result. Search ranking and recall were not changed by this
+release, so recall benchmarks are unaffected and are not re-claimed here.
+
 ## [3.0.3] — 2026-07-18
 
 Additive ReasoningBank deterministic execution release. Existing natural-language

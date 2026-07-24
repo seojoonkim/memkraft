@@ -8,7 +8,7 @@
 **🏆 LongMemEval 98.0% — #1 on open-source agent long-term memory benchmarks**
 _(Surpasses MemPalace 96.6%, MEMENTO by Microsoft 90.8% · LLM-as-judge · oracle 50 · 3-run semantic majority)_
 
-**v3.0.3** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
+**v3.1.0** · Zero-dependency compound knowledge system for AI agents. Auto-extract, classify, search, tune, and time-travel — all in plain Markdown. **Debugging is memory. Time travel is memory. Multi-agent handoffs are memory. Facts have bitemporal validity. Memories decay reversibly. Wiki links build graphs. Tuning iterations leave an audit trail.**
 
 > **Plain Markdown source-of-truth · zero deps · zero keys · zero LLM calls inside MemKraft.**
 > In 30 seconds: `pipx install memkraft && memkraft init && memkraft agents-hint claude-code`
@@ -934,7 +934,14 @@ pip install -U memkraft
 
 Highlights from recent releases. Full history: [CHANGELOG.md](CHANGELOG.md).
 
-### [v3.0.3](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.3) (current)
+### [v3.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.1.0) (current)
+
+- Made `current_truth()` build one per-call event signature index instead of rescanning every event for each compiled truth row, moving the dominant path from quadratic toward linear.
+- On a local 8,000-event single-subject workload, cold reads went 3520.191 ms → 38.021 ms (92.6×) and warm reads 2961.463 ms → 17.471 ms (169.5×); at 3,000 events, 429.7 ms → 12.8 ms cold and 422.6 ms → 5.4 ms warm.
+- Preserved the legacy equality scan as a fallback for unhashable values, and kept tombstone, deny-policy, and fail-closed semantics unchanged.
+- Release validation: 2,256 full-suite passes with 3 skips, plus an Opus 5 release audit confirming the implementation and compatibility coverage; its only pre-release blocker was resolved by including the new release-note file in the release commit.
+
+### [v3.0.3](https://github.com/seojoonkim/memkraft/releases/tag/v3.0.3)
 
 - Added a bounded deterministic execution path for ReasoningBank with six versioned, allowlisted procedure grammars.
 - Added strict provenance validation, process-local sealed authorization, and exact-once fallback.

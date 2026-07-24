@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import pytest
 from memkraft import MemKraft
 
@@ -880,7 +881,7 @@ def test_events_directory_is_private(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); assert (tmp_path/'.memkraft/events.jsonl').exists()
 
 def test_release_version(tmp_path):
-    import memkraft; assert memkraft.__version__ == '3.0.3'
+    import memkraft; assert memkraft.__version__ == '3.1.0'
 
 def test_policy_source_less_not_event(tmp_path):
     m=mk(tmp_path); m.do_not_remember(subject='u',dry_run=False); assert m.export_memory(True)==[]
@@ -1192,3 +1193,145 @@ def test_sleep_plan_no_writes(tmp_path):
 
 def test_final_contract(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); p=m.sleep(); assert p==m.sleep(); m.sleep(dry_run=False); assert m.current_truth('u')=={'x':1}
+
+
+def _compiled(base): return base/'.memkraft/compiled_truth.jsonl'
+
+
+def _append_line(path,row):
+    with path.open('a',encoding='utf-8') as h: h.write(json.dumps(row)+'\n')
+
+
+def _append_raw(path):
+    with path.open('a',encoding='utf-8') as h: h.write('{bad\n')
+
+
+def test_current_truth_duplicate_identical_events_survive_partial_tombstone(tmp_path):
+    m=mk(tmp_path)
+    a=m.append_event('u','city','Seoul',source='chat',provenance='chat',valid_from='2026-01-01')
+    m.append_event('u','city','Seoul',source='chat',provenance='chat',valid_from='2026-01-01')
+    m.compile_truth(False); m.forget(a['id'],False)
+    assert mk(tmp_path).current_truth('u')=={'city':'Seoul'}
+
+
+def test_current_truth_duplicate_identical_events_hidden_when_all_tombstoned(tmp_path):
+    m=mk(tmp_path)
+    a=m.append_event('u','city','Seoul',source='chat',provenance='chat',valid_from='2026-01-01')
+    b=m.append_event('u','city','Seoul',source='chat',provenance='chat',valid_from='2026-01-01')
+    m.compile_truth(False); m.forget(a['id'],False); m.forget(b['id'],False)
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+def test_current_truth_duplicate_events_still_denied_by_policy(tmp_path):
+    m=mk(tmp_path)
+    m.append_event('u','secret','v',source='s'); m.append_event('u','secret','v',source='s')
+    m.compile_truth(False); m.do_not_remember(subject='u',key='secret',dry_run=False)
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+@pytest.mark.parametrize(('source_value','compiled_value'), [(False,0),(1,1.0)])
+def test_current_truth_index_preserves_python_scalar_equality(tmp_path,source_value,compiled_value):
+    m=mk(tmp_path)
+    event=m.append_event('u','equal',source_value,source='s')
+    m.compile_truth(False)
+    compiled=json.loads(_compiled(tmp_path).read_text())
+    compiled['value']=compiled_value
+    _compiled(tmp_path).write_text(json.dumps(compiled)+'\n')
+    m.forget(event['id'],False)
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+def test_current_truth_index_matches_nested_json_values_independent_of_dict_order(tmp_path):
+    m=mk(tmp_path)
+    event=m.append_event('u','nested',{'a':[1,{'x':True}],'b':2},source='s')
+    m.compile_truth(False)
+    compiled=json.loads(_compiled(tmp_path).read_text())
+    compiled['value']={'b':2,'a':[1,{'x':True}]}
+    _compiled(tmp_path).write_text(json.dumps(compiled)+'\n')
+    m.forget(event['id'],False)
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+def test_current_truth_keeps_compiled_row_with_no_source_event(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    _append_line(_compiled(tmp_path),{'subject_id':'u','key':'y','value':2,'source':'s','id':'u:y','created_at':'compiled'})
+    assert mk(tmp_path).current_truth('u')=={'x':1,'y':2}
+
+
+def test_current_truth_ignores_other_subjects_and_partial_rows(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.append_event('v','z',3,source='s'); m.compile_truth(False)
+    _append_line(_compiled(tmp_path),{'subject_id':'u','key':'no-value','source':'s'})
+    _append_line(_compiled(tmp_path),{'subject_id':'u','value':4,'source':'s'})
+    assert mk(tmp_path).current_truth('u')=={'x':1}
+
+
+def test_current_truth_fails_closed_on_corrupt_policy_snapshot(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    (tmp_path/'.memkraft/deny_policies.jsonl').write_text('{bad\n')
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+def test_current_truth_fails_closed_on_corrupt_event_snapshot(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    _append_raw(tmp_path/'.memkraft/events.jsonl')
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+def test_current_truth_fails_closed_on_corrupt_compiled_snapshot(tmp_path):
+    m=mk(tmp_path); m.append_event('u','x',1,source='s'); m.compile_truth(False)
+    _append_raw(_compiled(tmp_path))
+    assert mk(tmp_path).current_truth('u')=={}
+
+
+class _CountedRecords(list):
+    """A record list that counts how many times it is scanned end to end."""
+
+    def __init__(self,rows):
+        super().__init__(rows); self.scans=0
+
+    def __iter__(self):
+        self.scans+=1; return super().__iter__()
+
+
+def _count_event_scans(monkeypatch,base,rows):
+    """Return how many times current_truth scans the raw event snapshot."""
+    from memkraft import derived_views as dv
+    from memkraft.store_core import ReadResult, read_all as real_read_all
+    base.mkdir(parents=True,exist_ok=True)
+    writer=mk(base)
+    for index in range(rows): writer.append_event('u',f'k{index:03d}',index,source='s')
+    writer.compile_truth(False)
+    events=Path(writer._canonical_events_path()); box={}
+    def counting_read_all(path,include_tombstoned=False):
+        result=real_read_all(path,include_tombstoned)
+        if Path(path)==events and include_tombstoned:
+            counted=_CountedRecords(result.records); box['records']=counted
+            return ReadResult(counted,result.skipped)
+        return result
+    monkeypatch.setattr(dv,'read_all',counting_read_all)
+    try: assert len(mk(base).current_truth('u'))==rows
+    finally: monkeypatch.undo()
+    return box['records'].scans
+
+
+def test_current_truth_does_not_rescan_events_per_compiled_row(tmp_path,monkeypatch):
+    small=_count_event_scans(monkeypatch,tmp_path/'small',4)
+    large=_count_event_scans(monkeypatch,tmp_path/'large',24)
+    assert small==large and large<=3
+
+
+def test_compile_truth_reads_policies_once_per_call(tmp_path,monkeypatch):
+    from memkraft import derived_views as dv
+    from memkraft.store_core import read_all as real_read_all
+    m=mk(tmp_path)
+    for index in range(6): m.append_event('u',f'k{index}',index,source='s')
+    m.append_event('u','secret',9,source='s')
+    m.do_not_remember(subject='u',key='secret',dry_run=False)
+    policies=Path(m._policies_path()); reads=[]
+    def counting_read_all(path,include_tombstoned=False):
+        if Path(path)==policies: reads.append(path)
+        return real_read_all(path,include_tombstoned)
+    monkeypatch.setattr(dv,'read_all',counting_read_all)
+    plan=m.compile_truth()
+    assert [r['key'] for r in plan['records']]==[f'k{index}' for index in range(6)]
+    assert len(reads)==1

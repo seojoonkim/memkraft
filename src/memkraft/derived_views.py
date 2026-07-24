@@ -27,6 +27,38 @@ def _iso(value: Any):
     rank=parsed.astimezone(timezone.utc).replace(tzinfo=None) if parsed.tzinfo else parsed
     return canonical,rank
 
+_MATCH_FIELDS=("key","value","source","valid_from","provenance")
+_UNCANONICAL=object()
+
+def _canonical(value: Any):
+    """Hashable stand-in for a JSON-like value; equal values canonicalise equal."""
+    if isinstance(value,list):
+        parts=[]
+        for item in value:
+            c=_canonical(item)
+            if c is _UNCANONICAL: return _UNCANONICAL
+            parts.append(c)
+        return ("l",tuple(parts))
+    if isinstance(value,dict):
+        parts=[]
+        for k,v in value.items():
+            ck=_canonical(k); cv=_canonical(v)
+            if ck is _UNCANONICAL or cv is _UNCANONICAL: return _UNCANONICAL
+            parts.append((ck,cv))
+        return ("d",frozenset(parts))
+    try: hash(value)
+    except TypeError: return _UNCANONICAL
+    return ("s",value)
+
+def _match_signature(row):
+    """Canonical signature over the fields old equality compared, or _UNCANONICAL."""
+    parts=[]
+    for field in _MATCH_FIELDS:
+        c=_canonical(row.get(field))
+        if c is _UNCANONICAL: return _UNCANONICAL
+        parts.append(c)
+    return tuple(parts)
+
 def _digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()
 
@@ -84,6 +116,7 @@ class DerivedViewsMixin:
 
     def compile_truth(self,dry_run=True):
         _bool(dry_run,"dry_run"); result=read_all(self._canonical_events_path()); winners={}; invalid=0
+        policies=self._policies()
         for order,event in enumerate(result.records):
             if "value" not in event: invalid+=1; continue
             try:
@@ -92,7 +125,7 @@ class DerivedViewsMixin:
                 rank=datetime.min
                 if "valid_from" in n: n["valid_from"],rank=_iso(n["valid_from"])
             except (TypeError,ValueError): invalid+=1; continue
-            if self._denied(n["subject_id"],n["key"]): continue
+            if self._denied_by(policies,n["subject_id"],n["key"]): continue
             ident=(n["subject_id"],n["key"]); score=(rank,order)
             if ident not in winners or score>winners[ident][0]: winners[ident]=(score,n)
         records=[]
@@ -300,10 +333,23 @@ class DerivedViewsMixin:
             if canonical.skipped:return {}
             all_events=canonical.records
             tombstoned={r.get("tombstone_of") for r in all_events if r.get("tombstone") is True}
-            def safe(row):
-                if self._denied_by(policies.records,subject_id,row.get("key")):return False
+            # One pass over the events: signature -> "some matching source is still live".
+            # Falls back to the literal scan if any value resists canonicalisation.
+            live={}; indexed=True
+            for e in all_events:
+                if e.get("tombstone") or e.get("subject_id")!=subject_id: continue
+                sig=_match_signature(e)
+                if sig is _UNCANONICAL: indexed=False; break
+                live[sig]=live.get(sig,False) or e.get("id") not in tombstoned
+            def scan(row):
                 matches=[e for e in all_events if not e.get("tombstone") and e.get("subject_id")==subject_id and e.get("key")==row.get("key") and all(e.get(k)==row.get(k) for k in ("value","source","valid_from","provenance"))]
                 return not matches or any(e.get("id") not in tombstoned for e in matches)
+            def safe(row):
+                if self._denied_by(policies.records,subject_id,row.get("key")):return False
+                if not indexed: return scan(row)
+                sig=_match_signature(row)
+                if sig is _UNCANONICAL: return scan(row)
+                return live.get(sig,True)
             result=self._cached_read(self._compiled_truth_path(),"_truth_snapshot_cache")
             records=[] if result.skipped else result.records
             return {r["key"]:r["value"] for r in records if r.get("subject_id")==subject_id and "key" in r and "value" in r and safe(r)}
