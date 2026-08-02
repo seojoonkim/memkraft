@@ -1,3 +1,5 @@
+**v3.1.0**
+
 <div align="center">
 
 # MemKraft
@@ -481,7 +483,13 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-No migration command or data rewrite is required for 3.1.0. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md). Release history is in [`CHANGELOG.md`](CHANGELOG.md).
+No migration command or data rewrite is required for 3.1.0. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
+
+## 📝 Changelog
+
+### [v3.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.1.0) (current)
+
+The 3.1.0 release strengthens accountable retrieval, lifecycle controls, and performance while preserving the local-first Markdown storage model. Read the [release notes](docs/releases/3.1.0.md) or browse the complete [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Contributing
 
