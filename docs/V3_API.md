@@ -16,7 +16,7 @@
 
 ## Preview and secondary
 
-`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`, `compile_evidence_context`, `aggregate_numeric_evidence`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
+`remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`, `compile_evidence_context`, `aggregate_numeric_evidence`, `live_sync_apply`, `live_sync_events`, `live_sync_freshness`, `live_sync_repair`, `embedding_sync_path`, `embedding_index_state`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
 
 ### Evidence context preview
 
@@ -55,6 +55,12 @@
 `compact_memory(dry_run=True)`는 `.memkraft/events.jsonl`과 `.memkraft/candidates.jsonl`만 대상으로 per-store `kept`, `removed_tombstoned`, `removed_markers`, `removed_corrupt` 수를 보고한다. 기본 dry-run은 파일을 쓰지 않는다. `dry_run=False`는 store core의 기존 lock/compact 경로로 local active sidecar의 tombstoned 원본, marker, corrupt line을 물리적으로 제거한다. 없는 sidecar는 생성하지 않는 no-op 성공이다. Visible `export_memory`, `timeline`, `current_truth`, `list_candidates` 의미는 compaction 전후 동일하다.
 
 Compaction은 **현재 로컬 active sidecar 파일만** 정리한다. Backup, VCS, filesystem snapshot, 외부 복사본에서의 삭제를 보장하지 않으므로 필요한 backup 보존·삭제 정책은 운영자가 별도로 관리해야 한다.
+
+### Local-first live sync preview
+
+`live_sync_apply(path, operation, old_path=None, embeddings="auto", provenance=True)`는 canonical Markdown 변경을 명시적으로 파생 상태에 전달한다. operation은 `create`, `modify`, `delete`, `move`이며 move는 `old_path`가 필수다. 반환 필드는 Preview이므로 additive 확장이 가능하다. `.memkraft/` 내부와 비Markdown 대상은 canonical 입력으로 승격되지 않는다.
+
+`live_sync_events()`는 lazy-created derived event log를 읽고, `live_sync_freshness()`는 canonical Markdown과 process-local BM25 및 optional embedding index를 비교한다. `live_sync_repair()`는 Markdown에서 파생 인덱스를 재구축한다. Event log와 index는 canonical source가 아니며 삭제 가능하다. `embedding_sync_path()`와 `embedding_index_state()`는 embedding extra가 선택된 사용자를 위한 secondary API이고 default search mode를 바꾸지 않는다.
 
 ## Search modes
 
