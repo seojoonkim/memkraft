@@ -46,15 +46,27 @@ def test_a3_usage_id_is_sha256_over_a_fixed_identity_dict():
     assert "execution_budget" not in identity_block
 
 
-def test_a4_no_execution_prefixed_module_exists_yet_beyond_this_feature():
-    """A4: MKEP owns the ``execution_*`` module namespace.
+def test_a4_execution_prefixed_modules_are_owned_by_mkep():
+    """A4: no unrelated module has occupied the MKEP namespace.
 
-    ``reasoning_execution.py`` matches the plan's looser ``grep -i execution``
-    but is not ``execution*``-prefixed, so the namespace is genuinely free.
+    Slice 0 verified that the namespace was empty at the baseline.  As later
+    slices add the planned modules, this lasting guard rejects only unexpected
+    occupants rather than making the first legitimate module fail the suite.
+    ``reasoning_execution.py`` is intentionally outside the prefix.
     """
     package = Path(store_core.__file__).parent
-    existing = sorted(p.name for p in package.glob("execution*.py"))
-    assert existing == []
+    existing = {p.name for p in package.glob("execution*.py")}
+    planned = {
+        "execution.py",
+        "execution_assessment.py",
+        "execution_dispatch.py",
+        "execution_handoff.py",
+        "execution_models.py",
+        "execution_projection.py",
+        "execution_protocol.py",
+        "execution_store.py",
+    }
+    assert existing <= planned
 
 
 def test_release_metadata_sources_agree_and_target_is_above_baseline():
