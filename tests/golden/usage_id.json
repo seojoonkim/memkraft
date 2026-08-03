@@ -1,0 +1,84 @@
+{
+  "estimated_tokens": 242,
+  "identity_sections": {
+    "timeline": [
+      {
+        "key": "target_version",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:00+00:00",
+        "value": "3.3.0"
+      },
+      {
+        "key": "baseline_commit",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:01+00:00",
+        "value": "b9453da"
+      },
+      {
+        "key": "storage",
+        "source": "store_core",
+        "subject_id": "kernel",
+        "valid_from": "2026-08-04T00:00:02+00:00",
+        "value": "store_core append under flock"
+      }
+    ],
+    "truth": [
+      {
+        "key": "storage",
+        "source": "store_core",
+        "subject_id": "kernel",
+        "valid_from": "2026-08-04T00:00:02+00:00",
+        "value": "store_core append under flock"
+      },
+      {
+        "key": "baseline_commit",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:01+00:00",
+        "value": "b9453da"
+      },
+      {
+        "key": "target_version",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:00+00:00",
+        "value": "3.3.0"
+      }
+    ]
+  },
+  "scenario": {
+    "budget": 512,
+    "events": [
+      {
+        "key": "target_version",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:00+00:00",
+        "value": "3.3.0"
+      },
+      {
+        "key": "baseline_commit",
+        "source": "plan",
+        "subject_id": "release",
+        "valid_from": "2026-08-04T00:00:01+00:00",
+        "value": "b9453da"
+      },
+      {
+        "key": "storage",
+        "source": "store_core",
+        "subject_id": "kernel",
+        "valid_from": "2026-08-04T00:00:02+00:00",
+        "value": "store_core append under flock"
+      }
+    ],
+    "objective": "MKEP/0 preview",
+    "task": "ship the execution kernel"
+  },
+  "sources": [
+    "plan",
+    "store_core"
+  ],
+  "usage_id": "dee4ddf2daf2b4d062cd0a892dd2143d2787df9c090816895244a1064cbe2788"
+}
