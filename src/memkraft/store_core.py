@@ -43,10 +43,11 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 try:
     import fcntl
@@ -56,14 +57,46 @@ except ImportError:  # Windows
 
 SCHEMA_VERSION = 1
 
+#: Poll interval for the bounded non-blocking lock retry.
+_LOCK_RETRY_S = 0.005
 
-def _lock_exclusive(fd: int) -> None:
-    """Take a blocking process-level exclusive lock on ``fd``."""
-    if fcntl is not None:
-        fcntl.flock(fd, fcntl.LOCK_EX)
+
+class StoreBusy(RuntimeError):
+    """Raised when a bounded lock attempt gives up: the store stayed locked."""
+
+    def __init__(self, path: Union[str, Path]):
+        super().__init__(f"store busy (lock held): {path}")
+        self.path = Path(path)
+
+
+def _lock_exclusive(
+    fd: int, deadline: Optional[float] = None, path_str: str = ""
+) -> None:
+    """Take a process-level exclusive lock on ``fd``.
+
+    Blocks until acquired when ``deadline`` is ``None``. Otherwise retries a
+    non-blocking lock until ``time.monotonic()`` passes ``deadline``, then
+    raises :class:`StoreBusy`.
+    """
+    if deadline is None:
+        if fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            return
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
         return
-    os.lseek(fd, 0, os.SEEK_SET)
-    msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+    while True:
+        try:
+            if fcntl is not None:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            else:
+                os.lseek(fd, 0, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return
+        except OSError:
+            if time.monotonic() >= deadline:
+                raise StoreBusy(path_str)
+            time.sleep(_LOCK_RETRY_S)
 
 
 def _lock_shared(fd: int) -> None:
@@ -83,7 +116,9 @@ def _unlock(fd: int) -> None:
     msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
 
 
-def _lock_current_inode(path_str: str, flags: int) -> int:
+def _lock_current_inode(
+    path_str: str, flags: int, timeout_s: Optional[float] = None
+) -> int:
     """Open ``path_str`` and take an exclusive ``flock`` on its *current* inode.
 
     ``flock`` binds to the open file, not the path: a process that opened
@@ -93,11 +128,16 @@ def _lock_current_inode(path_str: str, flags: int) -> int:
     path; if the file was replaced (or unlinked) in the meantime, release
     and start over on the file now at the path. Raises whatever ``os.open``
     raises (e.g. ``FileNotFoundError`` without ``O_CREAT``).
+
+    With ``timeout_s`` set, the wait is bounded: the lock is retried
+    non-blockingly and :class:`StoreBusy` is raised once the budget is spent.
+    The default keeps the unbounded blocking wait.
     """
+    deadline = None if timeout_s is None else time.monotonic() + timeout_s
     while True:
         fd = os.open(path_str, flags, 0o644)
         try:
-            _lock_exclusive(fd)
+            _lock_exclusive(fd, deadline, path_str)
             st_fd = os.fstat(fd)
             try:
                 st_path = os.stat(path_str)
