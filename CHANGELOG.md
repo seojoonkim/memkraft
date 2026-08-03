@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [3.2.0] — 2026-08-03
+
+Local-first live-sync release. Markdown remains canonical, BM25 remains the default retriever, and no mandatory dependency was added.
+
+- Replaced watcher's dummy search ping with explicit create/modify/delete/move invalidation; moves invalidate both paths and derived-state paths are ignored.
+- Added compact provenance-linked change envelopes under `.memkraft/live-sync/`, plus canonical-to-derived freshness diagnostics and Markdown-based repair.
+- Added opt-in single-path embedding updates for an existing index, including stale-vector removal for deletes, empty files, moves out of the canonical corpus, and empty-corpus repair.
+- Added deterministic incremental/full equivalence coverage and a 200-document structural benchmark: one changed file reduced BM25 reads and embedding encodes from 200 to 1. Wall times are indicative only; both paths still stat the corpus and the embedding benchmark uses a fake encoder.
+- Release validation covers the full pytest suite, Memory Gym, installed-agent smoke, exact Opus 5 release review, and wheel/PyPI artifact verification.
+
+This release is additive and read-compatible. It does not rewrite Markdown or change default retrieval/ranking, and it makes no new recall or universal latency claim.
+
 ## [3.1.0] — 2026-07-25
 
 Canonical truth performance release. This release is additive and

@@ -1,4 +1,4 @@
-**v3.1.0**
+**v3.2.0**
 
 <div align="center">
 
@@ -327,6 +327,8 @@ The following are public but may gain additive fields or stricter validation in 
 - Claim pipeline: `extract_claims`, `resolver_dry_run`
 - Interaction views: `record_interaction`, `last_interaction`
 - Evidence helpers: `compile_evidence_context`, `aggregate_numeric_evidence`
+- Local live sync: `live_sync_apply`, `live_sync_events`, `live_sync_freshness`, `live_sync_repair`
+- Optional embedding maintenance: `embedding_sync_path`, `embedding_index_state`
 
 See [`docs/V3_API.md`](docs/V3_API.md) for exact semantics and [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md) for 2.13.x → 3.x migration and rollback guidance.
 
@@ -383,6 +385,7 @@ Run `memkraft <command> --help` for complete options.
 | `agents-hint TARGET [--format markdown\|json]` | Generate integration instructions |
 | `mcp doctor` / `mcp test` | Validate MCP readiness or run a local round trip |
 | `watch [--path PATH] [--once]` | Watch and re-index; requires `memkraft[watch]` |
+| `freshness [--path DIR] [--repair] [--json]` | Diagnose or rebuild derived indexes from canonical Markdown |
 | `selfupdate [--dry-run]` | Upgrade via pip when a newer PyPI version exists |
 
 <details>
@@ -459,6 +462,10 @@ Read the complete setup, hashes, later experiments, and interpretation limits in
 
 Version 3.1.0 optimizes `current_truth()` by replacing repeated full-event scans with a per-call signature index, while retaining the legacy equality scan as a compatibility fallback. The release note reports local synthetic single-subject results and explicitly does **not** present them as universal latency claims. See [`docs/releases/3.1.0.md`](docs/releases/3.1.0.md) for methodology, measurements, validation, and limits.
 
+### 3.2.0 local-first live sync
+
+Version 3.2.0 replaces watcher's search-ping side effect with explicit path invalidation, records compact provenance-linked change envelopes, reports canonical-to-derived freshness, repairs disposable indexes from Markdown, and updates an existing optional embedding index one document at a time. Markdown remains canonical, BM25 remains the default retriever, and no dependency was added to the core. See [`docs/LIVE_SYNC.md`](docs/LIVE_SYNC.md) and the [release notes](docs/releases/3.2.0.md).
+
 ## Safety and operational notes
 
 - `sleep` and `forget` are dry-run by default; use explicit apply calls for writes.
@@ -473,7 +480,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.1.0**.
+Current version: **3.2.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -483,11 +490,15 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-No migration command or data rewrite is required for 3.1.0. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
+No migration command or Markdown rewrite is required for 3.2.0. New live-sync sidecars are lazy-created and disposable. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## 📝 Changelog
 
-### [v3.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.1.0) (current)
+### [v3.2.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.2.0) (current)
+
+MemKraft 3.2.0 adds local-first live sync, freshness diagnostics and repair, provenance-linked file change events, and optional single-path embedding updates without changing canonical storage or default retrieval. Read the [release notes](docs/releases/3.2.0.md).
+
+### [v3.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.1.0)
 
 The 3.1.0 release strengthens accountable retrieval, lifecycle controls, and performance while preserving the local-first Markdown storage model. Read the [release notes](docs/releases/3.1.0.md) or browse the complete [`CHANGELOG.md`](CHANGELOG.md).
 

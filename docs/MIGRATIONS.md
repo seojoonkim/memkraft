@@ -21,6 +21,7 @@
 | 2.12.x | 2.13.0 | no (doctor가 안내) | `memkraft migrate --base-dir <dir> --to 2.13 --apply` | backup dir 복원 | none expected |
 | 2.13.x | 3.0 | no (additive/read-compatible) | 파생 뷰 재구축; 별도 schema rewrite 없음 | 2.13 binary + sidecar backup 복원 | preview 데이터만 재생성 필요 |
 | 3.0 | 3.0.1 | no (additive/read-compatible) | schema rewrite 없음; 선택적으로 `compact_memory(dry_run=False)` | 적용 전 sidecar backup 복원 | tombstoned local lines의 물리 제거 |
+| 3.1.x | 3.2.0 | no (additive/read-compatible) | schema rewrite 없음; optional `memkraft freshness --repair` | 3.1 binary 재설치; `.memkraft/live-sync/`와 embedding index는 삭제 후 재생성 가능 | none; Markdown is unchanged |
 
 ### 2.3 — 3.0 → 3.0.1 local maintenance
 

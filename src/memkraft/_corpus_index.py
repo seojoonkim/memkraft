@@ -280,7 +280,13 @@ def _try_incremental_update(
         for path in (current_paths | cached_paths)
         if cached.doc_stat.get(path) != current_stat.get(path)
     }
-    if not changed_paths or not changed_paths.issubset(pending_paths):
+    # macOS temp directories commonly have two valid spellings
+    # (``/var/...`` and ``/private/var/...``).  Watch paths may be resolved
+    # while the corpus snapshot retains the original spelling, so compare
+    # path identity through realpath but keep the snapshot paths as keys.
+    pending_identities = {os.path.realpath(str(path)) for path in pending_paths}
+    changed_identities = {os.path.realpath(str(path)) for path in changed_paths}
+    if not changed_paths or not changed_identities.issubset(pending_identities):
         return None
 
     doc_token_freqs = dict(cached.doc_token_freqs)
@@ -552,6 +558,24 @@ def invalidate(path: Optional[Path] = None) -> None:
         _WRITE_GENERATION += 1
         if path is not None:
             _PENDING_INVALIDATIONS.add(Path(path))
+
+
+def snapshot() -> Optional[Dict[str, Any]]:
+    """Return a read-only view of the cached index identity, or ``None``.
+
+    Used by the freshness diagnostics (v3.2) to compare the in-memory
+    BM25 state against canonical markdown without touching the cache.
+    ``None`` means "never built in this process" — the BM25 index is
+    in-memory only, so that is the honest answer, not "missing file".
+    """
+    with _INDEX_LOCK:
+        cached = _INDEX_CACHE
+        if cached is None:
+            return None
+        return {
+            "fingerprint": cached.fingerprint,
+            "doc_stat": dict(cached.doc_stat),
+        }
 
 
 def reset_for_tests() -> None:

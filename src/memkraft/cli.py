@@ -371,6 +371,15 @@ def main():
     watch_parser.add_argument("--path", default="", help="Path to watch (default: base_dir)")
     watch_parser.add_argument("--once", action="store_true", help="Run one index pass and exit (debug)")
 
+    # freshness (v3.2) — canonical Markdown vs derived BM25/embedding state
+    fresh_parser = subparsers.add_parser(
+        "freshness",
+        help="Compare canonical Markdown against derived state (BM25 / embeddings)",
+    )
+    fresh_parser.add_argument("--path", default="", help="Memory root (default: base_dir)")
+    fresh_parser.add_argument("--repair", action="store_true", help="Rebuild derived state from Markdown")
+    fresh_parser.add_argument("--json", action="store_true", help="Machine-readable output")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -677,6 +686,9 @@ def main():
     elif args.command == "watch":
         from . import watch as _watch
         return _watch.cmd(args)
+    elif args.command == "freshness":
+        from . import live_sync as _live_sync
+        return _live_sync.cmd(args)
     elif args.command == "stats":
         from . import stats as _stats
         return _stats.cmd(args)

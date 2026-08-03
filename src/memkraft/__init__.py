@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -42,6 +42,7 @@ from .reasoning_execution import ReasoningAuthorization, ReasoningExecutionResul
 from .struct_mem import StructMemMixin  # v2.9.2 StructMem regex extraction
 from .embedding import EmbeddingMixin  # v2.7.3 local embedding retrieval
 from .provenance import ProvenanceMixin  # v3 M2 Provenance Core
+from .live_sync import LiveSyncMixin  # v3.2 local-first live sync
 from .candidates import CandidateMixin  # v2.13 candidate memory preview
 from .interactions import LastInteractionMixin  # v2.13 last-interaction preview
 from .derived_views import DerivedViewsMixin  # v2.14 canonical truth preview
@@ -106,6 +107,7 @@ for _mixin in (
     StructMemMixin,
     EmbeddingMixin,
     ProvenanceMixin,
+    LiveSyncMixin,
     CandidateMixin,
     LastInteractionMixin,
     DerivedViewsMixin,

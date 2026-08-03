@@ -54,9 +54,11 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 import threading
 import time
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, List, Optional, Sequence
 
@@ -73,6 +75,8 @@ DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_EMBEDDING_DIM = 384  # informational; whatever the model emits wins
 _EMBED_CACHE_CAPACITY = 256  # per-process LRU on raw text → vector
 _INDEX_BASENAME = "index.jsonl"
+_INDEX_LOCK_BASENAME = "index.lock"
+_INDEX_THREAD_LOCK = threading.RLock()
 
 
 class MemKraftEmbeddingError(RuntimeError):
@@ -302,19 +306,56 @@ class EmbeddingMixin:
         self._embedding_index_loaded = True
         return cache
 
+    def _embedding_index_lock(self):
+        """Open and exclusively lock the process-shared index lock file."""
+        from .store_core import _lock_current_inode
+
+        lock_path = self._embedding_index_path().with_name(_INDEX_LOCK_BASENAME)
+        return _lock_current_inode(str(lock_path), os.O_RDWR | os.O_CREAT)
+
+    @staticmethod
+    def _embedding_index_unlock(fd: int) -> None:
+        from .store_core import _unlock
+
+        _unlock(fd)
+        os.close(fd)
+
+    @contextmanager
+    def _embedding_write_lock(self):
+        """Serialize index read-modify-write across threads and processes."""
+        with _INDEX_THREAD_LOCK:
+            fd = self._embedding_index_lock()
+            try:
+                yield
+            finally:
+                self._embedding_index_unlock(fd)
+
     def _embedding_index_write(self, records: "dict[str, dict]") -> None:
-        """Atomic-ish rewrite of the index file."""
+        """Durably replace the index; caller holds the process-shared lock."""
         path = self._embedding_index_path()
-        tmp = path.with_suffix(".jsonl.tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            for rec in records.values():
-                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-        tmp.replace(path)
+        fd, tmp_name = tempfile.mkstemp(prefix="index.", suffix=".tmp", dir=str(path.parent))
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                for rec in records.values():
+                    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_name, path)
+        finally:
+            try:
+                os.unlink(tmp_name)
+            except FileNotFoundError:
+                pass
 
     # ------------------------------------------------------------------
     # Indexing
     # ------------------------------------------------------------------
     def build_embeddings(self, force: bool = False) -> dict:
+        """Walk the corpus under one shared read-modify-write lock."""
+        with self._embedding_write_lock():
+            return self._build_embeddings_locked(force=force)
+
+    def _build_embeddings_locked(self, force: bool = False) -> dict:
         """Walk the corpus and (re-)compute embeddings for every doc.
 
         Skips docs whose mtime + size match the existing index entry
@@ -322,24 +363,31 @@ class EmbeddingMixin:
         """
         if not hasattr(self, "_all_md_files"):
             return {"indexed": 0, "skipped": 0, "removed": 0, "error": "no _all_md_files"}
-        cache = self._embedding_index_load()
+        cache, invalid_lines = self._embedding_records_from_disk()
         model_name = self._embedding_model_name()
         seen_paths: set[str] = set()
         to_encode: list[tuple[str, str, float, int]] = []  # (path, text, mtime, size)
         skipped = 0
+        read_errors: list[str] = []
         for md in self._all_md_files():
             try:
                 stat = md.stat()
             except OSError:
                 continue
             fpath = str(md)
-            seen_paths.add(fpath)
             try:
                 text = md.read_text(encoding="utf-8", errors="replace")
             except OSError:
+                # The canonical file exists but is temporarily unreadable. Keep
+                # its prior vector rather than misclassifying it as orphaned.
+                seen_paths.add(fpath)
+                read_errors.append(fpath)
                 continue
             if not text.strip():
                 continue
+            # Only non-empty Markdown documents have embedding records.
+            # Empty files must therefore evict any older vector on repair.
+            seen_paths.add(fpath)
             existing = cache.get(fpath)
             if (
                 not force
@@ -372,22 +420,284 @@ class EmbeddingMixin:
                     "vec": vec,
                 }
                 indexed += 1
-        # Drop entries whose underlying files no longer exist.
+        # Drop entries whose canonical non-empty Markdown no longer exists.
+        # This must also run when the corpus becomes empty; otherwise a full
+        # repair would preserve every orphaned vector.
         removed = 0
-        if seen_paths:
-            stale = [p for p in cache.keys() if p not in seen_paths]
-            for p in stale:
-                cache.pop(p, None)
-                removed += 1
-        # Persist.
-        if indexed or removed:
+        stale = [p for p in cache.keys() if p not in seen_paths]
+        for p in stale:
+            cache.pop(p, None)
+            removed += 1
+        # Persist and synchronize the process-local mirror.
+        if indexed or removed or invalid_lines:
             self._embedding_index_write(cache)
+        self._embedding_doc_cache_obj = dict(cache)
+        self._embedding_index_loaded = True
         self._embedding_last_built = time.time()
         return {
             "indexed": indexed,
             "skipped": skipped,
             "removed": removed,
+            "read_errors": sorted(read_errors),
             "total": len(cache),
+            "model": model_name,
+        }
+
+    # ------------------------------------------------------------------
+    # v3.2 — explicit single-path synchronisation
+    # ------------------------------------------------------------------
+    def _embedding_records_from_disk(self) -> "tuple[dict[str, dict], int]":
+        """Read the on-disk JSONL index without touching the memo cache.
+
+        Returns ``(records_by_path, invalid_line_count)``.  A line that
+        does not parse, or that lacks a ``file`` key, counts as invalid
+        and is dropped — the index is derived state, so a corrupt line
+        is never fatal.
+        """
+        path = self._embedding_index_path()
+        records: "dict[str, dict]" = {}
+        invalid = 0
+        if not path.exists():
+            return records, invalid
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        invalid += 1
+                        continue
+                    if not isinstance(rec, dict) or not rec.get("file"):
+                        invalid += 1
+                        continue
+                    records[str(rec["file"])] = rec
+        except OSError:
+            return records, invalid
+        return records, invalid
+
+    def embedding_sync_path(
+        self,
+        path,
+        operation: str = "modify",
+        old_path=None,
+    ) -> dict:
+        """Synchronise one path under one shared read-modify-write lock."""
+        with self._embedding_write_lock():
+            return self._embedding_sync_path_locked(path, operation, old_path)
+
+    def _embedding_sync_path_locked(
+        self,
+        path,
+        operation: str = "modify",
+        old_path=None,
+    ) -> dict:
+        """Synchronise the embedding index for **one** markdown path.
+
+        **Opt-in.**  Nothing calls this by default; ``watch`` calls it
+        only when an embedding index already exists on disk.
+
+        ``operation`` is one of ``create`` / ``modify`` / ``delete`` /
+        ``move``.  Only the changed file is encoded; every unrelated
+        record in ``index.jsonl`` is preserved byte-for-byte.  Stale
+        vectors (deleted files, the source side of a move, files that
+        became empty) are dropped.  The rewrite is atomic
+        (tmp + ``os.replace``).
+
+        Returns a small stats dict.  Never loads the embedding model
+        for a pure delete / move-away.
+        """
+        operation = str(operation or "").strip().lower()
+        if operation not in ("create", "modify", "delete", "move"):
+            raise ValueError(f"unknown operation: {operation!r}")
+
+        base = Path(getattr(self, "base_dir", Path.cwd()))
+
+        def _abs(p) -> Optional[Path]:
+            if p is None:
+                return None
+            q = Path(str(p))
+            return q if q.is_absolute() else (base / q)
+
+        target = _abs(path)
+        source = _abs(old_path)
+        records, invalid_lines = self._embedding_records_from_disk()
+        model_name = self._embedding_model_name()
+
+        encoded = 0
+        removed = 0
+        changed = False
+
+        def _identity(p: Path) -> str:
+            return os.path.realpath(str(p))
+
+        def _pop_identity(p: Optional[Path]) -> int:
+            if p is None:
+                return 0
+            identity = _identity(p)
+            keys = [key for key in records if os.path.realpath(key) == identity]
+            for key in keys:
+                records.pop(key, None)
+            return len(keys)
+
+        # Drop the vector that no longer describes anything. Compare filesystem
+        # identity rather than path spelling so symlinks and macOS /var aliases
+        # cannot leave orphaned records behind.
+        drop: list = []
+        if operation == "delete":
+            drop.append(target)
+        elif operation == "move" and source is not None:
+            drop.append(source)
+        for d in drop:
+            count = _pop_identity(d)
+            if count:
+                removed += count
+                changed = True
+
+        # A move may leave the canonical Markdown corpus (for example
+        # ``note.md`` -> ``note.txt`` or into ``.memkraft``). Resolve the
+        # changed path back to the corpus' canonical spelling before reading
+        # and writing its record.
+        canonical_by_identity: dict[str, Path] = {}
+        all_md_files = getattr(self, "_all_md_files", None)
+        if operation != "delete" and callable(all_md_files):
+            canonical_by_identity = {
+                _identity(Path(p)): Path(p) for p in all_md_files()
+            }
+        canonical_target = (
+            canonical_by_identity.get(_identity(target)) if target is not None else None
+        )
+
+        if operation != "delete" and canonical_target is not None:
+            target = canonical_target
+            text = None
+            stat = None
+            read_failed = False
+            try:
+                stat = target.stat()
+                text = target.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                read_failed = True
+            if read_failed:
+                # The canonical file still exists but is temporarily unreadable.
+                # Preserve its last known vector until a later event or repair.
+                pass
+            elif text is None or not text.strip():
+                # Empty markdown carries no signal — mirror build_embeddings().
+                if records.pop(str(target), None) is not None:
+                    removed += 1
+                    changed = True
+            else:
+                vecs = self.embed_batch([text[:8000]])
+                vec = vecs[0] if vecs else []
+                if vec:
+                    records[str(target)] = {
+                        "file": str(target),
+                        "model": model_name,
+                        "dim": len(vec),
+                        "mtime": float(stat.st_mtime) if stat else 0.0,
+                        "size": int(stat.st_size) if stat else 0,
+                        "vec": vec,
+                    }
+                    encoded += 1
+                    changed = True
+
+        if changed or invalid_lines:
+            self._embedding_index_write(records)
+        # Keep the in-memory mirror consistent with what we just wrote.
+        self._embedding_doc_cache_obj = dict(records)
+        self._embedding_index_loaded = True
+
+        return {
+            "operation": operation,
+            "path": str(target) if target is not None else "",
+            "old_path": str(source) if source is not None else "",
+            "encoded": encoded,
+            "removed": removed,
+            "total": len(records),
+            "model": model_name,
+            "written": bool(changed or invalid_lines),
+        }
+
+    def embedding_index_state(self, files: Optional[Iterable[Path]] = None) -> dict:
+        """Compare the on-disk embedding index against canonical markdown.
+
+        ``state`` is one of:
+
+        * ``absent``  — no ``index.jsonl`` (embeddings are optional)
+        * ``corrupt`` — the file exists but contains unparsable records
+        * ``stale``   — records missing / outdated / orphaned / wrong model
+        * ``fresh``   — every non-empty markdown file has a current vector
+
+        Purely diagnostic: never loads the embedding model.
+        """
+        index_path = Path(getattr(self, "base_dir", Path.cwd())) / ".memkraft" / "embeddings" / _INDEX_BASENAME
+        model_name = self._embedding_model_name()
+        if not index_path.exists():
+            return {
+                "state": "absent",
+                "index_path": str(index_path),
+                "records": 0,
+                "invalid_lines": 0,
+                "missing": [],
+                "stale": [],
+                "orphaned": [],
+                "model_mismatch": [],
+                "model": model_name,
+            }
+
+        records, invalid_lines = self._embedding_records_from_disk()
+
+        if files is None:
+            files = self._all_md_files() if hasattr(self, "_all_md_files") else []
+        expected: "dict[str, tuple]" = {}
+        for md in files:
+            try:
+                stat = md.stat()
+                text = md.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if not text.strip():
+                continue  # build_embeddings skips empty docs
+            expected[str(md)] = (float(stat.st_mtime), int(stat.st_size))
+
+        missing = sorted(p for p in expected if p not in records)
+        orphaned = sorted(p for p in records if p not in expected)
+        stale: list = []
+        model_mismatch: list = []
+        for p, (mtime, size) in expected.items():
+            rec = records.get(p)
+            if rec is None:
+                continue
+            if rec.get("model") != model_name:
+                model_mismatch.append(p)
+            if (
+                float(rec.get("mtime", -1)) != mtime
+                or int(rec.get("size", -1)) != size
+                or not rec.get("vec")
+            ):
+                stale.append(p)
+        stale.sort()
+        model_mismatch.sort()
+
+        if invalid_lines:
+            state = "corrupt"
+        elif missing or stale or orphaned or model_mismatch:
+            state = "stale"
+        else:
+            state = "fresh"
+
+        return {
+            "state": state,
+            "index_path": str(index_path),
+            "records": len(records),
+            "invalid_lines": invalid_lines,
+            "missing": missing,
+            "stale": stale,
+            "orphaned": orphaned,
+            "model_mismatch": model_mismatch,
             "model": model_name,
         }
 
