@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [3.3.0] — 2026-08-04
+
+Runtime-neutral execution protocol Preview. The GA decision deadline is **2027-02-04**.
+
+- Added MKEP/0's append-only single-host execution facts, deterministic projection, leases/fences, evidence receipts, assessments, typed handoffs, closed 15-operation dispatcher, CLI transport, and read-only MCP projection.
+- Added a language-neutral 167-directory conformance corpus with 32 named cases, plus a Go read/verify runner reproducing CJ-03 canonical bytes/digests and XR-01 Python-origin handoff verification, replay, tamper rejection, and conflict detection.
+- Added runtime adapter and Graph Engineering guidance for Claude Code Dynamic Workflows, LangGraph, and Temporal. Graph topology, scheduling, checkpoint/resume, merge, and verifier independence remain runtime-owned; no graph schema or graph operation was added.
+- Added dual-opt-in execution context. Existing context output and `usage_id` remain byte-identical when unused; `context_schema` deliberately does not enter identity and can alias attribution across schema versions.
+
+This release is additive and requires no migration. 3.2.x ignores `.memkraft/execution/`, making rollback safe; re-upgrade resumes the retained log. MKEP/0 is advisory, unauthenticated, local-filesystem-only, non-compacting in 3.3.0, and makes no multi-host, network-filesystem, artifact-authenticity, handoff-authenticity, scheduling, or authorization claim.
+
 ## [3.2.0] — 2026-08-03
 
 Local-first live-sync release. Markdown remains canonical, BM25 remains the default retriever, and no mandatory dependency was added.

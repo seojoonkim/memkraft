@@ -22,6 +22,13 @@
 | 2.13.x | 3.0 | no (additive/read-compatible) | 파생 뷰 재구축; 별도 schema rewrite 없음 | 2.13 binary + sidecar backup 복원 | preview 데이터만 재생성 필요 |
 | 3.0 | 3.0.1 | no (additive/read-compatible) | schema rewrite 없음; 선택적으로 `compact_memory(dry_run=False)` | 적용 전 sidecar backup 복원 | tombstoned local lines의 물리 제거 |
 | 3.1.x | 3.2.0 | no (additive/read-compatible) | schema rewrite 없음; optional `memkraft freshness --repair` | 3.1 binary 재설치; `.memkraft/live-sync/`와 embedding index는 삭제 후 재생성 가능 | none; Markdown is unchanged |
+| 3.2.x | 3.3.0 | no (additive/read-compatible execution Preview) | schema rewrite 없음; first execution apply lazily creates `.memkraft/execution/events.jsonl` | 3.2.x 재설치; 새 execution 파일은 이전 버전이 무시 | none; execution audit log retained |
+
+### 2.4 — 3.2.x → 3.3.0 execution preview
+
+Migration is **none required**. Installing or importing 3.3.0 creates no execution state. The first execution apply lazily creates `.memkraft/execution/events.jsonl`; `origin_instance_id` is created only on first handoff export. Existing callers that do not opt into execution context remain byte-identical. The execution log is append-only and is never compacted in 3.3.0.
+
+Rollback is safe and requires no action: stop writers and install 3.2.x. That version ignores `.memkraft/execution/`; re-upgrading resumes the same log. Preserve it for audit. Deleting it is explicit data loss, and downgrading does not retract handoff envelopes already copied to another runtime. A 3.3.0 process must not write the same base concurrently with a downgraded process.
 
 ### 2.3 — 3.0 → 3.0.1 local maintenance
 

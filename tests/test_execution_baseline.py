@@ -71,8 +71,8 @@ def test_a4_execution_prefixed_modules_are_owned_by_mkep():
     assert existing <= planned
 
 
-def test_release_metadata_sources_agree_and_target_is_above_baseline():
-    """G0: pyproject, ``__version__`` and the CHANGELOG heading agree at < 3.3.0."""
+def test_release_metadata_sources_agree_and_target_reaches_release():
+    """G0: release metadata agrees and reaches the planned 3.3.0 target."""
     import memkraft
 
     pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
@@ -89,7 +89,7 @@ def test_release_metadata_sources_agree_and_target_is_above_baseline():
     )
     assert declared == memkraft.__version__ == heading
     parts = tuple(int(part) for part in declared.split("."))
-    assert parts < (3, 3, 0), "target 3.3.0 must be strictly greater than HEAD"
+    assert parts >= (3, 3, 0), "release metadata must reach the 3.3.0 target"
 
 
 def _pin_tool():

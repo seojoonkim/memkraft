@@ -6,6 +6,24 @@
 
 관련 문서: [refined roadmap](plans/2026-07-08-memkraft-v3-fable5-refined-roadmap.md) §10.3, [MIGRATIONS.md](MIGRATIONS.md), [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)
 
+## MKEP/0 execution preview trust boundary (3.3.0)
+
+MKEP/0 coordinates append-only facts on a single trusted host/local filesystem. It does not authenticate callers, authorize execution, verify artifact bytes, provide multi-host consensus, support network filesystems, or authenticate handoff senders. Any process with write access can forge records, authority claims, receipts, holders, and namespace values. Lease fencing limits cooperating stale writers; it is not access control and a reader can claim a larger fence. Handoff digests detect accidental corruption/self-inconsistency, not a malicious sender; `origin_instance_id` is self-asserted and is also a stable cross-envelope correlator. The export redaction scan is best-effort lint and fails closed on known patterns, but callers remain responsible for payload disclosure.
+
+> A namespace in a `goal_id`, a `holder` string, a `to_actor` string, an `authority_claim`, and a `binding_digest` are **audit identity**: they record what a caller asserted. They are not authenticated identity. MemKraft does not verify them, cannot verify them, and no MemKraft behavior grants or withholds any capability on the basis of them. Any process with write access to the base can assert any of them.
+
+> Gates are advisory bookkeeping. `authority_claim` is not verified. A caller with write access can waive any gate or record any receipt. Gates make what happened *legible and attributable*; they do not make it *impossible*.
+
+> `should_run` is advisory. It is not authorization, scheduling, dispatch, or proof that a protected side effect is safe. The runtime must authenticate authority and re-check the current fence token at the authoritative side-effect boundary.
+
+> Network filesystems are not supported. Fence-token safety depends on local `flock` semantics and inode revalidation. On NFS, SMB, or FUSE these guarantees do not hold and the kernel is outside its support envelope.
+
+> The export redaction scan is a lint, not a security control. It rejects obvious local paths and known secret-shaped strings, but it cannot prove a caller-supplied payload is public-safe. The caller remains responsible for disclosure decisions.
+
+> `origin_instance_id` is a persistent cross-recipient correlator. It is path-free and self-asserted, but recipients can link envelopes emitted by the same base. It is not sender authentication.
+
+Consequently, `assess.run` and `should_run` are advisory and never authorization. Adapters enforce policy only at authoritative runtime boundaries, treat observation hooks as non-enforcing, use deterministic idempotency keys, and pass current fence tokens. Runtime checkpoint and graph state remain outside core. MCP mutation is disabled in preview. Execution records are not compacted in 3.3.0; explicit `forget` tombstones a goal but backups, snapshots, and copied handoff envelopes require independent retention/deletion policy.
+
 ---
 
 ## 0. 전제와 신뢰 경계

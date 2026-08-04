@@ -18,6 +18,14 @@
 
 `remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`, `compile_evidence_context`, `aggregate_numeric_evidence`, `live_sync_apply`, `live_sync_events`, `live_sync_freshness`, `live_sync_repair`, `embedding_sync_path`, `embedding_index_state`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
 
+### Runtime-neutral execution preview (3.3.0)
+
+MKEP/0은 Python typed methods와 `memkraft exec call|state` CLI를 통해 제공되는 Preview 계약이다. 공개 실행 동사는 `goal_declare`, `gate_declare`, `receipt_record`, `goal_transition`, `gate_transition`, `lease_acquire`, `lease_release`, `execution_state`, `assess_run`, `assess_record`, `handoff_declare`, `handoff_transition`, `handoff_export`, `handoff_import`, `execution_forget`이다. Wire registry는 정확히 15 operations이며 [EXECUTION_PROTOCOL.md](EXECUTION_PROTOCOL.md)가 canonical transport contract다. MCP는 `describe`, `state.read`, `assess.run`, `handoff.export` read-only projection만 노출한다.
+
+실행 기능은 `compile_context(..., goal_id=None, execution_budget=0)`에 dual opt-in이다. `goal_id is not None`이고 `execution_budget > 0`일 때만 마지막 `execution` section이 생긴다. 사용하지 않을 때 기존 output과 identity input은 byte-identical이다. `context_schema`는 golden `usage_id`를 지키기 위해 identity dict에서 제외되므로 서로 다른 context schema payload가 같은 `usage_id`를 가질 수 있고 outcome attribution이 schema version 사이에서 합쳐질 수 있다. 이 aliasing은 의도된 Preview trade-off다.
+
+Gates와 `should_run`은 advisory이며 권한 부여가 아니다. Authority/namespace/holder/binding은 인증되지 않은 audit identity다. Scope는 single-host local filesystem이고 execution log compaction, multi-host coordination, graph schema, checkpoint/resume, envelope authenticity는 제공하지 않는다. GA decision deadline은 **2027-02-04**다.
+
 ### Evidence context preview
 
 `compile_evidence_context(query, *, results=None, top_k=..., budget=..., adjacent_windows=...)`는 검색 hit의 원문 span과 provenance를 hard budget 안의 JSONL evidence context로 컴파일한다. `results`가 주어지면 caller의 hit 순서와 원래 `hit_rank`를 감사 경계로 보존하며 입력을 변경하지 않는다. Query anchor가 있는 span이 numeric auxiliary span보다 우선한다.
