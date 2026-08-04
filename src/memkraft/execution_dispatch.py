@@ -34,6 +34,7 @@ from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 from . import execution_handoff, execution_state
 from .execution_projection import EXECUTION_SCHEMA, project, project_leases
+from .execution_projection_cache import read_projection
 from .execution_protocol import (
     ERROR_REGISTRY,
     MAX_PROTOCOL_ARRAY_LENGTH,
@@ -228,8 +229,9 @@ def _state_read(store, target, args, now, fence_token, operation_id):
     goal_id = target["goal_id"]
     include = args.get("include")
     include = _INCLUDE if include is None else tuple(include)
-    read = read_all(store._execution_events_path())
-    state = project(read.records, now, goal_id, read.skipped)
+    cached = read_projection(store._execution_events_path(), now, goal_id,
+                             include_leases="leases" in include)
+    state = cached.state
     result = {
         "execution_schema": state["execution_schema"],
         "goal_id": goal_id,
@@ -248,7 +250,7 @@ def _state_read(store, target, args, now, fence_token, operation_id):
     if "handoffs" in include:
         result["handoffs"] = state["handoffs"]
     if "leases" in include:
-        leases = project_leases(read.records, now, goal_id)
+        leases = cached.leases
         result["leases"] = {
             scope_key: {"lease_id": held["lease_id"], "holder": held["holder"],
                         "fence_token": held["fence_token"],
@@ -591,8 +593,7 @@ def _state_block(store, entry: _Op, target: Dict[str, Any],
         return None
     try:
         canonical_timestamp(now)
-        read = read_all(store._execution_events_path())
-        state = project(read.records, now, goal_id, read.skipped)
+        state = read_projection(store._execution_events_path(), now, goal_id).state
     except (ExecutionError, OSError, ValueError):
         return None
     return {"execution_seq": state["execution_seq"],

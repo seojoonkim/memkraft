@@ -1,0 +1,50 @@
+{
+  "g11": {
+    "baseline": {
+      "max_ms": 0.046,
+      "p50_ms": 0.036,
+      "p95_ms": 0.04
+    },
+    "p95_ratio": 0.975,
+    "passed": true,
+    "soft_ceiling_ms": 150.0,
+    "soft_ceiling_warning": false,
+    "standard": {
+      "max_ms": 0.042,
+      "p50_ms": 0.036,
+      "p95_ms": 0.039
+    },
+    "threshold_ratio": 12.0
+  },
+  "g12": {
+    "p95_margin_ms": -11.873,
+    "passed": true,
+    "state_read": {
+      "max_ms": 89.271,
+      "p50_ms": 49.735,
+      "p95_ms": 61.313
+    },
+    "threshold_margin_ms": 400.0,
+    "version_baseline": {
+      "max_ms": 106.799,
+      "p50_ms": 49.417,
+      "p95_ms": 73.186
+    }
+  },
+  "machine": {
+    "machine": "arm64",
+    "platform": "macOS-15.6-arm64-arm-64bit",
+    "python": "3.11.14"
+  },
+  "protocol": {
+    "goals": 40,
+    "repetitions": 200,
+    "single_process_projection": true,
+    "small_records_per_goal": 1000,
+    "small_total_records": 40000,
+    "standard_records_per_goal": 10000,
+    "standard_total_records": 400000,
+    "subprocess_cold_start": true,
+    "warmups": 20
+  }
+}

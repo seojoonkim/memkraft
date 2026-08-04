@@ -8,6 +8,13 @@ Runtime-neutral execution protocol Preview. The GA decision deadline is **2027-0
 - Added a language-neutral 167-directory conformance corpus with 32 named cases, plus a Go read/verify runner reproducing CJ-03 canonical bytes/digests and XR-01 Python-origin handoff verification, replay, tamper rejection, and conflict detection.
 - Added runtime adapter and Graph Engineering guidance for Claude Code Dynamic Workflows, LangGraph, and Temporal. Graph topology, scheduling, checkpoint/resume, merge, and verifier independence remain runtime-owned; no graph schema or graph operation was added.
 - Added dual-opt-in execution context. Existing context output and `usage_id` remain byte-identical when unused; `context_schema` deliberately does not enter identity and can alias attribution across schema versions.
+- Added a local file-fingerprint projection sidecar after the uncached standard
+  corpus exceeded G11/G12. Missing, stale, corrupt, replaced, or deleted cache
+  entries recompute from the append-only log. On the recorded macOS arm64
+  40-goal run (20 warmups + 200 repetitions), G11 was 0.9750× and G12's
+  `state.read` p95 was 61.313 ms versus 73.186 ms for `--version`; full details
+  and the reproducible harness are checked into `docs/bench/results/` and
+  `scripts/benchmark_execution_gates.py`.
 
 This release is additive and requires no migration. 3.2.x ignores `.memkraft/execution/`, making rollback safe; re-upgrade resumes the retained log. MKEP/0 is advisory, unauthenticated, local-filesystem-only, non-compacting in 3.3.0, and makes no multi-host, network-filesystem, artifact-authenticity, handoff-authenticity, scheduling, or authorization claim.
 

@@ -64,6 +64,7 @@ def test_a4_execution_prefixed_modules_are_owned_by_mkep():
         "execution_handoff.py",
         "execution_models.py",
         "execution_projection.py",
+        "execution_projection_cache.py",
         "execution_protocol.py",
         "execution_state.py",
         "execution_store.py",
