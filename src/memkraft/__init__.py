@@ -49,6 +49,7 @@ from .derived_views import DerivedViewsMixin  # v2.14 canonical truth preview
 from .context_compiler import ContextCompilerMixin  # v2.15 A1 context compiler preview
 from .evidence_context import EvidenceContextMixin  # query-focused evidence compiler
 from .numeric_aggregation import NumericAggregationMixin  # safe numeric evidence composition
+from .execution_state import ExecutionStateMixin  # v3.3 MKEP/0 execution kernel
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -72,7 +73,11 @@ from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # ordered composition (for example LifecycleMixin.health replaces core's old
 # health_check alias).  The two new composition helpers have a stricter
 # additive-only contract: they may add APIs, but never replace existing ones.
-_ADDITIVE_ONLY_MIXINS = (EvidenceContextMixin, NumericAggregationMixin)
+_ADDITIVE_ONLY_MIXINS = (
+    EvidenceContextMixin,
+    NumericAggregationMixin,
+    ExecutionStateMixin,
+)
 
 for _mixin in (
     BitemporalMixin,
@@ -115,6 +120,7 @@ for _mixin in (
     ContextCompilerMixin,
     EvidenceContextMixin,
     NumericAggregationMixin,
+    ExecutionStateMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

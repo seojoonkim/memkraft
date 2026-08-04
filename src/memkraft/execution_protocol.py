@@ -21,6 +21,9 @@ from typing import Any, Dict, Optional
 __all__ = [
     "ExecutionError",
     "ValidationError",
+    "ConflictError",
+    "NotDeclaredError",
+    "EvidenceError",
     "MAX_SAFE_INTEGER",
     "MIN_SAFE_INTEGER",
     "MAX_DEPTH",
@@ -45,13 +48,19 @@ MAX_ARRAY_LENGTH = 32
 # safe and the cross-language digest claim true.
 KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
-# §6.7 error registry, restricted to the codes this module can raise.
+# §6.7 error registry, restricted to the codes the shipped modules can raise.
+# Stable, closed, additive-only: a code is never repurposed.
 _ERROR_REGISTRY = {
     "E_TYPE": ("input", False),
     "E_PATTERN": ("input", False),
+    "E_MISSING_FIELD": ("input", False),
     "E_TIME_NAIVE": ("input", False),
     "E_TIME_FORMAT": ("input", False),
     "E_LIMIT_EXCEEDED": ("limits", False),
+    "E_NOT_DECLARED": ("state", False),
+    "E_ALREADY_DECLARED": ("state", False),
+    "E_IDEMPOTENCY_MISMATCH": ("idempotency", False),
+    "E_AUTHORITY_VERIFIED_FORBIDDEN": ("evidence", False),
 }
 
 
@@ -74,6 +83,18 @@ class ExecutionError(ValueError):
 
 class ValidationError(ExecutionError):
     """Input rejected before any state was touched."""
+
+
+class ConflictError(ExecutionError):
+    """The log already holds an incompatible record for this identity or key."""
+
+
+class NotDeclaredError(ExecutionError):
+    """The referenced goal or gate was never declared."""
+
+
+class EvidenceError(ExecutionError):
+    """An evidence or authority rule was violated."""
 
 
 def _fail(code, message, path=None, **extra):

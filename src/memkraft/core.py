@@ -179,7 +179,9 @@ class MemKraft:
                 created.append(f"{subdir}/")
             sd.mkdir(exist_ok=True)
 
-        for inner in ["snapshots", "channels", "tasks", "agents"]:
+        # ``execution/`` holds the MKEP/0 append-only log; it is created here
+        # rather than left to ``store_core.append``'s incidental mkdir (D-14).
+        for inner in ["snapshots", "channels", "tasks", "agents", "execution"]:
             p = target / ".memkraft" / inner
             if p.exists():
                 exists.append(f".memkraft/{inner}/")
