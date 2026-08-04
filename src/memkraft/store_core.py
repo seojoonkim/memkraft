@@ -10,6 +10,7 @@ API (internal tier):
     append(path, record) -> dict          # the enveloped record as written
     read_all(path, include_tombstoned=False) -> ReadResult
     mark_tombstone(path, record_id) -> dict   # the appended marker record
+    mark_tombstones(path, record_ids) -> list # one read, one lock, N markers
     compact(path) -> CompactResult        # physical removal (S3)
 
 Tombstones (S2): the store is append-only — ``mark_tombstone`` never
@@ -183,6 +184,23 @@ class CompactResult(NamedTuple):
     removed_corrupt: int
 
 
+def _envelope(record: Dict[str, Any]) -> Dict[str, Any]:
+    """Wrap ``record`` in envelope v1: fill ``id``/``created_at``, force schema 1."""
+    enveloped: Dict[str, Any] = dict(record)
+    enveloped.setdefault("id", uuid.uuid4().hex)
+    enveloped["schema_version"] = SCHEMA_VERSION
+    enveloped.setdefault(
+        "created_at", datetime.now(timezone.utc).isoformat(timespec="seconds")
+    )
+    return enveloped
+
+
+def _line(enveloped: Dict[str, Any]) -> bytes:
+    return (
+        json.dumps(enveloped, ensure_ascii=False, separators=(",", ":")) + "\n"
+    ).encode("utf-8")
+
+
 def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     """Append ``record`` to the JSONL store at ``path`` as one envelope v1 line.
 
@@ -192,15 +210,8 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     enveloped record exactly as written.
     """
     path = Path(path)
-    enveloped: Dict[str, Any] = dict(record)
-    enveloped.setdefault("id", uuid.uuid4().hex)
-    enveloped["schema_version"] = SCHEMA_VERSION
-    enveloped.setdefault(
-        "created_at", datetime.now(timezone.utc).isoformat(timespec="seconds")
-    )
-
-    line = json.dumps(enveloped, ensure_ascii=False, separators=(",", ":")) + "\n"
-    data = line.encode("utf-8")
+    enveloped = _envelope(record)
+    data = _line(enveloped)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = _lock_current_inode(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND)
@@ -269,6 +280,52 @@ def mark_tombstone(path: Union[str, Path], record_id: str) -> Dict[str, Any]:
     if not any(r.get("id") == record_id for r in existing):
         raise RecordNotFoundError(path, record_id)
     return append(path, {"tombstone": True, "tombstone_of": record_id})
+
+
+def mark_tombstones(
+    path: Union[str, Path], record_ids: List[str]
+) -> List[Dict[str, Any]]:
+    """Tombstone many records with one read and one lock acquisition (D-24).
+
+    ``mark_tombstone`` re-reads the whole store per call, so tombstoning N
+    records one at a time is O(n²) and unusable once a store is large. This
+    reads once, validates the *whole* target set, and writes every marker in a
+    single ``os.write`` under a single lock.
+
+    Prevalidation is all-or-nothing on purpose: a batch that discovered a
+    missing target halfway through and left the first half tombstoned would be
+    worse than no batch at all. A missing id raises
+    :class:`RecordNotFoundError` with the file untouched.
+
+    Targets are sorted and deduplicated, so the same request always produces
+    the same markers in the same order. Returns the enveloped markers as
+    written.
+    """
+    path = Path(path)
+    targets = sorted(set(record_ids))
+    if not targets:
+        return []
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = _lock_current_inode(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+    try:
+        present = {
+            record.get("id")
+            for record in read_all(path, include_tombstoned=True).records
+        }
+        for record_id in targets:
+            if record_id not in present:
+                raise RecordNotFoundError(path, record_id)
+        markers = [
+            _envelope({"tombstone": True, "tombstone_of": record_id})
+            for record_id in targets
+        ]
+        os.write(fd, b"".join(_line(marker) for marker in markers))
+        os.fsync(fd)
+    finally:
+        _unlock(fd)
+        os.close(fd)
+    return markers
 
 
 def _compact_tmp_path(path: Path) -> Path:

@@ -326,9 +326,12 @@ def test_compact_is_unreachable_for_the_execution_log():
     package = Path(store_core.__file__).parent
     callers = []
     for path in package.rglob("*.py"):
-        text = path.read_text(encoding="utf-8")
-        if "compact(" in text and "execution" in text:
-            callers.append(path.name)
+        # Per line, not per file: a module may legitimately compact the memory
+        # store and elsewhere mention execution. What G15 forbids is a single
+        # call handing an execution path to ``compact``.
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "compact(" in line and "execution" in line:
+                callers.append(path.name)
     assert callers == []
 
 

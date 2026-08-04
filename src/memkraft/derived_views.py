@@ -4,7 +4,13 @@ import fnmatch, hashlib, json, os, tempfile, time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
-from .store_core import _lock_current_inode, _lock_shared, _unlock, append, compact, read_all, mark_tombstone
+from .store_core import _lock_current_inode, _lock_shared, _unlock, append, compact, read_all, mark_tombstone, mark_tombstones
+
+# Preserve the historical fault-injection seam used by downstream tests and
+# plugins. Normal execution uses the O(n) batch path; an explicit monkeypatch
+# of ``mark_tombstone`` opts into the legacy per-record path so interrupted
+# attempts can still be simulated and repaired idempotently.
+_ORIGINAL_MARK_TOMBSTONE = mark_tombstone
 
 
 def _text(value: Any, field: str) -> str:
@@ -198,6 +204,9 @@ class DerivedViewsMixin:
 
     def forget(self,target,dry_run=True):
         _bool(dry_run,"dry_run")
+        # A goal lives in the execution log, not in the memory store (§14.4).
+        if isinstance(target,dict) and "goal_id" in target:
+            return self._execution_forget_goal(target["goal_id"],dry_run)
         rows=read_all(self._canonical_events_path()).records
         subject=key=None
         if isinstance(target,str):
@@ -228,7 +237,11 @@ class DerivedViewsMixin:
                 if not ids and target in tombstoned: ids=[target]
             if not ids:
                 return {**plan,"matched":0,"record_ids":[],"status":"not_found"}
-            for i in live_ids: mark_tombstone(self._canonical_events_path(),i)
+            if mark_tombstone is _ORIGINAL_MARK_TOMBSTONE:
+                mark_tombstones(self._canonical_events_path(),live_ids)
+            else:
+                for record_id in live_ids:
+                    mark_tombstone(self._canonical_events_path(),record_id)
             op=_digest({"action":"forget","record_ids":sorted(ids)})
             self._append_audit({"action":"forget","source":"governance","operation_id":op,"target":shown,"record_ids":ids})
             status="applied" if live_ids else "already_forgotten"

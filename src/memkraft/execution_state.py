@@ -39,7 +39,7 @@ from .execution_protocol import (
     digest,
     parse_timestamp,
 )
-from .store_core import StoreBusy, _unlock, append, read_all
+from .store_core import StoreBusy, _unlock, append, mark_tombstones, read_all
 
 __all__ = [
     "ExecutionStateMixin",
@@ -87,6 +87,29 @@ _MIN_TTL_SECONDS = 1
 _MAX_TTL_SECONDS = 86400
 
 _VERDICT = ("pass", "fail")
+
+#: §9.2, closed. Anything outside this table is ``E_PATTERN``. It is a table
+#: rather than a validator for the same reason ``_TRANSITIONS`` is: adding a
+#: recommendation and stating what may justify it is one edit.
+_ASSESSMENT_PAIRS = {
+    "should_run": ("gates_open", "lease_acquired"),
+    "wait": ("lease_held_by_other", "blocking_gate_pending", "cooldown_not_elapsed"),
+    "ask_human": ("waiver_required", "constraint_conflict", "evidence_inconclusive"),
+    "stop": ("goal_satisfied", "goal_abandoned", "quota_exhausted",
+             "max_runs_exceeded"),
+    "repair": ("stale_lease_detected", "projection_inconsistent",
+               "handoff_incomplete", "phases_incomplete"),
+}
+
+#: The closed field set of a recorded assessment (§9.1). ``caveats`` is optional
+#: and defaults to empty; every other key is required.
+_ASSESSMENT_FIELDS = frozenset({
+    "advisory", "recommendation", "reason_code", "inputs_digest", "caveats",
+})
+
+#: §4.8: the only caveat MKEP/0 emits. A recommendation that leaned on a gate
+#: nobody verified says so rather than reading as clean.
+_WAIVER_CAVEAT = "waiver_unverified"
 
 #: §4.6, D-18. ``revoked`` is deliberately absent: no operation produces it, and
 #: a dead enum value invites someone to invent semantics for it.
@@ -788,6 +811,221 @@ class ExecutionStateMixin:
             guard=guard,
         )
         return _lease_result(result, record["scope_key"])
+
+    # -- advisory assessment -----------------------------------------------
+
+    def assess_run(self, goal_id, *, now) -> Dict[str, Any]:
+        """Compute an advisory recommendation for ``goal_id``. Appends nothing.
+
+        ``assess_run`` returns an **advisory recommendation**. It is not an
+        authorization, a permission, a grant, or an approval. MemKraft does not
+        execute anything and does not authorize anything. A ``should_run``
+        recommendation carries no more force than a comment. Safety rests
+        entirely with the caller that acquires a lease and presents its fence
+        token before performing a side effect. A caller that treats
+        ``should_run`` as permission has no protection against concurrent
+        execution, and MemKraft cannot provide any.
+
+        A query, not an apply (§9.1): a heartbeat-driven runtime can poll this
+        forever without growing the log. It is also pure — the same log bytes
+        and the same injected ``now`` yield the same ``inputs_digest`` and the
+        same recommendation — which is what makes a recorded assessment
+        checkable after the fact.
+
+        The result never says *when* to look again (I-D5). ``reason_code``
+        already tells a runtime what to wait on, and the runtime knows more
+        about what it can afford than MemKraft ever will.
+        """
+        goal_id = _pattern("goal_id", goal_id, _GOAL_ID)
+        records = read_all(self._execution_events_path()).records
+        state = project(records, now, goal_id)
+        if state["goal_status"] is None:
+            raise NotDeclaredError(
+                "E_NOT_DECLARED", "goal_declared was never declared",
+                {"record_type": "goal_declared"},
+            )
+        leases = project_leases(records, now, goal_id)
+        stale_scopes = sorted(
+            scope_key for scope_key, held in leases["last"].items()
+            if not held["released"] and scope_key not in leases["active"]
+        )
+        blockers = [
+            gate["gate_id"] for gate in state["gates"]
+            if gate["required"] and gate["status"] not in SETTLED_GATE_STATUSES
+        ]
+
+        recommendation, reason_code = _first_signal(state, leases, stale_scopes,
+                                                    blockers)
+        waived = any(gate["status"] == "waived" for gate in state["gates"])
+        caveats = (
+            [_WAIVER_CAVEAT]
+            if waived and reason_code in _GATE_DERIVED_REASONS else []
+        )
+        return {
+            "execution_schema": EXECUTION_SCHEMA,
+            "goal_id": goal_id,
+            "advisory": True,
+            "recommendation": recommendation,
+            "reason_code": reason_code,
+            "caveats": caveats,
+            "blockers": blockers,
+            "inputs_digest": digest({
+                "execution_schema": EXECUTION_SCHEMA,
+                "goal_id": goal_id,
+                "now": canonical_timestamp(now),
+                "projection_digest": state["digest"],
+                "active_scopes": sorted(leases["active"]),
+                "stale_scopes": stale_scopes,
+            }),
+            "evaluated_at": canonical_timestamp(now),
+        }
+
+    def assess_record(self, goal_id, assessment, *, now, privacy="local_private",
+                      operation_id=None) -> Dict[str, Any]:
+        """Append a previously computed ``assessment`` (§9.1).
+
+        The assessment is checked for internal consistency — an allowed
+        recommendation/reason pair, ``advisory: true``, a well-formed
+        ``inputs_digest`` — but is deliberately **not** re-verified against the
+        current projection. It is a record of what a runtime concluded at some
+        ``now``, which is exactly what an audit log should hold; refusing a
+        disagreeing append would move that disagreement out of the log instead
+        of into it. ``inputs_digest`` is what makes it checkable later.
+        """
+        if not isinstance(assessment, dict):
+            raise ValidationError(
+                "E_TYPE", "assessment must be an object", {"path": "assessment"}
+            )
+        unknown = sorted(set(assessment) - _ASSESSMENT_FIELDS)
+        if unknown:
+            raise ValidationError(
+                "E_UNKNOWN_FIELD", "assessment carries fields core does not read",
+                {"path": "assessment.%s" % unknown[0]},
+            )
+        if assessment.get("advisory") is not True:
+            raise ValidationError(
+                "E_PATTERN", "assessment.advisory is always true",
+                {"path": "assessment.advisory"},
+            )
+        if assessment.get("inputs_digest") is None:
+            raise ValidationError(
+                "E_MISSING_FIELD", "assessment.inputs_digest is required",
+                {"path": "assessment.inputs_digest"},
+            )
+
+        record = _common_fields(
+            "run_assessment", goal_id, now, privacy=privacy,
+            authority_claim="agent", execution_run_id=None,
+        )
+        record["advisory"] = True
+        record["recommendation"] = _enum(
+            "assessment.recommendation", assessment.get("recommendation"),
+            _ASSESSMENT_PAIRS,
+        )
+        record["reason_code"] = _enum(
+            "assessment.reason_code", assessment.get("reason_code"),
+            _ASSESSMENT_PAIRS[record["recommendation"]],
+        )
+        record["inputs_digest"] = _pattern(
+            "assessment.inputs_digest", assessment["inputs_digest"], _SHA256
+        )
+        record["caveats"] = _text_list(
+            "assessment.caveats", assessment.get("caveats") or []
+        )
+
+        return self._execution_append(
+            record, operation_id,
+            declared={"requires": ("goal_declared", ("goal_id",)), "unique": None},
+        )
+
+    # -- goal deletion -----------------------------------------------------
+
+    def _execution_forget_goal(self, goal_id, dry_run=True) -> Dict[str, Any]:
+        """Tombstone every execution record of ``goal_id`` (§14.4, D-24).
+
+        Deleting a card does not delete a goal; this is the explicit act. Every
+        marker is appended through the batch path, so the cost is one read and
+        one lock rather than one full re-read per record.
+        """
+        goal_id = _pattern("goal_id", goal_id, _GOAL_ID)
+        path = self._execution_events_path()
+        plan = {"schema_version": 1, "dry_run": bool(dry_run),
+                "target": {"goal_id": goal_id}}
+        if dry_run:
+            ids = _goal_record_ids(read_all(path).records, goal_id)
+            return {**plan, "matched": len(ids), "record_ids": ids,
+                    "status": "planned"}
+
+        fd = self._governance_lock()
+        try:
+            # Re-selected under the lock, and from the tombstoned view: an
+            # interrupted attempt must not shrink the set the retry reports, or
+            # two partial runs would produce two different audit records for
+            # what is one operation.
+            allrows = read_all(path, include_tombstoned=True).records
+            tombstoned = {row.get("tombstone_of") for row in allrows
+                          if row.get("tombstone") is True}
+            ids = _goal_record_ids(allrows, goal_id)
+            live_ids = [record_id for record_id in ids
+                        if record_id not in tombstoned]
+            if not ids:
+                return {**plan, "matched": 0, "record_ids": [],
+                        "status": "not_found"}
+            mark_tombstones(path, live_ids)
+            self._append_audit({
+                "action": "forget", "source": "governance",
+                "operation_id": digest({"action": "forget", "record_ids": ids}),
+                "target": plan["target"], "record_ids": ids,
+            })
+            return {**plan, "matched": len(ids), "record_ids": ids,
+                    "status": "applied" if live_ids else "already_forgotten"}
+        finally:
+            _unlock(fd)
+            os.close(fd)
+
+
+def _goal_record_ids(records: List[Dict[str, Any]], goal_id: str) -> List[str]:
+    """Return this goal's live record ids, sorted so every run reports the same."""
+    return sorted(
+        record["id"] for record in records
+        if record.get("goal_id") == goal_id and not record.get("tombstone")
+        and isinstance(record.get("id"), str)
+    )
+
+
+#: The reason codes derived by reading gate statuses. Only these can have leaned
+#: on a waiver, so only these carry the §4.8 caveat.
+_GATE_DERIVED_REASONS = frozenset({
+    "goal_satisfied", "evidence_inconclusive", "blocking_gate_pending",
+    "gates_open",
+})
+
+
+def _first_signal(state, leases, stale_scopes, blockers):
+    """Return the first firing ``(recommendation, reason_code)`` of §9.2.
+
+    Ordered rather than branched, and the order is the claim. Inconsistency is
+    first because I-D2 makes it dominate unconditionally — no competing signal
+    is reachable once the projection cannot be trusted. A stale lease outranks
+    an active one because a scope nobody released and nobody holds is state to
+    repair, not state to wait on.
+    """
+    signals = (
+        (not state["consistent"], "repair", "projection_inconsistent"),
+        (state["goal_status"] == "satisfied", "stop", "goal_satisfied"),
+        (state["goal_status"] == "abandoned", "stop", "goal_abandoned"),
+        (any(handoff["status"] == "accepted" for handoff in state["handoffs"]),
+         "repair", "handoff_incomplete"),
+        (bool(stale_scopes), "repair", "stale_lease_detected"),
+        (bool(leases["active"]), "wait", "lease_held_by_other"),
+        (any(gate["required"] and gate["status"] == "failed"
+             for gate in state["gates"]), "ask_human", "evidence_inconclusive"),
+        (bool(blockers), "wait", "blocking_gate_pending"),
+        (True, "should_run", "gates_open"),
+    )
+    for fires, recommendation, reason_code in signals:
+        if fires:
+            return recommendation, reason_code
 
 
 def _lease_result(result: Dict[str, Any], scope_key: str) -> Dict[str, Any]:
