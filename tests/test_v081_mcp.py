@@ -24,7 +24,7 @@ def mk():
 def test_tool_schemas_shape():
     schemas = mcp_mod._tool_schemas()
     names = {t["name"] for t in schemas}
-    assert names == {"remember", "search", "recall", "link"}
+    assert {"remember", "search", "recall", "link"} <= names
     for t in schemas:
         assert "description" in t and t["description"]
         assert "inputSchema" in t

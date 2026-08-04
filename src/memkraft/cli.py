@@ -8,13 +8,28 @@ from . import MemKraft
 from . import __version__
 
 
-def main():
+def main(argv=None):
+    effective_argv = list(sys.argv[1:] if argv is None else argv)
+    if effective_argv[:2] == ["exec", "call"]:
+        # Delegate before the human CLI parser can remap usage errors to 2 or
+        # write help anywhere near the machine response stream.
+        from . import execution_cli
+        return execution_cli.main(effective_argv[2:])
+
     parser = argparse.ArgumentParser(
         prog="memkraft",
         description="MemKraft — The compound knowledge system for AI agents",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # MKEP/0 machine transport. Keep its parser isolated so argparse diagnostics
+    # cannot contaminate the response-only stdout contract.
+    exec_parser = subparsers.add_parser("exec", help="MKEP/0 execution transport")
+    exec_sub = exec_parser.add_subparsers(dest="exec_command")
+    exec_call = exec_sub.add_parser("call", help="one JSON request on stdin")
+    exec_call.add_argument("--base-dir", default=None)
+    exec_call.add_argument("--lock-timeout", default="2.0")
 
     sleep_parser = subparsers.add_parser("sleep", help="Preview or apply canonical truth compilation")
     sleep_mode = sleep_parser.add_mutually_exclusive_group()
@@ -380,11 +395,22 @@ def main():
     fresh_parser.add_argument("--repair", action="store_true", help="Rebuild derived state from Markdown")
     fresh_parser.add_argument("--json", action="store_true", help="Machine-readable output")
 
-    args = parser.parse_args()
+    args = parser.parse_args(effective_argv)
 
     if not args.command:
         parser.print_help()
         return 0
+
+    if args.command == "exec":
+        if args.exec_command != "call":
+            exec_parser.print_help()
+            return 64
+        from . import execution_cli
+        forwarded = []
+        if args.base_dir is not None:
+            forwarded.extend(["--base-dir", args.base_dir])
+        forwarded.extend(["--lock-timeout", args.lock_timeout])
+        return execution_cli.main(forwarded)
 
     mc = MemKraft()
 
