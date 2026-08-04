@@ -31,35 +31,53 @@ EXECUTION_SCHEMA = 1
 
 
 class _Rule(NamedTuple):
-    """One declared transition.
+    """One declared transition and the metadata its guards are driven from.
 
     ``requires`` names the record fields the *apply* path must find present
     before it appends the transition (§4.6). The projection itself never reads
     them: a record already in the log is history, and history is replayed, not
     re-validated.
+
+    The remaining fields are guard metadata, read by the apply path in
+    ``execution_state`` and — for ``marks_reopen`` and ``waives`` — by the fold
+    below. They live here rather than in branching code so that adding a
+    transition and stating its guard are the same edit (§4.6).
+
+    ``evidence`` is the ``verdict`` of the receipt the transition needs (§8.2).
+    ``waives`` marks a transition whose only guard is an unverified
+    ``authority_claim == "human"`` (§4.8). ``marks_reopen`` marks a transition
+    that moves the gate's evidence watermark.
     """
 
     requires: Tuple[str, ...] = ()
+    evidence: Optional[str] = None
+    waives: bool = False
+    marks_reopen: bool = False
+    settles_gates: bool = False
 
 
 #: The state machines of §4.6, as data. Any triple absent from this dict is
 #: rejected, which is what makes ``waived`` absorbing and every unlisted pair
 #: fail closed without a single branch.
 _TRANSITIONS: Dict[Tuple[str, str, str], _Rule] = {
-    ("goal", "open", "satisfied"): _Rule(),
+    ("goal", "open", "satisfied"): _Rule(settles_gates=True),
     ("goal", "open", "abandoned"): _Rule(("reason",)),
 
-    ("gate", "pending", "passed"): _Rule(),
-    ("gate", "pending", "failed"): _Rule(),
-    ("gate", "pending", "waived"): _Rule(),
-    ("gate", "passed", "pending"): _Rule(("reopen_reason",)),
-    ("gate", "failed", "pending"): _Rule(("reopen_reason",)),
-    ("gate", "failed", "passed"): _Rule(("reopen_reason",)),
-    ("gate", "failed", "waived"): _Rule(),
+    ("gate", "pending", "passed"): _Rule(evidence="pass"),
+    ("gate", "pending", "failed"): _Rule(evidence="fail"),
+    ("gate", "pending", "waived"): _Rule(waives=True),
+    ("gate", "passed", "pending"): _Rule(("reopen_reason",), marks_reopen=True),
+    ("gate", "failed", "pending"): _Rule(("reopen_reason",), marks_reopen=True),
+    ("gate", "failed", "passed"): _Rule(("reopen_reason",), evidence="pass"),
+    ("gate", "failed", "waived"): _Rule(waives=True),
 
     ("handoff", "offered", "accepted"): _Rule(),
     ("handoff", "accepted", "completed"): _Rule(),
 }
+
+#: Gate statuses that discharge a required gate for ``goal open → satisfied``
+#: (§8.3 I-E7). A gate outside this set is a blocker.
+SETTLED_GATE_STATUSES = frozenset({"passed", "waived"})
 
 # Record type → (entity kind, identity field, initial status).
 _DECLARED_KINDS = {
@@ -101,16 +119,25 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
     entities: Dict[Tuple[str, Optional[str]], Dict[str, Any]] = {}
     rejected: List[Dict[str, Any]] = []
     execution_seq = 0
+    unverified_waivers = 0
+    receipts_without_provenance = 0
 
     for record in _ordered(records, goal_id):
         execution_seq = max(execution_seq, record.get("event_seq") or 0)
         record_type = record.get("record_type")
 
+        if record_type == "evidence_receipt":
+            # Receipts are inert (§8.1): they move nothing. What they do carry
+            # is the honesty counter of §4.8 — a receipt nobody can trace back
+            # to a run is still accepted, and still counted.
+            receipts_without_provenance += record.get("provenance_id") is None
+            continue
+
         declaration = _DECLARED_KINDS.get(record_type)
         if declaration is not None:
             kind, identity_field, initial = declaration
             identity = None if identity_field is None else record.get(identity_field)
-            entity = {"status": initial}
+            entity = {"status": initial, "reopened_at_seq": 0}
             for name in _DECLARED_ATTRIBUTES.get(kind, ()):
                 entity[name] = record.get(name)
             entities.setdefault((kind, identity), entity)
@@ -129,11 +156,16 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
             continue
 
         key = (kind, entity["status"], record.get("to_status"))
-        if key not in _TRANSITIONS:
+        rule = _TRANSITIONS.get(key)
+        if rule is None:
             rejected.append({"record_id": record.get("id"),
                              "reason": "forbidden_transition"})
             continue
         entity["status"] = key[2]
+        if rule.marks_reopen:
+            # §8.2.2: the watermark every later pass is measured against.
+            entity["reopened_at_seq"] = record.get("event_seq") or 0
+        unverified_waivers += rule.waives
 
     goal = entities.get(("goal", None))
     projection = {
@@ -142,7 +174,8 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
         "goal_status": None if goal is None else goal["status"],
         "gates": [
             {"gate_id": identity, "status": entity["status"],
-             "required": entity["required"], "scope_key": entity["scope_key"]}
+             "required": entity["required"], "scope_key": entity["scope_key"],
+             "reopened_at_seq": entity["reopened_at_seq"]}
             for (kind, identity), entity in sorted(entities.items(), key=_identity_sort)
             if kind == "gate"
         ],
@@ -153,6 +186,8 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
             if kind == "handoff"
         ],
         "execution_seq": execution_seq,
+        "unverified_waivers": unverified_waivers,
+        "receipts_without_provenance": receipts_without_provenance,
         "skipped": skipped,
         "rejected_transitions": rejected,
         "consistent": not rejected,

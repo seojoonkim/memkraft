@@ -57,9 +57,14 @@ _ERROR_REGISTRY = {
     "E_TIME_NAIVE": ("input", False),
     "E_TIME_FORMAT": ("input", False),
     "E_LIMIT_EXCEEDED": ("limits", False),
+    "E_GATE_CAP": ("limits", False),
     "E_NOT_DECLARED": ("state", False),
     "E_ALREADY_DECLARED": ("state", False),
+    "E_INVALID_TRANSITION": ("state", False),
     "E_IDEMPOTENCY_MISMATCH": ("idempotency", False),
+    "E_EVIDENCE_REQUIRED": ("evidence", False),
+    "E_EVIDENCE_STALE": ("evidence", False),
+    "E_AUTHORITY_CLAIM_REQUIRED": ("evidence", False),
     "E_AUTHORITY_VERIFIED_FORBIDDEN": ("evidence", False),
 }
 
