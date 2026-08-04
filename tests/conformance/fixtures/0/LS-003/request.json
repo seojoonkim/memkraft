@@ -1,0 +1,19 @@
+{
+  "args": {
+    "authority_claim": "human",
+    "to_status": "waived"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "gate.transition",
+  "precondition": {
+    "fence_token": 1,
+    "operation_id": "ba05407b2213a005e31ee1530b8e66274a956303e5d17954742f3e236d0ebd91"
+  },
+  "request_id": "3bad7d1045024f5a8b04f6286f62d98a",
+  "target": {
+    "gate_id": "tests-green",
+    "goal_id": "conformance/case-goal"
+  }
+}

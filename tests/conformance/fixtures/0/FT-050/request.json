@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_state": "offered"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.transition",
+  "precondition": {
+    "operation_id": "16eeb67cf98263d881211ce5b68e7b448e9dc00efbc1d070341cae257e910884"
+  },
+  "request_id": "078b0f530db56ac7af10c3228b78afe2",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "handoff_id": "00000000000000000000000000000002"
+  }
+}

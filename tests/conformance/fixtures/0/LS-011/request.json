@@ -1,0 +1,19 @@
+{
+  "args": {
+    "fence_token": 1,
+    "holder": "worker-3",
+    "ttl_seconds": 600
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "lease.acquire",
+  "precondition": {
+    "operation_id": "f56c082fa2846fe3f6abba386c912fca4f1d168e4fa22411f782f598e50e9e3b"
+  },
+  "request_id": "a299bfe9ddf1d454164c598f16bd49d0",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "scope_key": "tests-green"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "args": {},
+  "kind": "query",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.export",
+  "request_id": "c7ed67c6ff8c0f1d3be133ffdffbe253",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "handoff_id": "00000000000000000000000000000002"
+  }
+}

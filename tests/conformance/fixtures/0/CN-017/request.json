@@ -1,0 +1,24 @@
+{
+  "args": {
+    "constraints": [
+      "stdlib only"
+    ],
+    "intent": "Pin protocol behaviour",
+    "success_criteria": [
+      "fixtures green"
+    ],
+    "title": "Conformance goal"
+  },
+  "kind": "apply",
+  "meta": {},
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "goal.declare",
+  "precondition": {
+    "operation_id": "c5cb92316d0e68f9f681cf2777c02ea8aa5bd0c6d82ce11fe35bb6cf733ad8b6"
+  },
+  "request_id": "a8114c24f8f04975a4e3205ad520d27a",
+  "target": {
+    "goal_id": "conformance/second-goal"
+  }
+}

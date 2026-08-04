@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_status": "done"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "gate.transition",
+  "precondition": {
+    "operation_id": "917866c6d967b29b53d7e83562a7f00901b17cdb853f7da76dde79f7a1fc138e"
+  },
+  "request_id": "34b5e0a4bf88609d47f99bb55c66f30b",
+  "target": {
+    "gate_id": "tests-green",
+    "goal_id": "conformance/case-goal"
+  }
+}

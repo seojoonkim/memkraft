@@ -1,0 +1,17 @@
+{
+  "case_id": "HO-006",
+  "executable": true,
+  "level": "L1",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "handoff"
+  ],
+  "title": "a payload_schema outside the grammar is refused",
+  "transports": [
+    "python"
+  ]
+}

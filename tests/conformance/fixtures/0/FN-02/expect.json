@@ -1,0 +1,26 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 2,
+    "log_line_count": 4,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "applied"
+    },
+    {
+      "ok": true,
+      "outcome": "applied"
+    },
+    {
+      "error_class": "lease",
+      "error_code": "E_FENCE_STALE",
+      "ok": false,
+      "retryable": false
+    }
+  ]
+}

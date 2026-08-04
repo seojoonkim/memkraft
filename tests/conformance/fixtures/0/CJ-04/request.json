@@ -1,0 +1,19 @@
+{
+  "args": {
+    "payload": {
+      "text": "a\ud800b"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "08fdc03a6894fbd5db7870b027416f3a0164bb9268f76bfaee7c1bc8d02c54e1"
+  },
+  "request_id": "4acea319160424af5b048b0c6c795f78",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

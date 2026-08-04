@@ -1,0 +1,2 @@
+{"args": {}, "kind": "query", "mkep": "0", "now": "2026-08-04T10:00:05Z", "op": "assess.run", "request_id": "6ef2e27d5095430d8d9e19e4e40866e8", "target": {"goal_id": "conformance/case-goal"}}
+{"args": {"reason": "descoped", "to_status": "abandoned"}, "kind": "apply", "mkep": "0", "now": "2026-08-04T10:00:05Z", "op": "goal.transition", "precondition": {"operation_id": "57825bad3885b1a38ae965fba638ff5240eac1ad55b5711d3e326d5b15f6d890"}, "request_id": "75b818066f535d52f1b6d91379b653c3", "target": {"goal_id": "conformance/case-goal"}}

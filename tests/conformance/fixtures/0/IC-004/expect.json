@@ -1,0 +1,18 @@
+{
+  "final": {
+    "consistent": false,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 0,
+    "log_line_count": 4,
+    "rejected_transitions": 2,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "error_class": "state",
+      "error_code": "E_PROJECTION_INCONSISTENT",
+      "ok": false,
+      "retryable": false
+    }
+  ]
+}

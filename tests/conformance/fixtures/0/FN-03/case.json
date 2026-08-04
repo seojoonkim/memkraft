@@ -1,0 +1,19 @@
+{
+  "case_id": "FN-03",
+  "executable": true,
+  "level": "L2",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:00Z",
+    "2026-08-04T10:00:10Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "lease",
+    "reclaim"
+  ],
+  "title": "a reclaim is a single append carrying supersedes",
+  "transports": [
+    "python"
+  ]
+}

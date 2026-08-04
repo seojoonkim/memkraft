@@ -1,0 +1,18 @@
+{
+  "args": {
+    "holder": "worker-3",
+    "ttl_seconds": 600
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "lease.acquire",
+  "precondition": {
+    "operation_id": "49078a8b591b5a17457ee721ed5c14c33ebc2e97d0d3d4dbd116bec2dcfba4c8"
+  },
+  "request_id": "9881ca04b0eccfca7d578061cc3be0ef",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "scope_key": "tests-green"
+  }
+}

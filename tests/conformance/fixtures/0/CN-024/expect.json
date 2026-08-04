@@ -1,0 +1,18 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 0,
+    "log_line_count": 1,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "error_class": "input",
+      "error_code": "E_PATTERN",
+      "ok": false,
+      "retryable": false
+    }
+  ]
+}

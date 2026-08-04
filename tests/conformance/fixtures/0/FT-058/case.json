@@ -1,0 +1,19 @@
+{
+  "case_id": "FT-058",
+  "executable": true,
+  "level": "L2",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "fail-closed",
+    "handoff",
+    "transition"
+  ],
+  "title": "handoff offered -> approved is rejected",
+  "transports": [
+    "python"
+  ]
+}

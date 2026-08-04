@@ -1,0 +1,19 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 1,
+    "log_line_count": 2,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "payload_equals": {
+    "text": "\u00e9"
+  },
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "applied"
+    }
+  ]
+}

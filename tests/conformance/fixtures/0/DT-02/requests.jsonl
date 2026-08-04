@@ -1,0 +1,2 @@
+{"args": {}, "kind": "query", "mkep": "0", "now": "2026-08-04T10:00:00Z", "op": "state.read", "request_id": "71d2cb59b4083d739403bd3f83141a16", "target": {"goal_id": "conformance/case-goal"}}
+{"args": {}, "kind": "query", "mkep": "0", "now": "2026-08-04T10:00:00Z", "op": "state.read", "request_id": "c9317d8f2b1287cb7ce116efbc3dd2d3", "target": {"goal_id": "conformance/case-goal"}}

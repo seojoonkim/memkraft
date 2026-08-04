@@ -1,0 +1,19 @@
+{
+  "args": {
+    "payload": {
+      "note": "file:///var/lib/memkraft/events.jsonl"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "c27da8dab16f3ed1f27e20dbed8a1e3a7dff457059b620987373f00a298aa3e1"
+  },
+  "request_id": "c76f10ec953a07ca7fd5608d1a4b07c7",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

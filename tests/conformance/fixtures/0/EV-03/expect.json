@@ -1,0 +1,23 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 1,
+    "log_line_count": 3,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "error_class": "evidence",
+      "error_code": "E_AUTHORITY_CLAIM_REQUIRED",
+      "ok": false,
+      "retryable": false
+    },
+    {
+      "ok": true,
+      "outcome": "applied"
+    }
+  ],
+  "warnings_include": "W_WAIVER_UNVERIFIED"
+}

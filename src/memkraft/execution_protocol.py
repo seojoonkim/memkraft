@@ -16,9 +16,11 @@ import json
 import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from types import MappingProxyType
 from typing import Any, Dict, Optional
 
 __all__ = [
+    "ERROR_REGISTRY",
     "ExecutionError",
     "ValidationError",
     "ConflictError",
@@ -30,6 +32,7 @@ __all__ = [
     "MAX_DEPTH",
     "MAX_KEYS_PER_OBJECT",
     "MAX_ARRAY_LENGTH",
+    "MAX_PROTOCOL_ARRAY_LENGTH",
     "KEY_PATTERN",
     "mkcjson",
     "digest",
@@ -44,20 +47,33 @@ MAX_DEPTH = 8
 MAX_KEYS_PER_OBJECT = 64
 MAX_ARRAY_LENGTH = 32
 
+# The array cap is a *validation* bound on record-shaped data, not part of the
+# byte format: canonical bytes for a given value are identical whatever the cap
+# is. ``describe`` legitimately carries a longer list — the closed error
+# registry is 33 entries — so its body is canonicalized with the bound relaxed.
+# A second-language runtime reproduces the same bytes; only the reject
+# threshold differs, and it differs on one caller-invisible internal path.
+MAX_PROTOCOL_ARRAY_LENGTH = 64
+
 # §5.2 rule 3. ASCII-only, so code-point, byte, and UTF-16 sort orders coincide
 # across Python, Go, Rust, and JavaScript — this is what makes ``sort_keys``
 # safe and the cross-language digest claim true.
 KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
-# §6.7 error registry, restricted to the codes the shipped modules can raise.
-# Stable, closed, additive-only: a code is never repurposed.
+# §6.7 error registry — the complete, closed, additive-only table. Stable: a
+# code is never repurposed, and its ``class``/``retryable`` pair is part of the
+# wire contract, because a client branches on them without parsing ``message``.
 _ERROR_REGISTRY = {
+    "E_MALFORMED_JSON": ("input", False),
     "E_TYPE": ("input", False),
     "E_PATTERN": ("input", False),
     "E_MISSING_FIELD": ("input", False),
     "E_UNKNOWN_FIELD": ("input", False),
     "E_TIME_NAIVE": ("input", False),
     "E_TIME_FORMAT": ("input", False),
+    "E_VERSION_UNSUPPORTED": ("negotiation", False),
+    "E_UNKNOWN_OP": ("negotiation", False),
+    "E_CAPABILITY_DRIFT": ("negotiation", False),
     "E_LIMIT_EXCEEDED": ("limits", False),
     "E_GATE_CAP": ("limits", False),
     "E_NOT_DECLARED": ("state", False),
@@ -65,6 +81,9 @@ _ERROR_REGISTRY = {
     "E_INVALID_TRANSITION": ("state", False),
     "E_CONFLICT": ("state", False),
     "E_HANDOFF_EXPIRED": ("state", False),
+    "E_PRECONDITION_STATE": ("state", False),
+    "E_PRECONDITION_SEQ": ("state", False),
+    "E_PROJECTION_INCONSISTENT": ("state", False),
     "E_DIGEST_MISMATCH": ("integrity", False),
     "E_IDEMPOTENCY_MISMATCH": ("idempotency", False),
     "E_FENCE_REQUIRED": ("lease", False),
@@ -72,11 +91,17 @@ _ERROR_REGISTRY = {
     "E_LEASE_HELD": ("lease", True),
     "E_LEASE_CAP": ("lease", False),
     "E_STORE_BUSY": ("io", True),
+    "E_STORE_IO": ("io", True),
+    "E_INTERNAL": ("io", True),
     "E_EVIDENCE_REQUIRED": ("evidence", False),
     "E_EVIDENCE_STALE": ("evidence", False),
     "E_AUTHORITY_CLAIM_REQUIRED": ("evidence", False),
     "E_AUTHORITY_VERIFIED_FORBIDDEN": ("evidence", False),
 }
+
+#: The public, read-only view of §6.7. Exposed so the dispatcher, the
+#: conformance runner, and ``describe`` all read one table rather than three.
+ERROR_REGISTRY = MappingProxyType(_ERROR_REGISTRY)
 
 
 class ExecutionError(ValueError):
@@ -127,7 +152,8 @@ def _has_lone_surrogate(text: str) -> bool:
     return any(0xD800 <= ord(char) <= 0xDFFF for char in text)
 
 
-def _check(obj: Any, path: str = "", depth: int = 1) -> Any:
+def _check(obj: Any, path: str = "", depth: int = 1,
+           max_array_length: int = MAX_ARRAY_LENGTH) -> Any:
     """Enforce §5.2 rules 2–5 and 9, returning the normalized value.
 
     Normalization is limited to NFC on strings; everything else either passes
@@ -168,22 +194,23 @@ def _check(obj: Any, path: str = "", depth: int = 1) -> Any:
                 _fail("E_PATTERN", "key %r does not match %s" % (key, KEY_PATTERN.pattern),
                       path or "$", key=key)
             child = "%s.%s" % (path, key) if path else key
-            checked[key] = _check(value, child, depth + 1)
+            checked[key] = _check(value, child, depth + 1, max_array_length)
         return checked
 
     if isinstance(obj, list):
-        if len(obj) > MAX_ARRAY_LENGTH:
+        if len(obj) > max_array_length:
             _fail("E_LIMIT_EXCEEDED",
-                  "array longer than %d" % MAX_ARRAY_LENGTH, path or "$")
+                  "array longer than %d" % max_array_length, path or "$")
         return [
-            _check(item, "%s[%d]" % (path or "$", index), depth + 1)
+            _check(item, "%s[%d]" % (path or "$", index), depth + 1,
+                   max_array_length)
             for index, item in enumerate(obj)
         ]
 
     _fail("E_TYPE", "unsupported type %s" % type(obj).__name__, path or "$")
 
 
-def mkcjson(obj: Any) -> bytes:
+def mkcjson(obj: Any, max_array_length: int = MAX_ARRAY_LENGTH) -> bytes:
     """Return the MKCJSON/1 canonical UTF-8 bytes of ``obj``.
 
     ``sort_keys=True`` is correct only because rule 3 confines keys to ASCII.
@@ -191,19 +218,19 @@ def mkcjson(obj: Any) -> bytes:
     if not isinstance(obj, dict):
         _fail("E_TYPE", "the canonical form is defined over objects only", "$")
     return json.dumps(
-        _check(obj), ensure_ascii=False, allow_nan=False,
+        _check(obj, max_array_length=max_array_length), ensure_ascii=False, allow_nan=False,
         sort_keys=True, separators=(",", ":"),
     ).encode("utf-8")
 
 
-def digest(obj: Any) -> str:
+def digest(obj: Any, max_array_length: int = MAX_ARRAY_LENGTH) -> str:
     """Return ``hex(sha256(mkcjson(obj)))``, lowercase, 64 characters.
 
     Always over the canonical form of the *logical* object. Never over a stored
     file line: ``store_core.append`` writes without ``sort_keys``, so its bytes
     are not canonical bytes (conformance case CJ-06).
     """
-    return hashlib.sha256(mkcjson(obj)).hexdigest()
+    return hashlib.sha256(mkcjson(obj, max_array_length)).hexdigest()
 
 
 # --------------------------------------------------------------------------

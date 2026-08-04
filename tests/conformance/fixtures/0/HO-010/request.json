@@ -1,0 +1,20 @@
+{
+  "args": {
+    "envelope": {
+      "payload": {
+        "note": "x"
+      }
+    }
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.import",
+  "precondition": {
+    "operation_id": "4dea445fb3ac1bcb887c7781f3fe44ff10193de3d7e606ef5fab4bdc2343806d"
+  },
+  "request_id": "5f5942014234c057e7b72aa2257b7d87",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

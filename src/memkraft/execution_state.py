@@ -57,12 +57,15 @@ EXECUTION_SCHEMA = 1
 # ``created_at`` on every append, so a wider set would fail every honest retry.
 _FINGERPRINT_EXCLUDED = frozenset({"id", "created_at", "event_seq"})
 
-# Core-allocated under the same lock as ``event_seq`` and just as absent from a
-# replayed request, so the fingerprint has to ignore it for the same reason
-# (§8.2.1). Kept separate from ``_FINGERPRINT_EXCLUDED``, which §5.5 pins to the
-# three envelope fields.
+# Core-allocated or clock-derived fields are not semantic operation arguments.
+# Ignoring ``emitted_at`` and ``expires_at`` is what lets an honest retry with
+# the same operation_id happen later without refreshing a lease TTL: the stored
+# record is returned before the candidate's newly derived timestamps can matter.
+# Kept separate from ``_FINGERPRINT_EXCLUDED``, which §5.5 pins to the three
+# store-envelope fields.
 _ALLOCATED_FIELDS = frozenset({
     "observed_seq", "fence_token", "supersedes_lease_id", "supersede_reason",
+    "emitted_at", "expires_at",
 })
 _FINGERPRINT_IGNORED = _FINGERPRINT_EXCLUDED | _ALLOCATED_FIELDS
 

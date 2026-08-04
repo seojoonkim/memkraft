@@ -1,0 +1,11 @@
+{
+  "args": {},
+  "kind": "query",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "state.read",
+  "request_id": "1713bb5b63bf12fcf5e4a9a104a1f011",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

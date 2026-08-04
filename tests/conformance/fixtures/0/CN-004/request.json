@@ -1,0 +1,22 @@
+{
+  "args": {
+    "constraints": [
+      "stdlib only"
+    ],
+    "success_criteria": [
+      "fixtures green"
+    ],
+    "title": "Conformance goal"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "goal.declare",
+  "precondition": {
+    "operation_id": "75c8071e0ac4812a3724e0cd59ad90f16b1a00c3a3deaa379eeb1d53f8dc5021"
+  },
+  "request_id": "7b4f11fab0aa2109afb268434f0fbf6d",
+  "target": {
+    "goal_id": "conformance/second-goal"
+  }
+}

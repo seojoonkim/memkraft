@@ -1,0 +1,22 @@
+{
+  "final": {
+    "consistent": true,
+    "lines_delta": 0,
+    "log_line_count": 0,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "lint_absent_from_fixtures_and_describe": [
+    "next_check_at",
+    "retry_after",
+    "poll_interval",
+    "cadence",
+    "cron"
+  ],
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "read"
+    }
+  ]
+}

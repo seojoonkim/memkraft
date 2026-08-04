@@ -1,0 +1,19 @@
+{
+  "args": {
+    "payload": {
+      "note": "$USER ran the suite"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "20e3f587a97943459610c69a28692b71a20139160ee3b77dd1d6efb50d501858"
+  },
+  "request_id": "7da643918140ce042fabfae263c8fd09",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

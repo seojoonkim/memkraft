@@ -1,0 +1,17 @@
+{
+  "args": {
+    "envelope": {},
+    "path": "/tmp/other/envelope.json"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.import",
+  "precondition": {
+    "operation_id": "f8523e774ec804bdc7c4ea35556d90bc7231dbbf5c8320907b7150833592e354"
+  },
+  "request_id": "0268fbc541ed8c7368bea712c11e28f2",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

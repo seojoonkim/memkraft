@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_status": "cancelled"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "gate.transition",
+  "precondition": {
+    "operation_id": "fc1f2bd32920d19d12c1658bd8bdf01dbb9fbc55336c9c4c67559b94690fd6f0"
+  },
+  "request_id": "db3bbc60b8e66069efcd9695e6a8ee71",
+  "target": {
+    "gate_id": "tests-green",
+    "goal_id": "conformance/case-goal"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_status": "blocked"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "gate.transition",
+  "precondition": {
+    "operation_id": "7648d1f7a65bdbd5eb812a6500efea4b922be72197ce3a1baae4c865acc17dff"
+  },
+  "request_id": "8d2ecb68ca9f5eaae6f80558ab4dd1ec",
+  "target": {
+    "gate_id": "tests-green",
+    "goal_id": "conformance/case-goal"
+  }
+}

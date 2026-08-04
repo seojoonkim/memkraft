@@ -1,0 +1,19 @@
+{
+  "args": {
+    "payload": {
+      "note": "/home/someone/.memkraft/notes.md"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "dbd6f79d176dd8f38d3c0679e90622554392218491253aab24a7a74f64405fce"
+  },
+  "request_id": "25937eb9f7e0121941499b58a29bac24",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

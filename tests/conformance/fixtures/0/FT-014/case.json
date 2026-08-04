@@ -1,0 +1,19 @@
+{
+  "case_id": "FT-014",
+  "executable": true,
+  "level": "L2",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "fail-closed",
+    "gate",
+    "transition"
+  ],
+  "title": "gate pending -> blocked is rejected",
+  "transports": [
+    "python"
+  ]
+}

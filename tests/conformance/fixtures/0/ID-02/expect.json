@@ -1,0 +1,21 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 1,
+    "log_line_count": 2,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "fingerprint_excludes": [
+    "id",
+    "created_at",
+    "event_seq"
+  ],
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "applied"
+    }
+  ]
+}

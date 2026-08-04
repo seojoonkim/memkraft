@@ -1,0 +1,29 @@
+{
+  "args": {
+    "envelope": {
+      "envelope_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "envelope_schema": "memkraft.handoff/1",
+      "expires_at": null,
+      "exported_at": "2026-08-04T10:00:00Z",
+      "goal_id": "conformance/case-goal",
+      "handoff_id": "00000000000000000000000000000002",
+      "origin_instance_id": "00000000000000000000000000000001",
+      "payload": {
+        "note": "tampered"
+      },
+      "payload_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "payload_schema": "memkraft.handoff.context/1"
+    }
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.import",
+  "precondition": {
+    "operation_id": "116b611ff1c8a3a67b87ab8219d79bf98a4480318ca4c8f52af0899f366b6472"
+  },
+  "request_id": "b45dd1777531a68117a4e57ad129263f",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

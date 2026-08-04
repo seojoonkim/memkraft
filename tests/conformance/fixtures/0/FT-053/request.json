@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_state": "blocked"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.transition",
+  "precondition": {
+    "operation_id": "f2d602b193628da26e70252dfb1223b598bd660356a619f1ed32ce2d9357e626"
+  },
+  "request_id": "98dff0c4ed593baf37010c5d2da57c6d",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "handoff_id": "00000000000000000000000000000002"
+  }
+}

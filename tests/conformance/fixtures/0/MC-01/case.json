@@ -1,0 +1,18 @@
+{
+  "case_id": "MC-01",
+  "executable": false,
+  "gap": "requires the read-only MCP tools (plan \u00a713, Slice 10)",
+  "level": "L2",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "transport"
+  ],
+  "title": "mcp projection equivalence and read only",
+  "transports": [
+    "python"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "args": {
+    "expires_at": "2026-08-04T10:00:00Z",
+    "payload": {
+      "note": "review"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:10Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "71129aa9738f569093d47f99b518ab75206cf7b204823166d48b609bb797ec6a"
+  },
+  "request_id": "c91ee70bc2f248241f3d544ed65c5eb7",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

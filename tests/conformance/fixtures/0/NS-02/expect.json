@@ -1,0 +1,25 @@
+{
+  "final": {
+    "consistent": true,
+    "lines_delta": 0,
+    "log_line_count": 0,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "lint_absent_from_execution_source": [
+    "hermes",
+    "openclaw",
+    "kanban",
+    "profile_name",
+    "session_key",
+    "work_item",
+    "workitem",
+    "datetime.now("
+  ],
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "read"
+    }
+  ]
+}

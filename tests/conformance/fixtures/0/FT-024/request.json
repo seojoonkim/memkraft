@@ -1,0 +1,17 @@
+{
+  "args": {
+    "to_status": "pending"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "gate.transition",
+  "precondition": {
+    "operation_id": "db6924bd47454879321d50f10fe9db7a06c6ef20120287b78f64a051160e944d"
+  },
+  "request_id": "911dfeaa61e6cbdc1c49c2b504f5e94c",
+  "target": {
+    "gate_id": "tests-green",
+    "goal_id": "conformance/case-goal"
+  }
+}

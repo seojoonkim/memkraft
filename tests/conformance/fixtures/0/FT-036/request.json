@@ -1,0 +1,17 @@
+{
+  "args": {
+    "reason": "conformance",
+    "to_status": "done"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "goal.transition",
+  "precondition": {
+    "operation_id": "feb812dd9ec16c062a7399c31fd685dc1842d28c0197c9dac81ca2e4f08e951d"
+  },
+  "request_id": "2bf2d6d37856e29524b53664145b5f15",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

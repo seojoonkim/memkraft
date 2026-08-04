@@ -1,0 +1,17 @@
+{
+  "args": {
+    "reason": "descoped",
+    "to_status": "abandoned"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "goal.transition",
+  "precondition": {
+    "operation_id": "8d5c8f24304a9f4a6970e73b405cd71b6410e63c70975cc81bb04377a11049eb"
+  },
+  "request_id": "b95db44e7f6959090f0d18f7f9429ec3",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

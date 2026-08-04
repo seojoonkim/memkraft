@@ -1,0 +1,1 @@
+The import signature is what makes a cross-base read inexpressible rather than merely discouraged. The full IS-01 scenario — deleting the origin tree and monkeypatching open — lives in tests/test_execution_isolation.py.

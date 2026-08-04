@@ -1,0 +1,22 @@
+{
+  "fence_strictly_increases": true,
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 2,
+    "log_line_count": 4,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "applied"
+    },
+    {
+      "ok": true,
+      "outcome": "applied"
+    }
+  ],
+  "supersede_reason": "expired"
+}

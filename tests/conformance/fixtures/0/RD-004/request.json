@@ -1,0 +1,19 @@
+{
+  "args": {
+    "payload": {
+      "note": "C:\\Users\\someone\\memkraft"
+    },
+    "to_actor": "reviewer"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.declare",
+  "precondition": {
+    "operation_id": "8412e11e830a2e7a6e0f5a350c5b8d7b5453d199ed63923982c102b3c03a4744"
+  },
+  "request_id": "736eb673bfa64b343a6d34d36e61f1ee",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

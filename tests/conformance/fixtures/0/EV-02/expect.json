@@ -1,0 +1,22 @@
+{
+  "final": {
+    "consistent": true,
+    "goal_id": "conformance/case-goal",
+    "lines_delta": 1,
+    "log_line_count": 5,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "applied"
+    },
+    {
+      "error_class": "evidence",
+      "error_code": "E_EVIDENCE_STALE",
+      "ok": false,
+      "retryable": false
+    }
+  ]
+}

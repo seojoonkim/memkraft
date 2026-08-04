@@ -1,0 +1,17 @@
+{
+  "aggregate_minimum": 40,
+  "aggregate_over": "FT-",
+  "final": {
+    "consistent": true,
+    "lines_delta": 0,
+    "log_line_count": 0,
+    "rejected_transitions": 0,
+    "skipped": 0
+  },
+  "responses": [
+    {
+      "ok": true,
+      "outcome": "read"
+    }
+  ]
+}

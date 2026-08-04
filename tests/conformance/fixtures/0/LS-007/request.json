@@ -1,0 +1,17 @@
+{
+  "args": {
+    "lease_id": "00000000000000000000000000000000"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "lease.release",
+  "precondition": {
+    "operation_id": "7b12c2f7b762bf364693e14aeca1c8cf51d66034192911e7128b1b43f19f9886"
+  },
+  "request_id": "cbc0343bcbe146ec1361c2264865187d",
+  "target": {
+    "goal_id": "conformance/case-goal",
+    "scope_key": "tests-green"
+  }
+}

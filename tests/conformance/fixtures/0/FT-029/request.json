@@ -1,0 +1,17 @@
+{
+  "args": {
+    "reason": "conformance",
+    "to_status": "cancelled"
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "goal.transition",
+  "precondition": {
+    "operation_id": "b884c536546cdb7dcff73f676b69d328619513a76c8053970cee03fa5a4b8cd0"
+  },
+  "request_id": "125be97a3138f9ac8f8b3f7762791e20",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}

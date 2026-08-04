@@ -1,0 +1,17 @@
+{
+  "case_id": "TM-02",
+  "executable": true,
+  "level": "L1",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T19:00:00+09:00"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "time"
+  ],
+  "title": "an offset is normalised to utc",
+  "transports": [
+    "python"
+  ]
+}

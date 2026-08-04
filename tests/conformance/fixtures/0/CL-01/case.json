@@ -1,0 +1,18 @@
+{
+  "case_id": "CL-01",
+  "executable": false,
+  "gap": "requires execution_cli.py (plan \u00a712, Slice 10)",
+  "level": "L2",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "transport"
+  ],
+  "title": "cli transport equivalence and stdout purity",
+  "transports": [
+    "python"
+  ]
+}

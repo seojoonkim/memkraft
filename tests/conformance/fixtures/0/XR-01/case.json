@@ -1,0 +1,19 @@
+{
+  "case_id": "XR-01",
+  "executable": false,
+  "gap": "requires the Go conformance runtime (plan \u00a718.3, Slice 12)",
+  "level": "L3",
+  "mkep": "0",
+  "now_sequence": [
+    "2026-08-04T10:00:05Z"
+  ],
+  "origin_instance_id": "00000000000000000000000000000001",
+  "tags": [
+    "cross-runtime",
+    "handoff"
+  ],
+  "title": "two runtime handoff",
+  "transports": [
+    "python"
+  ]
+}

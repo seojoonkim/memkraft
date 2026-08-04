@@ -1,0 +1,17 @@
+{
+  "args": {
+    "base_dir": "/tmp/other",
+    "envelope": {}
+  },
+  "kind": "apply",
+  "mkep": "0",
+  "now": "2026-08-04T10:00:05Z",
+  "op": "handoff.import",
+  "precondition": {
+    "operation_id": "b94f0b4b7431904f69f8b4d997f38df41973fe2429bfb3ae8722cdb77c479fee"
+  },
+  "request_id": "986d0b7373cd827175fcd6893cb107a9",
+  "target": {
+    "goal_id": "conformance/case-goal"
+  }
+}
