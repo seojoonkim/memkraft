@@ -13,7 +13,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from memkraft import MemKraft, execution_projection, store_core
 from memkraft.execution_dispatch import dispatch

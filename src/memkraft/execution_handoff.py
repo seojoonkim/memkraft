@@ -31,7 +31,7 @@ import os
 import re
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .execution_projection import project_handoffs
 from .execution_protocol import (
