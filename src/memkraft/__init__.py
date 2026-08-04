@@ -50,6 +50,7 @@ from .context_compiler import ContextCompilerMixin  # v2.15 A1 context compiler 
 from .evidence_context import EvidenceContextMixin  # query-focused evidence compiler
 from .numeric_aggregation import NumericAggregationMixin  # safe numeric evidence composition
 from .execution_state import ExecutionStateMixin  # v3.3 MKEP/0 execution kernel
+from .execution_handoff import ExecutionHandoffMixin  # v3.3 MKEP/0 typed handoff
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -77,6 +78,7 @@ _ADDITIVE_ONLY_MIXINS = (
     EvidenceContextMixin,
     NumericAggregationMixin,
     ExecutionStateMixin,
+    ExecutionHandoffMixin,
 )
 
 for _mixin in (
@@ -121,6 +123,7 @@ for _mixin in (
     EvidenceContextMixin,
     NumericAggregationMixin,
     ExecutionStateMixin,
+    ExecutionHandoffMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

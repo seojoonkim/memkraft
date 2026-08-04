@@ -25,7 +25,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from .execution_protocol import canonical_timestamp, digest, parse_timestamp
 
-__all__ = ["project", "project_leases"]
+__all__ = ["project", "project_handoffs", "project_leases"]
 
 EXECUTION_SCHEMA = 1
 
@@ -80,10 +80,16 @@ _TRANSITIONS: Dict[Tuple[str, str, str], _Rule] = {
 SETTLED_GATE_STATUSES = frozenset({"passed", "waived"})
 
 # Record type → (entity kind, identity field, initial status).
+#
+# A handoff is identified by the ``id`` of the line that declared it. Core mints
+# the identity, and the store already mints exactly one 32-hex id per line, so
+# reusing it keeps ``handoff_id`` out of the record fingerprint — a replayed
+# declaration must not become a second handoff (§5.5, §6.6).
 _DECLARED_KINDS = {
     "goal_declared": ("goal", None, "open"),
     "gate_declared": ("gate", "gate_id", "pending"),
-    "handoff_declared": ("handoff", "handoff_id", "offered"),
+    "handoff_declared": ("handoff", "id", "offered"),
+    "handoff_imported": ("handoff", "id", "offered"),
 }
 
 # Record type → (entity kind, identity field).
@@ -96,7 +102,7 @@ _CHANGE_KINDS = {
 # Attributes each declaration contributes to its projected entity.
 _DECLARED_ATTRIBUTES = {
     "gate": ("required", "scope_key"),
-    "handoff": ("to_actor",),
+    "handoff": ("to_actor", "expires_at", "payload_digest", "imported_from"),
 }
 
 
@@ -137,6 +143,13 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
         if declaration is not None:
             kind, identity_field, initial = declaration
             identity = None if identity_field is None else record.get(identity_field)
+            if kind == "handoff":
+                # Slice 4 preview fixtures and early adapters supplied an
+                # explicit ``handoff_id``.  The finalized typed API uses the
+                # declaration line's store-minted ``id``.  Projection is a
+                # read-compatible fold, so it accepts both representations;
+                # writers remain strict and emit only the finalized form.
+                identity = record.get("handoff_id") or identity
             entity = {"status": initial, "reopened_at_seq": 0}
             for name in _DECLARED_ATTRIBUTES.get(kind, ()):
                 entity[name] = record.get(name)
@@ -181,7 +194,9 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
         ],
         "handoffs": [
             {"handoff_id": identity, "status": entity["status"],
-             "to_actor": entity["to_actor"]}
+             "to_actor": entity["to_actor"], "expires_at": entity["expires_at"],
+             "payload_digest": entity["payload_digest"],
+             "imported_from": entity["imported_from"]}
             for (kind, identity), entity in sorted(entities.items(), key=_identity_sort)
             if kind == "handoff"
         ],
@@ -197,6 +212,31 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
         {key: value for key, value in projection.items() if key != "evaluated_at"}
     )
     return projection
+
+
+def project_handoffs(records, now, goal_id: str) -> Dict[str, Any]:
+    """Return the goal's handoffs at ``now``, keyed by ``handoff_id`` (§4.6).
+
+    ``expired`` is *computed here and never stored*. There is no ``expired``
+    state, no ``handoff_expired`` record type, and nothing is ever appended when
+    a deadline passes — a handoff nobody picked up must not require a janitor to
+    become inert. A ``completed`` handoff never expires: the work it described
+    is done, and letting a clock retroactively invalidate it would make the
+    log's meaning depend on when it was read.
+
+    Kept out of the digested projection for the same reason as
+    :func:`project_leases`: ``project``'s digest must not depend on ``now``.
+    """
+    evaluated_at = parse_timestamp(now)
+    projected = {}
+    for handoff in project(records, now, goal_id)["handoffs"]:
+        expires_at = handoff["expires_at"]
+        projected[handoff["handoff_id"]] = dict(handoff, expired=(
+            expires_at is not None
+            and handoff["status"] != "completed"
+            and parse_timestamp(expires_at) <= evaluated_at
+        ))
+    return projected
 
 
 def project_leases(records, now, goal_id: str) -> Dict[str, Any]:

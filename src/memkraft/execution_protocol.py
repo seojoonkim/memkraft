@@ -64,6 +64,8 @@ _ERROR_REGISTRY = {
     "E_ALREADY_DECLARED": ("state", False),
     "E_INVALID_TRANSITION": ("state", False),
     "E_CONFLICT": ("state", False),
+    "E_HANDOFF_EXPIRED": ("state", False),
+    "E_DIGEST_MISMATCH": ("integrity", False),
     "E_IDEMPOTENCY_MISMATCH": ("idempotency", False),
     "E_FENCE_REQUIRED": ("lease", False),
     "E_FENCE_STALE": ("lease", False),
