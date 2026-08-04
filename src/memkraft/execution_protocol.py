@@ -24,6 +24,7 @@ __all__ = [
     "ConflictError",
     "NotDeclaredError",
     "EvidenceError",
+    "LeaseError",
     "MAX_SAFE_INTEGER",
     "MIN_SAFE_INTEGER",
     "MAX_DEPTH",
@@ -54,6 +55,7 @@ _ERROR_REGISTRY = {
     "E_TYPE": ("input", False),
     "E_PATTERN": ("input", False),
     "E_MISSING_FIELD": ("input", False),
+    "E_UNKNOWN_FIELD": ("input", False),
     "E_TIME_NAIVE": ("input", False),
     "E_TIME_FORMAT": ("input", False),
     "E_LIMIT_EXCEEDED": ("limits", False),
@@ -61,7 +63,13 @@ _ERROR_REGISTRY = {
     "E_NOT_DECLARED": ("state", False),
     "E_ALREADY_DECLARED": ("state", False),
     "E_INVALID_TRANSITION": ("state", False),
+    "E_CONFLICT": ("state", False),
     "E_IDEMPOTENCY_MISMATCH": ("idempotency", False),
+    "E_FENCE_REQUIRED": ("lease", False),
+    "E_FENCE_STALE": ("lease", False),
+    "E_LEASE_HELD": ("lease", True),
+    "E_LEASE_CAP": ("lease", False),
+    "E_STORE_BUSY": ("io", True),
     "E_EVIDENCE_REQUIRED": ("evidence", False),
     "E_EVIDENCE_STALE": ("evidence", False),
     "E_AUTHORITY_CLAIM_REQUIRED": ("evidence", False),
@@ -100,6 +108,10 @@ class NotDeclaredError(ExecutionError):
 
 class EvidenceError(ExecutionError):
     """An evidence or authority rule was violated."""
+
+
+class LeaseError(ExecutionError):
+    """A lease or fencing rule was violated (§7)."""
 
 
 def _fail(code, message, path=None, **extra):

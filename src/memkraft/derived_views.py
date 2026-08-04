@@ -69,9 +69,16 @@ class DerivedViewsMixin:
     def _policies_path(self): return self._meta("deny_policies.jsonl")
     def _audit_path(self): return self._meta("audit.jsonl")
     def _sleep_journal_path(self): return self._meta("sleep_journal.jsonl")
-    def _governance_lock(self):
+    def _governance_lock(self,timeout_s=None):
+        """Take the governance lock, blocking by default.
+
+        ``timeout_s`` bounds the wait and raises ``StoreBusy`` instead (§7.4):
+        a MemKraft write inside a fail-closed hook must not turn a lock wait
+        into a denied user tool call. The default keeps every existing caller
+        byte-for-byte unchanged.
+        """
         p=self._meta("governance.lock"); p.parent.mkdir(parents=True,exist_ok=True)
-        return _lock_current_inode(str(p),os.O_RDWR|os.O_CREAT)
+        return _lock_current_inode(str(p),os.O_RDWR|os.O_CREAT,timeout_s)
     def _governance_read_lock(self):
         """Lock an existing governance inode without creating any path."""
         p=self._meta("governance.lock")

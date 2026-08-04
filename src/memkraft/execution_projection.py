@@ -23,9 +23,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-from .execution_protocol import canonical_timestamp, digest
+from .execution_protocol import canonical_timestamp, digest, parse_timestamp
 
-__all__ = ["project"]
+__all__ = ["project", "project_leases"]
 
 EXECUTION_SCHEMA = 1
 
@@ -197,6 +197,59 @@ def project(records, now, goal_id: str, skipped: int = 0) -> Dict[str, Any]:
         {key: value for key, value in projection.items() if key != "evaluated_at"}
     )
     return projection
+
+
+def project_leases(records, now, goal_id: str) -> Dict[str, Any]:
+    """Return the goal's lease view at ``now`` (§4.6, §7.2).
+
+    Deliberately separate from :func:`project`. A lease is not a branch-based
+    state machine: it is valid iff a ``lease_grant`` exists for the scope, no
+    later ``lease_release`` or superseding grant applies, and ``now`` has not
+    reached its ``expires_at``. Expiry is therefore a function of the injected
+    ``now`` alone — nothing is ever appended to record it, and no record type
+    named ``expired`` exists.
+
+    Kept out of the digested projection for the same reason: ``project``'s
+    digest must not depend on ``now``, and a lease view does.
+
+    Returns ``{"active", "last", "max_fence"}``. ``active`` maps ``scope_key``
+    to the valid lease; ``last`` maps every seen ``scope_key`` to its most
+    recent grant plus how it ended, which is what a reclaim needs in order to
+    state an exact ``supersede_reason``. ``max_fence`` is the goal-wide
+    high-water mark that makes fence tokens strictly monotonic across scopes.
+    """
+    evaluated_at = parse_timestamp(now)
+    last: Dict[str, Dict[str, Any]] = {}
+    max_fence = 0
+
+    for record in _ordered(records, goal_id):
+        record_type = record.get("record_type")
+        scope_key = record.get("scope_key")
+        if record_type == "lease_grant":
+            fence_token = record.get("fence_token") or 0
+            max_fence = max(max_fence, fence_token)
+            # A later grant supersedes the earlier one by construction: one
+            # entry per scope, overwritten in ``(event_seq, id)`` order.
+            last[scope_key] = {
+                "lease_id": record.get("id"),
+                "holder": record.get("holder"),
+                "fence_token": fence_token,
+                "expires_at": record.get("expires_at"),
+                "released": False,
+            }
+            continue
+        if record_type != "lease_release":
+            continue
+        held = last.get(scope_key)
+        if held is not None and held["lease_id"] == record.get("lease_id"):
+            held["released"] = True
+
+    active = {
+        scope_key: held for scope_key, held in last.items()
+        if not held["released"]
+        and parse_timestamp(held["expires_at"]) > evaluated_at
+    }
+    return {"active": active, "last": last, "max_fence": max_fence}
 
 
 def _identity_sort(item):
