@@ -4,11 +4,32 @@ from __future__ import annotations
 import ast
 import inspect
 import json
+from datetime import datetime, timezone
 
 import pytest
 
 from memkraft import MemKraft
 from memkraft import context_compiler
+
+
+NOW = datetime(2026, 8, 4, 11, 22, 33, tzinfo=timezone.utc)
+GOAL_ID = "hermes/context-compiler"
+
+
+def _declare_pending_gates(mk, count=1):
+    mk.goal_declare(GOAL_ID, "Compile context", "Expose blocking gates", [], [], now=NOW)
+    for index in range(count):
+        mk.gate_declare(
+            GOAL_ID,
+            "gate-%02d" % index,
+            "Required check %02d" % index,
+            {"check_kind": "command", "check_ref": "pytest check-%02d" % index},
+            now=NOW,
+        )
+
+
+def _compiled_bytes(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def test_context_compiler_annotations_are_python39_compatible():
@@ -130,3 +151,101 @@ def test_invalid_task_and_optional_fields_are_clear(tmp_path):
         mk.compile_context("task", 10, session_id=3)
     with pytest.raises(ValueError, match="objective must not be empty"):
         mk.compile_context("task", 10, objective=" ")
+
+
+def test_usage_id_unchanged_when_goal_id_none(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    baseline = mk.compile_context("task", 100)
+    opted_out = mk.compile_context("task", 100, goal_id=None, execution_budget=25)
+    assert opted_out["usage_id"] == baseline["usage_id"]
+
+
+def test_usage_id_unchanged_when_execution_budget_zero(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    _declare_pending_gates(mk)
+    baseline = mk.compile_context("task", 100, now=NOW)
+    opted_out = mk.compile_context(
+        "task", 100, now=NOW, goal_id=GOAL_ID, execution_budget=0
+    )
+    assert opted_out["usage_id"] == baseline["usage_id"]
+
+
+def test_compiled_output_byte_identical_when_feature_unused(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    baseline = mk.compile_context("task", 100, objective="accurate", now=NOW)
+    assert _compiled_bytes(mk.compile_context(
+        "task", 100, objective="accurate", now=NOW,
+        goal_id=None, execution_budget=40,
+    )) == _compiled_bytes(baseline)
+    assert _compiled_bytes(mk.compile_context(
+        "task", 100, objective="accurate", now=NOW,
+        goal_id=GOAL_ID, execution_budget=0,
+    )) == _compiled_bytes(baseline)
+
+
+def test_execution_requires_dual_opt_in_and_is_appended_last(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    mk.append_event("u", "k", "v", source="chat")
+    mk.compile_truth(dry_run=False)
+    _declare_pending_gates(mk, count=2)
+
+    assert "execution" not in mk.compile_context(
+        "task", 200, now=NOW, execution_budget=80
+    )["sections"]
+    assert "execution" not in mk.compile_context(
+        "task", 200, now=NOW, goal_id=GOAL_ID, execution_budget=0
+    )["sections"]
+
+    compiled = mk.compile_context(
+        "task", 200, now=NOW, goal_id=GOAL_ID, execution_budget=80
+    )
+    assert list(compiled["sections"])[-1] == "execution"
+    assert [item["gate_id"] for item in compiled["sections"]["execution"]] == [
+        "gate-00", "gate-01"
+    ]
+    assert all(item["required"] and item["status"] == "pending"
+               for item in compiled["sections"]["execution"])
+
+
+def test_execution_budget_visibly_reduces_other_sections(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    for index in range(12):
+        mk.append_event("u", "key-%02d" % index, "x" * 40, source="chat")
+    mk.compile_truth(dry_run=False)
+    _declare_pending_gates(mk)
+
+    baseline = mk.compile_context("task", 260, now=NOW)
+    opted_in = mk.compile_context(
+        "task", 260, now=NOW, goal_id=GOAL_ID, execution_budget=100
+    )
+    baseline_other = sum(len(items) for items in baseline["sections"].values())
+    opted_in_other = sum(
+        len(items) for name, items in opted_in["sections"].items()
+        if name != "execution"
+    )
+    assert opted_in_other < baseline_other
+    assert opted_in["estimated_tokens"] <= opted_in["budget"]
+
+
+def test_execution_section_is_at_most_eight_gates_and_400_tokens(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    _declare_pending_gates(mk, count=12)
+    compiled = mk.compile_context(
+        "task", 1000, now=NOW, goal_id=GOAL_ID, execution_budget=900
+    )
+    execution = compiled["sections"]["execution"]
+    rendered = json.dumps(
+        {"sections": {"execution": execution}, "sources": []},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    )
+    assert len(execution) <= 8
+    assert mk.estimate_tokens(rendered) <= 400
+
+    tightly_budgeted = mk.compile_context(
+        "task", 200, now=NOW, goal_id=GOAL_ID, execution_budget=100
+    )["sections"]["execution"]
+    tight_rendered = json.dumps(
+        {"sections": {"execution": tightly_budgeted}, "sources": []},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    )
+    assert mk.estimate_tokens(tight_rendered) <= 100

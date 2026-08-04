@@ -59,6 +59,7 @@ def test_a4_execution_prefixed_modules_are_owned_by_mkep():
     planned = {
         "execution.py",
         "execution_assessment.py",
+        "execution_cli.py",
         "execution_dispatch.py",
         "execution_handoff.py",
         "execution_models.py",
