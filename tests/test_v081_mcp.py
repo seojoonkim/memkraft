@@ -37,9 +37,46 @@ def test_dispatch_remember_and_search(mk):
                               {"name": "Simon Kim", "info": "CEO of Hashed", "source": "test"})
     assert result["ok"] is True
     assert result["name"] == "Simon Kim"
+    assert result["created"] is True
+    assert result["entity_type"] == "concept"
 
     hits = mcp_mod.dispatch(mk, "search", {"query": "Simon"})
     assert isinstance(hits, list)
+
+
+def test_dispatch_remember_creates_missing_live_note(mk):
+    result = mcp_mod.dispatch(
+        mk,
+        "remember",
+        {
+            "name": "EHR onboarding",
+            "info": "Pilot workflow defined for new clinics.",
+            "source": "test",
+            "entity_type": "project",
+        },
+    )
+    slug = mk._slugify("EHR onboarding")
+    path = mk.live_notes_dir / f"{slug}.md"
+
+    assert result["ok"] is True
+    assert result["created"] is True
+    assert result["entity_type"] == "project"
+    assert path.exists()
+    assert "Pilot workflow defined for new clinics." in path.read_text(encoding="utf-8")
+
+
+def test_dispatch_remember_updates_existing_live_note(mk):
+    mk.track("Simon Kim", entity_type="person", source="test")
+
+    result = mcp_mod.dispatch(
+        mk,
+        "remember",
+        {"name": "Simon Kim", "info": "CEO of Hashed", "source": "test"},
+    )
+
+    assert result["ok"] is True
+    assert result["created"] is False
+    assert "entity_type" not in result
 
 
 def test_dispatch_unknown_tool_raises(mk):

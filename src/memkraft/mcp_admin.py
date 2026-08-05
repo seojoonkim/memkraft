@@ -119,6 +119,7 @@ def doctor(verbose: bool = True) -> Dict[str, Any]:
 def test_roundtrip(base_dir: str = "", verbose: bool = True) -> Dict[str, Any]:
     """Smoke-test: remember → search → recall, using a temp workspace by default."""
     from .core import MemKraft
+    from .mcp import dispatch
 
     tmp_ctx = None
     if not base_dir:
@@ -134,11 +135,19 @@ def test_roundtrip(base_dir: str = "", verbose: bool = True) -> Dict[str, Any]:
         "steps": [],
     }
 
-    # 1. remember (use track + update API, which is what the MCP "remember" tool wraps)
+    # 1. remember (exercise the same dispatch path the MCP server uses)
     try:
-        mk.track("MCP Smoke Test", entity_type="concept", source="mcp-test")
-        mk.update("MCP Smoke Test", "This is a smoke test entry created by `memkraft mcp test`.", source="mcp-test")
-        report["steps"].append({"step": "remember", "ok": True})
+        result = dispatch(
+            mk,
+            "remember",
+            {
+                "name": "MCP Smoke Test",
+                "info": "This is a smoke test entry created by `memkraft mcp test`.",
+                "source": "mcp-test",
+                "entity_type": "concept",
+            },
+        )
+        report["steps"].append({"step": "remember", "ok": bool(result.get("ok")), **result})
         if verbose:
             print(f"  {_OK} remember: wrote entry 'MCP Smoke Test'")
     except Exception as e:

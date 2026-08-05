@@ -52,6 +52,11 @@ def _tool_schemas() -> list:
                     "name": {"type": "string"},
                     "info": {"type": "string"},
                     "source": {"type": "string", "default": "mcp"},
+                    "entity_type": {
+                        "type": "string",
+                        "default": "concept",
+                        "description": "Entity type used when creating a new live note.",
+                    },
                 },
                 "required": ["name", "info"],
             },
@@ -97,8 +102,32 @@ def _tool_schemas() -> list:
 def dispatch(mk, name: str, args: Dict[str, Any]) -> Any:
     """Pure dispatch — no MCP dependency. Unit-testable."""
     if name == "remember":
-        mk.update(args["name"], args["info"], source=args.get("source", "mcp"))
-        return {"ok": True, "name": args["name"]}
+        source = args.get("source", "mcp")
+        entity_type = args.get("entity_type", "concept")
+        slug = mk._slugify(args["name"])
+        live_note = mk.live_notes_dir / f"{slug}.md"
+        created = not live_note.exists()
+
+        if created:
+            mk.track(args["name"], entity_type=entity_type, source=source)
+
+        mk.update(args["name"], args["info"], source=source)
+
+        if not live_note.exists():
+            return {
+                "ok": False,
+                "name": args["name"],
+                "error": "remember failed to create or update a live note",
+            }
+
+        result = {
+            "ok": True,
+            "name": args["name"],
+            "created": created,
+        }
+        if created:
+            result["entity_type"] = entity_type
+        return result
     if name == "search":
         return mk.search(args["query"], fuzzy=args.get("fuzzy", True))
     if name == "recall":
