@@ -1231,3 +1231,482 @@ def test_slice2_dry_run_for_an_unknown_proposal_is_a_blocker_not_a_raise(tmp_pat
     assert "E_IMPROVEMENT_NOT_FOUND" in [b["code"] for b in plan["blockers"]]
     assert plan["current_status"] is None
     assert _log_stat(mk) == before
+
+
+# ==========================================================================
+# Slice 3 — CAS activation, rollback lineage, and replay determinism
+# (plan §5.6, §6.1, §6.2, A3, A7, A8, A9, A10, A11).
+#
+# Activation is the only thing that moves the active pointer, and it moves it
+# by compare-and-swap inside the same lock that read it — which is what makes
+# "exactly one active revision per artifact at every prefix" an invariant
+# rather than a hope. Rollback is an activation: it appends, it never deletes,
+# and it is only honest about being a rollback if its target was active before.
+# ==========================================================================
+
+ARTIFACT = PROPOSAL["artifact_id"]
+DIGEST_C = "c" * 64
+
+
+def _register(mk, revision_id, content_digest, **overrides):
+    return mk.artifact_register_revision(
+        ARTIFACT, revision_id, content_digest, now=NOW, **overrides
+    )
+
+
+def _activate(mk, to_revision_id, **overrides):
+    return mk.artifact_activate_revision(
+        ARTIFACT, to_revision_id, now=NOW, **overrides
+    )
+
+
+def _activations(mk, artifact_id=ARTIFACT):
+    view = mk.improvement_project(now=NOW)
+    return view["artifacts"][artifact_id]["activations"]
+
+
+# --------------------------------------------------------------------------
+# CAS on the active pointer (§5.6, A7)
+# --------------------------------------------------------------------------
+
+def test_slice3_first_activation_from_none_is_applied(tmp_path):
+    """``expected_active_revision_id=None`` means "expect nothing active yet"."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+
+    result = _activate(mk, "rev1", expected_active_revision_id=None)
+
+    assert result["outcome"] == "applied"
+    record = result["record"]
+    assert record["record_type"] == "artifact_activation"
+    assert record["artifact_id"] == ARTIFACT
+    assert record["to_revision_id"] == "rev1"
+    assert record["from_revision_id"] is None
+    assert record["expected_active_revision_id"] is None
+    assert record["activation_kind"] == "activate"
+    assert record["authority_verified"] is False
+    assert "goal_id" not in record
+
+    view = mk.improvement_project(now=NOW)
+    assert view["artifacts"][ARTIFACT]["active_revision_id"] == "rev1"
+
+
+def test_slice3_first_activation_expecting_a_revision_conflicts(tmp_path):
+    """Nothing is active yet, so expecting ``rev1`` is a lost race, not a no-op."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _activate(mk, "rev1", expected_active_revision_id="rev1")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_ACTIVATION_CONFLICT"
+    assert excinfo.value.details["actual"] is None
+    assert excinfo.value.details["expected"] == "rev1"
+    assert len(_lines(mk)) == before
+
+
+def test_slice3_a_stale_expectation_conflicts_and_writes_nothing(tmp_path):
+    """A7: ``rev1`` is active; a writer that still believes ``rev0`` was loses."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev0", DIGEST_C)
+    _register(mk, "rev1", DIGEST_A)
+    _register(mk, "rev2", DIGEST_B)
+    _activate(mk, "rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _activate(mk, "rev2", expected_active_revision_id="rev0")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_ACTIVATION_CONFLICT"
+    assert excinfo.value.details["actual"] == "rev1"
+    assert excinfo.value.details["expected"] == "rev0"
+    assert len(_lines(mk)) == before
+    assert mk.improvement_project(now=NOW)["artifacts"][ARTIFACT][
+        "active_revision_id"] == "rev1"
+
+
+def test_slice3_activating_an_unregistered_revision_fails_closed(tmp_path):
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _activate(mk, "rev-never-registered")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert len(_lines(mk)) == before
+
+
+def test_slice3_activating_a_revision_of_another_artifact_fails_closed(tmp_path):
+    mk = _mk(tmp_path)
+    mk.artifact_register_revision("artifact.other", "rev1", DIGEST_C, now=NOW)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _activate(mk, "rev1")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert len(_lines(mk)) == before
+
+
+def test_slice3_activation_is_idempotent_under_the_same_operation_id(tmp_path):
+    """A1: an honest retry of a won CAS returns the stored record, not a conflict."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    first = _activate(mk, "rev1", operation_id="op-activate-1")
+    before = len(_lines(mk))
+
+    second = _activate(mk, "rev1", operation_id="op-activate-1")
+
+    assert second["outcome"] == "already_applied"
+    assert second["record_id"] == first["record_id"]
+    assert second["event_seq"] == first["event_seq"]
+    assert len(_lines(mk)) == before
+
+
+def test_slice3_projection_tracks_one_active_pointer_and_the_whole_history(tmp_path):
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    first = _activate(mk, "rev1")
+    second = _activate(mk, "rev2", expected_active_revision_id="rev1",
+                       external_receipt_ref="host:applied-77", reason="rolling out")
+
+    artifact = mk.improvement_project(now=NOW)["artifacts"][ARTIFACT]
+    assert artifact["active_revision_id"] == "rev2"
+    assert artifact["activations"] == [
+        {"from_revision_id": None, "to_revision_id": "rev1",
+         "activation_kind": "activate", "proposal_id": None,
+         "external_receipt_ref": None, "event_seq": first["event_seq"]},
+        {"from_revision_id": "rev1", "to_revision_id": "rev2",
+         "activation_kind": "activate", "proposal_id": None,
+         "external_receipt_ref": "host:applied-77",
+         "event_seq": second["event_seq"]},
+    ]
+
+
+# --------------------------------------------------------------------------
+# Rollback is an activation that appends (§5.6, A9, A10)
+# --------------------------------------------------------------------------
+
+def test_slice3_rollback_is_a_new_activation_retaining_full_lineage(tmp_path):
+    """A9: rev1 -> rev2 -> back to rev1, with every lineage field kept."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1",
+              proposal_id=PROPOSAL["proposal_id"])
+    _activate(mk, "rev1")
+    _activate(mk, "rev2", expected_active_revision_id="rev1")
+    before = len(_lines(mk))
+
+    result = mk.artifact_rollback_revision(
+        ARTIFACT, "rev1", now=NOW, expected_active_revision_id="rev2",
+        proposal_id=PROPOSAL["proposal_id"],
+        external_receipt_ref="host:reverted-78",
+        reason="latency regression in production",
+    )
+
+    assert result["outcome"] == "applied"
+    record = result["record"]
+    assert record["record_type"] == "artifact_activation"
+    assert record["activation_kind"] == "rollback"
+    assert record["from_revision_id"] == "rev2"
+    assert record["to_revision_id"] == "rev1"
+    assert record["proposal_id"] == PROPOSAL["proposal_id"]
+    assert record["external_receipt_ref"] == "host:reverted-78"
+    assert record["reason"] == "latency regression in production"
+    assert len(_lines(mk)) == before + 1
+
+    artifact = mk.improvement_project(now=NOW)["artifacts"][ARTIFACT]
+    assert artifact["active_revision_id"] == "rev1"
+
+
+def test_slice3_rollback_deletes_and_tombstones_nothing(tmp_path):
+    """A9: the superseded revision and the activation that raised it both remain."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    _activate(mk, "rev1")
+    _activate(mk, "rev2", expected_active_revision_id="rev1")
+    before = _records(mk)
+
+    mk.artifact_rollback_revision(
+        ARTIFACT, "rev1", now=NOW, expected_active_revision_id="rev2",
+    )
+
+    after = _records(mk)
+    assert len(after) == len(before) + 1
+    assert after[:len(before)] == before
+    assert not any(record.get("tombstone") for record in after)
+    assert [record["event_seq"] for record in after] == list(
+        range(1, len(after) + 1)
+    )
+
+    artifact = mk.improvement_project(now=NOW)["artifacts"][ARTIFACT]
+    assert set(artifact["revisions"]) == {"rev1", "rev2"}
+    assert [entry["to_revision_id"] for entry in artifact["activations"]] == [
+        "rev1", "rev2", "rev1",
+    ]
+    assert [entry["activation_kind"] for entry in artifact["activations"]] == [
+        "activate", "activate", "rollback",
+    ]
+
+
+def test_slice3_rollback_to_a_never_active_revision_is_rejected(tmp_path):
+    """A10: calling an activation a rollback would launder the audit trail."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    _activate(mk, "rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.artifact_rollback_revision(
+            ARTIFACT, "rev2", now=NOW, expected_active_revision_id="rev1",
+        )
+
+    assert excinfo.value.code == "E_IMPROVEMENT_ROLLBACK_TARGET"
+    assert len(_lines(mk)) == before
+    assert mk.improvement_project(now=NOW)["artifacts"][ARTIFACT][
+        "active_revision_id"] == "rev1"
+
+
+def test_slice3_rollback_with_a_stale_expectation_conflicts(tmp_path):
+    """A rollback is CAS-guarded exactly like any other activation."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    _activate(mk, "rev1")
+    _activate(mk, "rev2", expected_active_revision_id="rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.artifact_rollback_revision(
+            ARTIFACT, "rev1", now=NOW, expected_active_revision_id="rev1",
+        )
+
+    assert excinfo.value.code == "E_IMPROVEMENT_ACTIVATION_CONFLICT"
+    assert excinfo.value.details["actual"] == "rev2"
+    assert excinfo.value.details["expected"] == "rev1"
+    assert len(_lines(mk)) == before
+
+
+# --------------------------------------------------------------------------
+# The activation dry run: same blockers, zero writes (§6.1, A3)
+# --------------------------------------------------------------------------
+
+def test_slice3_plan_activation_reports_ok_without_writing(tmp_path, monkeypatch):
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    _activate(mk, "rev1")
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    plan = mk.improvement_plan_activation(
+        ARTIFACT, "rev2", now=NOW, expected_active_revision_id="rev1",
+    )
+
+    assert plan["ok"] is True
+    assert plan["blockers"] == []
+    assert plan["active_revision_id"] == "rev1"
+    assert plan["snapshot_event_seq"] == mk.improvement_project(
+        now=NOW)["high_water_seq"]
+    assert _log_stat(mk) == before
+
+
+@pytest.mark.parametrize(
+    "kwargs, code",
+    [
+        (dict(to_revision_id="rev-never-registered",
+              expected_active_revision_id="rev1"),
+         "E_IMPROVEMENT_NOT_FOUND"),
+        (dict(to_revision_id="rev2", expected_active_revision_id="rev0"),
+         "E_IMPROVEMENT_ACTIVATION_CONFLICT"),
+        (dict(to_revision_id="rev2", expected_active_revision_id="rev1",
+              activation_kind="rollback"),
+         "E_IMPROVEMENT_ROLLBACK_TARGET"),
+    ],
+)
+def test_slice3_plan_activation_blockers_match_the_writer_and_write_nothing(
+        tmp_path, monkeypatch, kwargs, code):
+    """A3/A16b: the dry run raises nothing and predicts the writer's first blocker."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev0", DIGEST_B)
+    _register(mk, "rev1", DIGEST_C)
+    _register(mk, "rev2", DIGEST_A, parent_revision_id="rev1")
+    _activate(mk, "rev1")
+    before = _log_stat(mk)
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.artifact_activate_revision(ARTIFACT, now=NOW, **kwargs)
+    assert excinfo.value.code == code
+    assert _log_stat(mk) == before
+
+    _forbid_appends(monkeypatch)
+    plan = mk.improvement_plan_activation(ARTIFACT, now=NOW, **kwargs)
+
+    assert plan["ok"] is False
+    assert [blocker["code"] for blocker in plan["blockers"]] == [code]
+    for blocker in plan["blockers"]:
+        assert isinstance(blocker["message"], str) and blocker["message"]
+        assert isinstance(blocker["details"], dict)
+    assert plan["active_revision_id"] == "rev1"
+    assert _log_stat(mk) == before
+
+
+# --------------------------------------------------------------------------
+# Active-base drift: a promotion authored against a dead base is stale (A6)
+# --------------------------------------------------------------------------
+
+def test_slice3_active_base_drift_makes_a_prior_promotion_stale(tmp_path, monkeypatch):
+    """§5.4.3: a changed active base requires a new proposal, not a rebinding."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _activate(mk, "rev1")
+    _propose(mk, base_revision_id="rev1")
+    mk.improvement_set_status(
+        PROPOSAL["proposal_id"], "draft", "under_evaluation", now=NOW,
+    )
+    _register(mk, PROMOTED_REVISION, DIGEST_A, parent_revision_id="rev1",
+              proposal_id=PROPOSAL["proposal_id"])
+    _evaluate(mk, "pass", evaluated_base_revision_id="rev1")
+
+    assert mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], PROMOTED_REVISION, now=NOW)["ok"] is True
+
+    # Someone else moves the world out from under the proposal.
+    _register(mk, "rev2", DIGEST_B, parent_revision_id="rev1")
+    _activate(mk, "rev2", expected_active_revision_id="rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk)
+    assert excinfo.value.code == "E_IMPROVEMENT_EVALUATION_STALE"
+    assert len(_lines(mk)) == before
+
+    stat_before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+    plan = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], PROMOTED_REVISION, now=NOW,
+    )
+    assert plan["ok"] is False
+    assert "E_IMPROVEMENT_EVALUATION_STALE" in [
+        blocker["code"] for blocker in plan["blockers"]
+    ]
+    assert plan["active_revision_id"] == "rev2"
+    assert _log_stat(mk) == stat_before
+
+
+def test_slice3_rebinding_a_drifted_proposal_with_a_new_receipt_is_rejected(tmp_path):
+    """The immutable proposal's bindings are the only ones a receipt may claim."""
+    mk = _mk(tmp_path)
+    _register(mk, "rev1", DIGEST_C)
+    _activate(mk, "rev1")
+    _propose(mk, base_revision_id="rev1")
+    _register(mk, "rev2", DIGEST_B, parent_revision_id="rev1")
+    _activate(mk, "rev2", expected_active_revision_id="rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "pass", evaluated_base_revision_id="rev2")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+# --------------------------------------------------------------------------
+# Replay determinism and the single-active invariant (A8, A11)
+# --------------------------------------------------------------------------
+
+def _scripted_history(mk):
+    """A mixed history touching all five families, ending with a rollback."""
+    _register(mk, "rev1", DIGEST_C)
+    _activate(mk, "rev1")
+    _propose(mk, base_revision_id="rev1")
+    mk.improvement_set_status(
+        PROPOSAL["proposal_id"], "draft", "under_evaluation", now=NOW,
+    )
+    _register(mk, PROMOTED_REVISION, DIGEST_A, parent_revision_id="rev1",
+              proposal_id=PROPOSAL["proposal_id"])
+    _evaluate(mk, "fail", evaluated_base_revision_id="rev1",
+              operation_id="op-eval-fail")
+    _evaluate(mk, "pass", evaluated_base_revision_id="rev1",
+              operation_id="op-eval-pass")
+    _promote(mk)
+    _activate(mk, PROMOTED_REVISION, expected_active_revision_id="rev1",
+              proposal_id=PROPOSAL["proposal_id"],
+              external_receipt_ref="host:applied-91")
+    mk.artifact_rollback_revision(
+        ARTIFACT, "rev1", now=NOW,
+        expected_active_revision_id=PROMOTED_REVISION,
+        proposal_id=PROPOSAL["proposal_id"],
+        external_receipt_ref="host:reverted-92",
+    )
+
+
+def test_slice3_replay_is_deterministic_under_shuffled_physical_order(tmp_path):
+    """A11: the fold is driven by ``(event_seq, id)``, never by file order."""
+    from memkraft.execution_protocol import digest
+    from memkraft.improvement_ledger import project_improvement
+
+    mk = _mk(tmp_path)
+    _scripted_history(mk)
+
+    records = _records(mk)
+    assert len(records) > 1
+
+    live = mk.improvement_project(now=NOW)
+    in_order = project_improvement(list(records), NOW)
+    reversed_order = project_improvement(list(reversed(records)), NOW)
+    rotated = project_improvement(records[3:] + records[:3], NOW)
+
+    assert digest(live) == digest(in_order)
+    assert digest(in_order) == digest(reversed_order)
+    assert digest(in_order) == digest(rotated)
+    assert in_order["high_water_seq"] == reversed_order["high_water_seq"]
+
+
+def test_slice3_shuffled_log_file_projects_identically(tmp_path):
+    """Same lines, same ``event_seq`` values, physically rewritten out of order."""
+    from memkraft.execution_protocol import digest
+
+    mk = _mk(tmp_path)
+    _scripted_history(mk)
+    expected = digest(mk.improvement_project(now=NOW))
+
+    lines = _lines(mk)
+    _log_path(mk).write_text(
+        "\n".join(lines[::-1]) + "\n", encoding="utf-8",
+    )
+
+    view = mk.improvement_project(now=NOW)
+    assert view["skipped_lines"] == 0
+    assert digest(view) == expected
+    assert view["artifacts"][ARTIFACT]["active_revision_id"] == "rev1"
+
+
+def test_slice3_every_prefix_has_at_most_one_active_revision(tmp_path):
+    """A8: the CAS read and the sequence allocation share one lock, so no prefix
+    can show two winners — and none can show a revision that was never
+    registered by that prefix."""
+    from memkraft.improvement_ledger import project_improvement
+
+    mk = _mk(tmp_path)
+    _scripted_history(mk)
+    records = _records(mk)
+
+    seen_active = []
+    for size in range(len(records) + 1):
+        view = project_improvement(records[:size], NOW)
+        for artifact_id, artifact in view["artifacts"].items():
+            active = artifact["active_revision_id"]
+            assert isinstance(active, (str, type(None)))
+            if active is not None:
+                assert active in artifact["revisions"]
+                seen_active.append(active)
+
+    # The invariant is not vacuous: some prefix did have an active revision.
+    assert seen_active

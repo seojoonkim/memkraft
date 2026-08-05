@@ -63,6 +63,8 @@ IMPROVEMENT_ERROR_REGISTRY = {
     "E_IMPROVEMENT_EVALUATION_MISSING": ("evidence", False),
     "E_IMPROVEMENT_EVALUATION_FAILED": ("evidence", False),
     "E_IMPROVEMENT_EVALUATION_STALE": ("evidence", False),
+    "E_IMPROVEMENT_ACTIVATION_CONFLICT": ("state", False),
+    "E_IMPROVEMENT_ROLLBACK_TARGET": ("state", False),
     "E_IMPROVEMENT_SCOPE_UNAUTHORIZED": ("evidence", False),
     "E_IMPROVEMENT_LOG_CORRUPT": ("integrity", False),
     "E_IMPROVEMENT_STORE_BUSY": ("io", True),
@@ -115,9 +117,20 @@ _MAX_REQUIRED_EVALUATIONS = 8
 #: §5.5 exactly, and load-bearing: the store mints a fresh ``id`` and
 #: ``created_at`` on every append and core allocates ``event_seq``, so a wider
 #: set would fail every honest retry and a narrower one would never match.
-_FINGERPRINT_EXCLUDED = frozenset({"id", "created_at", "event_seq"})
+#: ``from_revision_id`` joins them for the same reason — it is allocated by core
+#: from the value observed under the lock, never supplied, so a retry that
+#: rebuilds the request cannot know it. It carries no information the
+#: fingerprint loses: CAS only appends when the observed active revision equals
+#: ``expected_active_revision_id``, which *is* fingerprinted.
+_FINGERPRINT_EXCLUDED = frozenset({
+    "id", "created_at", "event_seq", "from_revision_id",
+})
 
 _VERDICT = ("pass", "fail", "inconclusive")
+
+#: §5.6. ``rollback`` is accepted by the schema here; the honesty guard that
+#: makes the label mean something lands with the rollback wrapper.
+_ACTIVATION_KIND = ("activate", "rollback")
 
 _DRAFT = "draft"
 _UNDER_EVALUATION = "under_evaluation"
@@ -387,6 +400,22 @@ def _fold(records: List[Dict[str, Any]]) -> Any:
                 "proposal_id": stored.get("proposal_id"),
                 "event_seq": stored.get("event_seq"),
             }
+        elif record_type == "artifact_activation":
+            artifact = artifacts.setdefault(stored["artifact_id"], {
+                "active_revision_id": None, "revisions": {}, "activations": [],
+            })
+            # §5.6: the pointer is a fold over an append-only history, so it
+            # holds exactly one value at every prefix, and the history that
+            # produced it stays readable in full.
+            artifact["active_revision_id"] = stored.get("to_revision_id")
+            artifact["activations"].append({
+                "from_revision_id": stored.get("from_revision_id"),
+                "to_revision_id": stored.get("to_revision_id"),
+                "activation_kind": stored.get("activation_kind"),
+                "proposal_id": stored.get("proposal_id"),
+                "external_receipt_ref": stored.get("external_receipt_ref"),
+                "event_seq": stored.get("event_seq"),
+            })
 
     return proposals, artifacts
 
@@ -507,6 +536,42 @@ def _transition_blockers(proposals: Dict[str, Any], proposal_id: str,
                          path="to_status", actual=actual, supplied=supplied,
                          to_status=to_status)]
     return []
+
+
+def _activation_blockers(artifacts: Dict[str, Any], artifact_id: str,
+                         to_revision_id: str,
+                         expected_active_revision_id: Optional[str],
+                         activation_kind: str = "activate"
+                         ) -> List[Dict[str, Any]]:
+    """Return the shared CAS and rollback-honesty blockers as data."""
+    artifact = artifacts.get(artifact_id) or {}
+    blockers: List[Dict[str, Any]] = []
+
+    if to_revision_id not in (artifact.get("revisions") or {}):
+        blockers.append(_blocker(
+            "E_IMPROVEMENT_NOT_FOUND",
+            "artifact_revision referenced by to_revision_id was never recorded"
+            " for this artifact",
+            path="to_revision_id", record_type="artifact_revision",
+            identity={"artifact_id": artifact_id,
+                      "revision_id": to_revision_id}))
+
+    active = artifact.get("active_revision_id")
+    if active != expected_active_revision_id:
+        blockers.append(_blocker(
+            "E_IMPROVEMENT_ACTIVATION_CONFLICT",
+            "the artifact's active revision is not the one this activation"
+            " expected to replace",
+            path="expected_active_revision_id", actual=active,
+            expected=expected_active_revision_id))
+    if activation_kind == "rollback" and not any(
+            item.get("to_revision_id") == to_revision_id
+            for item in (artifact.get("activations") or [])):
+        blockers.append(_blocker(
+            "E_IMPROVEMENT_ROLLBACK_TARGET",
+            "a rollback target must have been active previously",
+            path="to_revision_id", to_revision_id=to_revision_id))
+    return blockers
 
 
 def _promotion_report(proposals: Dict[str, Any], artifacts: Dict[str, Any],
@@ -947,6 +1012,90 @@ class ImprovementLedgerMixin:
             guard=guard,
         )
 
+    def artifact_activate_revision(self, artifact_id, to_revision_id, *, now,
+                                   expected_active_revision_id=None,
+                                   activation_kind="activate", proposal_id=None,
+                                   external_receipt_ref=None, reason=None,
+                                   scope="project", host_authorization_ref=None,
+                                   privacy="local_private", authority_claim="agent",
+                                   authority_verified=False, execution_run_id=None,
+                                   operation_id=None) -> Dict[str, Any]:
+        """Compare-and-swap the artifact's active revision (§5.6).
+
+        ``expected_active_revision_id`` is the CAS operand and ``None`` means
+        "expect nothing active yet", not "don't care": a first activation that
+        expects a revision is a lost race, not a no-op. The compare and the
+        append happen under one lock, so no two activations can both believe
+        they won and the projection holds exactly one active revision per
+        artifact at every prefix of the log.
+
+        ``from_revision_id`` is core's, allocated from the value observed under
+        that lock — a caller-supplied "previous" is a claim, not an
+        observation. Core moves a pointer in its own ledger and nothing else:
+        it applies no change to the world, and ``external_receipt_ref`` is the
+        host's opaque proof that it did.
+        """
+        record = _common_fields(
+            "artifact_activation", now, privacy=privacy,
+            authority_claim=authority_claim,
+            authority_verified=authority_verified, scope=scope,
+            host_authorization_ref=host_authorization_ref,
+            execution_run_id=execution_run_id,
+        )
+        record["artifact_id"] = _pattern("artifact_id", artifact_id, _ID)
+        record["to_revision_id"] = _pattern(
+            "to_revision_id", to_revision_id, _REVISION_ID
+        )
+        record["expected_active_revision_id"] = _optional(
+            lambda field, value: _pattern(field, value, _REVISION_ID),
+            "expected_active_revision_id", expected_active_revision_id,
+        )
+        record["activation_kind"] = _enum(
+            "activation_kind", activation_kind, _ACTIVATION_KIND
+        )
+        record["proposal_id"] = _optional(
+            lambda field, value: _pattern(field, value, _ID),
+            "proposal_id", proposal_id,
+        )
+        record["external_receipt_ref"] = _optional(
+            _ref, "external_receipt_ref", external_receipt_ref
+        )
+        record["reason"] = _optional(_text, "reason", reason)
+        # The CAS operand becomes the recorded ``from`` value only after the
+        # post-lock guard proves it equals the observed active revision. Build
+        # it into the candidate here because ``_improvement_append`` owns a
+        # defensive copy; mutating this outer dict from the guard would not
+        # update the record that is actually appended.
+        record["from_revision_id"] = record["expected_active_revision_id"]
+
+        def guard(existing: List[Dict[str, Any]]) -> None:
+            _, artifacts = _fold(existing)
+            blockers = _activation_blockers(
+                artifacts, record["artifact_id"], record["to_revision_id"],
+                record["expected_active_revision_id"],
+                record["activation_kind"],
+            )
+            if blockers:
+                _raise(blockers[0])
+            if record["proposal_id"] is not None:
+                _require(
+                    existing, "improvement_proposal",
+                    {"proposal_id": record["proposal_id"]}, "proposal_id",
+                )
+            # CAS success proves the stored ``from_revision_id`` above equals
+            # the active revision observed under this lock.
+
+        return self._improvement_append(record, operation_id, guard=guard)
+
+    def artifact_rollback_revision(self, artifact_id, to_revision_id, *, now,
+                                   expected_active_revision_id=None, **kwargs):
+        """Append a CAS-guarded rollback without deleting prior lineage."""
+        return self.artifact_activate_revision(
+            artifact_id, to_revision_id, now=now,
+            expected_active_revision_id=expected_active_revision_id,
+            activation_kind="rollback", **kwargs
+        )
+
     # -- reads -------------------------------------------------------------
 
     def improvement_project(self, *, now, artifact_id=None,
@@ -987,6 +1136,43 @@ class ImprovementLedgerMixin:
             "current_status": report["current_status"],
             "active_revision_id": report["active_revision_id"],
             "required_evaluations": report["required_evaluations"],
+            "snapshot_event_seq": _high_water(existing),
+        }
+
+    def improvement_plan_activation(self, artifact_id, to_revision_id, *, now,
+                                    expected_active_revision_id=None,
+                                    activation_kind="activate") -> Dict[str, Any]:
+        """Run the activation writer's guards against a read-only snapshot."""
+        artifact_id = _pattern("artifact_id", artifact_id, _ID)
+        to_revision_id = _pattern(
+            "to_revision_id", to_revision_id, _REVISION_ID
+        )
+        expected_active_revision_id = _optional(
+            lambda field, value: _pattern(field, value, _REVISION_ID),
+            "expected_active_revision_id", expected_active_revision_id,
+        )
+        activation_kind = _enum(
+            "activation_kind", activation_kind, _ACTIVATION_KIND
+        )
+        existing, corrupt = _partition(
+            read_all(self._improvement_events_path(), include_tombstoned=True)
+        )
+        _, artifacts = _fold(existing)
+        blockers = _activation_blockers(
+            artifacts, artifact_id, to_revision_id,
+            expected_active_revision_id, activation_kind,
+        )
+        if corrupt:
+            blockers.insert(0, _blocker(
+                "E_IMPROVEMENT_LOG_CORRUPT",
+                "the improvement log holds unreadable lines",
+                skipped_lines=corrupt,
+            ))
+        active = (artifacts.get(artifact_id) or {}).get("active_revision_id")
+        return {
+            "ok": not blockers,
+            "blockers": blockers,
+            "active_revision_id": active,
             "snapshot_event_seq": _high_water(existing),
         }
 
