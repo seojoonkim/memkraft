@@ -22,6 +22,10 @@
 
 MKEP/0은 Python typed methods와 `memkraft exec call|state` CLI를 통해 제공되는 Preview 계약이다. 공개 실행 동사는 `goal_declare`, `gate_declare`, `receipt_record`, `goal_transition`, `gate_transition`, `lease_acquire`, `lease_release`, `execution_state`, `assess_run`, `assess_record`, `handoff_declare`, `handoff_transition`, `handoff_export`, `handoff_import`, `execution_forget`이다. Wire registry는 정확히 15 operations이며 [EXECUTION_PROTOCOL.md](EXECUTION_PROTOCOL.md)가 canonical transport contract다. MCP는 `describe`, `state.read`, `assess.run`, `handoff.export` read-only projection만 노출한다.
 
+### Continual improvement ledger preview
+
+Python-only additive [Continual Improvement Ledger Preview](CONTINUAL_IMPROVEMENT_LEDGER.md)는 실행 경험에서 proposal, evaluation evidence, explicit promotion, artifact activation과 append-only rollback까지의 감사 가능한 lifecycle을 제공한다. 이 기능은 MKEP/0 wire registry에 operation을 추가하지 않으며 scheduler, executor, deployer 또는 authenticated authority 역할을 하지 않는다. Dry-run은 무쓰기이고 promotion과 activation은 분리되며 stale evidence, invalid transition, CAS·idempotency mismatch를 fail-closed한다.
+
 실행 기능은 `compile_context(..., goal_id=None, execution_budget=0)`에 dual opt-in이다. `goal_id is not None`이고 `execution_budget > 0`일 때만 마지막 `execution` section이 생긴다. 사용하지 않을 때 기존 output과 identity input은 byte-identical이다. `context_schema`는 golden `usage_id`를 지키기 위해 identity dict에서 제외되므로 서로 다른 context schema payload가 같은 `usage_id`를 가질 수 있고 outcome attribution이 schema version 사이에서 합쳐질 수 있다. 이 aliasing은 의도된 Preview trade-off다.
 
 Gates와 `should_run`은 advisory이며 권한 부여가 아니다. Authority/namespace/holder/binding은 인증되지 않은 audit identity다. Scope는 single-host local filesystem이고 execution log compaction, multi-host coordination, graph schema, checkpoint/resume, envelope authenticity는 제공하지 않는다. GA decision deadline은 **2027-02-04**다.
