@@ -306,28 +306,54 @@ def _differing_keys(stored: Dict[str, Any],
     )
 
 
-def _structurally_valid(stored: Dict[str, Any]) -> bool:
-    """A structurally parseable line is not yet a structurally valid record.
+_FOLD_REQUIRED_FIELDS = {
+    "improvement_proposal": frozenset({"proposal_id", "artifact_id"}),
+    "evaluation_receipt": frozenset({"proposal_id", "evaluation_kind"}),
+    "improvement_proposal_status": frozenset({"proposal_id", "to_status"}),
+    "artifact_revision": frozenset({"artifact_id", "revision_id"}),
+    "artifact_activation": frozenset({"artifact_id", "to_revision_id"}),
+}
+_MAX_EVENT_SEQ = (1 << 63) - 1
 
-    A record without a ``record_type`` cannot be folded and one without an
-    ``event_seq`` cannot be ordered, so either is corruption rather than data.
-    """
-    return (isinstance(stored.get("record_type"), str)
-            and isinstance(stored.get("event_seq"), int)
-            and not isinstance(stored.get("event_seq"), bool))
+
+def _structurally_valid(stored: Dict[str, Any]) -> bool:
+    """Reject parseable records that cannot participate in a safe fold."""
+    record_type = stored.get("record_type")
+    event_seq = stored.get("event_seq")
+    required = (_FOLD_REQUIRED_FIELDS.get(record_type)
+                if isinstance(record_type, str) else None)
+    return (required is not None
+            and isinstance(event_seq, int)
+            and not isinstance(event_seq, bool)
+            and 0 < event_seq <= _MAX_EVENT_SEQ
+            and all(field in stored and stored[field] is not None
+                    for field in required))
 
 
 def _partition(read_result) -> Any:
-    """Split a read into (usable records, total corrupt-line count)."""
-    usable = []
+    """Split a read into usable records and corruption, including seq clashes.
+
+    Every record sharing a duplicate sequence is excluded: selecting one by
+    physical line order would make projection non-deterministic.
+    """
+    candidates = []
     corrupt = read_result.skipped
     for stored in read_result.records:
         if stored.get("tombstone") is True:
             continue
         if _structurally_valid(stored):
-            usable.append(stored)
+            candidates.append(stored)
         else:
             corrupt += 1
+
+    counts: Dict[int, int] = {}
+    for stored in candidates:
+        event_seq = stored["event_seq"]
+        counts[event_seq] = counts.get(event_seq, 0) + 1
+    usable = [
+        stored for stored in candidates if counts[stored["event_seq"]] == 1
+    ]
+    corrupt += len(candidates) - len(usable)
     return usable, corrupt
 
 
@@ -1123,16 +1149,23 @@ class ImprovementLedgerMixin:
         for a proposal that was never declared. ``now`` is injected and used
         only to keep the read side clock-free like every other read.
         """
-        existing, _ = _partition(
+        existing, corrupt = _partition(
             read_all(self._improvement_events_path(), include_tombstoned=True)
         )
         proposals, artifacts = _fold(existing)
         report = _promotion_report(
             proposals, artifacts, proposal_id, promoted_revision_id,
         )
+        blockers = list(report["blockers"])
+        if corrupt:
+            blockers.insert(0, _blocker(
+                "E_IMPROVEMENT_LOG_CORRUPT",
+                "the improvement log holds unreadable lines",
+                skipped_lines=corrupt,
+            ))
         return {
-            "ok": not report["blockers"],
-            "blockers": report["blockers"],
+            "ok": not blockers,
+            "blockers": blockers,
             "current_status": report["current_status"],
             "active_revision_id": report["active_revision_id"],
             "required_evaluations": report["required_evaluations"],

@@ -11,8 +11,7 @@ MemKraft 3.3의 Continual Improvement Ledger는 여러 런타임이 실행 경�
 - `improvement_propose(...)`
 - `artifact_register_revision(...)`
 - `improvement_record_evaluation(...)`
-- `improvement_set_status(...)`
-- `improvement_promote(...)`
+- `improvement_set_status(...)` — `to_status="promoted"`와 `promoted_revision_id`를 사용한 명시적 승격 포함
 - `artifact_activate_revision(...)`
 - `artifact_rollback_revision(...)`
 - `improvement_project(...)`
