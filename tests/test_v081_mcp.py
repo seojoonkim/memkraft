@@ -1,4 +1,6 @@
 """v0.8.1 — MCP dispatch + extras hint."""
+import asyncio
+import datetime
 import shutil
 import sys
 import tempfile
@@ -40,6 +42,73 @@ def test_dispatch_remember_and_search(mk):
 
     hits = mcp_mod.dispatch(mk, "search", {"query": "Simon"})
     assert isinstance(hits, list)
+
+
+def test_mcp_dispatch_search_does_not_pollute_stdout(mk, capsys):
+    mk.track("Protocol Probe", entity_type="concept", source="test")
+    mk.update("Protocol Probe", "searchable MCP result", source="test")
+    capsys.readouterr()
+
+    hits = mcp_mod._dispatch_for_mcp(mk, "search", {"query": "Protocol Probe"})
+
+    assert hits
+    assert capsys.readouterr().out == ""
+
+
+def test_repeated_stdio_searches_preserve_jsonrpc_framing(mk):
+    pytest.importorskip("mcp")
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    for index in range(24):
+        filename = f"protocol-framing-{index:02d}-{'x' * 80}.md"
+        (mk.live_notes_dir / filename).write_text(
+            "\n".join(
+                [
+                    f"# Protocol Framing Probe {index}",
+                    "",
+                    "## Recent Activity",
+                    f"- Protocol framing search result {index}: {'detail ' * 30}",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+    async def run_repeated_searches():
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "memkraft.mcp"],
+            env={
+                "MEMKRAFT_DIR": str(mk.base_dir),
+                "PYTHONPATH": str(Path(__file__).resolve().parent.parent / "src"),
+            },
+        )
+        timeout = datetime.timedelta(seconds=5)
+        with tempfile.TemporaryFile(mode="w+") as errlog:
+            async with stdio_client(
+                params,
+                errlog=errlog,
+            ) as (read_stream, write_stream):
+                async with ClientSession(
+                    read_stream,
+                    write_stream,
+                    read_timeout_seconds=timeout,
+                ) as session:
+                    await session.initialize()
+                    for _ in range(4):
+                        result = await session.call_tool(
+                            "search",
+                            {"query": "Protocol Framing", "fuzzy": True},
+                        )
+                        text = "".join(
+                            item.text
+                            for item in result.content
+                            if hasattr(item, "text")
+                        )
+                        assert result.isError is False
+                        assert "protocol-framing" in text
+
+    asyncio.run(run_repeated_searches())
 
 
 def test_dispatch_unknown_tool_raises(mk):
