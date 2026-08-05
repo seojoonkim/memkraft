@@ -563,6 +563,3 @@ Remaining surface: 5 record families, 6 write methods (one a wrapper), 3 read me
 | D-I3 | Cross-artifact atomic activation (activate N artifacts as one unit) | Not offered. It is distributed-commit-shaped and the standing MKEP No-Go on consensus applies. |
 | D-I4 | Projection cache | Not built. Preview logs are small; measure before caching. |
 | D-I5 | Proposal supersession chains | Not built. Callers express it with `parent_revision_id` lineage and a new proposal. |
-
-
-
