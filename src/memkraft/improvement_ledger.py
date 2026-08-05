@@ -1,4 +1,4 @@
-"""Continual Improvement Ledger — Slice 1 substrate (plan §4, §5.1, §5.5, §6.2, §6.3).
+"""Continual Improvement Ledger (plan §4, §5, §6).
 
 One append-only log, ``<base_dir>/.memkraft/improvement/events.jsonl``, holds the
 causal chain from proposal to artifact revision. It is never compacted, so
@@ -12,6 +12,13 @@ strings core stores and compares but never fetches, parses, or executes.
 field nobody checked is worse than no field at all. ``host_authorization_ref``
 is an attribution breadcrumb the host can later audit, **not** an authorization
 check MemKraft performed.
+
+Core evaluates nothing. ``evaluation_receipt.verdict`` is the caller's, and the
+only thing the promotion gate (§5.4) does with it is check that every kind the
+proposal declared has a latest receipt that passed, still bound to the content
+and base it judged. There is no code path from a receipt to a promoted
+proposal: promotion is a separate, explicit, guarded append — and it never
+activates anything.
 
 Deliberate asymmetry (§6.3): a damaged ledger stays readable and auditable but
 stops accepting new decisions, because a guard reasoning over a partial view
@@ -52,6 +59,10 @@ IMPROVEMENT_ERROR_REGISTRY = {
     "E_IMPROVEMENT_NOT_FOUND": ("state", False),
     "E_IMPROVEMENT_ALREADY_EXISTS": ("state", False),
     "E_IMPROVEMENT_IDEMPOTENCY_MISMATCH": ("idempotency", False),
+    "E_IMPROVEMENT_TRANSITION": ("state", False),
+    "E_IMPROVEMENT_EVALUATION_MISSING": ("evidence", False),
+    "E_IMPROVEMENT_EVALUATION_FAILED": ("evidence", False),
+    "E_IMPROVEMENT_EVALUATION_STALE": ("evidence", False),
     "E_IMPROVEMENT_SCOPE_UNAUTHORIZED": ("evidence", False),
     "E_IMPROVEMENT_LOG_CORRUPT": ("integrity", False),
     "E_IMPROVEMENT_STORE_BUSY": ("io", True),
@@ -106,7 +117,24 @@ _MAX_REQUIRED_EVALUATIONS = 8
 #: set would fail every honest retry and a narrower one would never match.
 _FINGERPRINT_EXCLUDED = frozenset({"id", "created_at", "event_seq"})
 
+_VERDICT = ("pass", "fail", "inconclusive")
+
 _DRAFT = "draft"
+_UNDER_EVALUATION = "under_evaluation"
+_PROMOTED = "promoted"
+_REJECTED = "rejected"
+
+_STATUSES = (_DRAFT, _UNDER_EVALUATION, _PROMOTED, _REJECTED)
+
+#: §5.3, complete. Every pair outside this set is ``E_IMPROVEMENT_TRANSITION``,
+#: which is what makes ``rejected`` and ``promoted`` terminal and forbids both
+#: ``draft -> promoted`` and every self-transition without a second table.
+_TRANSITIONS = frozenset({
+    (_DRAFT, _UNDER_EVALUATION),
+    (_DRAFT, _REJECTED),
+    (_UNDER_EVALUATION, _PROMOTED),
+    (_UNDER_EVALUATION, _REJECTED),
+})
 
 
 def _fail(code: str, message: str, field: Optional[str] = None,
@@ -297,14 +325,13 @@ def _fold_key(stored: Dict[str, Any]):
 
 # -- projection (pure) -------------------------------------------------------
 
-def project_improvement(records: List[Dict[str, Any]], now: Any,
-                        skipped_lines: int = 0,
-                        artifact_id: Optional[str] = None,
-                        proposal_id: Optional[str] = None) -> Dict[str, Any]:
-    """Fold ``records`` into the §6.2 view. Pure: no clock, no I/O, no writes.
+def _fold(records: List[Dict[str, Any]]) -> Any:
+    """Fold ``records`` into ``(proposals, artifacts)`` in ``(event_seq, id)`` order.
 
-    Replaying the same lines in any *physical* order yields an identical view,
-    because the fold is driven by ``(event_seq, id)`` and never by file order.
+    The single fold the projection and every guard share. A guard that folded
+    the log its own way could disagree with the view a caller was shown, so
+    there is exactly one implementation and both the writers and the dry runs
+    call it.
     """
     proposals: Dict[str, Any] = {}
     artifacts: Dict[str, Any] = {}
@@ -315,6 +342,7 @@ def project_improvement(records: List[Dict[str, Any]], now: Any,
             proposals[stored["proposal_id"]] = {
                 "status": _DRAFT,
                 "artifact_id": stored.get("artifact_id"),
+                "base_revision_id": stored.get("base_revision_id"),
                 "candidate_digest": stored.get("candidate_digest"),
                 "required_evaluations": list(
                     stored.get("required_evaluations") or []
@@ -322,6 +350,33 @@ def project_improvement(records: List[Dict[str, Any]], now: Any,
                 "evaluations": {},
                 "status_history": [],
             }
+        elif record_type == "evaluation_receipt":
+            proposal = proposals.get(stored.get("proposal_id"))
+            if proposal is None:
+                continue
+            # Fold order is total, so the last write for a kind is the latest
+            # receipt by ``(event_seq, id)``: an older pass never overrides a
+            # newer failure.
+            proposal["evaluations"][stored["evaluation_kind"]] = {
+                "verdict": stored.get("verdict"),
+                "evaluated_candidate_digest": stored.get(
+                    "evaluated_candidate_digest"
+                ),
+                "evaluated_base_revision_id": stored.get(
+                    "evaluated_base_revision_id"
+                ),
+                "event_seq": stored.get("event_seq"),
+            }
+        elif record_type == "improvement_proposal_status":
+            proposal = proposals.get(stored.get("proposal_id"))
+            if proposal is None:
+                continue
+            proposal["status"] = stored.get("to_status")
+            proposal["status_history"].append({
+                "from_status": stored.get("from_status"),
+                "to_status": stored.get("to_status"),
+                "event_seq": stored.get("event_seq"),
+            })
         elif record_type == "artifact_revision":
             artifact = artifacts.setdefault(stored["artifact_id"], {
                 "active_revision_id": None, "revisions": {}, "activations": [],
@@ -333,6 +388,27 @@ def project_improvement(records: List[Dict[str, Any]], now: Any,
                 "event_seq": stored.get("event_seq"),
             }
 
+    return proposals, artifacts
+
+
+def _high_water(records: List[Dict[str, Any]]) -> int:
+    return max([0] + [
+        stored["event_seq"] for stored in records
+        if isinstance(stored.get("event_seq"), int)
+    ])
+
+
+def project_improvement(records: List[Dict[str, Any]], now: Any,
+                        skipped_lines: int = 0,
+                        artifact_id: Optional[str] = None,
+                        proposal_id: Optional[str] = None) -> Dict[str, Any]:
+    """Fold ``records`` into the §6.2 view. Pure: no clock, no I/O, no writes.
+
+    Replaying the same lines in any *physical* order yields an identical view,
+    because the fold is driven by ``(event_seq, id)`` and never by file order.
+    """
+    proposals, artifacts = _fold(records)
+
     if artifact_id is not None:
         artifacts = {key: value for key, value in artifacts.items()
                      if key == artifact_id}
@@ -342,14 +418,10 @@ def project_improvement(records: List[Dict[str, Any]], now: Any,
         proposals = {key: value for key, value in proposals.items()
                      if key == proposal_id}
 
-    high_water = max([0] + [
-        stored["event_seq"] for stored in records
-        if isinstance(stored.get("event_seq"), int)
-    ])
     return _ProjectionView({
         "schema": IMPROVEMENT_SCHEMA,
         "generated_at": canonical_timestamp(now),
-        "high_water_seq": high_water,
+        "high_water_seq": _high_water(records),
         "skipped_lines": skipped_lines,
         "proposals": proposals,
         "artifacts": artifacts,
@@ -390,6 +462,159 @@ class _ProjectionView(dict):
             for entry in _entries(self["artifacts"], "artifact_id")
         ]
         return canonical.items()
+
+
+# -- shared guards (pure) ----------------------------------------------------
+#
+# §6.1: the writers and the dry runs call these same functions over the same
+# fold. The writers raise the first blocker; the dry runs return the whole list
+# as data. Neither has a guard the other lacks, which is the only way a dry run
+# can be trusted to predict what the writer will do.
+
+def _blocker(code: str, message: str, **details: Any) -> Dict[str, Any]:
+    return {"code": code, "message": message, "details": dict(details)}
+
+
+def _raise(blocker: Dict[str, Any]) -> None:
+    raise ImprovementError(blocker["code"], blocker["message"],
+                           blocker["details"])
+
+
+def _transition_blockers(proposals: Dict[str, Any], proposal_id: str,
+                         from_status: Optional[str],
+                         to_status: str) -> List[Dict[str, Any]]:
+    """§5.3. ``from_status is None`` means "whatever the projection says" — the
+    dry run has no caller-supplied operand to disagree with."""
+    proposal = proposals.get(proposal_id)
+    if proposal is None:
+        return [_blocker("E_IMPROVEMENT_NOT_FOUND",
+                         "improvement_proposal referenced by proposal_id was"
+                         " never recorded",
+                         path="proposal_id",
+                         record_type="improvement_proposal",
+                         identity={"proposal_id": proposal_id})]
+
+    actual = proposal["status"]
+    supplied = actual if from_status is None else from_status
+    if supplied != actual:
+        return [_blocker("E_IMPROVEMENT_TRANSITION",
+                         "from_status does not match the projected status",
+                         path="from_status", actual=actual, supplied=supplied)]
+    if (supplied, to_status) not in _TRANSITIONS:
+        return [_blocker("E_IMPROVEMENT_TRANSITION",
+                         "%s -> %s is not an allowed transition"
+                         % (supplied, to_status),
+                         path="to_status", actual=actual, supplied=supplied,
+                         to_status=to_status)]
+    return []
+
+
+def _promotion_report(proposals: Dict[str, Any], artifacts: Dict[str, Any],
+                      proposal_id: str, promoted_revision_id: Optional[str],
+                      from_status: Optional[str] = None) -> Dict[str, Any]:
+    """§5.4, the whole promotion gate, as data.
+
+    Order matters: the transition blocker comes first, because a proposal that
+    cannot legally reach ``promoted`` should not have its evaluations audited —
+    reporting a missing receipt for a terminal proposal would suggest recording
+    one would help.
+    """
+    blockers = _transition_blockers(proposals, proposal_id, from_status,
+                                    _PROMOTED)
+    proposal = proposals.get(proposal_id)
+    if proposal is None:
+        return {"blockers": blockers, "current_status": None,
+                "active_revision_id": None, "required_evaluations": []}
+
+    artifact = artifacts.get(proposal["artifact_id"]) or {}
+    active_revision_id = artifact.get("active_revision_id")
+    base_revision_id = proposal["base_revision_id"]
+
+    # §5.4.3. Guarded here, in Slice 2, even though nothing can move the active
+    # pointer until activation lands: a promotion gate that grows its freshness
+    # check later would have shipped a window where a promoted proposal was
+    # authored against a base that is no longer live.
+    base_drifted = active_revision_id != base_revision_id
+    if base_drifted:
+        blockers.append(_blocker(
+            "E_IMPROVEMENT_EVALUATION_STALE",
+            "the artifact's active revision is no longer the base this proposal"
+            " was authored against; a new proposal is required",
+            path="base_revision_id", actual=active_revision_id,
+            expected=base_revision_id))
+
+    rows: List[Dict[str, Any]] = []
+    for kind in proposal["required_evaluations"]:
+        receipt = proposal["evaluations"].get(kind)
+        if receipt is None:
+            rows.append({"evaluation_kind": kind, "satisfied": False,
+                         "verdict": None, "stale": False})
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_EVALUATION_MISSING",
+                "required evaluation %r has no receipt" % kind,
+                path="required_evaluations", evaluation_kind=kind))
+            continue
+
+        stale = (
+            receipt["evaluated_candidate_digest"] != proposal["candidate_digest"]
+            or receipt["evaluated_base_revision_id"] != base_revision_id
+        )
+        verdict = receipt["verdict"]
+        if stale or base_drifted:
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_EVALUATION_STALE",
+                "the receipt for %r no longer matches the bindings it judged"
+                % kind,
+                path="required_evaluations", evaluation_kind=kind))
+        elif verdict != "pass":
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_EVALUATION_FAILED",
+                "the latest receipt for %r is %r" % (kind, verdict),
+                path="required_evaluations", evaluation_kind=kind,
+                verdict=verdict))
+        rows.append({
+            "evaluation_kind": kind,
+            "satisfied": not stale and not base_drifted and verdict == "pass",
+            "verdict": verdict,
+            "stale": stale,
+        })
+
+    # §5.4.4. Mandatory, and bound three ways: to the artifact, to the content
+    # the evaluations judged, and to this proposal's lineage.
+    if promoted_revision_id is None:
+        blockers.append(_blocker(
+            "E_IMPROVEMENT_VALIDATION",
+            "promoted_revision_id is required when to_status is 'promoted'",
+            path="promoted_revision_id"))
+    else:
+        revision = (artifact.get("revisions") or {}).get(promoted_revision_id)
+        if revision is None:
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_NOT_FOUND",
+                "artifact_revision referenced by promoted_revision_id was never"
+                " recorded for this artifact",
+                path="promoted_revision_id", record_type="artifact_revision",
+                identity={"artifact_id": proposal["artifact_id"],
+                          "revision_id": promoted_revision_id}))
+        elif revision["content_digest"] != proposal["candidate_digest"]:
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_VALIDATION",
+                "promoted_revision_id names a revision whose content_digest is"
+                " not the candidate the proposal declared",
+                path="promoted_revision_id",
+                actual=revision["content_digest"],
+                expected=proposal["candidate_digest"]))
+        elif revision["proposal_id"] != proposal_id:
+            blockers.append(_blocker(
+                "E_IMPROVEMENT_VALIDATION",
+                "promoted_revision_id names a revision that does not descend"
+                " from this proposal",
+                path="promoted_revision_id",
+                actual=revision["proposal_id"], expected=proposal_id))
+
+    return {"blockers": blockers, "current_status": proposal["status"],
+            "active_revision_id": active_revision_id,
+            "required_evaluations": rows}
 
 
 class ImprovementLedgerMixin:
@@ -542,6 +767,129 @@ class ImprovementLedgerMixin:
             unique=("improvement_proposal", ("proposal_id",)),
         )
 
+    def improvement_record_evaluation(self, proposal_id, evaluation_kind, verdict,
+                                      evaluated_candidate_digest, *, now,
+                                      evaluated_base_revision_id=None,
+                                      evidence_refs=(), notes=None,
+                                      scope="project", host_authorization_ref=None,
+                                      privacy="local_private", authority_claim="agent",
+                                      authority_verified=False, execution_run_id=None,
+                                      operation_id=None) -> Dict[str, Any]:
+        """Record one caller-supplied verdict about one proposal (§5.2).
+
+        Core computes no verdict, no score, and no threshold. What it does check
+        is *binding*: the receipt must name the exact ``candidate_digest`` and
+        ``base_revision_id`` the immutable proposal declared, so a receipt can
+        never be silently credited to content it did not judge. A kind outside
+        ``required_evaluations`` is extra, not invalid — it is recorded and it
+        satisfies nothing.
+        """
+        record = _common_fields(
+            "evaluation_receipt", now, privacy=privacy,
+            authority_claim=authority_claim,
+            authority_verified=authority_verified, scope=scope,
+            host_authorization_ref=host_authorization_ref,
+            execution_run_id=execution_run_id,
+        )
+        record["proposal_id"] = _pattern("proposal_id", proposal_id, _ID)
+        record["evaluation_kind"] = _bounded(
+            "evaluation_kind", evaluation_kind, _MAX_EVALUATION_KIND
+        )
+        record["verdict"] = _enum("verdict", verdict, _VERDICT)
+        record["evaluated_candidate_digest"] = _pattern(
+            "evaluated_candidate_digest", evaluated_candidate_digest, _SHA256
+        )
+        record["evaluated_base_revision_id"] = _optional(
+            lambda field, value: _pattern(field, value, _REVISION_ID),
+            "evaluated_base_revision_id", evaluated_base_revision_id,
+        )
+        record["evidence_refs"] = _ref_list("evidence_refs", evidence_refs)
+        record["notes"] = _optional(_text, "notes", notes)
+
+        def guard(existing: List[Dict[str, Any]]) -> None:
+            # Post-lock, like every other guard: the proposal and its bindings
+            # are read from the same view this append will extend.
+            proposals, _ = _fold(existing)
+            proposal = proposals.get(record["proposal_id"])
+            if proposal is None:
+                _fail("E_IMPROVEMENT_NOT_FOUND",
+                      "improvement_proposal referenced by proposal_id was never"
+                      " recorded",
+                      "proposal_id", record_type="improvement_proposal",
+                      identity={"proposal_id": record["proposal_id"]})
+            if record["evaluated_candidate_digest"] != proposal["candidate_digest"]:
+                _fail("E_IMPROVEMENT_VALIDATION",
+                      "evaluated_candidate_digest does not equal the immutable"
+                      " proposal's candidate_digest",
+                      "evaluated_candidate_digest",
+                      expected=proposal["candidate_digest"],
+                      actual=record["evaluated_candidate_digest"])
+            if record["evaluated_base_revision_id"] != proposal["base_revision_id"]:
+                _fail("E_IMPROVEMENT_VALIDATION",
+                      "evaluated_base_revision_id does not equal the immutable"
+                      " proposal's base_revision_id",
+                      "evaluated_base_revision_id",
+                      expected=proposal["base_revision_id"],
+                      actual=record["evaluated_base_revision_id"])
+
+        return self._improvement_append(record, operation_id, guard=guard)
+
+    def improvement_set_status(self, proposal_id, from_status, to_status, *, now,
+                               reason=None, promoted_revision_id=None,
+                               scope="project", host_authorization_ref=None,
+                               privacy="local_private", authority_claim="agent",
+                               authority_verified=False, execution_run_id=None,
+                               operation_id=None) -> Dict[str, Any]:
+        """Append one guarded lifecycle transition (§5.3), promotion included.
+
+        There is no code path from an ``evaluation_receipt`` to a promoted
+        proposal: promotion is this call, made explicitly by a caller, and it
+        must pass the §5.4 gate against the post-lock view. Promotion decides;
+        it **never** activates anything.
+        """
+        record = _common_fields(
+            "improvement_proposal_status", now, privacy=privacy,
+            authority_claim=authority_claim,
+            authority_verified=authority_verified, scope=scope,
+            host_authorization_ref=host_authorization_ref,
+            execution_run_id=execution_run_id,
+        )
+        record["proposal_id"] = _pattern("proposal_id", proposal_id, _ID)
+        record["from_status"] = _enum("from_status", from_status, _STATUSES)
+        record["to_status"] = _enum("to_status", to_status, _STATUSES)
+        record["reason"] = _optional(_text, "reason", reason)
+        record["promoted_revision_id"] = _optional(
+            lambda field, value: _pattern(field, value, _REVISION_ID),
+            "promoted_revision_id", promoted_revision_id,
+        )
+        if record["to_status"] == _PROMOTED:
+            if record["promoted_revision_id"] is None:
+                _fail("E_IMPROVEMENT_VALIDATION",
+                      "promoted_revision_id is required when to_status is"
+                      " 'promoted'", "promoted_revision_id")
+        elif record["promoted_revision_id"] is not None:
+            _fail("E_IMPROVEMENT_VALIDATION",
+                  "promoted_revision_id is only meaningful for a promotion",
+                  "promoted_revision_id", to_status=record["to_status"])
+
+        def guard(existing: List[Dict[str, Any]]) -> None:
+            proposals, artifacts = _fold(existing)
+            if record["to_status"] == _PROMOTED:
+                report = _promotion_report(
+                    proposals, artifacts, record["proposal_id"],
+                    record["promoted_revision_id"], record["from_status"],
+                )
+                blockers = report["blockers"]
+            else:
+                blockers = _transition_blockers(
+                    proposals, record["proposal_id"], record["from_status"],
+                    record["to_status"],
+                )
+            if blockers:
+                _raise(blockers[0])
+
+        return self._improvement_append(record, operation_id, guard=guard)
+
     def artifact_register_revision(self, artifact_id, revision_id, content_digest,
                                    *, now, locator=None, parent_revision_id=None,
                                    proposal_id=None, provenance_refs=(),
@@ -615,6 +963,32 @@ class ImprovementLedgerMixin:
             existing, now, skipped_lines=corrupt,
             artifact_id=artifact_id, proposal_id=proposal_id,
         )
+
+    def improvement_plan_promotion(self, proposal_id, promoted_revision_id, *,
+                                   now) -> Dict[str, Any]:
+        """Answer "would this promotion be accepted?" without taking the lock.
+
+        Runs :func:`_promotion_report` — the identical function the writer
+        runs — against a read-only snapshot. It appends nothing, upgrades no
+        lock, and never raises on a blocked plan: blockers are data, including
+        for a proposal that was never declared. ``now`` is injected and used
+        only to keep the read side clock-free like every other read.
+        """
+        existing, _ = _partition(
+            read_all(self._improvement_events_path(), include_tombstoned=True)
+        )
+        proposals, artifacts = _fold(existing)
+        report = _promotion_report(
+            proposals, artifacts, proposal_id, promoted_revision_id,
+        )
+        return {
+            "ok": not report["blockers"],
+            "blockers": report["blockers"],
+            "current_status": report["current_status"],
+            "active_revision_id": report["active_revision_id"],
+            "required_evaluations": report["required_evaluations"],
+            "snapshot_event_seq": _high_water(existing),
+        }
 
 
 def _check_unique(existing: List[Dict[str, Any]], record: Dict[str, Any],

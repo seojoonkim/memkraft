@@ -535,3 +535,699 @@ def test_slice1_a_parseable_line_missing_record_type_counts_as_corrupt(tmp_path)
     with pytest.raises(ExecutionError) as excinfo:
         _propose(mk, proposal_id="prop.second", candidate_digest=DIGEST_B)
     assert excinfo.value.code == "E_IMPROVEMENT_LOG_CORRUPT"
+
+
+# ==========================================================================
+# Slice 2 — evaluation receipts, lifecycle transitions, promotion gate,
+# and the read-only promotion dry run (plan §5.2, §5.3, §5.4, §6.1, §9).
+#
+# Every write here is still one guarded append to the same log, so every
+# rejection is asserted to have written nothing. The promotion gate is the
+# only place evaluations matter, and promotion decides — it does not
+# activate. Active-base drift is guarded here but its end-to-end scenario
+# needs activation, so it belongs to Slice 3.
+# ==========================================================================
+
+PROMOTED_REVISION = "rev-candidate"
+
+
+def _promotable(mk, **overrides):
+    """Declare a proposal, move it to ``under_evaluation``, register its candidate.
+
+    Returns the proposal args actually used, so a caller can assert against the
+    exact bindings the promotion gate will recheck.
+    """
+    args = dict(PROPOSAL)
+    args["required_evaluations"] = ["suite-green"]
+    args.update(overrides)
+    mk.improvement_propose(now=NOW, **args)
+    mk.improvement_set_status(
+        args["proposal_id"], "draft", "under_evaluation", now=NOW,
+    )
+    mk.artifact_register_revision(
+        args["artifact_id"], PROMOTED_REVISION, args["candidate_digest"], now=NOW,
+        proposal_id=args["proposal_id"], operation_id="op-rev-candidate",
+    )
+    return args
+
+
+def _evaluate(mk, verdict, **overrides):
+    args = dict(
+        proposal_id=PROPOSAL["proposal_id"],
+        evaluation_kind="suite-green",
+        verdict=verdict,
+        evaluated_candidate_digest=DIGEST_A,
+    )
+    args.update(overrides)
+    return mk.improvement_record_evaluation(now=NOW, **args)
+
+
+def _promote(mk, **overrides):
+    args = dict(
+        proposal_id=PROPOSAL["proposal_id"],
+        from_status="under_evaluation",
+        to_status="promoted",
+        promoted_revision_id=PROMOTED_REVISION,
+    )
+    args.update(overrides)
+    return mk.improvement_set_status(now=NOW, **args)
+
+
+# --------------------------------------------------------------------------
+# Evaluation receipts bind to the immutable proposal (§5.2)
+# --------------------------------------------------------------------------
+
+def test_slice2_receipt_for_an_unknown_proposal_is_not_found(tmp_path):
+    mk = _mk(tmp_path)
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "pass", proposal_id="prop.never-declared")
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert _lines(mk) == []
+
+
+def test_slice2_receipt_records_the_verdict_it_was_given(tmp_path):
+    """Core computes no verdict; it stores the caller's and checks the binding."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    result = _evaluate(mk, "pass", evidence_refs=["run-17"], notes="42/42 green")
+
+    assert result["outcome"] == "applied"
+    assert result["event_seq"] == 2
+
+    record = _records(mk)[1]
+    assert record["record_type"] == "evaluation_receipt"
+    assert record["proposal_id"] == PROPOSAL["proposal_id"]
+    assert record["evaluation_kind"] == "suite-green"
+    assert record["verdict"] == "pass"
+    assert record["evaluated_candidate_digest"] == DIGEST_A
+    assert record["evaluated_base_revision_id"] is None
+    assert record["evidence_refs"] == ["run-17"]
+    assert record["notes"] == "42/42 green"
+    assert record["authority_verified"] is False
+    assert "goal_id" not in record
+
+
+@pytest.mark.parametrize("verdict", ["pass", "fail", "inconclusive"])
+def test_slice2_every_verdict_in_the_closed_domain_is_accepted(tmp_path, verdict):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    result = _evaluate(mk, verdict)
+    assert result["record"]["verdict"] == verdict
+
+
+def test_slice2_a_verdict_outside_the_closed_domain_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    before = len(_lines(mk))
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "probably-fine")
+    assert excinfo.value.code == "E_IMPROVEMENT_PATTERN"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_receipt_with_a_mismatched_candidate_digest_writes_nothing(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "pass", evaluated_candidate_digest=DIGEST_B)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_receipt_with_a_mismatched_base_revision_writes_nothing(tmp_path):
+    """The proposal's base is ``None``; a receipt naming a base judged something else."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "pass", evaluated_base_revision_id="rev1")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_receipt_must_carry_the_proposals_non_null_base(tmp_path):
+    mk = _mk(tmp_path)
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], "rev1", DIGEST_B, now=NOW,
+    )
+    _propose(mk, base_revision_id="rev1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _evaluate(mk, "pass")  # omits the base the proposal was authored against
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+    result = _evaluate(mk, "pass", evaluated_base_revision_id="rev1")
+    assert result["outcome"] == "applied"
+
+
+def test_slice2_a_receipt_for_an_extra_kind_is_still_recorded(tmp_path):
+    """§5.2: a kind outside ``required_evaluations`` is extra, not invalid."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    result = _evaluate(mk, "pass", evaluation_kind="latency-probe")
+    assert result["outcome"] == "applied"
+    view = mk.improvement_project(now=NOW)
+    evaluations = view["proposals"][PROPOSAL["proposal_id"]]["evaluations"]
+    assert evaluations["latency-probe"]["verdict"] == "pass"
+
+
+def test_slice2_receipts_are_idempotent_under_the_same_operation_id(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    first = _evaluate(mk, "pass", operation_id="op-eval-1")
+    before = len(_lines(mk))
+    second = _evaluate(mk, "pass", operation_id="op-eval-1")
+
+    assert second["outcome"] == "already_applied"
+    assert second["record_id"] == first["record_id"]
+    assert len(_lines(mk)) == before
+
+
+# --------------------------------------------------------------------------
+# Lifecycle transitions (§5.3, A4)
+# --------------------------------------------------------------------------
+
+def test_slice2_a_proposal_with_no_status_record_projects_as_draft(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    view = mk.improvement_project(now=NOW)
+    assert view["proposals"][PROPOSAL["proposal_id"]]["status"] == "draft"
+
+
+def test_slice2_draft_to_under_evaluation_is_allowed(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    result = mk.improvement_set_status(
+        PROPOSAL["proposal_id"], "draft", "under_evaluation", now=NOW,
+        reason="Handing to the eval harness",
+    )
+
+    assert result["outcome"] == "applied"
+    assert result["event_seq"] == 2
+
+    record = _records(mk)[1]
+    assert record["record_type"] == "improvement_proposal_status"
+    assert record["from_status"] == "draft"
+    assert record["to_status"] == "under_evaluation"
+    assert record["reason"] == "Handing to the eval harness"
+    assert record["promoted_revision_id"] is None
+
+    view = mk.improvement_project(now=NOW)
+    proposal = view["proposals"][PROPOSAL["proposal_id"]]
+    assert proposal["status"] == "under_evaluation"
+    assert proposal["status_history"] == [
+        {"from_status": "draft", "to_status": "under_evaluation", "event_seq": 2},
+    ]
+
+
+def test_slice2_draft_to_rejected_is_allowed(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    result = mk.improvement_set_status(
+        PROPOSAL["proposal_id"], "draft", "rejected", now=NOW,
+    )
+    assert result["outcome"] == "applied"
+    view = mk.improvement_project(now=NOW)
+    assert view["proposals"][PROPOSAL["proposal_id"]]["status"] == "rejected"
+
+
+def test_slice2_draft_to_promoted_is_forbidden(tmp_path):
+    """Promotion is never reachable without passing through evaluation."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], PROMOTED_REVISION, DIGEST_A, now=NOW,
+        proposal_id=PROPOSAL["proposal_id"],
+    )
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, from_status="draft")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_from_status_disagreeing_with_the_projection_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    mk.improvement_set_status(
+        PROPOSAL["proposal_id"], "draft", "under_evaluation", now=NOW,
+    )
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.improvement_set_status(
+            PROPOSAL["proposal_id"], "draft", "rejected", now=NOW,
+        )
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert excinfo.value.details["actual"] == "under_evaluation"
+    assert excinfo.value.details["supplied"] == "draft"
+    assert len(_lines(mk)) == before
+
+
+@pytest.mark.parametrize("status", ["draft", "under_evaluation"])
+def test_slice2_a_self_transition_is_rejected(tmp_path, status):
+    """§5.3: no no-op transitions — a status record must record a change."""
+    mk = _mk(tmp_path)
+    _propose(mk)
+    if status != "draft":
+        mk.improvement_set_status(
+            PROPOSAL["proposal_id"], "draft", status, now=NOW,
+        )
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.improvement_set_status(PROPOSAL["proposal_id"], status, status, now=NOW)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert len(_lines(mk)) == before
+
+
+@pytest.mark.parametrize("to_status", ["promoted", "under_evaluation", "draft"])
+def test_slice2_rejected_is_terminal(tmp_path, to_status):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    mk.improvement_set_status(PROPOSAL["proposal_id"], "draft", "rejected", now=NOW)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.improvement_set_status(
+            PROPOSAL["proposal_id"], "rejected", to_status, now=NOW,
+            promoted_revision_id=PROMOTED_REVISION if to_status == "promoted" else None,
+        )
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert len(_lines(mk)) == before
+
+
+@pytest.mark.parametrize("to_status", ["rejected", "under_evaluation", "draft"])
+def test_slice2_promoted_is_terminal(tmp_path, to_status):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    _promote(mk)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.improvement_set_status(
+            PROPOSAL["proposal_id"], "promoted", to_status, now=NOW,
+        )
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_status_transition_on_an_unknown_proposal_is_not_found(tmp_path):
+    mk = _mk(tmp_path)
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.improvement_set_status(
+            "prop.never-declared", "draft", "under_evaluation", now=NOW,
+        )
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert _lines(mk) == []
+
+
+# --------------------------------------------------------------------------
+# The promotion gate (§5.4, A5, A6, A6b)
+# --------------------------------------------------------------------------
+
+def test_slice2_promotion_with_every_required_evaluation_passing_succeeds(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk, required_evaluations=["suite-green", "latency-probe"])
+    _evaluate(mk, "pass")
+    _evaluate(mk, "pass", evaluation_kind="latency-probe")
+
+    result = _promote(mk)
+
+    assert result["outcome"] == "applied"
+    record = result["record"]
+    assert record["to_status"] == "promoted"
+    assert record["promoted_revision_id"] == PROMOTED_REVISION
+
+    view = mk.improvement_project(now=NOW)
+    assert view["proposals"][PROPOSAL["proposal_id"]]["status"] == "promoted"
+
+
+def test_slice2_a_required_evaluation_never_recorded_blocks_promotion(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk, required_evaluations=["suite-green", "latency-probe"])
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_EVALUATION_MISSING"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_an_extra_passing_kind_does_not_satisfy_a_required_one(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass", evaluation_kind="latency-probe")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_EVALUATION_MISSING"
+    assert len(_lines(mk)) == before
+
+
+@pytest.mark.parametrize("verdict", ["fail", "inconclusive"])
+def test_slice2_a_non_passing_latest_verdict_blocks_promotion(tmp_path, verdict):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, verdict)
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_EVALUATION_FAILED"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_a_fail_followed_by_a_pass_unblocks_promotion(tmp_path):
+    """Latest receipt by ``(event_seq, id)`` wins — a re-run may recover."""
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "fail", operation_id="op-eval-fail")
+    _evaluate(mk, "pass", operation_id="op-eval-pass")
+
+    result = _promote(mk)
+    assert result["outcome"] == "applied"
+
+
+def test_slice2_a_pass_followed_by_a_fail_blocks_promotion(tmp_path):
+    """An older pass never overrides a newer failure."""
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass", operation_id="op-eval-pass")
+    _evaluate(mk, "fail", operation_id="op-eval-fail")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_EVALUATION_FAILED"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_the_projection_reports_the_latest_verdict_per_kind(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass", operation_id="op-eval-pass")
+    fail = _evaluate(mk, "fail", operation_id="op-eval-fail")
+
+    evaluations = mk.improvement_project(
+        now=NOW, proposal_id=PROPOSAL["proposal_id"],
+    )["proposals"][PROPOSAL["proposal_id"]]["evaluations"]
+
+    assert evaluations["suite-green"]["verdict"] == "fail"
+    assert evaluations["suite-green"]["evaluated_candidate_digest"] == DIGEST_A
+    assert evaluations["suite-green"]["evaluated_base_revision_id"] is None
+    assert evaluations["suite-green"]["event_seq"] == fail["event_seq"]
+
+
+# --------------------------------------------------------------------------
+# Promotion binds to a registered revision (§5.4.4, A6b)
+# --------------------------------------------------------------------------
+
+def test_slice2_promotion_without_a_promoted_revision_id_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, promoted_revision_id=None)
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_promotion_to_an_unregistered_revision_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, promoted_revision_id="rev-never-registered")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_promotion_to_a_revision_of_another_artifact_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    mk.artifact_register_revision(
+        "artifact.other", "rev-elsewhere", DIGEST_A, now=NOW,
+        proposal_id=PROPOSAL["proposal_id"],
+    )
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, promoted_revision_id="rev-elsewhere")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_NOT_FOUND"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_promotion_to_a_revision_with_a_different_digest_is_rejected(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], "rev-other-content", DIGEST_B, now=NOW,
+        proposal_id=PROPOSAL["proposal_id"],
+    )
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, promoted_revision_id="rev-other-content")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_promotion_to_a_revision_of_another_proposal_is_rejected(tmp_path):
+    """Lineage must match: the revision has to descend from *this* proposal."""
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    mk.improvement_propose(
+        now=NOW, proposal_id="prop.other", artifact_id=PROPOSAL["artifact_id"],
+        summary="Another change", rationale="Unrelated",
+        candidate_digest=DIGEST_A, required_evaluations=["suite-green"],
+    )
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], "rev-other-lineage", DIGEST_A, now=NOW,
+        proposal_id="prop.other",
+    )
+    _evaluate(mk, "pass")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, promoted_revision_id="rev-other-lineage")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_VALIDATION"
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_promotion_does_not_activate(tmp_path):
+    """§5.4: promoted is a decision; active is a state of the world."""
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    _promote(mk)
+
+    view = mk.improvement_project(now=NOW)
+    assert view["proposals"][PROPOSAL["proposal_id"]]["status"] == "promoted"
+    artifact = view["artifacts"][PROPOSAL["artifact_id"]]
+    assert artifact["active_revision_id"] is None
+    assert artifact["activations"] == []
+    assert not any(
+        record["record_type"] == "artifact_activation" for record in _records(mk)
+    )
+
+
+# --------------------------------------------------------------------------
+# Promotion idempotency and terminality (§A-6, A1)
+# --------------------------------------------------------------------------
+
+def test_slice2_promotion_is_idempotent_under_the_same_operation_id(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    first = _promote(mk, operation_id="op-promote-1")
+    before = len(_lines(mk))
+
+    second = _promote(mk, operation_id="op-promote-1")
+
+    assert second["outcome"] == "already_applied"
+    assert second["record_id"] == first["record_id"]
+    assert second["event_seq"] == first["event_seq"]
+    assert len(_lines(mk)) == before
+
+
+def test_slice2_a_second_promotion_under_a_new_operation_id_is_terminal(tmp_path):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    _promote(mk, operation_id="op-promote-1")
+    before = len(_lines(mk))
+
+    with pytest.raises(ExecutionError) as excinfo:
+        _promote(mk, operation_id="op-promote-2")
+
+    assert excinfo.value.code == "E_IMPROVEMENT_TRANSITION"
+    assert len(_lines(mk)) == before
+
+
+# --------------------------------------------------------------------------
+# The promotion dry run: same guards, zero writes (§6.1, A3, A16b)
+# --------------------------------------------------------------------------
+
+def _log_stat(mk):
+    path = _log_path(mk)
+    stat = path.stat()
+    return (stat.st_size, stat.st_mtime_ns, len(_lines(mk)))
+
+
+def _forbid_appends(monkeypatch):
+    """A dry run must never reach the module-level append symbol at all."""
+    def _explode(*args, **kwargs):
+        raise AssertionError("a dry run must not append")
+
+    monkeypatch.setattr("memkraft.improvement_ledger.append", _explode)
+
+
+def test_slice2_dry_run_reports_ok_for_a_promotable_proposal(tmp_path, monkeypatch):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    _evaluate(mk, "pass")
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    plan = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], PROMOTED_REVISION, now=NOW,
+    )
+
+    assert plan["ok"] is True
+    assert plan["blockers"] == []
+    assert plan["current_status"] == "under_evaluation"
+    assert plan["active_revision_id"] is None
+    assert plan["snapshot_event_seq"] == mk.improvement_project(now=NOW)["high_water_seq"]
+    assert plan["required_evaluations"] == [
+        {"evaluation_kind": "suite-green", "satisfied": True,
+         "verdict": "pass", "stale": False},
+    ]
+    assert _log_stat(mk) == before
+
+
+def test_slice2_a_blocked_dry_run_returns_blockers_as_data_and_never_raises(tmp_path, monkeypatch):
+    mk = _mk(tmp_path)
+    _promotable(mk, required_evaluations=["suite-green", "latency-probe"])
+    _evaluate(mk, "fail")
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    plan = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], PROMOTED_REVISION, now=NOW,
+    )
+
+    assert plan["ok"] is False
+    codes = [blocker["code"] for blocker in plan["blockers"]]
+    assert "E_IMPROVEMENT_EVALUATION_FAILED" in codes
+    assert "E_IMPROVEMENT_EVALUATION_MISSING" in codes
+    for blocker in plan["blockers"]:
+        assert isinstance(blocker["message"], str) and blocker["message"]
+        assert isinstance(blocker["details"], dict)
+
+    by_kind = {entry["evaluation_kind"]: entry
+               for entry in plan["required_evaluations"]}
+    assert by_kind["suite-green"] == {
+        "evaluation_kind": "suite-green", "satisfied": False,
+        "verdict": "fail", "stale": False,
+    }
+    assert by_kind["latency-probe"] == {
+        "evaluation_kind": "latency-probe", "satisfied": False,
+        "verdict": None, "stale": False,
+    }
+    assert _log_stat(mk) == before
+
+
+def test_slice2_dry_run_and_writer_share_the_transition_blocker(tmp_path, monkeypatch):
+    """A16b: the dry run runs the guards the writer runs, not a parallel copy."""
+    mk = _mk(tmp_path)
+    _propose(mk)  # still draft
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], PROMOTED_REVISION, DIGEST_A, now=NOW,
+        proposal_id=PROPOSAL["proposal_id"],
+    )
+    _evaluate(mk, "pass")
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    plan = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], PROMOTED_REVISION, now=NOW,
+    )
+
+    assert plan["ok"] is False
+    assert plan["current_status"] == "draft"
+    assert "E_IMPROVEMENT_TRANSITION" in [b["code"] for b in plan["blockers"]]
+    assert _log_stat(mk) == before
+
+
+def test_slice2_dry_run_shares_the_revision_binding_blockers(tmp_path, monkeypatch):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    mk.artifact_register_revision(
+        PROPOSAL["artifact_id"], "rev-other-content", DIGEST_B, now=NOW,
+        proposal_id=PROPOSAL["proposal_id"],
+    )
+    _evaluate(mk, "pass")
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    unregistered = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], "rev-never-registered", now=NOW,
+    )
+    assert unregistered["ok"] is False
+    assert "E_IMPROVEMENT_NOT_FOUND" in [b["code"] for b in unregistered["blockers"]]
+
+    mismatched = mk.improvement_plan_promotion(
+        PROPOSAL["proposal_id"], "rev-other-content", now=NOW,
+    )
+    assert mismatched["ok"] is False
+    assert "E_IMPROVEMENT_VALIDATION" in [b["code"] for b in mismatched["blockers"]]
+
+    assert _log_stat(mk) == before
+
+
+def test_slice2_dry_run_for_an_unknown_proposal_is_a_blocker_not_a_raise(tmp_path, monkeypatch):
+    mk = _mk(tmp_path)
+    _promotable(mk)
+    before = _log_stat(mk)
+    _forbid_appends(monkeypatch)
+
+    plan = mk.improvement_plan_promotion(
+        "prop.never-declared", PROMOTED_REVISION, now=NOW,
+    )
+
+    assert plan["ok"] is False
+    assert "E_IMPROVEMENT_NOT_FOUND" in [b["code"] for b in plan["blockers"]]
+    assert plan["current_status"] is None
+    assert _log_stat(mk) == before
