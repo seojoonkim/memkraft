@@ -718,12 +718,9 @@ class ImprovementLedgerMixin:
     produces.
     """
 
-    def _improvement_dir(self) -> Path:
-        return Path(self.base_dir) / ".memkraft" / "improvement"
-
     def _improvement_events_path(self) -> Path:
         """The single append-only improvement log; never compacted."""
-        return self._improvement_dir() / "events.jsonl"
+        return Path(self.base_dir) / ".memkraft" / "improvement" / "events.jsonl"
 
     # -- append path -------------------------------------------------------
 
@@ -843,7 +840,7 @@ class ImprovementLedgerMixin:
             "candidate_digest", candidate_digest, _SHA256
         )
         record["base_revision_id"] = _optional(
-            lambda field, value: _pattern(field, value, _ID),
+            lambda field, value: _pattern(field, value, _REVISION_ID),
             "base_revision_id", base_revision_id,
         )
         record["candidate_locator"] = _optional(

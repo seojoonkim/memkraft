@@ -110,3 +110,20 @@ def test_documented_preview_methods_exist(tmp_path):
         "improvement_plan_activation",
     ):
         assert callable(getattr(mk, name))
+
+
+def test_two_character_revision_can_be_a_proposal_base(tmp_path):
+    mk = _mk(tmp_path)
+    mk.artifact_register_revision(
+        "artifact.review-one", "r1", DIGEST_B, now=NOW,
+    )
+    mk.artifact_activate_revision(
+        "artifact.review-one", "r1", now=NOW,
+        expected_active_revision_id=None,
+    )
+    result = mk.improvement_propose(
+        "prop.review-one", "artifact.review-one", "Review proposal",
+        "Regression coverage", DIGEST_A, now=NOW,
+        base_revision_id="r1", required_evaluations=["suite-green"],
+    )
+    assert result["record"]["base_revision_id"] == "r1"
