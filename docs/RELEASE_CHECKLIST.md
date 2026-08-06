@@ -14,6 +14,17 @@
 - [ ] `README.md` 상단 버전과 최근 릴리스의 유일한 `(current)` 항목이 릴리스 버전과 일치하고, 해당 GitHub Release 링크가 포함됨
 - [ ] `docs/releases/<version>.md`가 존재하고 제목 및 내용이 이번 릴리스와 일치
 - [ ] `python3 -m pytest tests/test_packaging_version.py -q` 통과. 이 검사는 패키지 버전, README, CHANGELOG, 릴리스 노트의 정합성을 함께 확인함
+- [ ] [State Contract](STATE_CONTRACT.md) 게이트 통과. 현재 interpreter의 import 경로·distribution metadata, Git clean/remote-backed 상태, 공개 버전, 프로젝트 snapshot을 한 번에 검사하며 `release_ready: true`와 종료 코드 0을 확인함:
+
+```bash
+PYTHONPATH=src python3 scripts/check_project_state.py \
+  --repo . --python "$(command -v python3)" \
+  --public-version <공개 버전> \
+  --snapshot-public-version <snapshot 공개 버전> \
+  --snapshot-development-version <snapshot 개발 버전>
+```
+
+  릴리스 게이트에서는 `--allow-ephemeral-source`를 사용하지 않는다.
 - [ ] [THREAT_MODEL.md](THREAT_MODEL.md) §2 매트릭스에서 이번 릴리스에 "게이트 그린 필수"인 위협의 게이트가 전부 그린
 
 ## 1. 로컬 테스트

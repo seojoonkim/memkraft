@@ -53,6 +53,7 @@ from .execution_state import ExecutionStateMixin  # v3.3 MKEP/0 execution kernel
 from .execution_handoff import ExecutionHandoffMixin  # v3.3 MKEP/0 typed handoff
 from .evaluation_corpus import EvaluationCorpusMixin  # v3.3 evaluation corpus
 from .improvement_ledger import ImprovementLedgerMixin  # continual improvement ledger preview
+from .state_contract import StateContractMixin  # v3.3 project-state contract
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -83,6 +84,7 @@ _ADDITIVE_ONLY_MIXINS = (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    StateContractMixin,
 )
 
 for _mixin in (
@@ -130,6 +132,7 @@ for _mixin in (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    StateContractMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
