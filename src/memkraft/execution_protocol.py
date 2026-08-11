@@ -17,7 +17,7 @@ import re
 import unicodedata
 from datetime import datetime, timezone
 from types import MappingProxyType
-from typing import Any, Dict, Optional
+from typing import Any, Dict, NoReturn, Optional
 
 __all__ = [
     "ERROR_REGISTRY",
@@ -141,7 +141,7 @@ class LeaseError(ExecutionError):
     """A lease or fencing rule was violated (§7)."""
 
 
-def _fail(code, message, path=None, **extra):
+def _fail(code, message, path=None, **extra) -> NoReturn:
     details = dict(extra)
     if path is not None:
         details["path"] = path
@@ -248,8 +248,9 @@ _TIMESTAMP_PATTERN = re.compile(
 def parse_timestamp(value: Any) -> datetime:
     """Parse a MKEP-TIME/1 wire timestamp into an aware ``datetime``.
 
-    ``datetime.fromisoformat`` does not accept a ``Z`` suffix on Python 3.9, so
-    ``Z`` is substituted before parsing (conformance case TM-03).
+    Python 3.9/3.10 require exactly three or six fractional digits and do not
+    accept a ``Z`` suffix. MKEP-TIME/1 fractions are therefore right-padded to
+    six digits and ``Z`` is substituted before parsing (TM-03).
     """
     if isinstance(value, datetime):
         if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
@@ -271,11 +272,10 @@ def parse_timestamp(value: Any) -> datetime:
     if int(match.group("second")) == 60:
         _fail("E_TIME_FORMAT", "leap seconds are not accepted")
 
-    # Python 3.9's ``fromisoformat`` accepts either no fraction or exactly
-    # three/six fractional digits on some patch releases.  MKEP-TIME/1 allows
+    # Python 3.9/3.10 ``fromisoformat`` accepts either no fraction or exactly
+    # three/six fractional digits. MKEP-TIME/1 allows
     # one through six, so normalize the already-validated fraction to six
     # digits before handing it to the runtime parser.
-    assert match is not None  # narrowed by the fail-closed branch above
     fraction = match.group("fraction")
     offset = "+00:00" if match.group("offset") == "Z" else match.group("offset")
     text = (
