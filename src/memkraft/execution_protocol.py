@@ -271,7 +271,18 @@ def parse_timestamp(value: Any) -> datetime:
     if int(match.group("second")) == 60:
         _fail("E_TIME_FORMAT", "leap seconds are not accepted")
 
-    text = value if match.group("offset") != "Z" else value[:-1] + "+00:00"
+    # Python 3.9's ``fromisoformat`` accepts either no fraction or exactly
+    # three/six fractional digits on some patch releases.  MKEP-TIME/1 allows
+    # one through six, so normalize the already-validated fraction to six
+    # digits before handing it to the runtime parser.
+    assert match is not None  # narrowed by the fail-closed branch above
+    fraction = match.group("fraction")
+    offset = "+00:00" if match.group("offset") == "Z" else match.group("offset")
+    text = (
+        f"{match.group('date')}T{match.group('hour')}:{match.group('minute')}:{match.group('second')}"
+        + (f".{fraction.ljust(6, '0')}" if fraction else "")
+        + offset
+    )
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError:
