@@ -301,6 +301,19 @@ def test_one_to_six_fractional_digits_are_accepted(digits):
 
 
 @pytest.mark.parametrize(
+    ("text", "microseconds"),
+    [
+        ("2026-08-04T11:22:33.5Z", 500000),
+        ("2026-08-04T11:22:33.05Z", 50000),
+        ("2026-08-04T11:22:33.123Z", 123000),
+        ("2026-08-04T11:22:33.000001Z", 1),
+    ],
+)
+def test_fraction_normalization_preserves_magnitude(text, microseconds):
+    assert parse_timestamp(text).microsecond == microseconds
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "2026-08-04T11:22:60Z",          # leap second
