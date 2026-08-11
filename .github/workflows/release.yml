@@ -47,15 +47,15 @@ jobs:
           python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json \
             --candidate-sha "${{ steps.inputs.outputs.candidate_sha }}" \
             --candidate-branch "${{ steps.inputs.outputs.active_branch }}" --require-remote
-          PYTHONPATH=src python scripts/check_project_state.py --release --repo . \
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python scripts/check_project_state.py --release --repo . \
             --expected-version "${{ steps.inputs.outputs.version }}" --expected-branch "${{ steps.inputs.outputs.active_branch }}" \
             --candidate-sha "${{ steps.inputs.outputs.candidate_sha }}"
       - name: Test, conformance, release benchmarks, and build once
         run: |
           python -m pip install pytest build twine tomli
-          PYTHONPATH=src python -m pytest tests/ -q
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python -m pytest tests/ -q
           (cd tests/conformance/go && go test ./...)
-          PYTHONPATH=src python scripts/benchmark_execution_gates.py \
+          PYTHONPATH="$GITHUB_WORKSPACE/src" python scripts/benchmark_execution_gates.py \
             --output /tmp/mkep-release-gates.json
           python - <<'PY'
           import json

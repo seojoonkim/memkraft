@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## [3.4.0] — 2026-08-12
+## [3.4.1] — 2026-08-12
+
+- Fixed the release workflow to use an absolute source path for subprocess tests; the immutable `v3.4.0` tag failed before PyPI or GitHub Release publication.
 
 Consolidated governance and execution release. This is the first public release
 of the completed MKEP/0 work that remained unshipped after 3.2.0.

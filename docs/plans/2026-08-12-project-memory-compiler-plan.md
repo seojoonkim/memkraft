@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.9/3.12 stdlib, MemKraft append-only stores, Git object database, JSON/JSONL, Markdown, pytest.
 
-**Status:** Proposed after MemKraft 3.4.0 is publicly verified
+**Status:** Proposed after MemKraft 3.4.1 is publicly verified
 
 **Release:** MemKraft 3.x opt-in Preview
 

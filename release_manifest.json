@@ -51,7 +51,7 @@
         {
           "claim": "MKEP/0 execution Preview",
           "kind": "release-note",
-          "path": "docs/releases/3.4.0.md"
+          "path": "docs/releases/3.4.1.md"
         }
       ],
       "proposal_id": "prop.mkep-3.3",
@@ -90,7 +90,7 @@
         {
           "claim": "Evaluation Corpus v0",
           "kind": "release-note",
-          "path": "docs/releases/3.4.0.md"
+          "path": "docs/releases/3.4.1.md"
         }
       ],
       "proposal_id": "prop.evaluation-corpus-v0",
@@ -125,7 +125,7 @@
         {
           "claim": "Continual Improvement Ledger Preview",
           "kind": "release-note",
-          "path": "docs/releases/3.4.0.md"
+          "path": "docs/releases/3.4.1.md"
         }
       ],
       "proposal_id": "prop.continual-improvement-ledger",
@@ -151,7 +151,7 @@
         {
           "claim": "Project State Contract",
           "kind": "release-note",
-          "path": "docs/releases/3.4.0.md"
+          "path": "docs/releases/3.4.1.md"
         }
       ],
       "proposal_id": "prop.project-state-contract",
@@ -163,7 +163,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/3.4.0",
+    "active_branch": "release/3.4.1",
     "base_sha": "b9453daddd87776e2accacc5fabdcde0bba4f3c9",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -187,6 +187,7 @@
       "docs/plans/memkraft-3.4-feature-backlog.md",
       "docs/releases/3.3.0.md",
       "docs/releases/3.4.0.md",
+      "docs/releases/3.4.1.md",
       "pyproject.toml",
       "release_manifest.json",
       "scripts/audit_release_lineage.py",
@@ -225,7 +226,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.4.0"
+    "version": "3.4.1"
   },
   "schema": 2
 }

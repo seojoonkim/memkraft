@@ -881,7 +881,14 @@ def test_events_directory_is_private(tmp_path):
     m=mk(tmp_path); m.append_event('u','x',1,source='s'); assert (tmp_path/'.memkraft/events.jsonl').exists()
 
 def test_release_version(tmp_path):
-    import memkraft; assert memkraft.__version__ == '3.4.0'
+    import memkraft
+
+    project = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    version_line = next(
+        line for line in project.read_text(encoding="utf-8").splitlines()
+        if line.startswith("version = ")
+    )
+    assert memkraft.__version__ == version_line.split('"', 2)[1]
 
 def test_policy_source_less_not_event(tmp_path):
     m=mk(tmp_path); m.do_not_remember(subject='u',dry_run=False); assert m.export_memory(True)==[]

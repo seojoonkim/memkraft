@@ -13,7 +13,7 @@ except ImportError:  # Python 3.9/3.10
 import memkraft
 
 
-RELEASE_VERSION = "3.4.0"
+RELEASE_VERSION = "3.4.1"
 RELEASE_DATE = "2026-08-12"
 
 
@@ -125,6 +125,17 @@ def test_release_public_evidence_apis_are_documented_as_preview():
     assert "compile_evidence_context" in api_contract
     assert "aggregate_numeric_evidence" in api_contract
     assert "fail-closed" in api_contract
+
+
+def test_release_workflow_uses_absolute_source_path_for_subprocesses():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    checklist = (root / "docs/RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
+
+    assert "PYTHONPATH=src" not in workflow
+    assert workflow.count('PYTHONPATH="$GITHUB_WORKSPACE/src"') == 3
+    assert "PYTHONPATH=src" not in checklist
+    assert checklist.count('PYTHONPATH="$(pwd)/src"') == 3
 
 
 def test_wheel_smoke_uses_canonical_project_version_without_release_literal():

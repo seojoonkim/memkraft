@@ -18,7 +18,7 @@
 - [ ] [State Contract](STATE_CONTRACT.md) 게이트 통과. 현재 interpreter의 import 경로·distribution metadata, Git clean/remote-backed 상태, 공개 버전, 프로젝트 snapshot을 한 번에 검사하며 `release_ready: true`와 종료 코드 0을 확인함:
 
 ```bash
-PYTHONPATH=src python3 scripts/check_project_state.py --release \
+PYTHONPATH="$(pwd)/src" python3 scripts/check_project_state.py --release \
   --repo . --expected-version <릴리스 버전> \
   --expected-branch release/<릴리스 버전> --candidate-sha <full SHA>
 ```
@@ -35,7 +35,7 @@ import가 실패하면 프로젝트가 사용하는 venv interpreter를 명시�
 ```bash
 cd /path/to/memkraft
 python3 -c 'import pytest'
-PYTHONPATH=src python3 -m pytest -q
+PYTHONPATH="$(pwd)/src" python3 -m pytest -q
 ```
 
 - [ ] 선택한 interpreter에서 `import pytest` 성공
@@ -44,7 +44,7 @@ PYTHONPATH=src python3 -m pytest -q
 ## 2. Memory Gym 게이트
 
 ```bash
-PYTHONPATH=src python3 benchmarks/gym/run.py --scenario search_recall --gate --out /tmp/memkraft-search.json
+PYTHONPATH="$(pwd)/src" python3 benchmarks/gym/run.py --scenario search_recall --gate --out /tmp/memkraft-search.json
 ```
 
 - [ ] `search_recall` 게이트 통과 (종료 코드 0, 출력 JSON의 `pass: true`)
