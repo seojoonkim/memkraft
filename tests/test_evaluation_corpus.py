@@ -224,12 +224,19 @@ def test_run_correlation_ids_do_not_touch_the_improvement_ledger(tmp_path):
     assert record["proposal_id"] == "prop.retrieval-boost"
     assert record["evaluation_kind"] == "suite-green"
 
-    # Correlation only: the released 3.3 baseline has no Improvement Ledger.
-    # Evaluation Corpus must not install, invoke, or depend on preview APIs.
-    assert not hasattr(mk, "improvement_project")
-    assert not hasattr(mk, "improvement_record_evaluation")
+    # Correlation only: Evaluation Corpus must not invoke or depend on the
+    # Improvement Ledger, even when both additive previews are installed.
     improvement_log = (Path(mk.base_dir) / ".memkraft" / "improvement"
                        / "events.jsonl")
+    assert not improvement_log.exists()
+    assert getattr(mk, "improvement_project")(now=NOW) == {
+        "schema": 1,
+        "generated_at": NOW,
+        "high_water_seq": 0,
+        "skipped_lines": 0,
+        "proposals": {},
+        "artifacts": {},
+    }
     assert not improvement_log.exists()
 
 
