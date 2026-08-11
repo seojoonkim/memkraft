@@ -11,6 +11,8 @@ on:
       - "docs/releases/**"
       - "pyproject.toml"
       - "setup.py"
+      - "release_manifest.json"
+      - "scripts/audit_release_lineage.py"
       - ".github/workflows/gym-gate.yml"
   push:
     branches: [main]
@@ -23,6 +25,8 @@ on:
       - "docs/releases/**"
       - "pyproject.toml"
       - "setup.py"
+      - "release_manifest.json"
+      - "scripts/audit_release_lineage.py"
       - ".github/workflows/gym-gate.yml"
 
 jobs:
@@ -32,6 +36,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Audit single release lineage
+        run: python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -65,6 +73,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -184,6 +194,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

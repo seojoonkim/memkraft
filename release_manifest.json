@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "release": {
+    "version": "3.4.0",
+    "state": "verified",
+    "base_ref": "v3.2.0",
+    "target_ref": "HEAD"
+  },
+  "features": [
+    {
+      "id": "mkep.execution-kernel",
+      "state": "verified",
+      "proposal_id": "prop.mkep-3.3",
+      "revision_id": "r1",
+      "evaluation_ref": "pytest://tests/test_execution_protocol.py+tests/test_execution_state.py+tests/test_execution_conformance.py",
+      "promotion_ref": "release://3.4.0/mkep.execution-kernel",
+      "commits": [
+        "451ed1b530e03059c14cff6ea694e63dac92fd56",
+        "7b93a1f611dcfcd6dfdf1c03b680292c5ba18f15",
+        "f92f74b7092b8aa2ccdfd1887cf17be4e5f14248",
+        "5634ba8a1f4f07aae97fa50b85373251c587c04b",
+        "b9169afc32d7fd7d4fbb6b36a45d767c52938200",
+        "6436d7d2e5c8a8031ab81f987edb58e62001d9b2",
+        "4a8631ad39af2ec63bccea382b57551d7416ea51",
+        "394f8337d4ad34b0ef0448083c5d893ac87cb518",
+        "c97d484061ac8cd4a0be71481da8a2ad5cff34c3",
+        "6ba4257b7e52d7e7be412642799e882dd116367d",
+        "5dcddd4ce968c2a0c2c5d012ae76e1f277db101c",
+        "fb729673ef2303871b6d6d9bb446d730c4313966",
+        "53db86cacde9416ddadbbb1a5ef195337114959e",
+        "dfc9b9e3e03cd25c1de62f7020afe47654c909cf"
+      ],
+      "source_paths": [
+        "src/memkraft/__init__.py",
+        "src/memkraft/cli.py",
+        "src/memkraft/context_compiler.py",
+        "src/memkraft/core.py",
+        "src/memkraft/derived_views.py",
+        "src/memkraft/execution_cli.py",
+        "src/memkraft/execution_dispatch.py",
+        "src/memkraft/execution_handoff.py",
+        "src/memkraft/execution_projection.py",
+        "src/memkraft/execution_projection_cache.py",
+        "src/memkraft/execution_protocol.py",
+        "src/memkraft/execution_state.py",
+        "src/memkraft/mcp.py",
+        "src/memkraft/store_core.py"
+      ]
+    },
+    {
+      "id": "evaluation.corpus-v0",
+      "state": "verified",
+      "proposal_id": "prop.evaluation-corpus-v0",
+      "revision_id": "r1",
+      "evaluation_ref": "pytest://tests/test_evaluation_corpus.py",
+      "promotion_ref": "release://3.4.0/evaluation.corpus-v0",
+      "commits": ["8bfebf538429b3fcea099661a50c1ac0246219dc"],
+      "source_paths": ["src/memkraft/evaluation_corpus.py"]
+    },
+    {
+      "id": "continual-improvement.ledger-preview",
+      "state": "verified",
+      "proposal_id": "prop.continual-improvement-ledger",
+      "revision_id": "r1",
+      "evaluation_ref": "pytest://tests/test_improvement_ledger.py+tests/test_improvement_ledger_review_regressions.py",
+      "promotion_ref": "release://3.4.0/continual-improvement.ledger-preview",
+      "commits": [
+        "21459da165f00fe177563d55fef73de5b579743a",
+        "c0028503fa9b9dc112f4e629a1f8c70ef9623c41",
+        "12eed5b87a53c98179b8b6fa8a05be929b9fc84e",
+        "24e9d363153e94204733ddd972ae781c2d65b79b",
+        "9efb11eaf49f6d32ac055b0f69b13342350e0004"
+      ],
+      "source_paths": ["src/memkraft/improvement_ledger.py"]
+    },
+    {
+      "id": "project.state-contract",
+      "state": "verified",
+      "proposal_id": "prop.project-state-contract",
+      "revision_id": "r1",
+      "evaluation_ref": "pytest://tests/test_state_contract.py",
+      "promotion_ref": "release://3.4.0/project.state-contract",
+      "commits": ["853456ab86b2736e67779cecdb094ed531656a18"],
+      "source_paths": ["src/memkraft/state_contract.py"]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "delay-retrospective-ledger",
+      "state": "planned",
+      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit."
+    },
+    {
+      "id": "project-memory-compiler",
+      "state": "planned",
+      "reason": "Architecture planning remains open and is not represented as shipped code."
+    }
+  ]
+}
