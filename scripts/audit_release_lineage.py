@@ -1,152 +1,298 @@
 #!/usr/bin/env python3
-"""Fail-closed audit of one release baseline and its MemKraft lineage manifest."""
+"""Fail-closed audit of the immutable baseline and candidate release lineage."""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import re
 import subprocess
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Set
 
-_REQUIRED_LINEAGE = (
-    "proposal_id",
-    "revision_id",
-    "evaluation_ref",
-    "promotion_ref",
-)
-_IMPLEMENTED_STATES = frozenset({"implemented", "verified", "released"})
-_VALID_STATES = frozenset({"planned", "implemented", "verified", "released"})
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+STATES = frozenset({"planned", "implemented", "verified", "released"})
+SHIPPED = frozenset({"implemented", "verified", "released"})
+TOP_KEYS = frozenset({"schema", "release", "features", "excluded"})
+RELEASE_KEYS = frozenset({
+    "version", "state", "base_sha", "active_branch", "remote", "release_paths", "removed_paths",
+})
+FEATURE_KEYS = frozenset({"id", "state", "proposal_id", "revision_id", "evaluation_refs", "promotion_evidence", "commits", "source_paths"})
+EXCLUDED_KEYS = frozenset({"id", "state", "reason"})
+EVAL_KEYS = frozenset({"kind", "path", "node"})
+PROMOTION_KEYS = frozenset({"kind", "path", "claim"})
+SCOPE_FILES = frozenset({
+    "pyproject.toml", "setup.py", "MANIFEST.in", "README.md", "CHANGELOG.md", "release_manifest.json",
+})
+SCOPE_PREFIXES = ("src/", "tests/", "scripts/", "benchmarks/", ".github/", "docs/")
 
 
 def _git(repo: Path, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", "-C", str(repo), *args],
-        check=check,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+    return subprocess.run(["git", "-C", str(repo), *args], check=check,
+                          capture_output=True, text=True, timeout=30)
 
 
 def _finding(code: str, **details: Any) -> Dict[str, Any]:
     finding = {"code": code, **details}
-    canonical = json.dumps(finding, sort_keys=True, separators=(",", ":"))
-    finding["id"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    raw = json.dumps(finding, sort_keys=True, separators=(",", ":"))
+    finding["id"] = hashlib.sha256(raw.encode()).hexdigest()[:16]
     return finding
 
 
-def _changed_source_paths(repo: Path, base_ref: str, target_ref: str) -> List[str]:
-    result = _git(
-        repo,
-        ["diff", "--name-only", "--diff-filter=ACMR", f"{base_ref}..{target_ref}", "--", "src/memkraft/*.py"],
-    )
-    return sorted(line for line in result.stdout.splitlines() if line)
+def _extra_keys(value: Any, allowed: Set[str]) -> List[str]:
+    return sorted(set(value) - allowed) if isinstance(value, dict) else []
 
 
-def audit_release_lineage(repo: Path, manifest: Dict[str, Any]) -> Dict[str, Any]:
-    """Audit manifest schema, Git reachability, and unregistered source drift."""
+def _is_path(value: Any) -> bool:
+    if not isinstance(value, str) or not value or value.startswith("/"):
+        return False
+    plain = value[:-3] if value.endswith("/**") else value
+    return "*" not in plain and ".." not in Path(plain).parts
+
+
+def _scoped(path: str) -> bool:
+    return path in SCOPE_FILES or path.startswith(SCOPE_PREFIXES)
+
+
+def _tree_text(repo: Path, candidate: str, path: str) -> str:
+    if not candidate or not _is_path(path):
+        raise ValueError("invalid candidate tree lookup")
+    result = _git(repo, ["show", candidate + ":" + path], check=False)
+    if result.returncode != 0:
+        raise FileNotFoundError(path)
+    return result.stdout
+
+
+def _tree_has(repo: Path, candidate: str, path: str) -> bool:
+    return bool(candidate) and _git(repo, ["cat-file", "-e", candidate + ":" + path], check=False).returncode == 0
+
+
+def _version_facts(repo: Path, candidate: str) -> Dict[str, str]:
+    pyproject = _tree_text(repo, candidate, "pyproject.toml")
+    package = _tree_text(repo, candidate, "src/memkraft/__init__.py")
+    readme = _tree_text(repo, candidate, "README.md")
+    changelog = _tree_text(repo, candidate, "CHANGELOG.md")
+    facts = {}
+    patterns = {
+        "pyproject": (pyproject, r'(?m)^version\s*=\s*"([^"]+)"'),
+        "package": (package, r'(?m)^__version__\s*=\s*"([^"]+)"'),
+        "readme": (readme, r'(?m)^Current version:\s*\*\*([^*]+)\*\*'),
+        "changelog": (changelog, r'(?m)^## \[([^]]+)\]'),
+    }
+    for name, (text, pattern) in patterns.items():
+        match = re.search(pattern, text)
+        if not match:
+            raise ValueError("version not found in " + name)
+        facts[name] = match.group(1)
+    return facts
+
+
+def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha: str = "HEAD",
+                          candidate_branch: str = "", require_remote: bool = False) -> Dict[str, Any]:
     repo = repo.resolve()
     findings: List[Dict[str, Any]] = []
+    if not isinstance(manifest, dict):
+        manifest = {}
+        findings.append(_finding("invalid_manifest_root"))
+    for key in _extra_keys(manifest, set(TOP_KEYS)):
+        findings.append(_finding("unknown_manifest_field", field=key))
+    if manifest.get("schema") != 2:
+        findings.append(_finding("unsupported_schema", observed=manifest.get("schema")))
+
     release = manifest.get("release")
     features = manifest.get("features")
-    if manifest.get("schema") != 1:
-        findings.append(_finding("unsupported_schema", observed=manifest.get("schema")))
+    excluded = manifest.get("excluded")
     if not isinstance(release, dict):
-        findings.append(_finding("missing_release"))
-        release = {}
+        findings.append(_finding("missing_release")); release = {}
     if not isinstance(features, list):
-        findings.append(_finding("missing_features"))
-        features = []
+        findings.append(_finding("missing_features")); features = []
+    if not isinstance(excluded, list):
+        findings.append(_finding("missing_excluded")); excluded = []
+    for key in _extra_keys(release, set(RELEASE_KEYS)):
+        findings.append(_finding("unknown_release_field", field=key))
 
-    base_ref = release.get("base_ref")
-    target_ref = release.get("target_ref")
-    release_state = release.get("state")
-    if release_state not in _VALID_STATES:
-        findings.append(_finding("invalid_release_state", state=release_state))
-    for field, value in (("base_ref", base_ref), ("target_ref", target_ref), ("version", release.get("version"))):
-        if not isinstance(value, str) or not value:
+    for field in ("version", "active_branch", "remote"):
+        if not isinstance(release.get(field), str) or not release[field]:
             findings.append(_finding("missing_release_field", field=field))
+    base = release.get("base_sha")
+    if not isinstance(base, str) or not SHA_RE.fullmatch(base):
+        findings.append(_finding("invalid_base_sha", observed=base))
+    if release.get("state") != "verified":
+        findings.append(_finding("release_not_verified", state=release.get("state")))
+    release_paths = release.get("release_paths")
+    if not isinstance(release_paths, list) or not all(_is_path(x) for x in release_paths):
+        findings.append(_finding("invalid_release_paths")); release_paths = []
+    removed_paths = release.get("removed_paths", [])
+    if not isinstance(removed_paths, list) or not all(_is_path(x) for x in removed_paths):
+        findings.append(_finding("invalid_removed_paths")); removed_paths = []
+    if set(release_paths) & set(removed_paths):
+        findings.append(_finding("path_both_present_and_removed"))
 
-    declared_paths = set()
-    seen_ids = set()
-    for feature in features:
+    try:
+        candidate = _git(repo, ["rev-parse", "--verify", candidate_sha + "^{commit}"]).stdout.strip()
+    except (subprocess.SubprocessError, OSError):
+        candidate = ""
+        findings.append(_finding("candidate_not_found", candidate=candidate_sha))
+    if candidate_branch and candidate_branch != release.get("active_branch"):
+        findings.append(_finding("active_branch_mismatch", expected=release.get("active_branch"), observed=candidate_branch))
+    if candidate and base and SHA_RE.fullmatch(str(base)):
+        if _git(repo, ["merge-base", "--is-ancestor", base, candidate], check=False).returncode != 0:
+            findings.append(_finding("base_not_ancestor", base_sha=base, candidate_sha=candidate))
+    if require_remote and candidate:
+        remote = release.get("remote", "")
+        branch = release.get("active_branch", "")
+        if not isinstance(remote, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", remote):
+            findings.append(_finding("invalid_remote", remote=remote))
+            remote = ""
+        result = _git(repo, ["ls-remote", "--heads", remote, "refs/heads/" + branch], check=False) if remote else subprocess.CompletedProcess([], 1, "", "")
+        remote_sha = result.stdout.split()[0] if result.returncode == 0 and result.stdout.split() else ""
+        if remote_sha != candidate:
+            findings.append(_finding("remote_candidate_mismatch", candidate_sha=candidate, remote_sha=remote_sha, branch=branch))
+
+    owners: Dict[str, str] = {}
+    commits_seen: Dict[str, str] = {}
+    ids = set()
+    def own(path: str, owner: str) -> None:
+        if path in owners and owners[path] != owner:
+            findings.append(_finding("duplicate_path_owner", path=path, owners=sorted([owners[path], owner])))
+        else:
+            owners[path] = owner
+
+    for path in release_paths:
+        own(path, "release")
+    for path in removed_paths:
+        own(path, "removed")
+
+    def owner_for(path: str) -> str:
+        exact = owners.get(path, "")
+        prefixes = sorted((key[:-2] for key in owners if key.endswith("/**")), key=len, reverse=True)
+        matches = [prefix for prefix in prefixes if path.startswith(prefix)]
+        return exact or (owners[matches[0] + "**"] if matches else "")
+    for index, feature in enumerate(features):
         if not isinstance(feature, dict):
-            findings.append(_finding("invalid_feature"))
-            continue
+            findings.append(_finding("invalid_feature", index=index)); continue
         feature_id = feature.get("id")
+        for key in _extra_keys(feature, set(FEATURE_KEYS)):
+            findings.append(_finding("unknown_feature_field", feature_id=feature_id, field=key))
         if not isinstance(feature_id, str) or not feature_id:
-            findings.append(_finding("missing_feature_id"))
-            continue
-        if feature_id in seen_ids:
+            findings.append(_finding("missing_feature_id", index=index)); feature_id = "feature#%d" % index
+        if feature_id in ids:
             findings.append(_finding("duplicate_feature_id", feature_id=feature_id))
-        seen_ids.add(feature_id)
+        ids.add(feature_id)
         state = feature.get("state")
-        if state not in _VALID_STATES:
+        if state not in STATES:
             findings.append(_finding("invalid_feature_state", feature_id=feature_id, state=state))
-        for field in _REQUIRED_LINEAGE:
+        for field in ("proposal_id", "revision_id"):
             if not isinstance(feature.get(field), str) or not feature[field]:
                 findings.append(_finding("missing_lineage_field", feature_id=feature_id, field=field))
         commits = feature.get("commits")
         paths = feature.get("source_paths")
-        if not isinstance(commits, list) or not all(isinstance(item, str) and item for item in commits):
-            findings.append(_finding("invalid_commits", feature_id=feature_id))
-            commits = []
-        if not isinstance(paths, list) or not all(isinstance(item, str) and item.startswith("src/memkraft/") for item in paths):
-            findings.append(_finding("invalid_source_paths", feature_id=feature_id))
-            paths = []
+        refs = feature.get("evaluation_refs")
+        promotion = feature.get("promotion_evidence")
+        if not isinstance(commits, list) or not all(isinstance(x, str) and SHA_RE.fullmatch(x) for x in commits):
+            findings.append(_finding("invalid_commits", feature_id=feature_id)); commits = []
+        if not isinstance(paths, list) or not all(_is_path(x) and x.startswith("src/") for x in paths):
+            findings.append(_finding("invalid_source_paths", feature_id=feature_id)); paths = []
         if state == "planned" and (commits or paths):
             findings.append(_finding("planned_feature_has_implementation", feature_id=feature_id))
-        if state in _IMPLEMENTED_STATES and (not commits or not paths):
+        if state in SHIPPED and (not commits or not paths):
             findings.append(_finding("implemented_feature_missing_artifacts", feature_id=feature_id))
-        declared_paths.update(paths)
-        if isinstance(target_ref, str) and target_ref:
-            for commit in commits:
-                exists = _git(repo, ["cat-file", "-e", f"{commit}^{{commit}}"], check=False)
-                if exists.returncode != 0:
-                    findings.append(_finding("commit_not_found", feature_id=feature_id, commit=commit))
-                    continue
-                reachable = _git(repo, ["merge-base", "--is-ancestor", commit, target_ref], check=False)
-                if reachable.returncode != 0:
-                    findings.append(_finding("commit_not_reachable", feature_id=feature_id, commit=commit))
+        for path in paths:
+            own(path, feature_id)
+        if not isinstance(refs, list) or not refs:
+            findings.append(_finding("invalid_evaluation_refs", feature_id=feature_id)); refs = []
+        for ref in refs:
+            if not isinstance(ref, dict) or set(ref) - EVAL_KEYS or ref.get("kind") not in ("pytest", "go-test") or not _is_path(ref.get("path")):
+                findings.append(_finding("invalid_evaluation_ref", feature_id=feature_id)); continue
+            if not _tree_has(repo, candidate, ref["path"]):
+                findings.append(_finding("evaluation_ref_missing", feature_id=feature_id, path=ref["path"]))
+        if not isinstance(promotion, list) or not promotion:
+            findings.append(_finding("invalid_promotion_evidence", feature_id=feature_id)); promotion = []
+        for evidence in promotion:
+            valid = (isinstance(evidence, dict) and not (set(evidence) - PROMOTION_KEYS)
+                     and evidence.get("kind") in ("release-note", "changelog")
+                     and _is_path(evidence.get("path")) and isinstance(evidence.get("claim"), str)
+                     and bool(evidence.get("claim")))
+            if not valid:
+                findings.append(_finding("invalid_promotion_evidence", feature_id=feature_id)); continue
+            try:
+                evidence_text = _tree_text(repo, candidate, evidence["path"])
+            except (OSError, ValueError):
+                evidence_text = ""
+            if evidence["claim"] not in evidence_text:
+                findings.append(_finding("promotion_evidence_unsubstantiated", feature_id=feature_id, path=evidence["path"]))
+        for commit in commits:
+            if commit in commits_seen and commits_seen[commit] != feature_id:
+                findings.append(_finding("duplicate_feature_commit", commit=commit, features=sorted([commits_seen[commit], feature_id])))
+            commits_seen[commit] = feature_id
+            if _git(repo, ["cat-file", "-e", commit + "^{commit}"], check=False).returncode != 0:
+                findings.append(_finding("commit_not_found", feature_id=feature_id, commit=commit)); continue
+            if base and SHA_RE.fullmatch(str(base)) and _git(repo, ["merge-base", "--is-ancestor", base, commit], check=False).returncode != 0:
+                findings.append(_finding("commit_not_after_base", feature_id=feature_id, commit=commit))
+            if candidate and _git(repo, ["merge-base", "--is-ancestor", commit, candidate], check=False).returncode != 0:
+                findings.append(_finding("commit_not_reachable", feature_id=feature_id, commit=commit))
 
-    if isinstance(base_ref, str) and base_ref and isinstance(target_ref, str) and target_ref:
-        refs_ok = all(
-            _git(repo, ["rev-parse", "--verify", ref], check=False).returncode == 0
-            for ref in (base_ref, target_ref)
-        )
-        if not refs_ok:
-            findings.append(_finding("release_ref_not_found", base_ref=base_ref, target_ref=target_ref))
-        else:
-            for path in _changed_source_paths(repo, base_ref, target_ref):
-                if path not in declared_paths:
-                    findings.append(_finding("unregistered_source_drift", path=path))
-            for path in sorted(declared_paths):
-                if not (repo / path).is_file():
-                    findings.append(_finding("declared_source_missing", path=path))
+    excluded_ids = set()
+    for item in excluded:
+        if not isinstance(item, dict) or set(item) != EXCLUDED_KEYS or item.get("state") != "planned" or not all(isinstance(item.get(k), str) and item[k] for k in ("id", "reason")):
+            findings.append(_finding("invalid_excluded_entry")); continue
+        if item["id"] in excluded_ids or item["id"] in ids:
+            findings.append(_finding("duplicate_excluded_id", excluded_id=item["id"]))
+        excluded_ids.add(item["id"])
 
-    findings.sort(key=lambda item: (item["code"], item.get("feature_id", ""), item.get("path", "")))
-    report = {
-        "release_ready": not findings,
-        "release": release,
-        "feature_count": len(features),
-        "findings": findings,
-    }
-    canonical = json.dumps(report, sort_keys=True, separators=(",", ":"))
-    report["digest"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    if candidate and base and SHA_RE.fullmatch(str(base)):
+        changed = _git(repo, ["diff", "--name-only", "--diff-filter=ACMRD", base + ".." + candidate]).stdout.splitlines()
+        for path in sorted(p for p in changed if _scoped(p)):
+            if not owner_for(path):
+                findings.append(_finding("unregistered_release_drift", path=path))
+    for path, owner in sorted(owners.items()):
+        check_path = path[:-3] if path.endswith("/**") else path
+        present = _tree_has(repo, candidate, check_path)
+        if owner == "removed" and present:
+            findings.append(_finding("removed_path_still_present", path=path))
+        elif owner != "removed" and not present:
+            findings.append(_finding("declared_path_missing", path=path))
+    try:
+        expected = release.get("version")
+        for source, observed in _version_facts(repo, candidate).items():
+            if observed != expected:
+                findings.append(_finding("version_mismatch", source=source, expected=expected, observed=observed))
+        note_path = "docs/releases/%s.md" % expected
+        if not _tree_has(repo, candidate, note_path):
+            findings.append(_finding("release_note_missing", path=note_path))
+    except (OSError, ValueError, TypeError) as exc:
+        findings.append(_finding("version_collection_failed", error=str(exc)))
+
+    findings.sort(key=lambda x: (x["code"], x.get("feature_id", ""), x.get("path", ""), x["id"]))
+    report = {"release_ready": not findings, "release": release, "candidate_sha": candidate,
+              "feature_count": len(features), "findings": findings}
+    report["digest"] = hashlib.sha256(json.dumps(report, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return report
+
+
+def _failure(error: Exception) -> int:
+    print(json.dumps({"release_ready": False, "findings": [_finding("audit_error", error=str(error))]}, sort_keys=True))
+    return 2
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--candidate-sha", default="HEAD")
+    parser.add_argument("--candidate-branch", default="")
+    parser.add_argument("--require-remote", action="store_true")
     args = parser.parse_args(argv)
-    manifest_path = args.manifest if args.manifest.is_absolute() else args.repo / args.manifest
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    report = audit_release_lineage(args.repo, manifest)
-    print(json.dumps(report, sort_keys=True, ensure_ascii=False))
-    return 0 if report["release_ready"] else 1
+    try:
+        path = args.manifest if args.manifest.is_absolute() else args.repo / args.manifest
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        report = audit_release_lineage(args.repo, manifest, candidate_sha=args.candidate_sha,
+                                       candidate_branch=args.candidate_branch, require_remote=args.require_remote)
+        print(json.dumps(report, sort_keys=True, ensure_ascii=False))
+        return 0 if report["release_ready"] else 1
+    except Exception as exc:
+        return _failure(exc)
 
 
 if __name__ == "__main__":

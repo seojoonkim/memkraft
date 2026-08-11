@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  gate-build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.inputs.outputs.version }}
+      candidate_sha: ${{ steps.inputs.outputs.candidate_sha }}
+      active_branch: ${{ steps.inputs.outputs.active_branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - name: Resolve immutable tag commit
+        id: inputs
+        run: |
+          [[ "$GITHUB_REF_TYPE" == "tag" ]]
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "candidate_sha=$(git rev-parse 'HEAD^{commit}')" >> "$GITHUB_OUTPUT"
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re
+          branch = json.load(open("release_manifest.json"))["release"]["active_branch"]
+          if not isinstance(branch, str) or not re.fullmatch(r"release/[0-9]+\.[0-9]+\.[0-9]+", branch):
+              raise SystemExit("invalid release.active_branch")
+          print("active_branch=" + branch)
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+      - name: Require candidate already on main
+        run: git merge-base --is-ancestor "${{ steps.inputs.outputs.candidate_sha }}" origin/main
+      - name: Gate exact candidate and authoritative public state
+        run: |
+          python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json \
+            --candidate-sha "${{ steps.inputs.outputs.candidate_sha }}" \
+            --candidate-branch "${{ steps.inputs.outputs.active_branch }}" --require-remote
+          PYTHONPATH=src python scripts/check_project_state.py --release --repo . \
+            --expected-version "${{ steps.inputs.outputs.version }}" --expected-branch "${{ steps.inputs.outputs.active_branch }}" \
+            --candidate-sha "${{ steps.inputs.outputs.candidate_sha }}"
+      - name: Test, conformance, release benchmarks, and build once
+        run: |
+          python -m pip install pytest build twine tomli
+          PYTHONPATH=src python -m pytest tests/ -q
+          (cd tests/conformance/go && go test ./...)
+          PYTHONPATH=src python scripts/benchmark_execution_gates.py \
+            --output /tmp/mkep-release-gates.json
+          python - <<'PY'
+          import json
+          result = json.load(open("/tmp/mkep-release-gates.json"))
+          assert result["g11"]["passed"] is True, result
+          assert result["g12"]["passed"] is True, result
+          PY
+          python -m build
+          python -m twine check dist/*
+      - name: Upload immutable distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributions-${{ steps.inputs.outputs.candidate_sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 5
+
+  fresh-wheel:
+    needs: gate-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-build.outputs.candidate_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions-${{ needs.gate-build.outputs.candidate_sha }}
+          path: /tmp/dist
+      - name: Smoke exact fresh wheel
+        run: |
+          python -m venv /tmp/memkraft-wheel
+          /tmp/memkraft-wheel/bin/pip install /tmp/dist/*.whl
+          cd /tmp
+          /tmp/memkraft-wheel/bin/python "$GITHUB_WORKSPACE/scripts/check_project_state.py" --release --artifact \
+            --repo "$GITHUB_WORKSPACE" --python /tmp/memkraft-wheel/bin/python \
+            --expected-version "${{ needs.gate-build.outputs.version }}" --expected-branch "${{ needs.gate-build.outputs.active_branch }}" \
+            --candidate-sha "${{ needs.gate-build.outputs.candidate_sha }}"
+
+  publish-pypi:
+    needs: [gate-build, fresh-wheel]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions-${{ needs.gate-build.outputs.candidate_sha }}
+          path: dist
+      - name: Publish with PyPI Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: [gate-build, fresh-wheel, publish-pypi]
+    runs-on: ubuntu-latest
+    environment: github-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-build.outputs.candidate_sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions-${{ needs.gate-build.outputs.candidate_sha }}
+          path: dist
+      - name: Create release from the same artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.gate-build.outputs.version }}
+          SHA: ${{ needs.gate-build.outputs.candidate_sha }}
+        run: gh release create "v$VERSION" dist/* --target "$SHA" --verify-tag --notes-file "docs/releases/$VERSION.md"

@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -22,7 +23,9 @@ SEVERITY_ORDER = ("critical", "error", "warning")
 #: Severities that make a report not release-ready.
 BLOCKING_SEVERITIES = frozenset({"critical", "error"})
 
-SUPPORTED_KINDS = ("equals", "truthy", "forbidden_path_prefixes")
+SUPPORTED_KINDS = (
+    "equals", "truthy", "forbidden_path_prefixes", "path_within", "version_greater_than",
+)
 
 #: Prefixes that mark an ephemeral / non-durable checkout location.
 EPHEMERAL_PATH_PREFIXES = (
@@ -76,6 +79,55 @@ DEFAULT_CONSTRAINTS = (
     },
 )
 
+# Release preflight deliberately separates source-candidate observations from a
+# wheel installed into a fresh interpreter. The public release may remain the
+# previous version until Trusted Publishing succeeds.
+RELEASE_CANDIDATE_CONSTRAINTS = (
+    {
+        "id": "candidate_version_alignment",
+        "kind": "equals",
+        "severity": "critical",
+        "paths": ("candidate.package_version", "candidate.project_version", "expected.version"),
+    },
+    {
+        "id": "candidate_not_already_public",
+        "kind": "version_greater_than",
+        "severity": "critical",
+        "paths": ("expected.version", "public.version"),
+    },
+    {
+        "id": "release_branch_remote_backed",
+        "kind": "truthy",
+        "severity": "error",
+        "paths": ("git.branch_remote_backed",),
+    },
+    {
+        "id": "working_tree_clean",
+        "kind": "truthy",
+        "severity": "error",
+        "paths": ("git.tree_clean",),
+    },
+)
+
+RELEASE_ARTIFACT_CONSTRAINTS = RELEASE_CANDIDATE_CONSTRAINTS + (
+    {
+        "id": "fresh_wheel_version_alignment",
+        "kind": "equals",
+        "severity": "critical",
+        "paths": (
+            "artifact.version",
+            "artifact.distribution_version",
+            "expected.version",
+        ),
+    },
+    {
+        "id": "fresh_wheel_not_source_tree",
+        "kind": "path_within",
+        "severity": "critical",
+        "paths": ("artifact.source_path", "artifact.install_prefix"),
+    },
+)
+
 _MISSING = object()
 
 STATE_CONTRACT_DIR = "state_contract"
@@ -114,6 +166,10 @@ def _validate(constraint: Dict[str, Any]) -> None:
         raise ValueError("constraint %r requires 'paths'" % (constraint["id"],))
     if constraint["kind"] == "forbidden_path_prefixes" and not constraint.get("prefixes"):
         raise ValueError("constraint %r requires 'prefixes'" % (constraint["id"],))
+    if constraint["kind"] == "path_within" and len(constraint["paths"]) != 2:
+        raise ValueError("constraint %r requires path and root" % (constraint["id"],))
+    if constraint["kind"] == "version_greater_than" and len(constraint["paths"]) != 2:
+        raise ValueError("constraint %r requires newer and older versions" % (constraint["id"],))
 
 
 def _finding(constraint: Dict[str, Any], reason: str, observed: Dict[str, Any],
@@ -163,6 +219,27 @@ def _evaluate_one(constraint: Dict[str, Any], observations: Any) -> Optional[Dic
     if kind == "truthy":
         if not all(observed[path] for path in paths):
             return _finding(constraint, "falsy", observed)
+        return None
+    if kind == "path_within":
+        value, root = (observed[path] for path in paths)
+        if not isinstance(value, str) or not isinstance(root, str) or not value or not root:
+            return _finding(constraint, "missing_observation", observed)
+        try:
+            Path(value).resolve().relative_to(Path(root).resolve())
+        except (OSError, ValueError):
+            return _finding(constraint, "path_outside_required_root", observed)
+        return None
+    if kind == "version_greater_than":
+        def triplet(value: Any) -> Optional[tuple]:
+            match = re.fullmatch(
+                r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", value
+            ) if isinstance(value, str) else None
+            return tuple(int(part) for part in match.groups()) if match else None
+        newer, older = (triplet(observed[path]) for path in paths)
+        if newer is None or older is None:
+            return _finding(constraint, "invalid_version", observed)
+        if newer <= older:
+            return _finding(constraint, "version_not_greater", observed)
         return None
 
     # forbidden_path_prefixes — longest prefix wins so the match is deterministic

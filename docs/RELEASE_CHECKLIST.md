@@ -9,6 +9,7 @@
 ## 0. 사전 조건
 
 - [ ] `main` 클린 (`git status` 무변경, 릴리스 대상 커밋이 push됨)
+- [ ] 누적 release branch와 `main`이 동일한 candidate commit을 가리킨다. 릴리스 PR은 merge/squash commit으로 SHA를 바꾸지 않고 verified candidate를 fast-forward하며, tag 전에 `git rev-parse origin/main == git rev-parse origin/release/<version>`을 확인한다.
 - [ ] `CHANGELOG.md`에 이번 버전 섹션 작성 완료 (마이그레이션 유무 명시 — [MIGRATIONS.md](MIGRATIONS.md) §5)
 - [ ] `pyproject.toml`의 `version`이 릴리스 버전과 일치
 - [ ] `README.md` 상단 버전과 최근 릴리스의 유일한 `(current)` 항목이 릴리스 버전과 일치하고, 해당 GitHub Release 링크가 포함됨
@@ -17,14 +18,12 @@
 - [ ] [State Contract](STATE_CONTRACT.md) 게이트 통과. 현재 interpreter의 import 경로·distribution metadata, Git clean/remote-backed 상태, 공개 버전, 프로젝트 snapshot을 한 번에 검사하며 `release_ready: true`와 종료 코드 0을 확인함:
 
 ```bash
-PYTHONPATH=src python3 scripts/check_project_state.py \
-  --repo . --python "$(command -v python3)" \
-  --public-version <공개 버전> \
-  --snapshot-public-version <snapshot 공개 버전> \
-  --snapshot-development-version <snapshot 개발 버전>
+PYTHONPATH=src python3 scripts/check_project_state.py --release \
+  --repo . --expected-version <릴리스 버전> \
+  --expected-branch release/<릴리스 버전> --candidate-sha <full SHA>
 ```
 
-  릴리스 게이트에서는 `--allow-ephemeral-source`를 사용하지 않는다.
+  릴리스 모드는 PyPI 최신 버전을 직접 수집하며 네트워크 실패 시 fail closed 한다. `--allow-ephemeral-source`는 거부된다. wheel 빌드 뒤에는 fresh venv interpreter로 `--release --artifact`를 별도 실행한다.
 - [ ] [THREAT_MODEL.md](THREAT_MODEL.md) §2 매트릭스에서 이번 릴리스에 "게이트 그린 필수"인 위협의 게이트가 전부 그린
 
 ## 1. 로컬 테스트
@@ -50,7 +49,7 @@ PYTHONPATH=src python3 benchmarks/gym/run.py --scenario search_recall --gate --o
 
 - [ ] `search_recall` 게이트 통과 (종료 코드 0, 출력 JSON의 `pass: true`)
 - [ ] 이번 릴리스에서 추가된 시나리오가 있으면 각각 `--gate`로 실행, 전부 통과
-- [ ] 게이트 출력 JSON을 `docs/bench/baselines/<version>.json`으로 커밋 (다음 릴리스의 기준점 — roadmap §7.6)
+- [ ] 게이트 출력 JSON을 `docs/bench/results/<version>-gates.json`처럼 `release_manifest.json`에 등록된 immutable 결과 경로로 커밋 (다음 릴리스의 기준점 — roadmap §7.6)
 - [ ] 직전 baseline 대비: recall 회귀 0.00, 지연 회귀 +15% 이내
 
 ## 3. 빌드와 검사
@@ -96,12 +95,16 @@ Hermes 통합은 **설치된 패키지만으로** 동작해야 한다. `source_p
 
 ## 6. 배포
 
+정식 경로는 `.github/workflows/release.yml` 하나뿐이다. `main`과 활성 release branch가 동일한 exact commit을 가리킨 뒤 annotated `v<version>` tag를 그 commit에 만들고 push한다. workflow가 tag를 commit으로 peel해 감사, 테스트, conformance, benchmark, 단일 build, fresh-wheel smoke, PyPI Trusted Publishing(OIDC), GitHub Release를 순차 수행한다. 로컬 `twine upload`와 수동 GitHub Release 생성은 이 절차에서 금지하며, 별도 승인된 복구 runbook 없이는 사용하지 않는다.
+
 ```bash
-python3 -m twine upload dist/*
+git tag -a v<version> <exact-candidate-sha> -m "MemKraft <version>"
+git push origin v<version>
+gh run watch --repo seojoonkim/memkraft
 ```
 
-- [ ] PyPI 업로드 성공
-- [ ] `pip index versions memkraft` 또는 PyPI 웹에서 새 버전 노출 확인 (전파에 수 분 걸릴 수 있음)
+- [ ] tag-triggered Release workflow 전체 성공
+- [ ] PyPI 업로드 성공 및 `pip index versions memkraft` 또는 PyPI 웹에서 새 버전 노출 확인
 - [ ] **PyPI로부터** fresh 설치 재검증:
 
 ```bash
@@ -111,21 +114,15 @@ python3 -m venv /tmp/memkraft-pypi-smoke
 /tmp/memkraft-pypi-smoke/bin/memkraft --version
 ```
 
-- [ ] git tag + GitHub release:
-
-```bash
-git tag v<version>
-git push origin v<version>
-gh release create v<version> --title "MemKraft <version>" --notes-file <릴리스 노트>
-```
-
-- [ ] GitHub release 노트가 CHANGELOG 섹션과 일치, 마이그레이션/기지 이슈(known issues) 명시
+- [ ] workflow가 생성한 GitHub Release 노트가 CHANGELOG 섹션과 일치하고 마이그레이션/기지 이슈(known issues)를 명시
 - [ ] (3.0부터) 릴리스 노트에 외부 벤치마크 (정확도, p95) 표 포함 — roadmap §7.8
 - [ ] 외부 벤치마크가 최종 릴리스 코드보다 이전/dirty tree에서 생성됐다면
   해당 결과를 역사적 candidate 증거로 명시하고, 이후 기능의 검증으로
   주장하지 않으며, 실패한 실행(예: 전건 연결 오류)은 결과에서 제외
-- [ ] 외부 artifact의 공개 URL, 최종 commit SHA/tag는 실제 생성·게시되기
+- [ ] external artifact의 공개 URL, 최종 commit SHA/tag는 실제 생성·게시되기
   전에는 추측해 기재하지 않음
+- [ ] 릴리스 성공 직후의 baseline rollover는 원자적이다. 먼저 `base_sha`를 방금 공개한 tag의 peeled commit으로 이동하고, 이미 출하된 feature 항목은 모두 제거하며, `version`과 `active_branch`는 출하된 값으로 유지한다. 다음 버전을 시작할 때는 별도의 단일 commit에서 `release_manifest.json`의 `version`/`active_branch`, `pyproject.toml`, `src/memkraft/__init__.py`, `README.md`, `CHANGELOG.md`, `docs/releases/<next>.md`, `release_paths`, `tests/test_packaging_version.py`의 `RELEASE_VERSION`/`RELEASE_DATE`를 함께 갱신한다. manifest만 먼저 다음 버전으로 넘기거나 기존 feature commit을 새 `base_sha` 뒤에 남기지 않는다. release workflow는 manifest의 `active_branch`를 읽으므로 별도 branch literal은 두지 않는다. 이 두 원자 commit 사이에는 scoped 기능 변경을 시작하지 않는다.
+- [ ] `main` branch protection/ruleset가 필수 Memory Gym checks를 요구하고 직접 push를 금지하는지, `pypi` environment가 Trusted Publisher workflow에 연결돼 있는지 GitHub API로 read-back한다.
 
 ## 7. 사후 확인 (배포 후 24h 이내)
 

@@ -2,32 +2,21 @@ name: Memory Gym Gate
 
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "benchmarks/**"
-      - "tests/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "docs/releases/**"
-      - "pyproject.toml"
-      - "setup.py"
-      - "release_manifest.json"
-      - "scripts/audit_release_lineage.py"
-      - ".github/workflows/gym-gate.yml"
   push:
     branches: [main]
     paths:
       - "src/**"
       - "benchmarks/**"
       - "tests/**"
+      - "scripts/**"
+      - "docs/**"
+      - ".github/**"
       - "README.md"
       - "CHANGELOG.md"
-      - "docs/releases/**"
       - "pyproject.toml"
       - "setup.py"
+      - "MANIFEST.in"
       - "release_manifest.json"
-      - "scripts/audit_release_lineage.py"
-      - ".github/workflows/gym-gate.yml"
 
 jobs:
   packaging:
@@ -38,12 +27,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Audit single release lineage
-        run: python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Audit single release lineage
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json --candidate-sha "$CANDIDATE_SHA"
       - name: Build distributions
         run: |
           python -m pip install build

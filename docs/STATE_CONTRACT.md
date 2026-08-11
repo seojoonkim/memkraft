@@ -52,16 +52,20 @@ PYTHONPATH=src python scripts/check_project_state.py \
 
 The adapter prints one JSON report and exits nonzero when `release_ready` is false. It is intended for a trusted repository and trusted interpreter: Git configuration and the selected Python executable are executable trust boundaries. It uses local Git inspection, a read-only `git ls-remote` query to verify the actual remote branch SHA, and a bounded Python runtime probe, but does not itself publish, install, or mutate Git/package state.
 
-The public and snapshot versions are authoritative observations supplied by the host; this adapter does not fetch or parse their sources. A release workflow must obtain them from PyPI/GitHub and the project card before invoking the gate. State Contract verifies cross-state consistency, not the honesty of caller-supplied observations.
+`--release` is the publication preflight mode. It ignores caller-supplied public/snapshot strings, reads both source version declarations, records Git HEAD/cleanliness and the exact same-name remote SHA, and queries PyPI through the authoritative collector. Network or collection failure fails closed. Release mode requires `--expected-version`, `--expected-branch`, and an exact 40-hex `--candidate-sha`; it rejects mutable refs and unsafe remote names. The expected version must be strictly greater than PyPI's latest stable triplet, preventing an already-published or older version from passing.
 
-`--allow-ephemeral-source` removes only the ephemeral-path constraint. It is intended for explicit local experiments and must not be used in a release gate.
+Candidate/source and fresh-wheel artifact observations are intentionally separate. Candidate preflight does not require an already-installed public distribution to equal the not-yet-published version. After building once, run `--release --artifact --python <fresh-venv-python>` to bind the imported and distribution metadata to that wheel. Artifact mode positively verifies that `memkraft.__file__` resolves inside that interpreter's own `sys.prefix`; it does not rely on a repository-specific forbidden-path guess.
+
+`--allow-ephemeral-source` removes only the ephemeral-path constraint for local diagnostics. The adapter rejects it in release mode.
 
 ## Generic constraints
 
-Custom callers may pass constraints with dotted observation paths. P0 supports only:
+Custom callers may pass constraints with dotted observation paths. P0 supports:
 
 - `equals`
 - `truthy`
 - `forbidden_path_prefixes`
+- `path_within`
+- `version_greater_than` for strict stable `MAJOR.MINOR.PATCH` triplets
 
 Unknown kinds and severities fail validation rather than being ignored.

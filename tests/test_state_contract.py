@@ -610,7 +610,100 @@ def test_adapter_read_source_version(adapter, tmp_path):
     assert adapter.read_source_version(tmp_path) == "9.9.9"
 
 
+def test_release_candidate_does_not_require_installed_distribution_and_requires_new_public_version():
+    observations = {
+        "candidate": {"package_version": "3.4.0", "project_version": "3.4.0"},
+        "expected": {"version": "3.4.0"},
+        "public": {"version": "3.2.0"},
+        "git": {"tree_clean": True, "branch_remote_backed": True},
+    }
+    report = sc.evaluate(observations, sc.RELEASE_CANDIDATE_CONSTRAINTS)
+    assert report["release_ready"] is True
+    assert "artifact" not in observations
+
+
+def test_fresh_wheel_is_a_separate_release_observation():
+    observations = {
+        "candidate": {"package_version": "3.4.0", "project_version": "3.4.0"},
+        "expected": {"version": "3.4.0"},
+        "public": {"version": "3.2.0"},
+        "git": {"tree_clean": True, "branch_remote_backed": True},
+        "artifact": {
+            "version": "3.4.0",
+            "distribution_version": "3.3.0",
+            "source_path": "/tmp/venv/lib/python3.12/site-packages/memkraft/__init__.py",
+            "install_prefix": "/tmp/venv",
+        },
+    }
+    report = sc.evaluate(observations, sc.RELEASE_ARTIFACT_CONSTRAINTS)
+    assert report["release_ready"] is False
+    assert any(f["constraint_id"] == "fresh_wheel_version_alignment" for f in report["findings"])
+
+
+def test_fresh_wheel_must_import_from_its_interpreter_prefix():
+    observations = {
+        "candidate": {"package_version": "3.4.0", "project_version": "3.4.0"},
+        "expected": {"version": "3.4.0"},
+        "public": {"version": "3.2.0"},
+        "git": {"tree_clean": True, "branch_remote_backed": True},
+        "artifact": {
+            "version": "3.4.0",
+            "distribution_version": "3.4.0",
+            "source_path": "/workspace/src/memkraft/__init__.py",
+            "install_prefix": "/tmp/fresh-venv",
+        },
+    }
+    report = sc.evaluate(observations, sc.RELEASE_ARTIFACT_CONSTRAINTS)
+    assert report["release_ready"] is False
+    assert any(f["reason"] == "path_outside_required_root" for f in report["findings"])
+
+
+def test_release_rejects_version_already_public():
+    observations = {
+        "candidate": {"package_version": "3.4.0", "project_version": "3.4.0"},
+        "expected": {"version": "3.4.0"},
+        "public": {"version": "3.4.0"},
+        "git": {"tree_clean": True, "branch_remote_backed": True},
+    }
+    report = sc.evaluate(observations, sc.RELEASE_CANDIDATE_CONSTRAINTS)
+    assert report["release_ready"] is False
+    assert any(f["constraint_id"] == "candidate_not_already_public" for f in report["findings"])
+
+
+def test_release_mode_rejects_ephemeral_override(adapter):
+    with pytest.raises(SystemExit):
+        adapter.main(["--release", "--allow-ephemeral-source"])
+
+
+def test_release_mode_requires_exact_inputs(adapter):
+    with pytest.raises(SystemExit):
+        adapter.main(["--release"])
+    with pytest.raises(SystemExit):
+        adapter.main([
+            "--release", "--expected-version", "3.4.0",
+            "--expected-branch", "release/3.4.0", "--candidate-sha", "HEAD",
+        ])
+
+
+def test_pypi_collector_parses_authoritative_response(adapter):
+    class Response:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return None
+        def read(self):
+            return b'{"info":{"version":"3.3.0"}}'
+
+    def opener(url, timeout):
+        assert url == "https://pypi.org/pypi/memkraft/json"
+        assert timeout == 15
+        return Response()
+
+    assert adapter.collect_pypi_latest(opener=opener) == "3.3.0"
+
+
 def test_adapter_module_makes_no_network_or_mutating_calls():
     source = (REPO_ROOT / "scripts" / "check_project_state.py").read_text(encoding="utf-8")
-    for banned in ("socket", "urllib", "requests", "pip install", "git push", "git commit"):
+    for banned in ("socket", "requests", "pip install", "git push", "git commit"):
         assert banned not in source
+    assert "urllib.request" in source  # authoritative PyPI collector in release mode

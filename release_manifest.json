@@ -1,19 +1,18 @@
 {
-  "schema": 1,
-  "release": {
-    "version": "3.4.0",
-    "state": "verified",
-    "base_ref": "v3.2.0",
-    "target_ref": "HEAD"
-  },
+  "excluded": [
+    {
+      "id": "delay-retrospective-ledger",
+      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit.",
+      "state": "planned"
+    },
+    {
+      "id": "project-memory-compiler",
+      "reason": "Architecture planning remains open and is not represented as shipped code.",
+      "state": "planned"
+    }
+  ],
   "features": [
     {
-      "id": "mkep.execution-kernel",
-      "state": "verified",
-      "proposal_id": "prop.mkep-3.3",
-      "revision_id": "r1",
-      "evaluation_ref": "pytest://tests/test_execution_protocol.py+tests/test_execution_state.py+tests/test_execution_conformance.py",
-      "promotion_ref": "release://3.4.0/mkep.execution-kernel",
       "commits": [
         "451ed1b530e03059c14cff6ea694e63dac92fd56",
         "7b93a1f611dcfcd6dfdf1c03b680292c5ba18f15",
@@ -30,6 +29,33 @@
         "53db86cacde9416ddadbbb1a5ef195337114959e",
         "dfc9b9e3e03cd25c1de62f7020afe47654c909cf"
       ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_execution_protocol.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/conformance/test_runner.py"
+        },
+        {
+          "kind": "go-test",
+          "node": "./...",
+          "path": "tests/conformance/go"
+        }
+      ],
+      "id": "mkep.execution-kernel",
+      "promotion_evidence": [
+        {
+          "claim": "MKEP/0 execution Preview",
+          "kind": "release-note",
+          "path": "docs/releases/3.4.0.md"
+        }
+      ],
+      "proposal_id": "prop.mkep-3.3",
+      "revision_id": "r1",
       "source_paths": [
         "src/memkraft/__init__.py",
         "src/memkraft/cli.py",
@@ -45,25 +71,36 @@
         "src/memkraft/execution_state.py",
         "src/memkraft/mcp.py",
         "src/memkraft/store_core.py"
-      ]
+      ],
+      "state": "verified"
     },
     {
+      "commits": [
+        "8bfebf538429b3fcea099661a50c1ac0246219dc"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_evaluation_corpus.py"
+        }
+      ],
       "id": "evaluation.corpus-v0",
-      "state": "verified",
+      "promotion_evidence": [
+        {
+          "claim": "Evaluation Corpus v0",
+          "kind": "release-note",
+          "path": "docs/releases/3.4.0.md"
+        }
+      ],
       "proposal_id": "prop.evaluation-corpus-v0",
       "revision_id": "r1",
-      "evaluation_ref": "pytest://tests/test_evaluation_corpus.py",
-      "promotion_ref": "release://3.4.0/evaluation.corpus-v0",
-      "commits": ["8bfebf538429b3fcea099661a50c1ac0246219dc"],
-      "source_paths": ["src/memkraft/evaluation_corpus.py"]
+      "source_paths": [
+        "src/memkraft/evaluation_corpus.py"
+      ],
+      "state": "verified"
     },
     {
-      "id": "continual-improvement.ledger-preview",
-      "state": "verified",
-      "proposal_id": "prop.continual-improvement-ledger",
-      "revision_id": "r1",
-      "evaluation_ref": "pytest://tests/test_improvement_ledger.py+tests/test_improvement_ledger_review_regressions.py",
-      "promotion_ref": "release://3.4.0/continual-improvement.ledger-preview",
       "commits": [
         "21459da165f00fe177563d55fef73de5b579743a",
         "c0028503fa9b9dc112f4e629a1f8c70ef9623c41",
@@ -71,29 +108,124 @@
         "24e9d363153e94204733ddd972ae781c2d65b79b",
         "9efb11eaf49f6d32ac055b0f69b13342350e0004"
       ],
-      "source_paths": ["src/memkraft/improvement_ledger.py"]
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_improvement_ledger.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_improvement_ledger_review_regressions.py"
+        }
+      ],
+      "id": "continual-improvement.ledger-preview",
+      "promotion_evidence": [
+        {
+          "claim": "Continual Improvement Ledger Preview",
+          "kind": "release-note",
+          "path": "docs/releases/3.4.0.md"
+        }
+      ],
+      "proposal_id": "prop.continual-improvement-ledger",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/improvement_ledger.py"
+      ],
+      "state": "verified"
     },
     {
+      "commits": [
+        "853456ab86b2736e67779cecdb094ed531656a18"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_state_contract.py"
+        }
+      ],
       "id": "project.state-contract",
-      "state": "verified",
+      "promotion_evidence": [
+        {
+          "claim": "Project State Contract",
+          "kind": "release-note",
+          "path": "docs/releases/3.4.0.md"
+        }
+      ],
       "proposal_id": "prop.project-state-contract",
       "revision_id": "r1",
-      "evaluation_ref": "pytest://tests/test_state_contract.py",
-      "promotion_ref": "release://3.4.0/project.state-contract",
-      "commits": ["853456ab86b2736e67779cecdb094ed531656a18"],
-      "source_paths": ["src/memkraft/state_contract.py"]
+      "source_paths": [
+        "src/memkraft/state_contract.py"
+      ],
+      "state": "verified"
     }
   ],
-  "excluded": [
-    {
-      "id": "delay-retrospective-ledger",
-      "state": "planned",
-      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit."
-    },
-    {
-      "id": "project-memory-compiler",
-      "state": "planned",
-      "reason": "Architecture planning remains open and is not represented as shipped code."
-    }
-  ]
+  "release": {
+    "active_branch": "release/3.4.0",
+    "base_sha": "b9453daddd87776e2accacc5fabdcde0bba4f3c9",
+    "release_paths": [
+      ".github/workflows/gym-gate.yml",
+      ".github/workflows/release.yml",
+      "CHANGELOG.md",
+      "MANIFEST.in",
+      "README.md",
+      "docs/ADAPTERS.md",
+      "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
+      "docs/EXECUTION_PROTOCOL.md",
+      "docs/GRAPH_ENGINEERING_ADAPTERS.md",
+      "docs/MIGRATIONS.md",
+      "docs/RELEASE_CHECKLIST.md",
+      "docs/STATE_CONTRACT.md",
+      "docs/THREAT_MODEL.md",
+      "docs/V3_API.md",
+      "docs/bench/results/mkep-3.3.0-g11-g12-macos-arm64.json",
+      "docs/plans/2026-08-04-memkraft-runtime-neutral-execution-protocol-development-plan.md",
+      "docs/plans/2026-08-06-memkraft-continual-improvement-ledger-preview-plan.md",
+      "docs/plans/2026-08-12-project-memory-compiler-plan.md",
+      "docs/plans/memkraft-3.4-feature-backlog.md",
+      "docs/releases/3.3.0.md",
+      "docs/releases/3.4.0.md",
+      "pyproject.toml",
+      "release_manifest.json",
+      "scripts/audit_release_lineage.py",
+      "scripts/benchmark_execution_gates.py",
+      "scripts/check_project_state.py",
+      "setup.py",
+      "tests/conformance/**",
+      "tests/golden/README.md",
+      "tests/golden/usage_id.json",
+      "tests/test_context_compiler.py",
+      "tests/test_evaluation_corpus.py",
+      "tests/test_execution_baseline.py",
+      "tests/test_execution_cli.py",
+      "tests/test_execution_dispatcher.py",
+      "tests/test_execution_evidence.py",
+      "tests/test_execution_forget.py",
+      "tests/test_execution_graph_adapter_examples.py",
+      "tests/test_execution_handoff.py",
+      "tests/test_execution_isolation.py",
+      "tests/test_execution_leases.py",
+      "tests/test_execution_mcp.py",
+      "tests/test_execution_projection.py",
+      "tests/test_execution_projection_cache.py",
+      "tests/test_execution_protocol.py",
+      "tests/test_execution_records.py",
+      "tests/test_improvement_ledger.py",
+      "tests/test_improvement_ledger_review_regressions.py",
+      "tests/test_packaging_version.py",
+      "tests/test_release_lineage.py",
+      "tests/test_run_assessment.py",
+      "tests/test_sleep_governance.py",
+      "tests/test_state_contract.py",
+      "tests/test_store_core_lock_nb.py",
+      "tests/test_v081_mcp.py"
+    ],
+    "remote": "origin",
+    "removed_paths": [],
+    "state": "verified",
+    "version": "3.4.0"
+  },
+  "schema": 2
 }
