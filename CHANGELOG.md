@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## [3.4.0] — 2026-08-12
+
+Consolidated governance and execution release. This is the first public release
+of the completed MKEP/0 work that remained unshipped after 3.2.0.
+
+- Added the runtime-neutral MKEP/0 execution Preview, its closed 15-operation
+  wire registry, deterministic projection, conformance corpus, CLI/MCP surfaces,
+  typed handoff, and measured projection cache gates.
+- Added Evaluation Corpus v0 for append-only case registration, labels, runs,
+  and deterministic projections without coupling evaluation records to the
+  improvement ledger.
+- Added the Continual Improvement Ledger Preview for proposal, revision,
+  evaluation, promotion, activation, rollback, and fail-closed corrupt-log
+  handling. It records decisions but does not execute artifacts.
+- Added the Project State Contract and host adapter to detect version, source,
+  remote-branch, clean-tree, and project-snapshot drift.
+- Added `release_manifest.json` and a full-history CI audit that links shipped
+  features to MemKraft proposal/revision/evaluation/promotion references, blocks
+  implementation commits stranded outside the release HEAD, and rejects changed
+  `src/memkraft` modules that are not owned by a declared release feature.
+- Explicitly excluded the unimplemented Delay Retrospective Ledger and the
+  planning-only Project Memory Compiler from this release.
+
+This release is additive and requires no migration. All new stores are
+lazy-created under `.memkraft/`; 3.2.x ignores them on rollback.
+
 ## [3.3.0] — 2026-08-04
 
 Runtime-neutral execution protocol Preview. The GA decision deadline is **2027-02-04**.

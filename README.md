@@ -1,4 +1,4 @@
-**v3.3.0**
+**v3.4.0**
 
 <div align="center">
 
@@ -480,7 +480,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.3.0**.
+Current version: **3.4.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -490,13 +490,13 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-No migration command or Markdown rewrite is required for 3.3.0. Execution state is additive and lazy-created; 3.2.x ignores it on rollback. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
+No migration command or Markdown rewrite is required for 3.4.0. The execution, evaluation, improvement, and project-state stores are additive and lazy-created; 3.2.x ignores them on rollback. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## 📝 Changelog
 
-### [v3.3.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.3.0) (current)
+### [v3.4.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.4.0) (current)
 
-MemKraft 3.3.0 adds the runtime-neutral MKEP/0 execution Preview, cross-language conformance verification, and runtime-owned Graph Engineering adapter guidance. Read the [release notes](docs/releases/3.3.0.md).
+MemKraft 3.4.0 consolidates the runtime-neutral MKEP/0 execution Preview, Evaluation Corpus, Continual Improvement Ledger Preview, Project State Contract, and a fail-closed single-release-lineage gate. Read the [release notes](docs/releases/3.4.0.md).
 
 ### [v3.2.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.2.0)
 
