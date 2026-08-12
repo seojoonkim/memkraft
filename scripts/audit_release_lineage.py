@@ -25,7 +25,7 @@ PROMOTION_KEYS = frozenset({"kind", "path", "claim"})
 SCOPE_FILES = frozenset({
     "pyproject.toml", "setup.py", "MANIFEST.in", "README.md", "CHANGELOG.md", "release_manifest.json",
 })
-SCOPE_PREFIXES = ("src/", "tests/", "scripts/", "benchmarks/", ".github/", "docs/")
+SCOPE_PREFIXES = ("src/", "tests/", "scripts/", "tools/", "benchmarks/", ".github/", "docs/")
 
 
 def _git(repo: Path, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess:
@@ -246,6 +246,27 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
         for path in sorted(p for p in changed if _scoped(p)):
             if not owner_for(path):
                 findings.append(_finding("unregistered_release_drift", path=path))
+        all_declared_commits = set(commits_seen)
+        for feature in features:
+            if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
+                continue
+            feature_id = feature.get("id")
+            paths = feature.get("source_paths") or []
+            if not isinstance(feature_id, str) or not all(isinstance(path, str) for path in paths):
+                continue
+            for path in paths:
+                touching = _git(
+                    repo,
+                    ["log", "--format=%H", base + ".." + candidate, "--", path],
+                ).stdout.splitlines()
+                for commit in touching:
+                    if commit not in all_declared_commits:
+                        findings.append(_finding(
+                            "undeclared_feature_commit",
+                            feature_id=feature_id,
+                            commit=commit,
+                            path=path,
+                        ))
     for path, owner in sorted(owners.items()):
         check_path = path[:-3] if path.endswith("/**") else path
         present = _tree_has(repo, candidate, check_path)

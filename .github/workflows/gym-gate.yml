@@ -9,6 +9,7 @@ on:
       - "benchmarks/**"
       - "tests/**"
       - "scripts/**"
+      - "tools/**"
       - "docs/**"
       - ".github/**"
       - "README.md"
