@@ -4,20 +4,6 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "benchmarks/**"
-      - "tests/**"
-      - "scripts/**"
-      - "tools/**"
-      - "docs/**"
-      - ".github/**"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "pyproject.toml"
-      - "setup.py"
-      - "MANIFEST.in"
-      - "release_manifest.json"
 
 jobs:
   packaging:

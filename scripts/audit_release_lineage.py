@@ -117,6 +117,13 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
     release_paths = release.get("release_paths")
     if not isinstance(release_paths, list) or not all(_is_path(x) for x in release_paths):
         findings.append(_finding("invalid_release_paths")); release_paths = []
+    invalid_release_scope = [
+        path for path in release_paths
+        if path == "src" or path.startswith("src/")
+    ]
+    for path in invalid_release_scope:
+        findings.append(_finding("invalid_release_path_scope", path=path))
+    release_paths = [path for path in release_paths if path not in invalid_release_scope]
     removed_paths = release.get("removed_paths", [])
     if not isinstance(removed_paths, list) or not all(_is_path(x) for x in removed_paths):
         findings.append(_finding("invalid_removed_paths")); removed_paths = []
@@ -240,15 +247,23 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
                 continue
             feature_id = feature.get("id")
-            declared_commits = set(feature.get("commits") or [])
+            raw_commits = feature.get("commits")
+            declared_commits = (
+                set(raw_commits)
+                if isinstance(raw_commits, list)
+                and all(isinstance(item, str) and SHA_RE.fullmatch(item) for item in raw_commits)
+                else set()
+            )
             paths = feature.get("source_paths") or []
             if not isinstance(feature_id, str) or not all(isinstance(path, str) for path in paths):
                 continue
+            touched_by_declared = set()
             for path in paths:
                 touching = _git(
                     repo,
-                    ["log", "--full-history", "--format=%H", base + ".." + candidate, "--", path],
+                    ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines()
+                touched_by_declared.update(set(touching) & declared_commits)
                 for commit in touching:
                     if commit not in declared_commits:
                         findings.append(_finding(
@@ -257,6 +272,12 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                             commit=commit,
                             path=path,
                         ))
+            for commit in sorted(declared_commits - touched_by_declared):
+                findings.append(_finding(
+                    "declared_feature_commit_without_touch",
+                    feature_id=feature_id,
+                    commit=commit,
+                ))
     for path, owner in sorted(owners.items()):
         check_path = path[:-3] if path.endswith("/**") else path
         present = _tree_has(repo, candidate, check_path)
