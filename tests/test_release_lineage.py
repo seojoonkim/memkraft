@@ -136,6 +136,26 @@ def test_unregistered_source_drift_fails_closed(auditor, tmp_path):
     assert finding["path"] == "src/memkraft/stray.py"
 
 
+def test_undeclared_commit_touching_feature_source_fails_closed(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    path.write_text("VALUE = 2\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "unregistered follow-up")
+    undeclared = _git(repo, "rev-parse", "HEAD")
+
+    report = auditor.audit_release_lineage(repo, _manifest(base, declared))
+
+    finding = next(f for f in report["findings"] if f["code"] == "undeclared_feature_commit")
+    assert finding["feature_id"] == "feature.one"
+    assert finding["commit"] == undeclared
+    assert finding["path"] == "src/memkraft/feature_one.py"
+
+
 def test_planned_feature_cannot_claim_implementation(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest = _manifest(base, base, paths=[])
@@ -167,6 +187,20 @@ def test_build_inputs_are_in_fail_closed_scope(auditor, tmp_path):
     assert {"setup.py", "MANIFEST.in"} <= drift
 
 
+def test_top_level_tools_are_in_fail_closed_scope(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    (repo / "tools").mkdir()
+    (repo / "tools" / "release_helper.py").write_text("print('release')\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "add release helper")
+    candidate = _git(repo, "rev-parse", "HEAD")
+
+    report = auditor.audit_release_lineage(repo, _manifest(base, candidate, paths=[]))
+
+    drift = {f.get("path") for f in report["findings"] if f["code"] == "unregistered_release_drift"}
+    assert "tools/release_helper.py" in drift
+
+
 def test_manifest_requires_memkraft_lineage_fields(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest = _manifest(base, base, paths=[])
@@ -191,7 +225,7 @@ def test_ci_uses_full_history_and_runs_lineage_audit():
     assert workflow.count("fetch-depth: 0") == checkout_count
     assert "python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json" in workflow
     assert "pull_request:\n    paths:" not in workflow
-    for path in ('"src/**"', '"tests/**"', '"scripts/**"', '"benchmarks/**"', '"docs/**"', '".github/**"', '"setup.py"', '"MANIFEST.in"'):
+    for path in ('"src/**"', '"tests/**"', '"scripts/**"', '"tools/**"', '"benchmarks/**"', '"docs/**"', '".github/**"', '"setup.py"', '"MANIFEST.in"'):
         assert path in workflow
 
 

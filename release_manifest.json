@@ -27,7 +27,12 @@
         "5dcddd4ce968c2a0c2c5d012ae76e1f277db101c",
         "fb729673ef2303871b6d6d9bb446d730c4313966",
         "53db86cacde9416ddadbbb1a5ef195337114959e",
-        "dfc9b9e3e03cd25c1de62f7020afe47654c909cf"
+        "dfc9b9e3e03cd25c1de62f7020afe47654c909cf",
+        "61dff56583e14e6c204f157aa2e1a444725f9e67",
+        "a1a65be7777a859406d9ae16309b2629be5b28e1",
+        "16ec3721d52962644040fd73c8d7e49b93a62e73",
+        "590d39dde73444b42809bf16c97aec84808a3765",
+        "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204"
       ],
       "evaluation_refs": [
         {
@@ -137,7 +142,8 @@
     },
     {
       "commits": [
-        "853456ab86b2736e67779cecdb094ed531656a18"
+        "853456ab86b2736e67779cecdb094ed531656a18",
+        "1dc46897d0705afa73a233988e80d2b35205476b"
       ],
       "evaluation_refs": [
         {
@@ -221,7 +227,8 @@
       "tests/test_sleep_governance.py",
       "tests/test_state_contract.py",
       "tests/test_store_core_lock_nb.py",
-      "tests/test_v081_mcp.py"
+      "tests/test_v081_mcp.py",
+      "tools/pin_golden_usage_id.py"
     ],
     "remote": "origin",
     "removed_paths": [],
