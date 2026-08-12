@@ -102,20 +102,18 @@ def test_current_release_has_changelog_and_release_notes():
     assert content_lines[0] == f"## MemKraft {version}"
 
 
-def test_release_ci_runs_when_public_release_metadata_changes():
+def test_release_ci_runs_for_every_pr_and_main_push():
     root = Path(__file__).resolve().parents[1]
     workflow = (root / ".github/workflows/gym-gate.yml").read_text(encoding="utf-8")
     pull_request_trigger = workflow.split("  push:", 1)[0]
-    push_paths = workflow.split("  push:", 1)[1].split("\njobs:", 1)[0]
+    push_trigger = workflow.split("  push:", 1)[1].split("\njobs:", 1)[0]
 
-    # PR governance is intentionally unfiltered so metadata-only and workflow
-    # changes cannot bypass it; main pushes retain their targeted path filter.
+    # Lineage scope is repository-wide, so neither PRs nor main pushes may use
+    # path filters that let metadata-only or newly added paths bypass the gate.
     assert "  pull_request:\n" in pull_request_trigger
     assert "    paths:" not in pull_request_trigger
-    for path in ("README.md", "CHANGELOG.md"):
-        entry = f'      - "{path}"'
-        assert push_paths.count(entry) == 1
-    assert push_paths.count('      - "docs/**"') == 1
+    assert "branches: [main]" in push_trigger
+    assert "paths:" not in push_trigger
 
 
 def test_release_public_evidence_apis_are_documented_as_preview():
