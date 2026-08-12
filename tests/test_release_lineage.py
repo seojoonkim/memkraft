@@ -301,6 +301,78 @@ def test_merge_side_branch_feature_touch_is_audited(auditor, tmp_path):
     )
 
 
+def _content_bearing_merge(repo, branch):
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "declared feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-qb", "content-side")
+    path.write_text("VALUE = 2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "side content")
+    side = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", branch)
+    _git(repo, "merge", "--no-ff", "content-side", "-m", "content-bearing merge")
+    merge = _git(repo, "rev-parse", "HEAD")
+    return declared, side, merge
+
+
+def test_undeclared_content_bearing_merge_is_audited(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    declared, side, merge = _content_bearing_merge(repo, branch)
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "undeclared_feature_commit" and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
+def test_declared_content_bearing_merge_counts_as_feature_touch(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    declared, side, merge = _content_bearing_merge(repo, branch)
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side, merge]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert not any(
+        f["code"] in {"undeclared_feature_commit", "declared_feature_commit_without_touch"}
+        and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
+def test_declared_topology_only_merge_is_rejected_as_without_touch(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "declared feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-qb", "topology-side")
+    path.write_text("VALUE = 2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "side feature touch")
+    side = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", branch)
+    _git(repo, "merge", "--no-ff", "-s", "ours", "topology-side", "-m", "topology only")
+    merge = _git(repo, "rev-parse", "HEAD")
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side, merge]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "declared_feature_commit_without_touch" and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
 def test_release_owner_cannot_claim_source_paths(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest = _manifest(base, base, paths=[])

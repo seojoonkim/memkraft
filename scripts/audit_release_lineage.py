@@ -243,6 +243,9 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
         for path in sorted(p for p in changed if _scoped(p)):
             if not owner_for(path):
                 findings.append(_finding("unregistered_release_drift", path=path))
+        merge_commits = _git(
+            repo, ["rev-list", "--merges", base + ".." + candidate]
+        ).stdout.splitlines()
         for feature in features:
             if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
                 continue
@@ -259,12 +262,20 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                 continue
             touched_by_declared = set()
             for path in paths:
-                touching = _git(
+                touching = set(_git(
                     repo,
                     ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
-                ).stdout.splitlines()
-                touched_by_declared.update(set(touching) & declared_commits)
-                for commit in touching:
+                ).stdout.splitlines())
+                for merge_commit in merge_commits:
+                    merge_touch = _git(
+                        repo,
+                        ["diff", "--name-only", "--diff-filter=ACMRD", "--no-renames",
+                         merge_commit + "^1", merge_commit, "--", path],
+                    ).stdout.splitlines()
+                    if merge_touch:
+                        touching.add(merge_commit)
+                touched_by_declared.update(touching & declared_commits)
+                for commit in sorted(touching):
                     if commit not in declared_commits:
                         findings.append(_finding(
                             "undeclared_feature_commit",
