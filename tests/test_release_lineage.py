@@ -201,6 +201,227 @@ def test_top_level_tools_are_in_fail_closed_scope(auditor, tmp_path):
     assert "tools/release_helper.py" in drift
 
 
+def test_examples_and_go_workspace_are_in_fail_closed_scope(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    (repo / "examples").mkdir()
+    (repo / "examples" / "adapter.py").write_text("VALUE = 1\n")
+    (repo / "go.work").write_text("go 1.22\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "add unregistered integration inputs")
+    candidate = _git(repo, "rev-parse", "HEAD")
+
+    report = auditor.audit_release_lineage(repo, _manifest(base, candidate, paths=[]))
+
+    drift = {f.get("path") for f in report["findings"] if f["code"] == "unregistered_release_drift"}
+    assert {"examples/adapter.py", "go.work"} <= drift
+
+
+def test_commit_declared_for_another_feature_still_fails_feature_lineage(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    first = repo / "src" / "memkraft" / "feature_one.py"
+    second = repo / "src" / "memkraft" / "feature_two.py"
+    first.write_text("VALUE = 1\n")
+    second.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "touch both features")
+    commit = _git(repo, "rev-parse", "HEAD")
+    manifest = _manifest(base, commit)
+    manifest["features"].append({
+        **manifest["features"][0],
+        "id": "feature.two",
+        "proposal_id": "prop.feature-two",
+        "commits": [],
+        "source_paths": ["src/memkraft/feature_two.py"],
+    })
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "undeclared_feature_commit"
+        and f.get("feature_id") == "feature.two"
+        and f.get("commit") == commit
+        for f in report["findings"]
+    )
+
+
+def test_commit_touching_two_features_may_be_declared_by_both(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    first = repo / "src" / "memkraft" / "feature_one.py"
+    second = repo / "src" / "memkraft" / "feature_two.py"
+    first.write_text("VALUE = 1\n")
+    second.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "shared integration commit")
+    commit = _git(repo, "rev-parse", "HEAD")
+    manifest = _manifest(base, commit)
+    manifest["features"].append({
+        **manifest["features"][0],
+        "id": "feature.two",
+        "proposal_id": "prop.feature-two",
+        "commits": [commit],
+        "source_paths": ["src/memkraft/feature_two.py"],
+    })
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert report["release_ready"] is True, report["findings"]
+
+
+def test_merge_side_branch_feature_touch_is_audited(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "declared feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-qb", "side")
+    path.write_text("VALUE = 2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "side feature touch")
+    side_commit = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", branch)
+    path.write_text("VALUE = 3\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "main update")
+    _git(repo, "merge", "--no-ff", "-s", "ours", "side", "-m", "merge side while retaining main tree")
+    merge_commit = _git(repo, "rev-parse", "HEAD")
+
+    report = auditor.audit_release_lineage(repo, _manifest(base, declared))
+
+    assert any(
+        f["code"] == "undeclared_feature_commit"
+        and f.get("feature_id") == "feature.one"
+        and f.get("commit") == side_commit
+        for f in report["findings"]
+    )
+    assert not any(
+        f["code"] == "undeclared_feature_commit"
+        and f.get("commit") == merge_commit
+        for f in report["findings"]
+    )
+
+
+def _content_bearing_merge(repo, branch):
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "declared feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-qb", "content-side")
+    path.write_text("VALUE = 2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "side content")
+    side = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", branch)
+    _git(repo, "merge", "--no-ff", "content-side", "-m", "content-bearing merge")
+    merge = _git(repo, "rev-parse", "HEAD")
+    return declared, side, merge
+
+
+def test_undeclared_content_bearing_merge_is_audited(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    declared, side, merge = _content_bearing_merge(repo, branch)
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "undeclared_feature_commit" and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
+def test_declared_content_bearing_merge_counts_as_feature_touch(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    declared, side, merge = _content_bearing_merge(repo, branch)
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side, merge]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert not any(
+        f["code"] in {"undeclared_feature_commit", "declared_feature_commit_without_touch"}
+        and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
+def test_declared_topology_only_merge_is_rejected_as_without_touch(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "declared feature")
+    declared = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-qb", "topology-side")
+    path.write_text("VALUE = 2\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "side feature touch")
+    side = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", branch)
+    _git(repo, "merge", "--no-ff", "-s", "ours", "topology-side", "-m", "topology only")
+    merge = _git(repo, "rev-parse", "HEAD")
+    manifest = _manifest(base, merge)
+    manifest["features"][0]["commits"] = [declared, side, merge]
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "declared_feature_commit_without_touch" and f.get("commit") == merge
+        for f in report["findings"]
+    )
+
+
+def test_release_owner_cannot_claim_source_paths(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest = _manifest(base, base, paths=[])
+    manifest["release"]["release_paths"].append("src/**")
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(f["code"] == "invalid_release_path_scope" for f in report["findings"])
+
+
+def test_declared_feature_commit_must_touch_the_feature(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    feature_path = repo / "src" / "memkraft" / "feature_one.py"
+    feature_path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "feature")
+    feature_commit = _git(repo, "rev-parse", "HEAD")
+    unrelated = repo / "README.md"
+    unrelated.write_text("unrelated\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "unrelated")
+    unrelated_commit = _git(repo, "rev-parse", "HEAD")
+    manifest = _manifest(base, feature_commit)
+    manifest["features"][0]["commits"].append(unrelated_commit)
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(
+        f["code"] == "declared_feature_commit_without_touch"
+        and f.get("commit") == unrelated_commit
+        for f in report["findings"]
+    )
+
+
+def test_invalid_commit_container_is_not_reused_by_reverse_audit(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    path = repo / "src" / "memkraft" / "feature_one.py"
+    path.write_text("VALUE = 1\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "feature")
+    manifest = _manifest(base, base)
+    manifest["features"][0]["commits"] = "not-a-list"
+
+    report = auditor.audit_release_lineage(repo, manifest)
+
+    assert any(f["code"] == "invalid_commits" for f in report["findings"])
+    assert any(f["code"] == "undeclared_feature_commit" for f in report["findings"])
+
+
 def test_manifest_requires_memkraft_lineage_fields(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest = _manifest(base, base, paths=[])
@@ -225,8 +446,9 @@ def test_ci_uses_full_history_and_runs_lineage_audit():
     assert workflow.count("fetch-depth: 0") == checkout_count
     assert "python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json" in workflow
     assert "pull_request:\n    paths:" not in workflow
-    for path in ('"src/**"', '"tests/**"', '"scripts/**"', '"tools/**"', '"benchmarks/**"', '"docs/**"', '".github/**"', '"setup.py"', '"MANIFEST.in"'):
-        assert path in workflow
+    push_block = workflow.split("  push:", 1)[1].split("\njobs:", 1)[0]
+    assert "branches: [main]" in push_block
+    assert "paths:" not in push_block
 
 
 def test_nonexistent_evaluation_ref_fails_closed(auditor, tmp_path):

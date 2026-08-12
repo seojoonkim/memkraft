@@ -14,7 +14,6 @@
   "features": [
     {
       "commits": [
-        "451ed1b530e03059c14cff6ea694e63dac92fd56",
         "7b93a1f611dcfcd6dfdf1c03b680292c5ba18f15",
         "f92f74b7092b8aa2ccdfd1887cf17be4e5f14248",
         "5634ba8a1f4f07aae97fa50b85373251c587c04b",
@@ -32,7 +31,10 @@
         "a1a65be7777a859406d9ae16309b2629be5b28e1",
         "16ec3721d52962644040fd73c8d7e49b93a62e73",
         "590d39dde73444b42809bf16c97aec84808a3765",
-        "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204"
+        "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
+        "853456ab86b2736e67779cecdb094ed531656a18",
+        "8bfebf538429b3fcea099661a50c1ac0246219dc",
+        "21459da165f00fe177563d55fef73de5b579743a"
       ],
       "evaluation_refs": [
         {
@@ -194,6 +196,8 @@
       "docs/releases/3.3.0.md",
       "docs/releases/3.4.0.md",
       "docs/releases/3.4.1.md",
+      "examples/execution_graph_adapter.py",
+      "go.work",
       "pyproject.toml",
       "release_manifest.json",
       "scripts/audit_release_lineage.py",
