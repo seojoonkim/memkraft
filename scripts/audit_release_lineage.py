@@ -22,12 +22,6 @@ FEATURE_KEYS = frozenset({"id", "state", "proposal_id", "revision_id", "evaluati
 EXCLUDED_KEYS = frozenset({"id", "state", "reason"})
 EVAL_KEYS = frozenset({"kind", "path", "node"})
 PROMOTION_KEYS = frozenset({"kind", "path", "claim"})
-SCOPE_FILES = frozenset({
-    "pyproject.toml", "setup.py", "MANIFEST.in", "README.md", "CHANGELOG.md", "release_manifest.json",
-})
-SCOPE_PREFIXES = ("src/", "tests/", "scripts/", "tools/", "benchmarks/", ".github/", "docs/")
-
-
 def _git(repo: Path, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(["git", "-C", str(repo), *args], check=check,
                           capture_output=True, text=True, timeout=30)
@@ -52,7 +46,7 @@ def _is_path(value: Any) -> bool:
 
 
 def _scoped(path: str) -> bool:
-    return path in SCOPE_FILES or path.startswith(SCOPE_PREFIXES)
+    return bool(path)
 
 
 def _tree_text(repo: Path, candidate: str, path: str) -> str:
@@ -151,7 +145,6 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             findings.append(_finding("remote_candidate_mismatch", candidate_sha=candidate, remote_sha=remote_sha, branch=branch))
 
     owners: Dict[str, str] = {}
-    commits_seen: Dict[str, str] = {}
     ids = set()
     def own(path: str, owner: str) -> None:
         if path in owners and owners[path] != owner:
@@ -223,9 +216,6 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             if evidence["claim"] not in evidence_text:
                 findings.append(_finding("promotion_evidence_unsubstantiated", feature_id=feature_id, path=evidence["path"]))
         for commit in commits:
-            if commit in commits_seen and commits_seen[commit] != feature_id:
-                findings.append(_finding("duplicate_feature_commit", commit=commit, features=sorted([commits_seen[commit], feature_id])))
-            commits_seen[commit] = feature_id
             if _git(repo, ["cat-file", "-e", commit + "^{commit}"], check=False).returncode != 0:
                 findings.append(_finding("commit_not_found", feature_id=feature_id, commit=commit)); continue
             if base and SHA_RE.fullmatch(str(base)) and _git(repo, ["merge-base", "--is-ancestor", base, commit], check=False).returncode != 0:
@@ -246,21 +236,21 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
         for path in sorted(p for p in changed if _scoped(p)):
             if not owner_for(path):
                 findings.append(_finding("unregistered_release_drift", path=path))
-        all_declared_commits = set(commits_seen)
         for feature in features:
             if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
                 continue
             feature_id = feature.get("id")
+            declared_commits = set(feature.get("commits") or [])
             paths = feature.get("source_paths") or []
             if not isinstance(feature_id, str) or not all(isinstance(path, str) for path in paths):
                 continue
             for path in paths:
                 touching = _git(
                     repo,
-                    ["log", "--format=%H", base + ".." + candidate, "--", path],
+                    ["log", "--full-history", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines()
                 for commit in touching:
-                    if commit not in all_declared_commits:
+                    if commit not in declared_commits:
                         findings.append(_finding(
                             "undeclared_feature_commit",
                             feature_id=feature_id,
