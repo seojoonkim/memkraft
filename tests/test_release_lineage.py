@@ -480,6 +480,64 @@ def test_atomic_version_only_release_transition_is_allowed(auditor, tmp_path):
     assert report["release_ready"] is True, report["findings"]
 
 
+def test_version_transition_does_not_excuse_later_undeclared_init_change(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, transition = _commit_release_transition(repo, base)
+    init_path = repo / "src" / "memkraft" / "__init__.py"
+    init_path.write_text('__version__ = "1.2.0"\nPUBLIC = 1\n', encoding="utf-8")
+    _git(repo, "add", str(init_path))
+    _git(repo, "commit", "-qm", "declared package API change")
+    declared = _git(repo, "rev-parse", "HEAD")
+    init_path.write_text('__version__ = "1.2.0"\nPUBLIC = 2\n', encoding="utf-8")
+    _git(repo, "add", str(init_path))
+    _git(repo, "commit", "-qm", "undeclared package API follow-up")
+    undeclared = _git(repo, "rev-parse", "HEAD")
+    manifest["features"] = [{
+        "id": "feature.package-api",
+        "state": "verified",
+        "proposal_id": "prop.package-api",
+        "revision_id": "r1",
+        "evaluation_refs": [{"kind": "pytest", "path": "tests/test_feature.py", "node": "all"}],
+        "promotion_evidence": [{
+            "kind": "release-note", "path": "docs/releases/1.2.0.md", "claim": "MemKraft 1.2.0",
+        }],
+        "commits": [declared],
+        "source_paths": ["src/memkraft/__init__.py"],
+    }]
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=undeclared)
+
+    assert not any(
+        f["code"] == "undeclared_feature_commit" and f.get("commit") == transition
+        for f in report["findings"]
+    )
+    assert any(
+        f["code"] == "undeclared_feature_commit"
+        and f.get("feature_id") == "feature.package-api"
+        and f.get("commit") == undeclared
+        and f.get("path") == "src/memkraft/__init__.py"
+        for f in report["findings"]
+    )
+
+
+def test_version_transition_does_not_excuse_later_unowned_init_change(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, transition = _commit_release_transition(repo, base)
+    init_path = repo / "src" / "memkraft" / "__init__.py"
+    init_path.write_text('__version__ = "1.2.0"\nPUBLIC = 1\n', encoding="utf-8")
+    _git(repo, "add", str(init_path))
+    _git(repo, "commit", "-qm", "unowned package API change")
+    candidate = _git(repo, "rev-parse", "HEAD")
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(
+        f["code"] == "unregistered_release_drift"
+        and f.get("path") == "src/memkraft/__init__.py"
+        for f in report["findings"]
+    )
+
+
 @pytest.mark.parametrize("omit", [
     "release_manifest.json", "pyproject.toml", "README.md", "CHANGELOG.md",
     "docs/releases/1.2.0.md", "tests/test_packaging_version.py",
@@ -531,6 +589,8 @@ def test_ci_uses_full_history_and_runs_lineage_audit():
     assert workflow.count("fetch-depth: 0") == checkout_count
     assert "python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json" in workflow
     assert "CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" in workflow
+    assert workflow.count("ref: ${{ env.CANDIDATE_SHA }}") == checkout_count
+    assert "never GitHub's synthetic merge commit" in workflow
     assert "pull_request:\n    paths:" not in workflow
     push_block = workflow.split("  push:", 1)[1].split("\njobs:", 1)[0]
     assert "branches: [main]" in push_block
@@ -606,6 +666,11 @@ def test_release_workflow_is_oidc_only_and_artifact_chained():
     assert 'tags:\n      - "v*"' in workflow
     assert "git rev-parse 'HEAD^{commit}'" in workflow
     assert "candidate_sha=$GITHUB_SHA" not in workflow
+    pytest_step = workflow.split(
+        "      - name: Test, conformance, release benchmarks, and build once", 1
+    )[1].split("      - name:", 1)[0]
+    assert "CANDIDATE_SHA: ${{ github.sha }}" in pytest_step
+    assert "python -m pytest tests/ -q" in pytest_step
     assert "release/3.4.0" not in workflow
     assert "active_branch=" in workflow
     assert "actions/setup-go@v5" in workflow

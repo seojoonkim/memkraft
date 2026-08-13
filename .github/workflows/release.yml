@@ -51,6 +51,9 @@ jobs:
             --expected-version "${{ steps.inputs.outputs.version }}" --expected-branch "${{ steps.inputs.outputs.active_branch }}" \
             --candidate-sha "${{ steps.inputs.outputs.candidate_sha }}"
       - name: Test, conformance, release benchmarks, and build once
+        env:
+          # Repository-lineage tests must audit the immutable tag event commit.
+          CANDIDATE_SHA: ${{ github.sha }}
         run: |
           python -m pip install pytest build twine tomli
           PYTHONPATH="$GITHUB_WORKSPACE/src" python -m pytest tests/ -q

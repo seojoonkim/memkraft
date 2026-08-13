@@ -349,13 +349,33 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                 ))
             else:
                 valid_version_commits.add(commit)
-        valid_version_drift = bool(valid_version_commits)
-        for path in sorted(p for p in changed if _scoped(p)):
-            if not owner_for(path) and not (path == PACKAGE_VERSION_PATH and valid_version_drift):
-                findings.append(_finding("unregistered_release_drift", path=path))
+        # This exception is commit-scoped. A valid transition must not mask a
+        # later non-version package-initializer change.
+        package_touching_commits = set(_git(
+            repo,
+            ["log", "--full-history", "--no-merges", "--format=%H",
+             base + ".." + candidate, "--", PACKAGE_VERSION_PATH],
+        ).stdout.splitlines())
         merge_commits = _git(
             repo, ["rev-list", "--merges", base + ".." + candidate]
         ).stdout.splitlines()
+        for merge_commit in merge_commits:
+            merge_touch = _git(
+                repo,
+                ["diff", "--name-only", "--diff-filter=ACMRD", "--no-renames",
+                 merge_commit + "^1", merge_commit, "--", PACKAGE_VERSION_PATH],
+            ).stdout.splitlines()
+            if merge_touch:
+                package_touching_commits.add(merge_commit)
+        package_has_only_valid_version_drift = (
+            bool(package_touching_commits)
+            and package_touching_commits <= valid_version_commits
+        )
+        for path in sorted(p for p in changed if _scoped(p)):
+            if not owner_for(path) and not (
+                path == PACKAGE_VERSION_PATH and package_has_only_valid_version_drift
+            ):
+                findings.append(_finding("unregistered_release_drift", path=path))
         for feature in features:
             if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
                 continue
