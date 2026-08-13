@@ -1,11 +1,6 @@
 {
   "excluded": [
     {
-      "id": "delay-retrospective-ledger",
-      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit.",
-      "state": "planned"
-    },
-    {
       "id": "project-memory-compiler",
       "reason": "Architecture planning remains open and is not represented as shipped code.",
       "state": "planned"
@@ -166,6 +161,32 @@
       "revision_id": "r1",
       "source_paths": [
         "src/memkraft/state_contract.py"
+      ],
+      "state": "verified"
+    },
+    {
+      "commits": [
+        "819e0c2444629e95af030fae7a60b2b3d19232db"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_delay_ledger.py"
+        }
+      ],
+      "id": "adaptive-eta.delay-ledger-preview",
+      "promotion_evidence": [
+        {
+          "claim": "Adaptive ETA and Delay Ledger Preview",
+          "kind": "test-suite",
+          "path": "tests/test_delay_ledger.py"
+        }
+      ],
+      "proposal_id": "prop.adaptive-eta-delay-ledger",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/delay_ledger.py"
       ],
       "state": "verified"
     }
