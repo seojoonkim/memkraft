@@ -1,4 +1,4 @@
-**v3.4.1**
+**v3.5.0**
 
 <div align="center">
 
@@ -480,7 +480,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.4.1**.
+Current version: **3.5.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -494,7 +494,13 @@ No migration command or Markdown rewrite is required for 3.4.1. The execution, e
 
 ## 📝 Changelog
 
-### [v3.4.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.4.1) (current)
+### [v3.5.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.0) (current)
+
+MemKraft 3.5.0 is the active development release line after the immutable
+v3.4.1 baseline. Its initial planned preview is the Adaptive ETA and Delay
+Ledger. Read the [release notes](docs/releases/3.5.0.md).
+
+### [v3.4.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.4.1)
 
 MemKraft 3.4.1 consolidates the runtime-neutral MKEP/0 execution Preview, Evaluation Corpus, Continual Improvement Ledger Preview, Project State Contract, and a fail-closed single-release-lineage gate. It also fixes the release verifier source-path boundary found by the failed, unpublished `v3.4.0` workflow. Read the [release notes](docs/releases/3.4.1.md).
 

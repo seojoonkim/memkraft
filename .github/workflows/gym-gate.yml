@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+env:
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   packaging:
     name: wheel metadata smoke
@@ -19,8 +22,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Audit single release lineage
-        env:
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json --candidate-sha "$CANDIDATE_SHA"
       - name: Build distributions
         run: |

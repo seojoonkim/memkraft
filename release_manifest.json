@@ -13,7 +13,7 @@
   ],
   "features": [],
   "release": {
-    "active_branch": "release/3.4.1",
+    "active_branch": "release/3.5.0",
     "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -38,6 +38,7 @@
       "docs/releases/3.3.0.md",
       "docs/releases/3.4.0.md",
       "docs/releases/3.4.1.md",
+      "docs/releases/3.5.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -79,7 +80,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.4.1"
+    "version": "3.5.0"
   },
   "schema": 2
 }

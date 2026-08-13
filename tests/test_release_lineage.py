@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -46,12 +47,18 @@ def _repo(tmp_path: Path):
     (repo / "src" / "memkraft" / "core.py").write_text("BASE = True\n", encoding="utf-8")
     (repo / "tests").mkdir()
     (repo / "tests" / "test_feature.py").write_text("def test_feature(): pass\n", encoding="utf-8")
+    (repo / "tests" / "test_packaging_version.py").write_text(
+        'RELEASE_VERSION = "1.1.0"\nRELEASE_DATE = "2026-01-01"\n', encoding="utf-8"
+    )
     (repo / "docs" / "releases").mkdir(parents=True)
     (repo / "docs" / "releases" / "1.1.0.md").write_text("Feature One\n", encoding="utf-8")
     (repo / "pyproject.toml").write_text('[project]\nversion = "1.1.0"\n', encoding="utf-8")
     (repo / "src" / "memkraft" / "__init__.py").write_text('__version__ = "1.1.0"\n', encoding="utf-8")
     (repo / "README.md").write_text("Current version: **1.1.0**\n", encoding="utf-8")
     (repo / "CHANGELOG.md").write_text("## [1.1.0]\n", encoding="utf-8")
+    (repo / "release_manifest.json").write_text(json.dumps({
+        "release": {"version": "1.1.0", "active_branch": "release/1.1.0"}
+    }) + "\n", encoding="utf-8")
     _git(repo, "add", ".")
     _git(repo, "commit", "-qm", "base")
     base = _git(repo, "rev-parse", "HEAD")
@@ -433,10 +440,88 @@ def test_manifest_requires_memkraft_lineage_fields(auditor, tmp_path):
     assert any(f["code"] == "invalid_evaluation_refs" for f in report["findings"])
 
 
-def test_repository_manifest_passes_and_covers_all_changed_modules(auditor):
-    manifest = json.loads((REPO_ROOT / "release_manifest.json").read_text(encoding="utf-8"))
-    report = auditor.audit_release_lineage(REPO_ROOT, manifest)
+def _commit_release_transition(repo: Path, base: str, *, omit="", extra_source=False, init_suffix=""):
+    manifest = _manifest(base, base, paths=[])
+    manifest["features"] = []
+    manifest["release"]["version"] = "1.2.0"
+    manifest["release"]["active_branch"] = "release/1.2.0"
+    manifest["release"]["release_paths"].extend([
+        "release_manifest.json", "docs/releases/1.2.0.md", "tests/test_packaging_version.py",
+    ])
+    updates = {
+        "release_manifest.json": json.dumps(manifest, indent=2) + "\n",
+        "pyproject.toml": '[project]\nversion = "1.2.0"\n',
+        "src/memkraft/__init__.py": '__version__ = "1.2.0"\n' + init_suffix,
+        "README.md": "Current version: **1.2.0**\n",
+        "CHANGELOG.md": "## [1.2.0]\n## [1.1.0]\n",
+        "docs/releases/1.2.0.md": "## MemKraft 1.2.0\n",
+        "tests/test_packaging_version.py": (
+            'RELEASE_VERSION = "1.2.0"\nRELEASE_DATE = "2026-02-02"\n'
+        ),
+    }
+    for path, content in updates.items():
+        if path != omit:
+            target = repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+    if extra_source:
+        (repo / "src" / "memkraft" / "stray.py").write_text("STRAY = True\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "atomic release transition")
+    return manifest, _git(repo, "rev-parse", "HEAD")
+
+
+def test_atomic_version_only_release_transition_is_allowed(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(repo, base)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
     assert report["release_ready"] is True, report["findings"]
+
+
+@pytest.mark.parametrize("omit", [
+    "release_manifest.json", "pyproject.toml", "README.md", "CHANGELOG.md",
+    "docs/releases/1.2.0.md", "tests/test_packaging_version.py",
+])
+def test_incomplete_release_transition_fails_closed(auditor, tmp_path, omit):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(repo, base, omit=omit)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(f["code"] == "invalid_release_version_transition" for f in report["findings"])
+    assert any(
+        f["code"] == "unregistered_release_drift" and f.get("path") == "src/memkraft/__init__.py"
+        for f in report["findings"]
+    )
+
+
+@pytest.mark.parametrize("mutation", ["extra_source", "init_content"])
+def test_release_transition_rejects_any_other_source_change(auditor, tmp_path, mutation):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(
+        repo, base, extra_source=mutation == "extra_source",
+        init_suffix="OTHER = True\n" if mutation == "init_content" else "",
+    )
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(f["code"] == "invalid_release_version_transition" for f in report["findings"])
+
+
+def test_repository_manifest_passes_and_covers_all_changed_modules(auditor):
+    candidate_sha = os.environ["CANDIDATE_SHA"]
+    manifest = json.loads(_git(REPO_ROOT, "show", candidate_sha + ":release_manifest.json"))
+    report = auditor.audit_release_lineage(REPO_ROOT, manifest, candidate_sha=candidate_sha)
+    assert report["candidate_sha"] == _git(REPO_ROOT, "rev-parse", candidate_sha + "^{commit}")
+    assert report["release_ready"] is True, report["findings"]
+
+
+def test_repository_manifest_requires_explicit_candidate_sha(auditor, monkeypatch):
+    monkeypatch.delenv("CANDIDATE_SHA", raising=False)
+    with pytest.raises(KeyError, match="CANDIDATE_SHA"):
+        test_repository_manifest_passes_and_covers_all_changed_modules(auditor)
 
 
 def test_ci_uses_full_history_and_runs_lineage_audit():
@@ -445,6 +530,7 @@ def test_ci_uses_full_history_and_runs_lineage_audit():
     assert checkout_count > 0
     assert workflow.count("fetch-depth: 0") == checkout_count
     assert "python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json" in workflow
+    assert "CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" in workflow
     assert "pull_request:\n    paths:" not in workflow
     push_block = workflow.split("  push:", 1)[1].split("\njobs:", 1)[0]
     assert "branches: [main]" in push_block
