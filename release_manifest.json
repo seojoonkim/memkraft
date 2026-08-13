@@ -1,17 +1,40 @@
 {
   "excluded": [
     {
-      "id": "delay-retrospective-ledger",
-      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit.",
-      "state": "planned"
-    },
-    {
       "id": "project-memory-compiler",
       "reason": "Architecture planning remains open and is not represented as shipped code.",
       "state": "planned"
     }
   ],
-  "features": [],
+  "features": [
+    {
+      "commits": [
+        "9e5a0d0408490d36cbb2ab98fc875917a596b474"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_delay_ledger.py"
+        }
+      ],
+      "id": "adaptive-eta.delay-ledger-preview",
+      "promotion_evidence": [
+        {
+          "claim": "Adaptive ETA and Delay Ledger Preview",
+          "kind": "release-note",
+          "path": "docs/ADAPTIVE_ETA_DELAY_LEDGER.md"
+        }
+      ],
+      "proposal_id": "prop.adaptive-eta-delay",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/__init__.py",
+        "src/memkraft/delay_ledger.py"
+      ],
+      "state": "verified"
+    }
+  ],
   "release": {
     "active_branch": "release/3.5.0",
     "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
@@ -22,6 +45,7 @@
       "MANIFEST.in",
       "README.md",
       "docs/ADAPTERS.md",
+      "docs/ADAPTIVE_ETA_DELAY_LEDGER.md",
       "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
       "docs/EXECUTION_PROTOCOL.md",
       "docs/GRAPH_ENGINEERING_ADAPTERS.md",
@@ -51,6 +75,7 @@
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/test_context_compiler.py",
+      "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
       "tests/test_execution_cli.py",

@@ -326,18 +326,30 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             repo,
             ["log", "--full-history", "--format=%H", base + ".." + candidate, "--", PACKAGE_VERSION_PATH],
         ).stdout.splitlines()
-        valid_version_drift = bool(version_transition_commits)
+        valid_version_commits = set()
         for commit in version_transition_commits:
+            parent = _git(repo, ["rev-parse", commit + "^1"]).stdout.strip()
+            try:
+                package_changed = (
+                    _version_facts(repo, parent)["package"]
+                    != _version_facts(repo, commit)["package"]
+                )
+            except (OSError, ValueError, TypeError):
+                package_changed = True
+            if not package_changed:
+                continue
             try:
                 reason = _valid_version_transition(repo, commit)
             except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
                 reason = str(exc)
             if reason:
-                valid_version_drift = False
                 findings.append(_finding(
-                    "invalid_release_version_transition", commit=commit, path=PACKAGE_VERSION_PATH,
-                    reason=reason,
+                    "invalid_release_version_transition", commit=commit,
+                    path=PACKAGE_VERSION_PATH, reason=reason,
                 ))
+            else:
+                valid_version_commits.add(commit)
+        valid_version_drift = bool(valid_version_commits)
         for path in sorted(p for p in changed if _scoped(p)):
             if not owner_for(path) and not (path == PACKAGE_VERSION_PATH and valid_version_drift):
                 findings.append(_finding("unregistered_release_drift", path=path))
@@ -364,6 +376,8 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                     repo,
                     ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines())
+                if path == PACKAGE_VERSION_PATH:
+                    touching -= valid_version_commits
                 for merge_commit in merge_commits:
                     merge_touch = _git(
                         repo,
