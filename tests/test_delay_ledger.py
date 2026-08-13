@@ -565,6 +565,10 @@ def test_verdict_refs_duplicate_operation_and_all_public_methods(tmp_path):
     with pytest.raises(delay_ledger.DelayError) as excinfo:
         mk.delay_record_verification("verify-001", "app-001", "finding", "unknown", now=NOW)
     assert excinfo.value.code == "E_DELAY_VALIDATION"
+    with pytest.raises(delay_ledger.DelayError) as excinfo:
+        mk.delay_record_verification("verify-none", "app-001", "finding", None, now=NOW)
+    assert excinfo.value.code == "E_DELAY_VALIDATION"
+    assert not _path(mk).exists() or not _path(mk).read_text().strip()
     mk.delay_run_start("run-001", "task", "build", now=NOW, operation_id="duplicate-op")
     duplicate = json.loads(_path(mk).read_text().splitlines()[0])
     duplicate.update(id="duplicate-record", event_seq=2)

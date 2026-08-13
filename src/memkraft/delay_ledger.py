@@ -457,6 +457,10 @@ class DelayLedgerMixin:
             if prepare is not None:
                 prepare(records, record)
             record["event_seq"] = max([0] + [item["event_seq"] for item in records]) + 1
+            candidate = dict(record, schema_version=1)
+            if not _valid_common_record(candidate) or not _persisted_valid(candidate):
+                _fail("E_DELAY_VALIDATION",
+                      "candidate record violates the persisted delay schema")
             written = append(path, record)
             durable_fd = os.open(path, os.O_RDONLY)
             try:
@@ -587,7 +591,7 @@ class DelayLedgerMixin:
         if external_receipt_ref is not None:
             record["external_receipt_ref"] = _opaque(
                 "external_receipt_ref", external_receipt_ref, _MAX_REF)
-        if verdict is not None:
+        if record_type == "delay_verification":
             if verdict not in _VERDICTS:
                 _fail("E_DELAY_VALIDATION", "verdict is outside its closed domain",
                       "verdict")
