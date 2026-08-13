@@ -28,7 +28,7 @@ Python-only additive [Continual Improvement Ledger Preview](CONTINUAL_IMPROVEMEN
 
 ### Adaptive ETA and Delay Ledger preview (3.5.0)
 
-Python-only additive [Adaptive ETA and Delay Ledger Preview](ADAPTIVE_ETA_DELAY_LEDGER.md)는 task → phase → attempt timing, exact-subject p50/p80/MAD estimate, anomaly snapshot, retrospective evidence chain을 owner-only append log에 기록한다. 공개 메서드는 정확히 `delay_run_start`, `delay_run_finish`, `delay_estimate`, `delay_record_retrospective`, `delay_record_action`, `delay_record_application`, `delay_record_verification`이다. 이 Preview는 실행·스케줄링·권한 인증을 하지 않으며 corrupt replay, hierarchy 위반, idempotency mismatch를 fail-closed한다.
+Python-only additive [Adaptive ETA and Delay Ledger Preview](ADAPTIVE_ETA_DELAY_LEDGER.md)는 task → phase → attempt timing, exact-subject p50/p80/MAD estimate, anomaly snapshot, retrospective evidence chain을 owner-only append log에 기록한다. 공개 메서드는 정확히 `delay_run_start`, `delay_run_finish`, `delay_estimate`, `delay_record_retrospective`, `delay_record_action`, `delay_record_application`, `delay_record_verification`이다. 이 Preview는 실행·스케줄링·권한 인증을 하지 않으며 corrupt replay, hierarchy 위반, idempotency mismatch를 fail-closed한다. Adaptive ETA Preview의 GA 승격·수정·철회 결정 기한은 3.5.0 release line 개시 후 6개월인 **2027-02-14**다.
 
 실행 기능은 `compile_context(..., goal_id=None, execution_budget=0)`에 dual opt-in이다. `goal_id is not None`이고 `execution_budget > 0`일 때만 마지막 `execution` section이 생긴다. 사용하지 않을 때 기존 output과 identity input은 byte-identical이다. `context_schema`는 golden `usage_id`를 지키기 위해 identity dict에서 제외되므로 서로 다른 context schema payload가 같은 `usage_id`를 가질 수 있고 outcome attribution이 schema version 사이에서 합쳐질 수 있다. 이 aliasing은 의도된 Preview trade-off다.
 

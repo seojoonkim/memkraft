@@ -17,7 +17,7 @@ Remember sourced facts. Retrieve bounded context. Act with any model or agent. R
 
 </div>
 
-> **3.5 Preview:** The Python-only [Adaptive ETA and Delay Ledger](docs/ADAPTIVE_ETA_DELAY_LEDGER.md) records private append-only run timing, deterministic estimates, anomalies, and inert retrospective evidence. It does not execute or schedule work.
+> **3.5.0 Verified Preview:** The Python-only [Adaptive ETA and Delay Ledger](docs/ADAPTIVE_ETA_DELAY_LEDGER.md) records private append-only run timing, deterministic estimates, anomalies, and inert retrospective evidence. Its contract and fail-closed replay behavior are covered by the 3.5.0 validation suite. It does not execute or schedule work.
 
 MemKraft keeps its human-facing knowledge in files you can read, diff, edit, and version. Its core install uses the Python standard library, makes no model calls, and needs no API key. Your agent supplies the intelligence; MemKraft supplies persistent knowledge, provenance, lifecycle controls, and a feedback ledger.
 
@@ -492,15 +492,15 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-No migration command or Markdown rewrite is required for 3.4.1. The execution, evaluation, improvement, and project-state stores are additive and lazy-created; 3.2.x ignores them on rollback. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
+Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite. Adaptive ETA reads do not create state; the first delay-ledger write lazily creates the additive `.memkraft/delay/events.jsonl` store. To roll back, stop 3.5.0 writers and reinstall 3.4.1. It ignores `.memkraft/delay/`, so preserve that directory for audit and for a later re-upgrade; deleting it is explicit loss of delay evidence. Do not let 3.5.0 and 3.4.1 processes write the same base directory concurrently. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for older migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## 📝 Changelog
 
 ### [v3.5.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.0) (current)
 
 MemKraft 3.5.0 is the active development release line after the immutable
-v3.4.1 baseline. Its initial planned preview is the Adaptive ETA and Delay
-Ledger. Read the [release notes](docs/releases/3.5.0.md).
+v3.4.1 baseline. Its verified Adaptive ETA and Delay Ledger Preview is
+Python-only and additive. Read the [release notes](docs/releases/3.5.0.md).
 
 ### [v3.4.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.4.1)
 

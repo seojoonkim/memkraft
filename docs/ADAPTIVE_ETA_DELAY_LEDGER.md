@@ -30,4 +30,4 @@ Records live at `.memkraft/delay/events.jsonl`; the directory and file are repai
 
 `authority_verified` must be the literal boolean `False`; `True` is rejected because MemKraft cannot verify external authority. Writes are serialized under the governance lock and are idempotent by operation ID plus canonical argument fingerprint. An operation ID reused with different arguments raises a typed `DelayError`.
 
-This Preview is additive, single-host, local-filesystem-only, and Python 3.9 compatible. It adds no CLI, MCP, network, scheduler, or execution surface.
+This Preview is additive, single-host, local-filesystem-only, and Python 3.9 compatible. It adds no CLI, MCP, network, scheduler, or execution surface. Its GA promotion, revision, or withdrawal decision deadline is **2027-02-14**.
