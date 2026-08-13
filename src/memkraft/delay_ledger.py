@@ -133,17 +133,25 @@ def _operation_id(record: Dict[str, Any], supplied: Optional[str]) -> str:
 def _secure_delay_path(path: Path) -> None:
     """Create or repair the private ledger before any record is visible."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    changed = False
+    if path.parent.stat().st_mode & 0o777 != 0o700:
+        os.chmod(path.parent, 0o700)
+        changed = True
+    existed = path.exists()
     fd = os.open(path, os.O_WRONLY | os.O_CREAT, 0o600)
     try:
-        os.fchmod(fd, 0o600)
-        os.fsync(fd)
+        if not existed or os.fstat(fd).st_mode & 0o777 != 0o600:
+            os.fchmod(fd, 0o600)
+            os.fsync(fd)
+            changed = True
     finally:
         os.close(fd)
-    directory_fd = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
+    if changed:
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
 
 def _valid_common_record(record: Dict[str, Any]) -> bool:
@@ -189,12 +197,31 @@ def _partition(result) -> Tuple[List[Dict[str, Any]], int]:
     return usable, corrupt
 
 
+def _identity_fields_valid(record: Dict[str, Any]) -> bool:
+    kind = record.get("record_type")
+    if kind == "delay_run_start":
+        parent = record.get("parent_run_id")
+        return (isinstance(record.get("run_id"), str)
+                and (parent is None or isinstance(parent, str)))
+    if kind == "delay_run_finish":
+        return isinstance(record.get("run_id"), str)
+    if kind in ("delay_retrospective", "delay_action",
+                "delay_application", "delay_verification"):
+        predecessor = record.get("predecessor_id")
+        return (isinstance(record.get("chain_id"), str)
+                and (predecessor is None or isinstance(predecessor, str)))
+    return False
+
+
 def _fold(records: List[Dict[str, Any]]):
     runs: Dict[str, Dict[str, Any]] = {}
     chain: Dict[str, Dict[str, Any]] = {}
     corrupt = 0
     for record in records:
         kind = record.get("record_type")
+        if not _identity_fields_valid(record):
+            corrupt += 1
+            continue
         if kind == "delay_run_start":
             run_id = record.get("run_id")
             if run_id in runs or record.get("kind") not in _KINDS:

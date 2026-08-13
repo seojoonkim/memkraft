@@ -317,6 +317,7 @@ def test_existing_permissive_ledger_is_repaired_before_append(tmp_path, monkeypa
     mk.delay_run_start("secure-001", "task", "build", now=NOW)
     assert seen_modes == [0o600]
     assert path.stat().st_mode & 0o777 == 0o600
+    assert path.parent.stat().st_mode & 0o777 == 0o700
 
 
 def test_retrospective_auto_id_retry_uses_trigger_snapshot(tmp_path):
@@ -358,6 +359,33 @@ def test_parseable_inconsistent_finish_is_fail_closed(tmp_path):
     assert eta["reason"] == "corrupt_history"
     with pytest.raises(ExecutionError) as excinfo:
         mk.delay_run_start("run-001", "task", "build", now=NOW)
+    assert excinfo.value.code == "E_DELAY_LOG_CORRUPT"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("run_id", []),
+    ("parent_run_id", {}),
+])
+def test_unhashable_identity_is_fail_closed(tmp_path, field, value):
+    mk = _mk(tmp_path)
+    mk.delay_run_start("seed-001", "task", "build", now=NOW)
+    path = _path(mk)
+    record = {
+        "id": "record-002", "schema_version": 1, "created_at": NOW,
+        "record_type": "delay_run_start", "event_seq": 2,
+        "operation_id": "operation-002", "privacy": "local_private",
+        "authority_verified": False, "evidence_refs": [],
+        "run_id": "run-001", "kind": "phase", "subject": "build",
+        "parent_run_id": "seed-001",
+    }
+    record[field] = value
+    with path.open("a") as handle:
+        handle.write(json.dumps(record) + "\n")
+    assert mk.delay_estimate("task", "build", now=NOW) == {
+        "available": False, "reason": "corrupt_history"
+    }
+    with pytest.raises(ExecutionError) as excinfo:
+        mk.delay_run_start("next-001", "task", "build", now=NOW)
     assert excinfo.value.code == "E_DELAY_LOG_CORRUPT"
 
 

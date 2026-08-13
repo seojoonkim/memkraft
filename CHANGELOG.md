@@ -1,5 +1,10 @@
 # CHANGELOG
 
+Post-3.4.1 development includes the Adaptive ETA and Delay Ledger Preview for
+private append-only active/wait/rework timing, exact-subject p50/p80 estimates,
+deterministic anomaly evidence, and non-executing retrospective receipt chains.
+It is not part of, and does not alter, the immutable `v3.4.1` artifact.
+
 ## [3.4.1] — 2026-08-12
 
 - Fixed the release workflow to use an absolute source path for subprocess tests; the immutable `v3.4.0` tag failed before PyPI or GitHub Release publication.
