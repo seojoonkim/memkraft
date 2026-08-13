@@ -480,7 +480,8 @@ def test_atomic_version_only_release_transition_is_allowed(auditor, tmp_path):
     assert report["release_ready"] is True, report["findings"]
 
 
-def _commit_lineage_hotfix(repo: Path, manifest, feature_commit: str) -> str:
+def _commit_lineage_hotfix(repo: Path, manifest, feature_commit: str,
+                            source_paths=None) -> str:
     manifest["features"] = [{
         "id": "feature.one",
         "state": "verified",
@@ -491,7 +492,7 @@ def _commit_lineage_hotfix(repo: Path, manifest, feature_commit: str) -> str:
             "kind": "release-note", "path": "docs/releases/1.2.0.md", "claim": "MemKraft 1.2.0",
         }],
         "commits": [feature_commit],
-        "source_paths": ["src/memkraft/feature_one.py"],
+        "source_paths": source_paths or ["src/memkraft/feature_one.py"],
     }]
     (repo / "release_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     _git(repo, "add", "release_manifest.json")
@@ -543,6 +544,41 @@ def test_squashed_transition_rejects_unowned_extra_source(auditor, tmp_path):
     assert any(
         finding["code"] == "invalid_release_version_transition"
         and "stray.py" in finding.get("reason", "")
+        for finding in report["findings"]
+    )
+
+
+def test_squashed_transition_allows_exactly_declared_init_only_feature(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, transition = _commit_release_transition(
+        repo, base, init_suffix="PUBLIC = True\n",
+    )
+    candidate = _commit_lineage_hotfix(
+        repo, manifest, transition,
+        source_paths=["src/memkraft/__init__.py"],
+    )
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert report["release_ready"] is True, report["findings"]
+
+
+def test_squashed_transition_rejects_init_drift_declared_at_other_commit(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, transition = _commit_release_transition(
+        repo, base, init_suffix="PUBLIC = True\n",
+    )
+    candidate = _commit_lineage_hotfix(
+        repo, manifest, base,
+        source_paths=["src/memkraft/__init__.py"],
+    )
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(
+        finding["code"] == "invalid_release_version_transition"
+        and finding.get("commit") == transition
+        and "package initializer contains non-version drift" in finding.get("reason", "")
         for finding in report["findings"]
     )
 

@@ -413,7 +413,10 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                     ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines())
                 if path == PACKAGE_VERSION_PATH:
-                    touching -= valid_version_commits
+                    # A pure release transition is not feature work. A combined
+                    # squash transition remains a real feature touch only when
+                    # this exact feature declares this exact commit.
+                    touching -= valid_version_commits - declared_commits
                 for merge_commit in merge_commits:
                     merge_touch = _git(
                         repo,
