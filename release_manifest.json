@@ -29,7 +29,8 @@
         "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
         "853456ab86b2736e67779cecdb094ed531656a18",
         "8bfebf538429b3fcea099661a50c1ac0246219dc",
-        "21459da165f00fe177563d55fef73de5b579743a"
+        "21459da165f00fe177563d55fef73de5b579743a",
+        "819e0c2444629e95af030fae7a60b2b3d19232db"
       ],
       "evaluation_refs": [
         {
@@ -166,7 +167,8 @@
     },
     {
       "commits": [
-        "819e0c2444629e95af030fae7a60b2b3d19232db"
+        "819e0c2444629e95af030fae7a60b2b3d19232db",
+        "aa819a3a2fca30418c48df0291b722ae52f1a342"
       ],
       "evaluation_refs": [
         {
@@ -179,8 +181,8 @@
       "promotion_evidence": [
         {
           "claim": "Adaptive ETA and Delay Ledger Preview",
-          "kind": "test-suite",
-          "path": "tests/test_delay_ledger.py"
+          "kind": "changelog",
+          "path": "CHANGELOG.md"
         }
       ],
       "proposal_id": "prop.adaptive-eta-delay-ledger",
@@ -229,6 +231,7 @@
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/test_context_compiler.py",
+      "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
       "tests/test_execution_cli.py",
