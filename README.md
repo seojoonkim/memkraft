@@ -17,6 +17,8 @@ Remember sourced facts. Retrieve bounded context. Act with any model or agent. R
 
 </div>
 
+> **3.5 Preview:** The Python-only [Adaptive ETA and Delay Ledger](docs/ADAPTIVE_ETA_DELAY_LEDGER.md) records private append-only run timing, deterministic estimates, anomalies, and inert retrospective evidence. It does not execute or schedule work.
+
 MemKraft keeps its human-facing knowledge in files you can read, diff, edit, and version. Its core install uses the Python standard library, makes no model calls, and needs no API key. Your agent supplies the intelligence; MemKraft supplies persistent knowledge, provenance, lifecycle controls, and a feedback ledger.
 
 <p align="center">
