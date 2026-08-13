@@ -480,6 +480,73 @@ def test_atomic_version_only_release_transition_is_allowed(auditor, tmp_path):
     assert report["release_ready"] is True, report["findings"]
 
 
+def _commit_lineage_hotfix(repo: Path, manifest, feature_commit: str) -> str:
+    manifest["features"] = [{
+        "id": "feature.one",
+        "state": "verified",
+        "proposal_id": "prop.feature-one",
+        "revision_id": "r1",
+        "evaluation_refs": [{"kind": "pytest", "path": "tests/test_feature.py", "node": "all"}],
+        "promotion_evidence": [{
+            "kind": "release-note", "path": "docs/releases/1.2.0.md", "claim": "MemKraft 1.2.0",
+        }],
+        "commits": [feature_commit],
+        "source_paths": ["src/memkraft/feature_one.py"],
+    }]
+    (repo / "release_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    _git(repo, "add", "release_manifest.json")
+    _git(repo, "commit", "-qm", "declare squash lineage")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def _amend_transition_with_feature_source(repo: Path) -> str:
+    (repo / "src" / "memkraft" / "feature_one.py").write_text("VALUE = 1\n", encoding="utf-8")
+    _git(repo, "add", "src/memkraft/feature_one.py")
+    _git(repo, "commit", "--amend", "--no-edit", "-q")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_squash_may_combine_atomic_transition_and_declared_feature(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, old_transition = _commit_release_transition(repo, base)
+    transition = _amend_transition_with_feature_source(repo)
+    assert transition != old_transition
+    candidate = _commit_lineage_hotfix(repo, manifest, transition)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert report["release_ready"] is True, report["findings"]
+
+
+def test_squashed_transition_rejects_owned_source_when_commit_is_undeclared(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, old_transition = _commit_release_transition(repo, base)
+    transition = _amend_transition_with_feature_source(repo)
+    assert transition != old_transition
+    candidate = _commit_lineage_hotfix(repo, manifest, base)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(
+        finding["code"] == "invalid_release_version_transition"
+        and "feature_one.py" in finding.get("reason", "")
+        for finding in report["findings"]
+    )
+
+
+def test_squashed_transition_rejects_unowned_extra_source(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(repo, base, extra_source=True)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(
+        finding["code"] == "invalid_release_version_transition"
+        and "stray.py" in finding.get("reason", "")
+        for finding in report["findings"]
+    )
+
+
 def test_version_transition_does_not_excuse_later_undeclared_init_change(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest, transition = _commit_release_transition(repo, base)
