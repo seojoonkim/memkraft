@@ -1,11 +1,6 @@
 {
   "excluded": [
     {
-      "id": "delay-retrospective-ledger",
-      "reason": "No implementation commit exists; the branch label points to the evaluation-corpus commit.",
-      "state": "planned"
-    },
-    {
       "id": "project-memory-compiler",
       "reason": "Architecture planning remains open and is not represented as shipped code.",
       "state": "planned"
@@ -14,165 +9,37 @@
   "features": [
     {
       "commits": [
-        "7b93a1f611dcfcd6dfdf1c03b680292c5ba18f15",
-        "f92f74b7092b8aa2ccdfd1887cf17be4e5f14248",
-        "5634ba8a1f4f07aae97fa50b85373251c587c04b",
-        "b9169afc32d7fd7d4fbb6b36a45d767c52938200",
-        "6436d7d2e5c8a8031ab81f987edb58e62001d9b2",
-        "4a8631ad39af2ec63bccea382b57551d7416ea51",
-        "394f8337d4ad34b0ef0448083c5d893ac87cb518",
-        "c97d484061ac8cd4a0be71481da8a2ad5cff34c3",
-        "6ba4257b7e52d7e7be412642799e882dd116367d",
-        "5dcddd4ce968c2a0c2c5d012ae76e1f277db101c",
-        "fb729673ef2303871b6d6d9bb446d730c4313966",
-        "53db86cacde9416ddadbbb1a5ef195337114959e",
-        "dfc9b9e3e03cd25c1de62f7020afe47654c909cf",
-        "61dff56583e14e6c204f157aa2e1a444725f9e67",
-        "a1a65be7777a859406d9ae16309b2629be5b28e1",
-        "16ec3721d52962644040fd73c8d7e49b93a62e73",
-        "590d39dde73444b42809bf16c97aec84808a3765",
-        "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
-        "853456ab86b2736e67779cecdb094ed531656a18",
-        "8bfebf538429b3fcea099661a50c1ac0246219dc",
-        "21459da165f00fe177563d55fef73de5b579743a"
+        "9e5a0d0408490d36cbb2ab98fc875917a596b474",
+        "811d6287143ad92e18ab129ffd6f409bce4e3b95",
+        "f504bb1423b71347bd6cb32b7f82fa5cf566acc1"
       ],
       "evaluation_refs": [
         {
           "kind": "pytest",
           "node": "all",
-          "path": "tests/test_execution_protocol.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/conformance/test_runner.py"
-        },
-        {
-          "kind": "go-test",
-          "node": "./...",
-          "path": "tests/conformance/go"
+          "path": "tests/test_delay_ledger.py"
         }
       ],
-      "id": "mkep.execution-kernel",
+      "id": "adaptive-eta.delay-ledger-preview",
       "promotion_evidence": [
         {
-          "claim": "MKEP/0 execution Preview",
+          "claim": "Adaptive ETA and Delay Ledger Preview",
           "kind": "release-note",
-          "path": "docs/releases/3.4.1.md"
+          "path": "docs/ADAPTIVE_ETA_DELAY_LEDGER.md"
         }
       ],
-      "proposal_id": "prop.mkep-3.3",
+      "proposal_id": "prop.adaptive-eta-delay",
       "revision_id": "r1",
       "source_paths": [
         "src/memkraft/__init__.py",
-        "src/memkraft/cli.py",
-        "src/memkraft/context_compiler.py",
-        "src/memkraft/core.py",
-        "src/memkraft/derived_views.py",
-        "src/memkraft/execution_cli.py",
-        "src/memkraft/execution_dispatch.py",
-        "src/memkraft/execution_handoff.py",
-        "src/memkraft/execution_projection.py",
-        "src/memkraft/execution_projection_cache.py",
-        "src/memkraft/execution_protocol.py",
-        "src/memkraft/execution_state.py",
-        "src/memkraft/mcp.py",
-        "src/memkraft/store_core.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "8bfebf538429b3fcea099661a50c1ac0246219dc"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_evaluation_corpus.py"
-        }
-      ],
-      "id": "evaluation.corpus-v0",
-      "promotion_evidence": [
-        {
-          "claim": "Evaluation Corpus v0",
-          "kind": "release-note",
-          "path": "docs/releases/3.4.1.md"
-        }
-      ],
-      "proposal_id": "prop.evaluation-corpus-v0",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/evaluation_corpus.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "21459da165f00fe177563d55fef73de5b579743a",
-        "c0028503fa9b9dc112f4e629a1f8c70ef9623c41",
-        "12eed5b87a53c98179b8b6fa8a05be929b9fc84e",
-        "24e9d363153e94204733ddd972ae781c2d65b79b",
-        "9efb11eaf49f6d32ac055b0f69b13342350e0004"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_improvement_ledger.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_improvement_ledger_review_regressions.py"
-        }
-      ],
-      "id": "continual-improvement.ledger-preview",
-      "promotion_evidence": [
-        {
-          "claim": "Continual Improvement Ledger Preview",
-          "kind": "release-note",
-          "path": "docs/releases/3.4.1.md"
-        }
-      ],
-      "proposal_id": "prop.continual-improvement-ledger",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/improvement_ledger.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "853456ab86b2736e67779cecdb094ed531656a18",
-        "1dc46897d0705afa73a233988e80d2b35205476b"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_state_contract.py"
-        }
-      ],
-      "id": "project.state-contract",
-      "promotion_evidence": [
-        {
-          "claim": "Project State Contract",
-          "kind": "release-note",
-          "path": "docs/releases/3.4.1.md"
-        }
-      ],
-      "proposal_id": "prop.project-state-contract",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/state_contract.py"
+        "src/memkraft/delay_ledger.py"
       ],
       "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/3.4.1",
-    "base_sha": "b9453daddd87776e2accacc5fabdcde0bba4f3c9",
+    "active_branch": "release/3.5.0",
+    "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
       ".github/workflows/release.yml",
@@ -180,6 +47,7 @@
       "MANIFEST.in",
       "README.md",
       "docs/ADAPTERS.md",
+      "docs/ADAPTIVE_ETA_DELAY_LEDGER.md",
       "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
       "docs/EXECUTION_PROTOCOL.md",
       "docs/GRAPH_ENGINEERING_ADAPTERS.md",
@@ -196,6 +64,7 @@
       "docs/releases/3.3.0.md",
       "docs/releases/3.4.0.md",
       "docs/releases/3.4.1.md",
+      "docs/releases/3.5.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -208,6 +77,7 @@
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/test_context_compiler.py",
+      "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
       "tests/test_execution_cli.py",
@@ -237,7 +107,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.4.1"
+    "version": "3.5.0"
   },
   "schema": 2
 }

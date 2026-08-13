@@ -22,6 +22,17 @@ FEATURE_KEYS = frozenset({"id", "state", "proposal_id", "revision_id", "evaluati
 EXCLUDED_KEYS = frozenset({"id", "state", "reason"})
 EVAL_KEYS = frozenset({"kind", "path", "node"})
 PROMOTION_KEYS = frozenset({"kind", "path", "claim"})
+PACKAGE_VERSION_PATH = "src/memkraft/__init__.py"
+RELEASE_TRANSITION_PATHS = frozenset({
+    "release_manifest.json",
+    "pyproject.toml",
+    PACKAGE_VERSION_PATH,
+    "README.md",
+    "CHANGELOG.md",
+    "tests/test_packaging_version.py",
+})
+
+
 def _git(repo: Path, args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(["git", "-C", str(repo), *args], check=check,
                           capture_output=True, text=True, timeout=30)
@@ -80,6 +91,77 @@ def _version_facts(repo: Path, candidate: str) -> Dict[str, str]:
             raise ValueError("version not found in " + name)
         facts[name] = match.group(1)
     return facts
+
+
+def _json_at(repo: Path, commit: str, path: str) -> Dict[str, Any]:
+    value = json.loads(_tree_text(repo, commit, path))
+    if not isinstance(value, dict):
+        raise ValueError(path + " is not a JSON object")
+    return value
+
+
+def _constant(text: str, name: str) -> str:
+    match = re.search(r'(?m)^%s\s*=\s*"([^"]+)"' % re.escape(name), text)
+    if not match:
+        raise ValueError(name + " not found")
+    return match.group(1)
+
+
+def _valid_version_transition(repo: Path, commit: str) -> str:
+    """Return an empty string only for the narrow, atomic release-version exception."""
+    parents = _git(repo, ["rev-list", "--parents", "-n", "1", commit]).stdout.split()
+    if len(parents) != 2:
+        return "transition commit must have exactly one parent"
+    parent = parents[1]
+    changed = set(_git(
+        repo, ["diff", "--name-only", "--diff-filter=ACMRD", "--no-renames", parent, commit]
+    ).stdout.splitlines())
+    new_manifest = _json_at(repo, commit, "release_manifest.json").get("release", {})
+    old_manifest = _json_at(repo, parent, "release_manifest.json").get("release", {})
+    old_version = old_manifest.get("version")
+    new_version = new_manifest.get("version")
+    required = set(RELEASE_TRANSITION_PATHS)
+    if not isinstance(new_version, str) or not new_version or new_version == old_version:
+        return "release manifest version did not change"
+    note_path = "docs/releases/%s.md" % new_version
+    required.add(note_path)
+    missing = sorted(required - changed)
+    if missing:
+        return "transition is missing atomic paths: " + ", ".join(missing)
+    other_source = sorted(path for path in changed if path.startswith("src/") and path != PACKAGE_VERSION_PATH)
+    if other_source:
+        return "transition contains other source changes: " + ", ".join(other_source)
+    if old_manifest.get("active_branch") == new_manifest.get("active_branch"):
+        return "release manifest active_branch did not change"
+    if new_manifest.get("active_branch") != "release/" + new_version:
+        return "active_branch does not match the new version"
+
+    old_package = _tree_text(repo, parent, PACKAGE_VERSION_PATH)
+    new_package = _tree_text(repo, commit, PACKAGE_VERSION_PATH)
+    pattern = r'(?m)^__version__\s*=\s*"[^"]+"'
+    if len(re.findall(pattern, old_package)) != 1 or len(re.findall(pattern, new_package)) != 1:
+        return "package version assignment is ambiguous"
+    normalized = "__version__ = VERSION"
+    if re.sub(pattern, normalized, old_package) != re.sub(pattern, normalized, new_package):
+        return "package initializer contains non-version drift"
+
+    old_facts = _version_facts(repo, parent)
+    new_facts = _version_facts(repo, commit)
+    if set(old_facts.values()) != {old_version} or set(new_facts.values()) != {new_version}:
+        return "canonical version surfaces do not transition together"
+    old_tests = _tree_text(repo, parent, "tests/test_packaging_version.py")
+    new_tests = _tree_text(repo, commit, "tests/test_packaging_version.py")
+    if _constant(new_tests, "RELEASE_VERSION") != new_version:
+        return "packaging RELEASE_VERSION does not match"
+    for name in ("RELEASE_VERSION", "RELEASE_DATE"):
+        if _constant(old_tests, name) == _constant(new_tests, name):
+            return "packaging %s did not change" % name
+    if not _tree_has(repo, commit, note_path):
+        return "new release note is missing"
+    if not re.search(r"(?m)^## MemKraft %s\s*$" % re.escape(new_version),
+                     _tree_text(repo, commit, note_path)):
+        return "new release note heading does not match"
+    return ""
 
 
 def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha: str = "HEAD",
@@ -240,12 +322,60 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
 
     if candidate and base and SHA_RE.fullmatch(str(base)):
         changed = _git(repo, ["diff", "--name-only", "--diff-filter=ACMRD", base + ".." + candidate]).stdout.splitlines()
-        for path in sorted(p for p in changed if _scoped(p)):
-            if not owner_for(path):
-                findings.append(_finding("unregistered_release_drift", path=path))
+        version_transition_commits = _git(
+            repo,
+            ["log", "--full-history", "--format=%H", base + ".." + candidate, "--", PACKAGE_VERSION_PATH],
+        ).stdout.splitlines()
+        valid_version_commits = set()
+        for commit in version_transition_commits:
+            parent = _git(repo, ["rev-parse", commit + "^1"]).stdout.strip()
+            try:
+                package_changed = (
+                    _version_facts(repo, parent)["package"]
+                    != _version_facts(repo, commit)["package"]
+                )
+            except (OSError, ValueError, TypeError):
+                package_changed = True
+            if not package_changed:
+                continue
+            try:
+                reason = _valid_version_transition(repo, commit)
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                reason = str(exc)
+            if reason:
+                findings.append(_finding(
+                    "invalid_release_version_transition", commit=commit,
+                    path=PACKAGE_VERSION_PATH, reason=reason,
+                ))
+            else:
+                valid_version_commits.add(commit)
+        # This exception is commit-scoped. A valid transition must not mask a
+        # later non-version package-initializer change.
+        package_touching_commits = set(_git(
+            repo,
+            ["log", "--full-history", "--no-merges", "--format=%H",
+             base + ".." + candidate, "--", PACKAGE_VERSION_PATH],
+        ).stdout.splitlines())
         merge_commits = _git(
             repo, ["rev-list", "--merges", base + ".." + candidate]
         ).stdout.splitlines()
+        for merge_commit in merge_commits:
+            merge_touch = _git(
+                repo,
+                ["diff", "--name-only", "--diff-filter=ACMRD", "--no-renames",
+                 merge_commit + "^1", merge_commit, "--", PACKAGE_VERSION_PATH],
+            ).stdout.splitlines()
+            if merge_touch:
+                package_touching_commits.add(merge_commit)
+        package_has_only_valid_version_drift = (
+            bool(package_touching_commits)
+            and package_touching_commits <= valid_version_commits
+        )
+        for path in sorted(p for p in changed if _scoped(p)):
+            if not owner_for(path) and not (
+                path == PACKAGE_VERSION_PATH and package_has_only_valid_version_drift
+            ):
+                findings.append(_finding("unregistered_release_drift", path=path))
         for feature in features:
             if not isinstance(feature, dict) or feature.get("state") not in SHIPPED:
                 continue
@@ -266,6 +396,8 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                     repo,
                     ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines())
+                if path == PACKAGE_VERSION_PATH:
+                    touching -= valid_version_commits
                 for merge_commit in merge_commits:
                     merge_touch = _git(
                         repo,

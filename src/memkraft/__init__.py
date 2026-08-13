@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "3.4.1"
+__version__ = "3.5.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -53,6 +53,7 @@ from .execution_state import ExecutionStateMixin  # v3.3 MKEP/0 execution kernel
 from .execution_handoff import ExecutionHandoffMixin  # v3.3 MKEP/0 typed handoff
 from .evaluation_corpus import EvaluationCorpusMixin  # v3.3 evaluation corpus
 from .improvement_ledger import ImprovementLedgerMixin  # continual improvement ledger preview
+from .delay_ledger import DelayLedgerMixin  # timing and delay evidence preview
 from .state_contract import StateContractMixin  # v3.3 project-state contract
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
@@ -84,6 +85,7 @@ _ADDITIVE_ONLY_MIXINS = (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    DelayLedgerMixin,
     StateContractMixin,
 )
 
@@ -132,6 +134,7 @@ for _mixin in (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    DelayLedgerMixin,
     StateContractMixin,
 ):
     for _name, _attr in vars(_mixin).items():

@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [3.5.0] — 2026-08-14
+
+Development release line opened after the immutable v3.4.1 baseline rollover.
+Adaptive ETA and Delay Ledger Preview changes are documented in
+`docs/releases/3.5.0.md`; no v3.4.1 artifact or tag is modified.
+
+- Added the Python-only Adaptive ETA and Delay Ledger Preview with strict
+  task/phase/attempt lifecycle replay, deterministic nearest-rank p50/p80/MAD
+  estimates, historical anomaly reproduction, typed idempotency/integrity
+  failures, and an inert retrospective evidence chain.
+
 ## [3.4.1] — 2026-08-12
 
 - Fixed the release workflow to use an absolute source path for subprocess tests; the immutable `v3.4.0` tag failed before PyPI or GitHub Release publication.
