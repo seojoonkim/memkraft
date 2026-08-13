@@ -107,8 +107,13 @@ def _constant(text: str, name: str) -> str:
     return match.group(1)
 
 
-def _valid_version_transition(repo: Path, commit: str) -> str:
-    """Return an empty string only for the narrow, atomic release-version exception."""
+def _valid_version_transition(repo: Path, commit: str,
+                              declared_feature_paths: Set[str]) -> str:
+    """Validate an atomic transition, optionally squashed with declared features.
+
+    ``declared_feature_paths`` contains only source paths owned by shipped
+    features that declare this exact transition commit.
+    """
     parents = _git(repo, ["rev-list", "--parents", "-n", "1", commit]).stdout.split()
     if len(parents) != 2:
         return "transition commit must have exactly one parent"
@@ -129,8 +134,9 @@ def _valid_version_transition(repo: Path, commit: str) -> str:
     if missing:
         return "transition is missing atomic paths: " + ", ".join(missing)
     other_source = sorted(path for path in changed if path.startswith("src/") and path != PACKAGE_VERSION_PATH)
-    if other_source:
-        return "transition contains other source changes: " + ", ".join(other_source)
+    undeclared_source = sorted(set(other_source) - declared_feature_paths)
+    if undeclared_source:
+        return "transition contains undeclared or unowned source changes: " + ", ".join(undeclared_source)
     if old_manifest.get("active_branch") == new_manifest.get("active_branch"):
         return "release manifest active_branch did not change"
     if new_manifest.get("active_branch") != "release/" + new_version:
@@ -142,7 +148,8 @@ def _valid_version_transition(repo: Path, commit: str) -> str:
     if len(re.findall(pattern, old_package)) != 1 or len(re.findall(pattern, new_package)) != 1:
         return "package version assignment is ambiguous"
     normalized = "__version__ = VERSION"
-    if re.sub(pattern, normalized, old_package) != re.sub(pattern, normalized, new_package):
+    if (re.sub(pattern, normalized, old_package) != re.sub(pattern, normalized, new_package)
+            and PACKAGE_VERSION_PATH not in declared_feature_paths):
         return "package initializer contains non-version drift"
 
     old_facts = _version_facts(repo, parent)
@@ -234,6 +241,7 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             findings.append(_finding("remote_candidate_mismatch", candidate_sha=candidate, remote_sha=remote_sha, branch=branch))
 
     owners: Dict[str, str] = {}
+    shipped_feature_commits: Dict[str, Set[str]] = {}
     ids = set()
     def own(path: str, owner: str) -> None:
         if path in owners and owners[path] != owner:
@@ -280,6 +288,8 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
             findings.append(_finding("planned_feature_has_implementation", feature_id=feature_id))
         if state in SHIPPED and (not commits or not paths):
             findings.append(_finding("implemented_feature_missing_artifacts", feature_id=feature_id))
+        if state in SHIPPED:
+            shipped_feature_commits[feature_id] = set(commits)
         for path in paths:
             own(path, feature_id)
         if not isinstance(refs, list) or not refs:
@@ -338,8 +348,14 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                 package_changed = True
             if not package_changed:
                 continue
+            declared_feature_paths = {
+                path for path in changed
+                if path.startswith("src/")
+                and owner_for(path) in shipped_feature_commits
+                and commit in shipped_feature_commits[owner_for(path)]
+            }
             try:
-                reason = _valid_version_transition(repo, commit)
+                reason = _valid_version_transition(repo, commit, declared_feature_paths)
             except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
                 reason = str(exc)
             if reason:
@@ -397,7 +413,10 @@ def audit_release_lineage(repo: Path, manifest: Dict[str, Any], *, candidate_sha
                     ["log", "--full-history", "--no-merges", "--format=%H", base + ".." + candidate, "--", path],
                 ).stdout.splitlines())
                 if path == PACKAGE_VERSION_PATH:
-                    touching -= valid_version_commits
+                    # A pure release transition is not feature work. A combined
+                    # squash transition remains a real feature touch only when
+                    # this exact feature declares this exact commit.
+                    touching -= valid_version_commits - declared_commits
                 for merge_commit in merge_commits:
                     merge_touch = _git(
                         repo,
