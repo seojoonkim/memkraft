@@ -36,6 +36,17 @@ def _anomalous_run(mk, subject="build"):
     return _finish_sample(mk, 99, 11, subject=subject)
 
 
+def _complete_chain(mk):
+    anomalous = _anomalous_run(mk)
+    mk.delay_record_retrospective("retro-001", anomalous["record"]["run_id"],
+                                  "cold-cache", now=NOW)
+    mk.delay_record_action("action-001", "retro-001", "warm-cache", now=NOW)
+    mk.delay_record_application("application-001", "action-001",
+                                "applied-in-host", now=NOW)
+    mk.delay_record_verification("verification-001", "application-001",
+                                 "ci-confirmed", "pass", now=NOW)
+
+
 def test_hierarchy_and_finish_are_append_only(tmp_path):
     mk = _mk(tmp_path)
     task = mk.delay_run_start("task-001", "task", "release", now=NOW)
@@ -220,7 +231,7 @@ def test_receipt_chain_is_explicit_inert_evidence(tmp_path):
         external_receipt_ref="host:change-8",
     )
     verification = mk.delay_record_verification(
-        "verification-001", "application-001", "pass", now=NOW,
+        "verification-001", "application-001", "ci-confirmed", "pass", now=NOW,
         evidence_refs=["ci:green"],
     )
     assert [action["event_seq"], application["event_seq"], verification["event_seq"]] == [
@@ -229,6 +240,7 @@ def test_receipt_chain_is_explicit_inert_evidence(tmp_path):
     assert retro["record"]["trigger_finish_seq"] == anomalous["event_seq"]
     assert retro["record"]["trigger_algorithm"] == "nearest-rank-p50-plus-4mad-v1"
     assert verification["record"]["verdict"] == "pass"
+    assert verification["record"]["finding"] == "ci-confirmed"
     assert verification["record"]["authority_verified"] is False
     assert not any(key in verification["record"] for key in
                    ("command", "workflow", "scheduler", "execute"))
@@ -389,6 +401,66 @@ def test_unhashable_identity_is_fail_closed(tmp_path, field, value):
     assert excinfo.value.code == "E_DELAY_LOG_CORRUPT"
 
 
+@pytest.mark.parametrize("record_type,field", [
+    ("delay_retrospective", "run_id"),
+    ("delay_action", "predecessor_id"),
+    ("delay_application", "chain_id"),
+    ("delay_verification", "predecessor_id"),
+])
+def test_unhashable_chain_identity_is_typed_corruption(tmp_path, record_type, field):
+    mk = _mk(tmp_path)
+    _complete_chain(mk)
+    records = [json.loads(line) for line in _path(mk).read_text().splitlines()]
+    record = next(item for item in records if item["record_type"] == record_type)
+    record[field] = ["unhashable"]
+    _path(mk).write_text("".join(json.dumps(item) + "\n" for item in records))
+    assert mk.delay_estimate("task", "build", now=NOW) == {
+        "available": False, "reason": "corrupt_history"
+    }
+    with pytest.raises(delay_ledger.DelayError) as excinfo:
+        mk.delay_run_start("next-001", "task", "build", now=NOW)
+    assert excinfo.value.code == "E_DELAY_LOG_CORRUPT"
+
+
+def test_replay_recomputes_retrospective_claim_from_trusted_runs(tmp_path):
+    mk = _mk(tmp_path)
+    anomalous = _anomalous_run(mk)
+    mk.delay_record_retrospective("retro-001", anomalous["record"]["run_id"],
+                                  "cold-cache", now=NOW)
+    records = [json.loads(line) for line in _path(mk).read_text().splitlines()]
+    retro = next(item for item in records
+                 if item["record_type"] == "delay_retrospective")
+    retro.update(trigger_elapsed_ms=999999, trigger_threshold_ms=999998)
+    _path(mk).write_text("".join(json.dumps(item) + "\n" for item in records))
+    assert mk.delay_estimate("task", "build", now=NOW)["reason"] == "corrupt_history"
+    with pytest.raises(delay_ledger.DelayError) as excinfo:
+        mk.delay_record_action("action-001", "retro-001", "warm-cache", now=NOW)
+    assert excinfo.value.code == "E_DELAY_LOG_CORRUPT"
+
+
+def test_verification_finding_is_independent_and_idempotent(tmp_path):
+    mk = _mk(tmp_path)
+    anomalous = _anomalous_run(mk)
+    mk.delay_record_retrospective("retro-001", anomalous["record"]["run_id"],
+                                  "cold-cache", now=NOW)
+    mk.delay_record_action("action-001", "retro-001", "warm-cache", now=NOW)
+    mk.delay_record_application("application-001", "action-001", "applied", now=NOW)
+    first = mk.delay_record_verification(
+        "verification-001", "application-001", "latency-regressed", "pass",
+        now=NOW, operation_id="verification-op")
+    retry = mk.delay_record_verification(
+        "verification-001", "application-001", "latency-regressed", "pass",
+        now=NOW, operation_id="verification-op")
+    assert first["record"]["finding"] == "latency-regressed"
+    assert first["record"]["verdict"] == "pass"
+    assert retry["outcome"] == "already_applied"
+    with pytest.raises(delay_ledger.DelayError) as excinfo:
+        mk.delay_record_verification(
+            "verification-001", "application-001", "latency-improved", "pass",
+            now=NOW, operation_id="verification-op")
+    assert excinfo.value.code == "E_DELAY_IDEMPOTENCY_MISMATCH"
+
+
 def test_empty_read_does_not_create_ledger(tmp_path):
     mk = _mk(tmp_path)
     result = mk.delay_estimate("task", "build", now=NOW)
@@ -462,7 +534,7 @@ def test_strict_authority_bool_and_rejection_precedes_chain_state(tmp_path):
         lambda: mk.delay_record_retrospective("retro-001", "run-001", "obs", now=NOW, authority_verified=True),
         lambda: mk.delay_record_action("action-001", "retro-001", "act", now=NOW, authority_verified=True),
         lambda: mk.delay_record_application("app-001", "action-001", "claim", now=NOW, authority_verified=True),
-        lambda: mk.delay_record_verification("verify-001", "app-001", "pass", now=NOW, authority_verified=True),
+        lambda: mk.delay_record_verification("verify-001", "app-001", "finding", "pass", now=NOW, authority_verified=True),
     )
     for call in calls:
         with pytest.raises(delay_ledger.DelayError) as excinfo:
@@ -491,7 +563,7 @@ def test_verdict_refs_duplicate_operation_and_all_public_methods(tmp_path):
     with pytest.raises(delay_ledger.DelayError):
         mk.delay_run_start("run-001", "task", "build", now=NOW, evidence_refs=["r:x"] * 9)
     with pytest.raises(delay_ledger.DelayError) as excinfo:
-        mk.delay_record_verification("verify-001", "app-001", "unknown", now=NOW)
+        mk.delay_record_verification("verify-001", "app-001", "finding", "unknown", now=NOW)
     assert excinfo.value.code == "E_DELAY_VALIDATION"
     mk.delay_run_start("run-001", "task", "build", now=NOW, operation_id="duplicate-op")
     duplicate = json.loads(_path(mk).read_text().splitlines()[0])

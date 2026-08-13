@@ -212,7 +212,9 @@ def _identity_fields_valid(record: Dict[str, Any]) -> bool:
     if kind in ("delay_retrospective", "delay_action",
                 "delay_application", "delay_verification"):
         predecessor = record.get("predecessor_id")
-        return (isinstance(record.get("chain_id"), str)
+        run_id_valid = (kind != "delay_retrospective"
+                        or isinstance(record.get("run_id"), str))
+        return (run_id_valid and isinstance(record.get("chain_id"), str)
                 and (predecessor is None or isinstance(predecessor, str)))
     return False
 
@@ -280,6 +282,24 @@ def _estimate_runs(runs: Dict[str, Dict[str, Any]], kind: str, subject: str,
     return {"available": True, "sample_count": len(values), "p50_ms": p50,
             "p80_ms": p80, "mad_ms": mad,
             "anomaly_threshold_ms": p50 + 4 * mad, "through_seq": through_seq}
+
+
+def _trusted_anomaly_claim(runs: Dict[str, Dict[str, Any]],
+                           run: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Recompute an anomaly claim solely from already validated run state."""
+    if (not run.get("finished") or run.get("outcome") != "completed"
+            or not isinstance(run.get("finish_seq"), int)):
+        return None
+    estimate = _estimate_runs(runs, run["kind"], run["subject"], 100,
+                              run["finish_seq"] - 1)
+    threshold = estimate.get("anomaly_threshold_ms")
+    if (not estimate.get("available") or threshold is None
+            or run["elapsed_ms"] <= threshold):
+        return None
+    return {"trigger_finish_seq": run["finish_seq"],
+            "trigger_elapsed_ms": run["elapsed_ms"],
+            "trigger_threshold_ms": threshold,
+            "trigger_algorithm": "nearest-rank-p50-plus-4mad-v1"}
 
 
 def _fold(records: List[Dict[str, Any]]):
@@ -363,13 +383,12 @@ def _fold(records: List[Dict[str, Any]]):
                     corrupt += 1
                     continue
             if kind == "delay_retrospective":
+                # run_id was validated before this untrusted value is used as
+                # a key. Recompute the claim instead of trusting trigger_*.
                 run = runs.get(record.get("run_id"))
-                finish = None if run is None else run.get("finish_record")
-                if (run is None or not run.get("finished") or run.get("outcome") != "completed"
-                        or not isinstance(finish, dict) or finish.get("anomaly") is not True
-                        or record.get("trigger_finish_seq") != run.get("finish_seq")
-                        or record.get("trigger_elapsed_ms") != run.get("elapsed_ms")
-                        or record.get("trigger_threshold_ms") != finish.get("anomaly_threshold_ms")):
+                claim = None if run is None else _trusted_anomaly_claim(runs, run)
+                if (claim is None or any(record.get(field) != value
+                                         for field, value in claim.items())):
                     corrupt += 1
                     continue
             chain[record_id] = record
@@ -547,18 +566,10 @@ class DelayLedgerMixin:
         def snapshot(records, candidate):
             runs, _, _ = _fold(records)
             run = runs.get(candidate["run_id"])
-            finish = None if run is None else run.get("finish_record")
-            if (run is None or not run.get("finished")
-                    or run.get("outcome") != "completed"
-                    or not isinstance(finish, dict) or finish.get("anomaly") is not True):
+            claim = None if run is None else _trusted_anomaly_claim(runs, run)
+            if claim is None:
                 _fail("E_DELAY_CHAIN", "retrospective requires a completed anomalous run")
-            assert isinstance(finish, dict)
-            candidate.update({
-                "trigger_finish_seq": run["finish_seq"],
-                "trigger_elapsed_ms": run["elapsed_ms"],
-                "trigger_threshold_ms": finish["anomaly_threshold_ms"],
-                "trigger_algorithm": "nearest-rank-p50-plus-4mad-v1",
-            })
+            candidate.update(claim)
 
         def prepare(records, candidate):
             _, chain, _ = _fold(records)
@@ -610,10 +621,10 @@ class DelayLedgerMixin:
             evidence_refs=evidence_refs, external_receipt_ref=external_receipt_ref,
             authority_verified=authority_verified, operation_id=operation_id)
 
-    def delay_record_verification(self, verification_id, application_id, verdict, *, now,
+    def delay_record_verification(self, verification_id, application_id, finding, verdict, *, now,
                                   evidence_refs=(), authority_verified=False,
                                   operation_id=None):
         return self._delay_chain_record(
-            "delay_verification", verification_id, application_id, "finding", verdict,
+            "delay_verification", verification_id, application_id, "finding", finding,
             now=now, evidence_refs=evidence_refs, verdict=verdict,
             authority_verified=authority_verified, operation_id=operation_id)
