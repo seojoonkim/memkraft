@@ -3,6 +3,7 @@
 import importlib.metadata
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,8 +21,20 @@ def test_distribution_exposes_hermes_memory_provider_entry_point():
             if entry_point.name == "memkraft"
         ]
 
-    assert len(matches) == 1
-    assert matches[0].value == "memkraft.hermes_provider:register"
+    declarations = {
+        (entry_point.group, entry_point.name, entry_point.value)
+        for entry_point in matches
+    }
+    assert declarations == {
+        (
+            "hermes_agent.memory_providers",
+            "memkraft",
+            "memkraft.hermes_provider:register",
+        )
+    }
+    providers = []
+    matches[0].load()(SimpleNamespace(register_memory_provider=providers.append))
+    assert [provider.name for provider in providers] == ["memkraft"]
 
 
 def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path, monkeypatch):
