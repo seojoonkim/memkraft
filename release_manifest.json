@@ -33,6 +33,32 @@
         "src/memkraft/delay_ledger.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "efa3ce12f8ee4c958e76200a86a1c4d39040fa31"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_agent_compat.py"
+        }
+      ],
+      "id": "adapter.hermes-agent-memory-provider",
+      "promotion_evidence": [
+        {
+          "claim": "Hermes Agent memory-provider adapter",
+          "kind": "release-note",
+          "path": "docs/releases/3.5.0.md"
+        }
+      ],
+      "proposal_id": "prop.hermes-agent-memory-provider",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/hermes_provider.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
@@ -91,6 +117,7 @@
       "tests/test_execution_projection_cache.py",
       "tests/test_execution_protocol.py",
       "tests/test_execution_records.py",
+      "tests/test_hermes_agent_compat.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_packaging_version.py",
