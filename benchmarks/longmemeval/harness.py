@@ -24,7 +24,9 @@ import contextlib
 from typing import Any
 from pathlib import Path
 
-sys.path.insert(0, "/Users/gimseojun/memcraft/src")
+_REPO_SRC = str(Path(__file__).resolve().parents[2] / "src")
+if _REPO_SRC not in sys.path:
+    sys.path.insert(0, _REPO_SRC)
 
 from memkraft import MemKraft  # noqa: E402
 # Pluggable LLM backend (anthropic | openai | openrouter | litellm-vhh).

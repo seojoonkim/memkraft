@@ -395,8 +395,15 @@ def _load_longmemeval_run():
 
 
 def test_longmemeval_sample_latency_summary_is_deterministic():
+    original_path = list(sys.path)
     mod = _load_longmemeval_run()
 
+    expected_src = str((Path(__file__).resolve().parents[1] / "src").resolve())
+    assert expected_src in sys.path
+    assert "/Users/gimseojun/memcraft/src" not in sys.path
+    assert [entry for entry in sys.path if entry != expected_src] == [
+        entry for entry in original_path if entry != expected_src
+    ]
     assert mod.summarise_elapsed_ms([30.0, 10.0, 20.0]) == {
         "latency_count": 3,
         "p50_ms": 20.0,
