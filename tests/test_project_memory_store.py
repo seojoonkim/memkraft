@@ -45,6 +45,25 @@ def test_atomic_replace_failure_leaves_no_snapshot(tmp_path, monkeypatch):
     assert mk.project_build(p, as_of=AS_OF, dry_run=False)["status"] == "applied"
 
 
+def test_manifest_replace_failure_after_existing_build_is_retryable(tmp_path, monkeypatch):
+    p = _project(tmp_path); mk = MemKraft(base_dir=tmp_path / "memory")
+    mk.project_build(p, as_of=AS_OF, dry_run=False)
+    (p / "x.md").write_text("# X\nchanged\n")
+    import memkraft.project_memory.store as store
+    real = store.os.replace
+
+    def fail_manifest(source, destination):
+        if str(destination).endswith("manifest.json"):
+            raise OSError("manifest replace failed")
+        return real(source, destination)
+
+    monkeypatch.setattr(store.os, "replace", fail_manifest)
+    with pytest.raises(OSError, match="manifest replace failed"):
+        mk.project_update(p, as_of=AS_OF, dry_run=False)
+    monkeypatch.setattr(store.os, "replace", real)
+    assert mk.project_update(p, as_of=AS_OF, dry_run=False)["status"] == "applied"
+
+
 def test_idempotent_apply_adds_no_bytes(tmp_path):
     p = _project(tmp_path); mk = MemKraft(base_dir=tmp_path / "memory")
     mk.project_build(p, as_of=AS_OF, dry_run=False); before = _tree(mk.base_dir)

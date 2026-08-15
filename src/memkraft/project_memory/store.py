@@ -77,6 +77,23 @@ def read_manifest(root: Path, project_id: str) -> Optional[Dict[str, Any]]:
     return _load_json(path) if path.exists() else None
 
 
+def verify_snapshot(destination: Path, compiled: Dict[str, Any]) -> None:
+    """Fail closed unless an existing snapshot is byte-identical."""
+    try:
+        evidence = (destination / "evidence.jsonl").read_bytes()
+        sections = (destination / "sections.jsonl").read_bytes()
+        header = _load_json(destination / "project.json")
+    except OSError as exc:
+        fail("E_PM_DIGEST_MISMATCH", "snapshot cannot be verified", error=str(exc))
+        raise AssertionError("unreachable")
+    if (evidence != compiled["evidence_bytes"] or sections != compiled["sections_bytes"]
+            or header.get("snapshot_id") != compiled["snapshot_id"]
+            or header.get("semantic_digest") != compiled["semantic_digest"]
+            or header.get("config_digest") != compiled["config_digest"]):
+        fail("E_PM_DIGEST_MISMATCH", "snapshot content does not match identity",
+             path=str(destination))
+
+
 def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
                    project_header: Dict[str, Any], manifest: Dict[str, Any]) -> str:
     validate_owned(root, project_id, create=True)
@@ -94,12 +111,14 @@ def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
         destination = root / "snapshots" / snapshot_id
         if current and current.get("current_snapshot_id") == snapshot_id:
             if destination.exists():
+                verify_snapshot(destination, compiled)
                 return "already_applied"
             fail("E_PM_DIGEST_MISMATCH", "manifest points to missing snapshot")
         if destination.exists():
             fail("E_PM_DIGEST_MISMATCH", "snapshot identity already has different content",
                  path=str(destination))
         temp = Path(tempfile.mkdtemp(prefix=".pmc-", dir=str(root / "snapshots")))
+        published = False
         try:
             os.chmod(str(temp), 0o700)
             _write_file(temp / "project.json", (canonical_json(project_header) + "\n").encode("utf-8"))
@@ -107,6 +126,7 @@ def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
             _write_file(temp / "sections.jsonl", compiled["sections_bytes"])
             _fsync_dir(temp)
             os.replace(str(temp), str(destination))
+            published = True
             _fsync_dir(root / "snapshots")
             manifest_temp = root / ".manifest.tmp"
             _write_file(manifest_temp, (canonical_json(manifest) + "\n").encode("utf-8"))
@@ -114,7 +134,7 @@ def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
             _fsync_dir(root)
         except BaseException:
             shutil.rmtree(str(temp), ignore_errors=True)
-            if destination.exists() and not (root / "manifest.json").exists():
+            if published and destination.exists():
                 shutil.rmtree(str(destination), ignore_errors=True)
             try:
                 (root / ".manifest.tmp").unlink()

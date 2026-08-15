@@ -53,6 +53,17 @@ def test_context_requires_build(tmp_path):
     assert exc.value.code == "E_PM_NOT_BUILT"
 
 
+def test_context_rejects_tampered_snapshot_evidence(tmp_path):
+    from memkraft.project_memory.errors import ProjectMemoryError
+    p=_p(tmp_path); mk=MemKraft(base_dir=tmp_path/"memory")
+    built=mk.project_build(p, as_of=AS_OF, dry_run=False)
+    evidence=Path(built["snapshot_path"], "evidence.jsonl")
+    evidence.write_text(evidence.read_text().replace("release lineage audit", "TAMPER"))
+    with pytest.raises(ProjectMemoryError) as exc:
+        mk.project_context("TAMPER", p)
+    assert exc.value.code == "E_PM_DIGEST_MISMATCH"
+
+
 def test_symlink_escape_and_output_as_project_are_rejected(tmp_path):
     p=_p(tmp_path); outside=tmp_path/"outside.md"; outside.write_text("secret")
     (p/"escape.md").symlink_to(outside)

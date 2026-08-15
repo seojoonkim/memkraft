@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from ..context_compiler import estimate_tokens
-from .digest import canonical_json
+from .digest import canonical_json, digest_fields
 from .errors import ProjectMemoryError, fail
 from .model import COMPILER_SCHEMA, validate_project_id
 from .normalize import normalize_documents
-from .reducer import reduce_observations
+from .reducer import observations_from_evidence, reduce_observations
 from .store import apply_snapshot, read_manifest, validate_owned
 
 _DEFAULT_LIMITS = None
@@ -187,10 +187,36 @@ class ProjectMemoryMixin:
             fail("E_PM_NOT_BUILT", "project has not been built")
         snapshot_id = manifest["current_snapshot_id"]; snapshot = output_root / "snapshots" / snapshot_id
         try:
-            evidence = [json.loads(line) for line in (snapshot / "evidence.jsonl").read_text().splitlines()]
-            sections = [json.loads(line) for line in (snapshot / "sections.jsonl").read_text().splitlines()]
-        except (OSError, ValueError) as exc:
+            evidence_raw = (snapshot / "evidence.jsonl").read_bytes()
+            sections_raw = (snapshot / "sections.jsonl").read_bytes()
+            evidence = observations_from_evidence(evidence_raw)
+            sections = [json.loads(line) for line in sections_raw.decode("utf-8").splitlines()]
+            header = json.loads((snapshot / "project.json").read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
             fail("E_PM_DIGEST_MISMATCH", "snapshot cannot be read", error=str(exc))
+            raise AssertionError("unreachable")
+        if not isinstance(header, dict) or not isinstance(header.get("config"), dict):
+            fail("E_PM_DIGEST_MISMATCH", "snapshot header is invalid")
+        for observation in evidence:
+            try:
+                locator = observation["locator"]
+                content_digest = _sha256(observation["excerpt"].encode("utf-8"))
+                observation_id = digest_fields(locator["path"], locator["lines"][0],
+                                               locator["lines"][1], content_digest)
+            except (KeyError, TypeError, UnicodeError):
+                fail("E_PM_DIGEST_MISMATCH", "evidence record is invalid")
+                raise AssertionError("unreachable")
+            if (observation.get("content_digest") != content_digest
+                    or observation.get("observation_id") != observation_id):
+                fail("E_PM_DIGEST_MISMATCH", "evidence content digest mismatch")
+        rebuilt = reduce_observations(evidence, as_of=header.get("as_of"),
+                                      config=header["config"])
+        if (header.get("snapshot_id") != snapshot_id
+                or rebuilt["snapshot_id"] != snapshot_id
+                or rebuilt["semantic_digest"] != manifest.get("semantic_digest")
+                or rebuilt["evidence_bytes"] != evidence_raw
+                or rebuilt["sections_bytes"] != sections_raw):
+            fail("E_PM_DIGEST_MISMATCH", "snapshot integrity check failed")
         by_id = {row["observation_id"]: row for row in evidence}
         terms = [term.casefold() for term in query.split()]
         ranked = []
