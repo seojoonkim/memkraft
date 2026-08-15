@@ -113,33 +113,6 @@
         "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
-    },
-    {
-      "commits": [
-        "547e95ead6785b5ca7e985e0fa3fef880727d0ce",
-        "8ae20e4cb1f01b7c80c835aa3b0e8f4519a36598"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "test_longmemeval_sample_latency_summary_is_deterministic",
-          "path": "tests/test_benchmark_scripts.py"
-        }
-      ],
-      "id": "benchmark.longmemeval-portable-import",
-      "promotion_evidence": [
-        {
-          "claim": "LongMemEval benchmark portability",
-          "kind": "release-note",
-          "path": "docs/releases/3.5.0.md"
-        }
-      ],
-      "proposal_id": "prop.longmemeval-portable-import",
-      "revision_id": "r1",
-      "source_paths": [
-        "benchmarks/longmemeval/harness.py"
-      ],
-      "state": "verified"
     }
   ],
   "release": {
