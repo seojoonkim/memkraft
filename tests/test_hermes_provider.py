@@ -1,6 +1,16 @@
+import hashlib
 import multiprocessing
 
+import pytest
+
+pytest.importorskip("agent.memory_provider")
+
 from memkraft.hermes_provider import MemKraftMemoryProvider
+
+
+@pytest.fixture(autouse=True)
+def _isolate_memkraft_dir(monkeypatch):
+    monkeypatch.delenv("MEMKRAFT_DIR", raising=False)
 
 
 def _sync_turn_in_process(home, token, start):
@@ -116,6 +126,27 @@ def test_large_multibyte_turn_stays_bounded_after_chunk_index_grows(tmp_path, mo
     assert all(path.stat().st_size <= 512 for path in notes)
     joined = b"".join(path.read_bytes().split(b"\n\n", 1)[1] for path in notes)
     assert joined.decode("utf-8").count("x") == 6000
+
+
+def test_multibyte_character_rolls_to_next_chunk_when_one_byte_remains(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_HERMES_TURN_FILE_BYTES", "512")
+    provider = MemKraftMemoryProvider()
+    provider.initialize("utf8-boundary", hermes_home=str(tmp_path))
+
+    digest = hashlib.sha256(b"utf8-boundary").hexdigest()[:16]
+    directory = tmp_path / "memkraft" / "live-notes"
+    directory.mkdir(parents=True, exist_ok=True)
+    first = directory / "hermes-session-{}-000001.md".format(digest)
+    header = "# Hermes session {} chunk 1\n\n".format(digest).encode("utf-8")
+    first.write_bytes(header + b"x" * (511 - len(header)))
+
+    provider.sync_turn("Boundary token 가나.", "Recorded.", session_id="utf8-boundary")
+
+    notes = sorted(directory.glob("hermes-session-*.md"))
+    contents = [path.read_text(encoding="utf-8") for path in notes]
+    assert len(notes) >= 2
+    assert all(path.stat().st_size <= 512 for path in notes)
+    assert any("Boundary token 가나." in content for content in contents)
 
 
 def test_concurrent_processes_preserve_all_turns_within_byte_limit(tmp_path, monkeypatch):

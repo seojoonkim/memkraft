@@ -80,7 +80,8 @@ def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path, monkeypat
     manager.shutdown_all()
 
 
-def test_provider_uses_profile_scoped_default_storage(tmp_path):
+def test_provider_uses_profile_scoped_default_storage(tmp_path, monkeypatch):
+    monkeypatch.delenv("MEMKRAFT_DIR", raising=False)
     pytest.importorskip("agent.memory_provider", reason="Hermes Agent compatibility suite")
     from memkraft.hermes_provider import MemKraftMemoryProvider
 
