@@ -61,7 +61,8 @@
     },
     {
       "commits": [
-        "5f56f5741c30d857557078b09cf3747924641567"
+        "5f56f5741c30d857557078b09cf3747924641567",
+        "bdf04a374a7d486300ce9d12a5e661524bddd8e4"
       ],
       "evaluation_refs": [
         {
@@ -144,6 +145,7 @@
       "tests/test_execution_protocol.py",
       "tests/test_execution_records.py",
       "tests/test_hermes_agent_compat.py",
+      "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_packaging_version.py",
