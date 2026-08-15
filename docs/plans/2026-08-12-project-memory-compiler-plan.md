@@ -1,5 +1,7 @@
 # Project Memory Compiler Preview Implementation Plan
 
+> **Status: superseded for v0 by [`docs/PROJECT_MEMORY_COMPILER.md`](../PROJECT_MEMORY_COMPILER.md).** This larger design remains future work and is not the shipped v0 contract.
+
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** Build an opt-in, deterministic compiler that turns existing project authorities into provenance-preserving, rebuildable context snapshots without becoming a second authority.

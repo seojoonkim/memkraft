@@ -24,6 +24,14 @@
 | 3.1.x | 3.2.0 | no (additive/read-compatible) | schema rewrite 없음; optional `memkraft freshness --repair` | 3.1 binary 재설치; `.memkraft/live-sync/`와 embedding index는 삭제 후 재생성 가능 | none; Markdown is unchanged |
 | 3.2.x | 3.3.0 | no (additive/read-compatible execution Preview) | schema rewrite 없음; first execution apply lazily creates `.memkraft/execution/events.jsonl` | 3.2.x 재설치; 새 execution 파일은 이전 버전이 무시 | none; execution audit log retained |
 
+### 2.5 — 3.4.1 → 3.5.0 Project Memory Compiler Preview
+
+No migration is required. Import and reads create no PMC state; the first
+`project_build(..., dry_run=False)` lazily creates
+`.memkraft/project-memory/`. The store is derived and disposable. To roll back,
+stop writers, reinstall v3.4.1, and ignore or manually delete that directory.
+User Markdown is never rewritten.
+
 ### 2.4 — 3.2.x → 3.3.0 execution preview
 
 Migration is **none required**. Installing or importing 3.3.0 creates no execution state. The first execution apply lazily creates `.memkraft/execution/events.jsonl`; `origin_instance_id` is created only on first handoff export. Existing callers that do not opt into execution context remain byte-identical. The execution log is append-only and is never compacted in 3.3.0.

@@ -55,6 +55,7 @@ from .evaluation_corpus import EvaluationCorpusMixin  # v3.3 evaluation corpus
 from .improvement_ledger import ImprovementLedgerMixin  # continual improvement ledger preview
 from .delay_ledger import DelayLedgerMixin  # timing and delay evidence preview
 from .state_contract import StateContractMixin  # v3.3 project-state contract
+from .project_memory import ProjectMemoryMixin  # v3.5 project memory compiler preview
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -87,6 +88,7 @@ _ADDITIVE_ONLY_MIXINS = (
     ImprovementLedgerMixin,
     DelayLedgerMixin,
     StateContractMixin,
+    ProjectMemoryMixin,
 )
 
 for _mixin in (
@@ -136,6 +138,7 @@ for _mixin in (
     ImprovementLedgerMixin,
     DelayLedgerMixin,
     StateContractMixin,
+    ProjectMemoryMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

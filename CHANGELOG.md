@@ -10,6 +10,9 @@ Adaptive ETA and Delay Ledger Preview changes are documented in
   task/phase/attempt lifecycle replay, deterministic nearest-rank p50/p80/MAD
   estimates, historical anomaly reproduction, typed idempotency/integrity
   failures, and an inert retrospective evidence chain.
+- Added the Project Memory Compiler v0 Preview: four opt-in Python methods for
+  deterministic Markdown snapshots, incremental freshness, provenance-linked
+  raw evidence, bounded context reads, and an owned atomic derived store.
 
 ## [3.4.1] — 2026-08-12
 

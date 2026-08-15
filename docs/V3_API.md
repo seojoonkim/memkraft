@@ -16,6 +16,15 @@
 
 ## Preview and secondary
 
+### Project Memory Compiler v0 preview (3.5.0)
+
+The opt-in Python methods `project_build`, `project_update`, `project_status`, and
+`project_context` compile an explicit project root's Markdown into an owned,
+deterministic derived snapshot store. Builds require caller-supplied `as_of` and
+are dry-run by default; context reads never build implicitly. The Preview GA
+promotion, revision, or withdrawal deadline is **2027-02-14**. See
+[PROJECT_MEMORY_COMPILER.md](PROJECT_MEMORY_COMPILER.md).
+
 `remember_candidate`, `list_candidates`, `session_overlay`, `forget_candidates`, `compact_memory`, `extract_claims`, `resolver_dry_run`, `record_interaction`, `last_interaction`, `timeline`, `audit_log`, `do_not_remember`, `truth_status`, `compile_evidence_context`, `aggregate_numeric_evidence`, `live_sync_apply`, `live_sync_events`, `live_sync_freshness`, `live_sync_repair`, `embedding_sync_path`, `embedding_index_state`는 공개되어 있으나 preview/secondary다. Preview는 additive 필드나 더 엄격한 검증이 minor release에서 생길 수 있다. 내부 `store_core`, JSONL helper와 benchmark fixture generator는 공개 API가 아니다.
 
 ### Runtime-neutral execution preview (3.3.0)
