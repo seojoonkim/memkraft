@@ -83,8 +83,7 @@
       "commits": [
         "5f56f5741c30d857557078b09cf3747924641567",
         "bdf04a374a7d486300ce9d12a5e661524bddd8e4",
-        "d02ba10fddb9663f063bb31143a93b28b1e57dc9",
-        "547e95ead6785b5ca7e985e0fa3fef880727d0ce"
+        "d02ba10fddb9663f063bb31143a93b28b1e57dc9"
       ],
       "evaluation_refs": [
         {
@@ -109,8 +108,7 @@
       "proposal_id": "prop.hermes-agent-memory-provider",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/hermes_provider.py",
-        "benchmarks/longmemeval/harness.py"
+        "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
     }
@@ -124,6 +122,7 @@
       "CHANGELOG.md",
       "MANIFEST.in",
       "README.md",
+      "benchmarks/longmemeval/harness.py",
       "docs/ADAPTERS.md",
       "docs/ADAPTIVE_ETA_DELAY_LEDGER.md",
       "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
@@ -174,6 +173,7 @@
       "tests/test_execution_records.py",
       "tests/test_hermes_agent_compat.py",
       "tests/test_hermes_provider.py",
+      "tests/test_benchmark_scripts.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_packaging_version.py",
