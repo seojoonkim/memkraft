@@ -5,7 +5,8 @@
       "commits": [
         "22c97d20b8392e2fdbac2c0829293c26683ec624",
         "37b53c848e9ead9a736da99837eea3dc20944041",
-        "d3b2bcd791bc3f33f453f4217a55f8f27d527b06"
+        "d3b2bcd791bc3f33f453f4217a55f8f27d527b06",
+        "f225d758d45c3ae2db9edfa3a0d1b4a7849d4ef2"
       ],
       "evaluation_refs": [
         {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_contract.py"},
