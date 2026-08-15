@@ -83,13 +83,19 @@
       "commits": [
         "5f56f5741c30d857557078b09cf3747924641567",
         "bdf04a374a7d486300ce9d12a5e661524bddd8e4",
-        "d02ba10fddb9663f063bb31143a93b28b1e57dc9"
+        "d02ba10fddb9663f063bb31143a93b28b1e57dc9",
+        "547e95ead6785b5ca7e985e0fa3fef880727d0ce"
       ],
       "evaluation_refs": [
         {
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_hermes_agent_compat.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "test_longmemeval_sample_latency_summary_is_deterministic",
+          "path": "tests/test_benchmark_scripts.py"
         }
       ],
       "id": "adapter.hermes-agent-memory-provider",
@@ -103,7 +109,8 @@
       "proposal_id": "prop.hermes-agent-memory-provider",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/hermes_provider.py"
+        "src/memkraft/hermes_provider.py",
+        "benchmarks/longmemeval/harness.py"
       ],
       "state": "verified"
     }
