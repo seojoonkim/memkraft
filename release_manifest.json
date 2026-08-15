@@ -82,9 +82,10 @@
     {
       "commits": [
         "5f56f5741c30d857557078b09cf3747924641567",
+        "73d5433463cbfcab3b57a96b27ebbc567b12cfad",
+        "8ae20e4cb1f01b7c80c835aa3b0e8f4519a36598",
         "bdf04a374a7d486300ce9d12a5e661524bddd8e4",
-        "d02ba10fddb9663f063bb31143a93b28b1e57dc9",
-        "73d5433463cbfcab3b57a96b27ebbc567b12cfad"
+        "d02ba10fddb9663f063bb31143a93b28b1e57dc9"
       ],
       "evaluation_refs": [
         {
@@ -94,8 +95,8 @@
         },
         {
           "kind": "pytest",
-          "node": "test_longmemeval_sample_latency_summary_is_deterministic",
-          "path": "tests/test_benchmark_scripts.py"
+          "node": "all",
+          "path": "tests/test_hermes_provider.py"
         }
       ],
       "id": "adapter.hermes-agent-memory-provider",
@@ -110,6 +111,33 @@
       "revision_id": "r1",
       "source_paths": [
         "src/memkraft/hermes_provider.py"
+      ],
+      "state": "verified"
+    },
+    {
+      "commits": [
+        "547e95ead6785b5ca7e985e0fa3fef880727d0ce",
+        "8ae20e4cb1f01b7c80c835aa3b0e8f4519a36598"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "test_longmemeval_sample_latency_summary_is_deterministic",
+          "path": "tests/test_benchmark_scripts.py"
+        }
+      ],
+      "id": "benchmark.longmemeval-portable-import",
+      "promotion_evidence": [
+        {
+          "claim": "LongMemEval benchmark portability",
+          "kind": "release-note",
+          "path": "docs/releases/3.5.0.md"
+        }
+      ],
+      "proposal_id": "prop.longmemeval-portable-import",
+      "revision_id": "r1",
+      "source_paths": [
+        "benchmarks/longmemeval/harness.py"
       ],
       "state": "verified"
     }
@@ -155,6 +183,7 @@
       "tests/conformance/**",
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
+      "tests/test_benchmark_scripts.py",
       "tests/test_context_compiler.py",
       "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
@@ -174,7 +203,6 @@
       "tests/test_execution_records.py",
       "tests/test_hermes_agent_compat.py",
       "tests/test_hermes_provider.py",
-      "tests/test_benchmark_scripts.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_packaging_version.py",
