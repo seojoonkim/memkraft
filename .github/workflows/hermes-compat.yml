@@ -1,0 +1,54 @@
+name: Hermes Agent compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.11"
+            hermes: "0.19.0"
+            hermes-ref: "3ef6bbd201263d354fd83ec55b3c306ded2eb72a"
+            discovery: directory
+          - python-version: "3.12"
+            hermes: "0.19.0"
+            hermes-ref: "3ef6bbd201263d354fd83ec55b3c306ded2eb72a"
+            discovery: directory
+          - python-version: "3.11"
+            hermes: "0.20.1-source"
+            hermes-ref: "45af7a71fcd420b4422d2c074b1ce58b9ce0d048"
+            discovery: entrypoint
+          - python-version: "3.12"
+            hermes: "0.20.1-source"
+            hermes-ref: "45af7a71fcd420b4422d2c074b1ce58b9ce0d048"
+            discovery: entrypoint
+    name: Hermes ${{ matrix.hermes }} / Python ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build candidate wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel
+      - name: Install pinned Hermes source and candidate wheel
+        run: |
+          git clone https://github.com/NousResearch/hermes-agent.git /tmp/hermes-agent
+          git -C /tmp/hermes-agent checkout --detach "${{ matrix.hermes-ref }}"
+          test "$(git -C /tmp/hermes-agent rev-parse HEAD)" = "${{ matrix.hermes-ref }}"
+          python -m pip install -e /tmp/hermes-agent
+          python -m pip install dist/*.whl
+      - name: Run installed-wheel lifecycle
+        env:
+          PYTHONPATH: /tmp/hermes-agent
+        run: |
+          python tests/hermes_lifecycle_smoke.py \
+            --hermes-home "$RUNNER_TEMP/hermes-home" \
+            --discovery "${{ matrix.discovery }}"

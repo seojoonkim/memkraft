@@ -110,6 +110,7 @@
       "proposal_id": "prop.hermes-agent-memory-provider",
       "revision_id": "r1",
       "source_paths": [
+        "src/memkraft/hermes_install.py",
         "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
@@ -120,6 +121,7 @@
     "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
+      ".github/workflows/hermes-compat.yml",
       ".github/workflows/release.yml",
       "CHANGELOG.md",
       "MANIFEST.in",
@@ -130,6 +132,7 @@
       "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
       "docs/EXECUTION_PROTOCOL.md",
       "docs/GRAPH_ENGINEERING_ADAPTERS.md",
+      "docs/HERMES_AGENT.md",
       "docs/MIGRATIONS.md",
       "docs/PROJECT_MEMORY_COMPILER.md",
       "docs/RELEASE_CHECKLIST.md",
@@ -152,6 +155,7 @@
       "scripts/audit_release_lineage.py",
       "scripts/benchmark_execution_gates.py",
       "scripts/check_project_state.py",
+      "scripts/install_hermes_plugin.py",
       "setup.py",
       "tests/conformance/**",
       "tests/golden/README.md",
@@ -175,6 +179,8 @@
       "tests/test_execution_protocol.py",
       "tests/test_execution_records.py",
       "tests/test_hermes_agent_compat.py",
+      "tests/hermes_lifecycle_smoke.py",
+      "tests/test_hermes_install_contract.py",
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
