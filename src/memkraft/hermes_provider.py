@@ -7,9 +7,11 @@ independent of Hermes Agent.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
+import threading
 from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -17,6 +19,36 @@ from typing import Any, Dict, List, Optional
 from agent.memory_provider import MemoryProvider
 
 from . import MemKraft
+
+
+_TURN_WRITE_LOCK = threading.RLock()
+_DEFAULT_TURN_FILE_BYTES = 256 * 1024
+_MIN_TURN_FILE_BYTES = 512
+
+
+def _turn_file_limit() -> int:
+    try:
+        configured = int(os.environ.get(
+            "MEMKRAFT_HERMES_TURN_FILE_BYTES", str(_DEFAULT_TURN_FILE_BYTES)
+        ))
+    except ValueError:
+        configured = _DEFAULT_TURN_FILE_BYTES
+    return max(_MIN_TURN_FILE_BYTES, configured)
+
+
+def _utf8_chunks(text: str, byte_limit: int) -> List[bytes]:
+    """Split text without breaking UTF-8 code points or dropping content."""
+    encoded = text.encode("utf-8")
+    chunks: List[bytes] = []
+    while encoded:
+        end = min(len(encoded), byte_limit)
+        while end and end < len(encoded) and (encoded[end] & 0xC0) == 0x80:
+            end -= 1
+        if not end:
+            end = min(len(encoded), byte_limit)
+        chunks.append(encoded[:end])
+        encoded = encoded[end:]
+    return chunks or [b""]
 
 
 class MemKraftMemoryProvider(MemoryProvider):
@@ -62,6 +94,47 @@ class MemKraftMemoryProvider(MemoryProvider):
                 lines.append("- {}: {}".format(source, snippet))
         return "\n".join(lines) if len(lines) > 1 else ""
 
+    def _persist_completed_turn(self, session_id: str, content: str) -> None:
+        """Append a completed Hermes turn to bounded, searchable chunks."""
+        if self._store is None:
+            return
+        digest = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:16]
+        prefix = "hermes-session-{}".format(digest)
+        directory = self._store.live_notes_dir
+        directory.mkdir(parents=True, exist_ok=True)
+        limit = _turn_file_limit()
+        header_template = "# Hermes session {} chunk {{}}\n\n".format(digest)
+        entry = "## Completed turn\n\n{}\n\n".format(content)
+
+        changed: List[Path] = []
+        with _TURN_WRITE_LOCK:
+            existing = sorted(directory.glob(prefix + "-*.md"))
+            index = int(existing[-1].stem.rsplit("-", 1)[-1]) if existing else 1
+            path = directory / "{}-{:06d}.md".format(prefix, index)
+            header = header_template.format(index).encode("utf-8")
+            payload_limit = max(1, limit - len(header))
+            for fragment in _utf8_chunks(entry, payload_limit):
+                if path.exists() and path.stat().st_size + len(fragment) > limit:
+                    index += 1
+                    path = directory / "{}-{:06d}.md".format(prefix, index)
+                    header = header_template.format(index).encode("utf-8")
+                if not path.exists():
+                    path.write_bytes(header)
+                with path.open("ab") as handle:
+                    handle.write(fragment)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                changed.append(path)
+
+        from ._corpus_index import invalidate as invalidate_corpus
+        from ._read_cache import get_cache
+        for path in changed:
+            get_cache().invalidate(path)
+            invalidate_corpus(path)
+        bump_generation = getattr(self._store, "_bump_cache_generation", None)
+        if callable(bump_generation):
+            bump_generation()
+
     def sync_turn(
         self,
         user_content: str,
@@ -77,19 +150,9 @@ class MemKraftMemoryProvider(MemoryProvider):
             return
         source_session = session_id or self._session_id or "unknown"
         source = "hermes:{}".format(source_session)
+        self._persist_completed_turn(source_session, content)
         with redirect_stdout(io.StringIO()):
-            extracted = self._store.extract(content, source=source)
-            if not extracted:
-                # MemKraft's regex extractor intentionally ignores prose that
-                # does not match a structured entity/fact pattern. Hermes'
-                # sync_turn contract still requires a completed turn to be
-                # persisted, so retain otherwise-unclassified conversation
-                # text in one bounded session note instead of silently losing
-                # it. Search indexes live notes, making it available to the
-                # next turn's prefetch immediately.
-                note_name = "Hermes session {}".format(source_session)
-                self._store.track(note_name, entity_type="session", source=source)
-                self._store.update(note_name, content, source=source)
+            self._store.extract(content, source=source)
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []
