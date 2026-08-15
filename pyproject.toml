@@ -36,6 +36,7 @@ all = ["mcp>=1.0", "watchdog>=3.0", "anthropic>=0.18.0", "apscheduler>=3.10", "s
 
 [project.scripts]
 memkraft = "memkraft.cli:main"
+memkraft-hermes-install = "memkraft.hermes_install:main"
 
 [project.entry-points."hermes_agent.memory_providers"]
 memkraft = "memkraft.hermes_provider:register"

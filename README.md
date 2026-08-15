@@ -13,13 +13,15 @@ Remember sourced facts. Retrieve bounded context. Act with any model or agent. R
 [![Tests](https://img.shields.io/github/actions/workflow/status/seojoonkim/memkraft/gym-gate.yml?label=tests)](https://github.com/seojoonkim/memkraft/actions/workflows/gym-gate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-[Quickstart](#quickstart) · [The loop](#the-accountable-memory-loop) · [Python API](#python-api) · [CLI](#cli-reference) · [MCP](docs/mcp-setup.md)
+[Quickstart](#quickstart) · [The loop](#the-accountable-memory-loop) · [Python API](#python-api) · [CLI](#cli-reference) · [Hermes Agent](docs/HERMES_AGENT.md) · [MCP](docs/mcp-setup.md)
 
 </div>
 
 > **3.5.0 Verified Preview:** The Python-only [Adaptive ETA and Delay Ledger](docs/ADAPTIVE_ETA_DELAY_LEDGER.md) records private append-only run timing, deterministic estimates, anomalies, and inert retrospective evidence. Its contract and fail-closed replay behavior are covered by the 3.5.0 validation suite. It does not execute or schedule work.
 
 MemKraft keeps its human-facing knowledge in files you can read, diff, edit, and version. Its core install uses the Python standard library, makes no model calls, and needs no API key. Your agent supplies the intelligence; MemKraft supplies persistent knowledge, provenance, lifecycle controls, and a feedback ledger.
+
+Hermes Agent users can enable MemKraft as the active memory provider. The exact verified versions and profile-safe setup steps are in [`docs/HERMES_AGENT.md`](docs/HERMES_AGENT.md).
 
 <p align="center">
   <img src="assets/readme/agent-loop.svg" width="100%" alt="MemKraft loop: remember sourced facts, retrieve budgeted context, act, report an outcome, and improve the next retrieval">

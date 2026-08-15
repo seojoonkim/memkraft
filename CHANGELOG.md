@@ -13,6 +13,9 @@ Adaptive ETA and Delay Ledger Preview changes are documented in
 - Added the Project Memory Compiler v0 Preview: four opt-in Python methods for
   deterministic Markdown snapshots, incremental freshness, provenance-linked
   raw evidence, bounded context reads, and an owned atomic derived store.
+- Added a Hermes Agent memory-provider adapter, a profile-safe 0.19.0 bridge
+  installer, and an installed-wheel lifecycle matrix for exact Hermes 0.19.0
+  and pinned 0.20.1 source targets on Python 3.11 and 3.12.
 
 ## [3.4.1] — 2026-08-12
 
