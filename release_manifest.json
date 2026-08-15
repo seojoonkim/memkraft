@@ -9,14 +9,34 @@
         "f225d758d45c3ae2db9edfa3a0d1b4a7849d4ef2"
       ],
       "evaluation_refs": [
-        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_contract.py"},
-        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_normalize.py"},
-        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_store.py"},
-        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_api.py"}
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_project_memory_contract.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_project_memory_normalize.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_project_memory_store.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_project_memory_api.py"
+        }
       ],
       "id": "project-memory-compiler",
       "promotion_evidence": [
-        {"claim": "Project Memory Compiler v0 Preview", "kind": "release-note", "path": "docs/PROJECT_MEMORY_COMPILER.md"}
+        {
+          "claim": "Project Memory Compiler v0 Preview",
+          "kind": "release-note",
+          "path": "docs/PROJECT_MEMORY_COMPILER.md"
+        }
       ],
       "proposal_id": "prop.project-memory-compiler",
       "revision_id": "r1",
@@ -62,7 +82,8 @@
     {
       "commits": [
         "5f56f5741c30d857557078b09cf3747924641567",
-        "bdf04a374a7d486300ce9d12a5e661524bddd8e4"
+        "bdf04a374a7d486300ce9d12a5e661524bddd8e4",
+        "d02ba10fddb9663f063bb31143a93b28b1e57dc9"
       ],
       "evaluation_refs": [
         {
