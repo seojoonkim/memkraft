@@ -3,7 +3,8 @@
   "features": [
     {
       "commits": [
-        "22c97d20b8392e2fdbac2c0829293c26683ec624"
+        "22c97d20b8392e2fdbac2c0829293c26683ec624",
+        "d3b2bcd791bc3f33f453f4217a55f8f27d527b06"
       ],
       "evaluation_refs": [
         {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_contract.py"},
@@ -52,7 +53,6 @@
       "proposal_id": "prop.adaptive-eta-delay",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/__init__.py",
         "src/memkraft/delay_ledger.py"
       ],
       "state": "verified"
