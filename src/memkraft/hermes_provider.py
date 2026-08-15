@@ -76,8 +76,20 @@ class MemKraftMemoryProvider(MemoryProvider):
         if not content:
             return
         source_session = session_id or self._session_id or "unknown"
+        source = "hermes:{}".format(source_session)
         with redirect_stdout(io.StringIO()):
-            self._store.extract(content, source="hermes:{}".format(source_session))
+            extracted = self._store.extract(content, source=source)
+            if not extracted:
+                # MemKraft's regex extractor intentionally ignores prose that
+                # does not match a structured entity/fact pattern. Hermes'
+                # sync_turn contract still requires a completed turn to be
+                # persisted, so retain otherwise-unclassified conversation
+                # text in one bounded session note instead of silently losing
+                # it. Search indexes live notes, making it available to the
+                # next turn's prefetch immediately.
+                note_name = "Hermes session {}".format(source_session)
+                self._store.track(note_name, entity_type="session", source=source)
+                self._store.update(note_name, content, source=source)
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []
