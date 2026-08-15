@@ -48,6 +48,81 @@ def test_installer_is_idempotent_and_refuses_unowned_collision(tmp_path):
     assert bridge.read_text(encoding="utf-8") == "UNTRUSTED = True\n"
 
 
+def test_installer_refuses_dangling_symlink_without_touching_target(tmp_path):
+    module = _load_installer()
+    bridge_dir = tmp_path / "plugins" / "memkraft"
+    bridge_dir.mkdir(parents=True)
+    external = tmp_path.parent / "external-plugin-target.py"
+    bridge = bridge_dir / "__init__.py"
+    bridge.symlink_to(external)
+
+    with pytest.raises(RuntimeError, match="symbolic link"):
+        module.install_bridge(tmp_path, hermes_version="0.19.0")
+
+    assert bridge.is_symlink()
+    assert not external.exists()
+
+
+def test_installer_refuses_existing_unowned_plugin_directory(tmp_path):
+    module = _load_installer()
+    bridge_dir = tmp_path / "plugins" / "memkraft"
+    bridge_dir.mkdir(parents=True)
+    foreign = bridge_dir / "foreign.py"
+    foreign.write_text("FOREIGN = True\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="existing unowned plugin directory"):
+        module.install_bridge(tmp_path, hermes_version="0.19.0")
+
+    assert foreign.read_text(encoding="utf-8") == "FOREIGN = True\n"
+    assert not (bridge_dir / "__init__.py").exists()
+
+
+def test_installer_refuses_symlinked_home_and_plugins_ancestors(tmp_path):
+    module = _load_installer()
+    outside_home = tmp_path / "outside-home"
+    outside_home.mkdir()
+    linked_home = tmp_path / "linked-home"
+    linked_home.symlink_to(outside_home, target_is_directory=True)
+
+    with pytest.raises(RuntimeError, match="symbolic link|secure"):
+        module.install_bridge(linked_home, hermes_version="0.19.0")
+    assert not (outside_home / "plugins" / "memkraft" / "__init__.py").exists()
+
+    real_home = tmp_path / "real-home"
+    real_home.mkdir()
+    outside_plugins = tmp_path / "outside-plugins"
+    outside_plugins.mkdir()
+    (real_home / "plugins").symlink_to(outside_plugins, target_is_directory=True)
+
+    with pytest.raises(RuntimeError, match="symbolic link|secure"):
+        module.install_bridge(real_home, hermes_version="0.19.0")
+    assert not (outside_plugins / "memkraft" / "__init__.py").exists()
+
+
+def test_installer_refuses_insecure_preseeded_bridge(tmp_path):
+    module = _load_installer()
+    bridge_dir = tmp_path / "plugins" / "memkraft"
+    bridge_dir.mkdir(parents=True)
+    bridge = bridge_dir / "__init__.py"
+    bridge_source = module.install_bridge.__globals__["_BRIDGE"]
+    bridge.write_text(bridge_source, encoding="utf-8")
+    bridge.chmod(0o666)
+
+    with pytest.raises(RuntimeError, match="insecure|unowned"):
+        module.install_bridge(tmp_path, hermes_version="0.19.0")
+
+
+def test_installer_refuses_world_writable_plugins_directory(tmp_path):
+    module = _load_installer()
+    plugins = tmp_path / "plugins"
+    plugins.mkdir()
+    plugins.chmod(0o777)
+
+    with pytest.raises(RuntimeError, match="insecure plugins directory"):
+        module.install_bridge(tmp_path, hermes_version="0.19.0")
+    assert not (plugins / "memkraft" / "__init__.py").exists()
+
+
 def test_installer_rejects_unsupported_or_entrypoint_versions(tmp_path):
     module = _load_installer()
     with pytest.raises(ValueError, match="0.19.0"):
