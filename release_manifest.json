@@ -99,6 +99,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_hermes_provider.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_install_contract.py"
         }
       ],
       "id": "adapter.hermes-agent-memory-provider",

@@ -7,6 +7,9 @@ on:
 
 jobs:
   lifecycle:
+    permissions:
+      contents: read
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

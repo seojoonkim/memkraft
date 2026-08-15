@@ -10,19 +10,23 @@ This is not a claim of compatibility with every Hermes release. Install MemKraft
 ## Hermes Agent 0.19.0
 
 ```bash
+export HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+test -d "$HERMES_HOME"
 python -m pip install "memkraft==3.5.0"
 memkraft-hermes-install --hermes-version 0.19.0 --hermes-home "$HERMES_HOME"
 hermes config set memory.provider memkraft
 ```
 
-`HERMES_HOME` must be the active profile home, such as `~/.hermes` for the default profile or `~/.hermes/profiles/<name>` for a named profile. The equivalent source-checkout helper is `scripts/install_hermes_plugin.py`. It writes `$HERMES_HOME/plugins/memkraft/__init__.py`, is idempotent, and refuses to replace a file it did not create.
+`HERMES_HOME` must already exist and be the active profile home, such as `~/.hermes` for the default profile or `~/.hermes/profiles/<name>` for a named profile. The home, `plugins`, and generated bridge directories must be owned by the current user and not group- or world-writable. The equivalent source-checkout helper is `scripts/install_hermes_plugin.py`. It writes `$HERMES_HOME/plugins/memkraft/__init__.py`, remains idempotent after Python creates `__pycache__`, and refuses to replace a namespace it cannot verify.
 
 ## Hermes Agent 0.20.1 source
 
 Pin the Hermes checkout to the verified source SHA, install Hermes and MemKraft in the same environment, and do not retain the 0.19 directory bridge:
 
 ```bash
-git checkout --detach 45af7a71fcd420b4422d2c074b1ce58b9ce0d048
+git clone https://github.com/NousResearch/hermes-agent.git /path/to/hermes-agent
+git -C /path/to/hermes-agent checkout --detach 45af7a71fcd420b4422d2c074b1ce58b9ce0d048
+test "$(git -C /path/to/hermes-agent rev-parse HEAD)" = "45af7a71fcd420b4422d2c074b1ce58b9ce0d048"
 python -m pip install -e /path/to/hermes-agent
 python -m pip install "memkraft==3.5.0"
 hermes config set memory.provider memkraft
