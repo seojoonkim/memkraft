@@ -27,7 +27,8 @@ def reduce_observations(observations: Iterable[Dict[str, Any]], *,
         locator = observation["locator"]
         sections.append({
             "schema_version": 1,
-            "section_id": digest_fields(locator["path"], observation["heading_path"],
+            "section_id": digest_fields(locator["path"], locator["lines"],
+                                         observation["heading_path"],
                                          observation["content_digest"]),
             "observation_id": observation["observation_id"],
             "heading_path": observation["heading_path"],

@@ -119,6 +119,7 @@ def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
                  path=str(destination))
         temp = Path(tempfile.mkdtemp(prefix=".pmc-", dir=str(root / "snapshots")))
         published = False
+        manifest_published = False
         try:
             os.chmod(str(temp), 0o700)
             _write_file(temp / "project.json", (canonical_json(project_header) + "\n").encode("utf-8"))
@@ -131,10 +132,11 @@ def apply_snapshot(root: Path, project_id: str, compiled: Dict[str, Any],
             manifest_temp = root / ".manifest.tmp"
             _write_file(manifest_temp, (canonical_json(manifest) + "\n").encode("utf-8"))
             os.replace(str(manifest_temp), str(root / "manifest.json"))
+            manifest_published = True
             _fsync_dir(root)
         except BaseException:
             shutil.rmtree(str(temp), ignore_errors=True)
-            if published and destination.exists():
+            if published and not manifest_published and destination.exists():
                 shutil.rmtree(str(destination), ignore_errors=True)
             try:
                 (root / ".manifest.tmp").unlink()

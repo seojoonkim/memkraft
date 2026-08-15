@@ -70,19 +70,21 @@ def _scan(root: Path, output_root: Path, config: Dict[str, Any]) -> Tuple[List[T
             continue
         if candidate.name in ("AGENTS.md", "CLAUDE.md"):
             continue
+        if not any(fnmatch.fnmatch(rel_raw, pattern) for pattern in config["include"]):
+            continue
+        if any(fnmatch.fnmatch(rel_raw, pattern) for pattern in config["exclude"]):
+            continue
         try:
             resolved = candidate.resolve(strict=True)
         except OSError as exc:
             fail("E_PM_SOURCE_UNREADABLE", "cannot resolve source", path=rel_raw, error=str(exc))
         if candidate.is_symlink() and not _relative_to(resolved, root):
             fail("E_PM_PATH_ESCAPE", "symlink resolves outside project", path=rel_raw)
+        if candidate.is_symlink():
+            continue
         if not candidate.is_file():
             continue
-        rel = resolved.relative_to(root).as_posix()
-        if not any(fnmatch.fnmatch(rel, pattern) for pattern in config["include"]):
-            continue
-        if any(fnmatch.fnmatch(rel, pattern) for pattern in config["exclude"]):
-            continue
+        rel = rel_raw
         try:
             raw = candidate.read_bytes()
             text = raw.decode("utf-8")
@@ -227,8 +229,8 @@ class ProjectMemoryMixin:
             text = observation["excerpt"]
             score = sum(text.casefold().count(term) for term in terms)
             item = dict(section); item["text"] = text
-            ranked.append((-score, section["section_id"], item))
-        ranked.sort(); candidates = [row[2] for row in ranked[:top_k]]
+            ranked.append((-score, section["section_id"], section["observation_id"], item))
+        ranked.sort(key=lambda row: row[:3]); candidates = [row[3] for row in ranked[:top_k]]
         selected = []; used = 0
         for item in candidates:
             cost = estimate_tokens(canonical_json(item))

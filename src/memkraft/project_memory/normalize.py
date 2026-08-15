@@ -40,8 +40,8 @@ def normalize_documents(files: Iterable[Tuple[str, str]],
                 level = len(match.group(1))
                 heading = heading[:level - 1] + [match.group(2)]
                 starts.append((index, list(heading)))
-        if not starts and lines:
-            starts = [(0, [])]
+        if lines and (not starts or starts[0][0] > 0):
+            starts.insert(0, (0, []))
         for position, (start, heading_path) in enumerate(starts):
             end = starts[position + 1][0] if position + 1 < len(starts) else len(lines)
             excerpt = "".join(lines[start:end])

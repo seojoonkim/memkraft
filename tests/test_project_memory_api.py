@@ -47,6 +47,14 @@ def test_context_is_bounded_deterministic_and_cited(tmp_path):
     assert all({"locator","content_digest","observation_id"} <= set(s) for s in a["sections"])
 
 
+def test_context_handles_repeated_identical_sections(tmp_path):
+    p=tmp_path/"project"; p.mkdir(); (p/"x.md").write_text("# A\n# A\n")
+    mk=MemKraft(base_dir=tmp_path/"memory"); mk.project_build(p, as_of=AS_OF, dry_run=False)
+    out=mk.project_context("A", p, budget=1000, top_k=20)
+    assert len(out["sections"]) == 2
+    assert len({row["section_id"] for row in out["sections"]}) == 2
+
+
 def test_context_requires_build(tmp_path):
     from memkraft.project_memory.errors import ProjectMemoryError
     with pytest.raises(ProjectMemoryError) as exc: MemKraft(base_dir=tmp_path/"m").project_context("q", _p(tmp_path))
@@ -70,6 +78,19 @@ def test_symlink_escape_and_output_as_project_are_rejected(tmp_path):
     from memkraft.project_memory.errors import ProjectMemoryError
     with pytest.raises(ProjectMemoryError) as exc: MemKraft(base_dir=tmp_path/"m").project_build(p, as_of=AS_OF)
     assert exc.value.code == "E_PM_PATH_ESCAPE"
+
+
+def test_internal_symlink_is_not_double_counted(tmp_path):
+    p=_p(tmp_path); (p/"alias.md").symlink_to(p/"x.md")
+    out=MemKraft(base_dir=tmp_path/"m").project_build(p, as_of=AS_OF)
+    assert out["inputs"]["files"] == 1
+
+
+def test_excluded_dangling_symlink_does_not_abort_scan(tmp_path):
+    p=_p(tmp_path); (p/"ignored.md").symlink_to(p/"missing.md")
+    out=MemKraft(base_dir=tmp_path/"m").project_build(
+        p, as_of=AS_OF, exclude=["ignored.md"])
+    assert out["inputs"]["files"] == 1
 
 
 def test_non_interference_and_methods_bound(tmp_path):

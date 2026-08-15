@@ -19,6 +19,21 @@ def test_markdown_observations_have_heading_locator_and_verbatim_text():
     assert rows[1]["observation_id"].startswith("sha256:")
 
 
+def test_content_before_first_heading_is_preserved():
+    from memkraft.project_memory.normalize import normalize_documents
+    rows = normalize_documents([("README.md", "---\ntitle: Demo\n---\nintro prose\n# Heading\nbody\n")])
+    assert rows[0]["heading_path"] == []
+    assert rows[0]["locator"] == {"path": "README.md", "lines": [1, 4]}
+    assert rows[0]["excerpt"] == "---\ntitle: Demo\n---\nintro prose\n"
+    assert rows[1]["locator"] == {"path": "README.md", "lines": [5, 6]}
+
+
+def test_repeated_identical_headings_have_unique_section_ids():
+    compiled = _compile([("a.md", "# A\n# A\n")])
+    ids = [row["section_id"] for row in compiled["sections"]]
+    assert len(ids) == len(set(ids)) == 2
+
+
 def test_input_permutation_is_byte_identical():
     files = [("b.md", "# B\nbeta\n"), ("a.md", "# A\nalpha\n")]
     a = _compile(files)

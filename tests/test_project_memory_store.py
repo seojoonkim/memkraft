@@ -64,6 +64,34 @@ def test_manifest_replace_failure_after_existing_build_is_retryable(tmp_path, mo
     assert mk.project_update(p, as_of=AS_OF, dry_run=False)["status"] == "applied"
 
 
+def test_fsync_failure_after_manifest_publish_keeps_published_snapshot(tmp_path, monkeypatch):
+    p = _project(tmp_path); mk = MemKraft(base_dir=tmp_path / "memory")
+    import memkraft.project_memory.store as store
+    real_replace = store.os.replace
+    real_fsync_dir = store._fsync_dir
+    state = {"manifest_published": False}
+
+    def track_replace(source, destination):
+        result = real_replace(source, destination)
+        if str(destination).endswith("manifest.json"):
+            state["manifest_published"] = True
+        return result
+
+    def fail_after_manifest(directory):
+        if state["manifest_published"]:
+            raise OSError("root fsync failed")
+        return real_fsync_dir(directory)
+
+    monkeypatch.setattr(store.os, "replace", track_replace)
+    monkeypatch.setattr(store, "_fsync_dir", fail_after_manifest)
+    with pytest.raises(OSError, match="root fsync failed"):
+        mk.project_build(p, as_of=AS_OF, dry_run=False)
+    monkeypatch.setattr(store, "_fsync_dir", real_fsync_dir)
+    monkeypatch.setattr(store.os, "replace", real_replace)
+    assert mk.project_context("body", p)["sections"]
+    assert mk.project_build(p, as_of=AS_OF, dry_run=False)["status"] == "already_applied"
+
+
 def test_idempotent_apply_adds_no_bytes(tmp_path):
     p = _project(tmp_path); mk = MemKraft(base_dir=tmp_path / "memory")
     mk.project_build(p, as_of=AS_OF, dry_run=False); before = _tree(mk.base_dir)
