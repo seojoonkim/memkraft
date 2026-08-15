@@ -49,6 +49,7 @@ jobs:
         env:
           PYTHONPATH: /tmp/hermes-agent
         run: |
+          install -d -m 700 "$RUNNER_TEMP/hermes-home"
           python tests/hermes_lifecycle_smoke.py \
             --hermes-home "$RUNNER_TEMP/hermes-home" \
             --discovery "${{ matrix.discovery }}"
