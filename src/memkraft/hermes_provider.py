@@ -12,6 +12,7 @@ import io
 import json
 import os
 import threading
+import time
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -37,29 +38,36 @@ def _turn_file_limit() -> int:
 
 
 def _utf8_prefix(payload: bytes, byte_limit: int) -> tuple[bytes, bytes]:
-    """Split one UTF-8-safe prefix from encoded payload without dropping bytes."""
+    """Split one UTF-8-safe prefix, or return empty when no code point fits."""
     end = min(len(payload), byte_limit)
-    while end and end < len(payload) and (payload[end] & 0xC0) == 0x80:
-        end -= 1
-    if not end:
-        end = min(len(payload), byte_limit)
-    return payload[:end], payload[end:]
+    while end:
+        try:
+            payload[:end].decode("utf-8")
+            return payload[:end], payload[end:]
+        except UnicodeDecodeError:
+            end -= 1
+    return b"", payload
 
 
 @contextmanager
 def _process_lock(path: Path):
     """Serialize session-note updates between processes sharing one store."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a+b") as handle:
+    fd = os.open(str(path), os.O_CREAT | os.O_RDWR, 0o600)
+    with os.fdopen(fd, "r+b", closefd=True) as handle:
         if os.name == "nt":
             import msvcrt
 
-            handle.seek(0, os.SEEK_END)
-            if handle.tell() == 0:
-                handle.write(b"0")
-                handle.flush()
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            if os.fstat(handle.fileno()).st_size == 0:
+                os.write(handle.fileno(), b"0")
+                os.fsync(handle.fileno())
+            while True:
+                handle.seek(0)
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.05)
             try:
                 yield
             finally:
