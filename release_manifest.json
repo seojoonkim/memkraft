@@ -1,12 +1,35 @@
 {
-  "excluded": [
-    {
-      "id": "project-memory-compiler",
-      "reason": "Architecture planning remains open and is not represented as shipped code.",
-      "state": "planned"
-    }
-  ],
+  "excluded": [],
   "features": [
+    {
+      "commits": [
+        "22c97d20b8392e2fdbac2c0829293c26683ec624"
+      ],
+      "evaluation_refs": [
+        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_contract.py"},
+        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_normalize.py"},
+        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_store.py"},
+        {"kind": "pytest", "node": "all", "path": "tests/test_project_memory_api.py"}
+      ],
+      "id": "project-memory-compiler",
+      "promotion_evidence": [
+        {"claim": "Project Memory Compiler v0 Preview", "kind": "release-note", "path": "docs/PROJECT_MEMORY_COMPILER.md"}
+      ],
+      "proposal_id": "prop.project-memory-compiler",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/__init__.py",
+        "src/memkraft/project_memory/__init__.py",
+        "src/memkraft/project_memory/api.py",
+        "src/memkraft/project_memory/digest.py",
+        "src/memkraft/project_memory/errors.py",
+        "src/memkraft/project_memory/model.py",
+        "src/memkraft/project_memory/normalize.py",
+        "src/memkraft/project_memory/reducer.py",
+        "src/memkraft/project_memory/store.py"
+      ],
+      "state": "verified"
+    },
     {
       "commits": [
         "d3b2bcd791bc3f33f453f4217a55f8f27d527b06"
@@ -76,6 +99,7 @@
       "docs/EXECUTION_PROTOCOL.md",
       "docs/GRAPH_ENGINEERING_ADAPTERS.md",
       "docs/MIGRATIONS.md",
+      "docs/PROJECT_MEMORY_COMPILER.md",
       "docs/RELEASE_CHECKLIST.md",
       "docs/STATE_CONTRACT.md",
       "docs/THREAT_MODEL.md",
@@ -121,6 +145,10 @@
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_packaging_version.py",
+      "tests/test_project_memory_api.py",
+      "tests/test_project_memory_contract.py",
+      "tests/test_project_memory_normalize.py",
+      "tests/test_project_memory_store.py",
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
       "tests/test_sleep_governance.py",
