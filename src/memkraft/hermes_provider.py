@@ -12,7 +12,7 @@ import io
 import json
 import os
 import threading
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -36,19 +36,43 @@ def _turn_file_limit() -> int:
     return max(_MIN_TURN_FILE_BYTES, configured)
 
 
-def _utf8_chunks(text: str, byte_limit: int) -> List[bytes]:
-    """Split text without breaking UTF-8 code points or dropping content."""
-    encoded = text.encode("utf-8")
-    chunks: List[bytes] = []
-    while encoded:
-        end = min(len(encoded), byte_limit)
-        while end and end < len(encoded) and (encoded[end] & 0xC0) == 0x80:
-            end -= 1
-        if not end:
-            end = min(len(encoded), byte_limit)
-        chunks.append(encoded[:end])
-        encoded = encoded[end:]
-    return chunks or [b""]
+def _utf8_prefix(payload: bytes, byte_limit: int) -> tuple[bytes, bytes]:
+    """Split one UTF-8-safe prefix from encoded payload without dropping bytes."""
+    end = min(len(payload), byte_limit)
+    while end and end < len(payload) and (payload[end] & 0xC0) == 0x80:
+        end -= 1
+    if not end:
+        end = min(len(payload), byte_limit)
+    return payload[:end], payload[end:]
+
+
+@contextmanager
+def _process_lock(path: Path):
+    """Serialize session-note updates between processes sharing one store."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+b") as handle:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                handle.write(b"0")
+                handle.flush()
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 class MemKraftMemoryProvider(MemoryProvider):
@@ -107,17 +131,20 @@ class MemKraftMemoryProvider(MemoryProvider):
         entry = "## Completed turn\n\n{}\n\n".format(content)
 
         changed: List[Path] = []
-        with _TURN_WRITE_LOCK:
+        lock_path = directory / ".{}.lock".format(prefix)
+        with _TURN_WRITE_LOCK, _process_lock(lock_path):
             existing = sorted(directory.glob(prefix + "-*.md"))
             index = int(existing[-1].stem.rsplit("-", 1)[-1]) if existing else 1
-            path = directory / "{}-{:06d}.md".format(prefix, index)
-            header = header_template.format(index).encode("utf-8")
-            payload_limit = max(1, limit - len(header))
-            for fragment in _utf8_chunks(entry, payload_limit):
-                if path.exists() and path.stat().st_size + len(fragment) > limit:
+            remaining = entry.encode("utf-8")
+            while remaining:
+                path = directory / "{}-{:06d}.md".format(prefix, index)
+                header = header_template.format(index).encode("utf-8")
+                current_size = path.stat().st_size if path.exists() else len(header)
+                available = limit - current_size
+                if available <= 0:
                     index += 1
-                    path = directory / "{}-{:06d}.md".format(prefix, index)
-                    header = header_template.format(index).encode("utf-8")
+                    continue
+                fragment, remaining = _utf8_prefix(remaining, available)
                 if not path.exists():
                     path.write_bytes(header)
                 with path.open("ab") as handle:
@@ -125,6 +152,8 @@ class MemKraftMemoryProvider(MemoryProvider):
                     handle.flush()
                     os.fsync(handle.fileno())
                 changed.append(path)
+                if remaining:
+                    index += 1
 
         from ._corpus_index import invalidate as invalidate_corpus
         from ._read_cache import get_cache

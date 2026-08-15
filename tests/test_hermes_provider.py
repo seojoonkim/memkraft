@@ -1,4 +1,17 @@
+import multiprocessing
+
 from memkraft.hermes_provider import MemKraftMemoryProvider
+
+
+def _sync_turn_in_process(home, token, start):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("shared", hermes_home=home)
+    start.wait(timeout=10)
+    provider.sync_turn(
+        "Concurrent token {} {}".format(token, "x" * 220),
+        "Recorded.",
+        session_id="shared",
+    )
 
 
 def test_completed_turn_is_persisted_and_recalled_on_next_turn(tmp_path):
@@ -85,6 +98,49 @@ def test_session_turn_files_rotate_before_exceeding_configured_limit(tmp_path, m
     notes = sorted((tmp_path / "memkraft" / "live-notes").glob("hermes-session-*.md"))
     assert len(notes) >= 2
     assert all(path.stat().st_size <= 512 for path in notes)
+
+
+def test_large_multibyte_turn_stays_bounded_after_chunk_index_grows(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_HERMES_TURN_FILE_BYTES", "512")
+    provider = MemKraftMemoryProvider()
+    provider.initialize("many-chunks", hermes_home=str(tmp_path))
+
+    provider.sync_turn(
+        "ASCII payload {}".format("x" * 6000),
+        "Recorded.",
+        session_id="many-chunks",
+    )
+
+    notes = sorted((tmp_path / "memkraft" / "live-notes").glob("hermes-session-*.md"))
+    assert len(notes) >= 10
+    assert all(path.stat().st_size <= 512 for path in notes)
+    joined = b"".join(path.read_bytes().split(b"\n\n", 1)[1] for path in notes)
+    assert joined.decode("utf-8").count("x") == 6000
+
+
+def test_concurrent_processes_preserve_all_turns_within_byte_limit(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_HERMES_TURN_FILE_BYTES", "512")
+    home = str(tmp_path)
+    tokens = ["ProcessToken{:02d}".format(index) for index in range(12)]
+    ctx = multiprocessing.get_context("spawn")
+    start = ctx.Event()
+    processes = [
+        ctx.Process(target=_sync_turn_in_process, args=(home, token, start))
+        for token in tokens
+    ]
+
+    for process in processes:
+        process.start()
+    start.set()
+    for process in processes:
+        process.join(timeout=20)
+        assert process.exitcode == 0
+
+    notes = sorted((tmp_path / "memkraft" / "live-notes").glob("hermes-session-*.md"))
+    assert notes
+    assert all(path.stat().st_size <= 512 for path in notes)
+    content = "\n".join(path.read_text(encoding="utf-8") for path in notes)
+    assert all(content.count(token) == 1 for token in tokens)
 
 
 def test_completed_turn_remains_recallable_after_provider_reinitialization(tmp_path):
