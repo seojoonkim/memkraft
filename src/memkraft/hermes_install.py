@@ -39,7 +39,13 @@ def install_bridge(hermes_home: Path, *, hermes_version: str) -> Dict[str, str]:
     if os.open not in os.supports_dir_fd or os.mkdir not in os.supports_dir_fd:
         raise RuntimeError("secure directory-relative installation is unavailable on this platform")
 
-    home = Path(os.path.abspath(os.fspath(Path(hermes_home).expanduser())))
+    requested_home = Path(hermes_home).expanduser()
+    if requested_home.is_symlink():
+        raise RuntimeError("refusing symbolic link Hermes home: {}".format(requested_home))
+    try:
+        home = requested_home.resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError("Hermes home must already exist and be accessible: {}".format(requested_home)) from exc
     plugins_dir = home / "plugins"
     plugin_dir = plugins_dir / "memkraft"
     bridge = plugin_dir / "__init__.py"
@@ -94,10 +100,17 @@ def install_bridge(hermes_home: Path, *, hermes_version: str) -> Dict[str, str]:
                         raise RuntimeError("refusing existing unowned plugin directory: {}".format(plugin_dir))
                     if directory_info.st_mode & 0o022:
                         raise RuntimeError("refusing insecure plugin directory permissions: {}".format(plugin_dir))
-                    entries = os.listdir(plugin_fd)
+                    entries = set(os.listdir(plugin_fd))
                     if not created_dir:
-                        if entries != ["__init__.py"]:
+                        allowed_entries = {"__init__.py", "__pycache__"}
+                        if "__init__.py" not in entries or not entries <= allowed_entries:
                             raise RuntimeError("refusing existing unowned plugin directory: {}".format(plugin_dir))
+                        if "__pycache__" in entries:
+                            cache_fd = os.open("__pycache__", directory_flags, dir_fd=plugin_fd)
+                            with _close_fd(cache_fd):
+                                cache_info = os.fstat(cache_fd)
+                                if cache_info.st_uid != os.getuid() or cache_info.st_mode & 0o022:
+                                    raise RuntimeError("refusing insecure plugin cache: {}".format(plugin_dir / "__pycache__"))
                         try:
                             file_fd = os.open(
                                 "__init__.py", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=plugin_fd

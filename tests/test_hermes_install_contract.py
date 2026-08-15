@@ -112,6 +112,26 @@ def test_installer_refuses_insecure_preseeded_bridge(tmp_path):
         module.install_bridge(tmp_path, hermes_version="0.19.0")
 
 
+def test_installer_remains_idempotent_after_python_creates_cache(tmp_path):
+    module = _load_installer()
+    first = module.install_bridge(tmp_path, hermes_version="0.19.0")
+    bridge_dir = Path(first["path"]).parent
+    cache = bridge_dir / "__pycache__"
+    cache.mkdir(mode=0o700)
+    (cache / "bridge.cpython-311.pyc").write_bytes(b"cache")
+
+    second = module.install_bridge(tmp_path, hermes_version="0.19.0")
+    assert second["action"] == "unchanged"
+
+
+def test_installer_accepts_trusted_system_ancestor_symlink(tmp_path):
+    resolved = tmp_path.resolve()
+    lexical = Path("/var") / resolved.relative_to("/private/var") if str(resolved).startswith("/private/var/") else resolved
+    module = _load_installer()
+    result = module.install_bridge(lexical, hermes_version="0.19.0")
+    assert Path(result["path"]).resolve().is_file()
+
+
 def test_installer_refuses_world_writable_plugins_directory(tmp_path):
     module = _load_installer()
     plugins = tmp_path / "plugins"

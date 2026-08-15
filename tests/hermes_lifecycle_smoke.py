@@ -27,6 +27,12 @@ def main() -> None:
     from memkraft.hermes_provider import MemKraftMemoryProvider
     from plugins import memory
 
+    if args.discovery == "directory":
+        # Hermes 0.19 is directory-only. Prove the selected provider is the
+        # profile bridge rather than any bundled provider with the same name.
+        expected_bridge = (home / "plugins" / "memkraft").resolve()
+        assert memory.find_provider_dir("memkraft").resolve() == expected_bridge
+
     names = memory.list_memory_provider_names()
     assert "memkraft" in names, names
     provider = memory.load_memory_provider("memkraft")
