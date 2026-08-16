@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from memkraft import MemKraft
+import memkraft.correction_policy as correction_policy
 from memkraft.correction_policy import project_corrections
 from memkraft.execution_protocol import ExecutionError
 
@@ -38,6 +39,33 @@ def test_pure_projection_is_order_independent_and_does_not_write(tmp_path):
     assert first == second
     assert first["high_water_seq"] == 1
     assert log.stat().st_mtime_ns == before
+
+
+def test_log_validation_does_not_refold_the_history_for_each_record(tmp_path, monkeypatch):
+    store = setup_policy(tmp_path, scope="project")
+    for index in range(40):
+        store.correction_record_outcome(
+            "corr.alpha", "r1", "complied", now=LATER,
+            operation_id="outcome-%d" % index,
+        )
+
+    fold_calls = 0
+    original_fold = correction_policy._fold
+
+    def counted_fold(records):
+        nonlocal fold_calls
+        fold_calls += 1
+        return original_fold(records)
+
+    monkeypatch.setattr(correction_policy, "_fold", counted_fold)
+    view = store.correction_project(now=LATER)
+
+    assert view["skipped"] == 0
+    assert view["policies"]["corr.alpha"]["revisions"]["r1"]["outcome_tallies"] == {
+        "complied": 40, "violated": 0, "not_applicable": 0,
+    }
+    # One final projection fold is expected; validation itself must be incremental.
+    assert fold_calls == 1
 
 
 def test_widening_requires_new_revision_and_fresh_target_scope_pass(tmp_path):

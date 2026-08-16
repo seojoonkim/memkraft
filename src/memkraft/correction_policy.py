@@ -339,6 +339,8 @@ def _read(path: Path) -> Tuple[List[Dict[str, Any]], int]:
         else:
             records.append(item)
     usable: List[Dict[str, Any]] = []
+    policies: Dict[str, Any] = {}
+    prior_activation_targets: Dict[str, set] = {}
     ids, operations, captures, revisions = set(), set(), set(), set()
     expected_seq = 1
     for item in records:
@@ -357,7 +359,7 @@ def _read(path: Path) -> Tuple[List[Dict[str, Any]], int]:
             elif kind == "correction_activation":
                 valid = valid and (cid, item["to_revision_id"]) in revisions
         if valid and kind != "correction_capture":
-            policy = _fold(usable).get(cid)
+            policy = policies.get(cid)
             if policy is None:
                 valid = False
             elif kind == "correction_status":
@@ -377,9 +379,8 @@ def _read(path: Path) -> Tuple[List[Dict[str, Any]], int]:
                 elif valid:
                     valid = (item["to_revision_id"] != policy["active_revision_id"]
                              and bool(policy["activations"])
-                             and any(a["to_revision_id"] == item["to_revision_id"]
-                                     and a["event_seq"] < policy["activations"][-1]["event_seq"]
-                                     for a in policy["activations"]))
+                             and item["to_revision_id"] in
+                             prior_activation_targets.get(cid, set()))
             elif kind == "correction_scope":
                 valid = (item["from_scope"] == policy["scope"]
                          and item["from_scope"] != item["to_scope"])
@@ -410,72 +411,80 @@ def _read(path: Path) -> Tuple[List[Dict[str, Any]], int]:
             revisions.add((cid, item["revision_id"]))
         elif kind == "correction_revision":
             revisions.add((cid, item["revision_id"]))
+        _fold_item(policies, item)
+        if kind == "correction_activation":
+            prior_activation_targets.setdefault(cid, set()).add(item["to_revision_id"])
     return usable, skipped
+
+
+def _fold_item(policies: Dict[str, Any], item: Dict[str, Any]) -> None:
+    """Apply one validated event to an existing projection in place."""
+    kind = item.get("record_type")
+    cid = item.get("correction_id")
+    if kind == "correction_capture":
+        policies[cid] = {
+            "status": "captured", "scope": item.get("scope"),
+            "privacy": item.get("privacy"), "task_ref": item.get("task_ref"),
+            "task_class": item.get("task_class"), "topic_key": item.get("topic_key"),
+            "host_authorization_ref": item.get("host_authorization_ref"),
+            "required_evaluations": list(item.get("required_evaluations") or []),
+            "current_revision_id": item.get("revision_id"),
+            "promoted_revision_id": None, "active_revision_id": None,
+            "revisions": {}, "evaluations": {}, "activations": [],
+            "scope_history": [], "status_history": [],
+        }
+        policies[cid]["revisions"][item["revision_id"]] = {
+            "user_utterance": item.get("user_utterance"),
+            "agent_interpretation": item.get("agent_interpretation"),
+            "base_revision_id": None, "truncated": item.get("truncated", False),
+            "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at"),
+            "outcome_tallies": {name: 0 for name in _OUTCOME},
+        }
+    elif cid not in policies:
+        return
+    elif kind == "correction_revision":
+        policies[cid]["revisions"][item["revision_id"]] = {
+            "user_utterance": item.get("user_utterance"),
+            "agent_interpretation": item.get("agent_interpretation"),
+            "base_revision_id": item.get("base_revision_id"),
+            "truncated": item.get("truncated", False), "event_seq": item.get("event_seq"),
+            "emitted_at": item.get("emitted_at"),
+            "outcome_tallies": {name: 0 for name in _OUTCOME}}
+        policies[cid]["current_revision_id"] = item["revision_id"]
+    elif kind == "correction_outcome":
+        revision = policies[cid]["revisions"].get(item["revision_id"])
+        if revision is not None:
+            revision["outcome_tallies"][item["outcome"]] += 1
+    elif kind == "correction_evaluation":
+        key = (item["revision_id"], item["evaluation_kind"])
+        policies[cid]["evaluations"][key] = {
+            "verdict": item.get("verdict"), "evaluated_scope": item.get("evaluated_scope"),
+            "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at")}
+    elif kind == "correction_status":
+        policies[cid]["status"] = item.get("to_status")
+        if item.get("to_status") == "promoted":
+            policies[cid]["promoted_revision_id"] = item.get("promoted_revision_id")
+        policies[cid]["status_history"].append({"from_status": item.get("from_status"),
+            "to_status": item.get("to_status"), "event_seq": item.get("event_seq")})
+    elif kind == "correction_activation":
+        policies[cid]["active_revision_id"] = item.get("to_revision_id")
+        policies[cid]["activations"].append({"from_revision_id": item.get("from_revision_id"),
+            "to_revision_id": item.get("to_revision_id"),
+            "activation_kind": item.get("activation_kind"), "event_seq": item.get("event_seq")})
+    elif kind == "correction_scope":
+        policies[cid]["scope"] = item.get("to_scope")
+        policies[cid]["task_ref"] = item.get("task_ref")
+        policies[cid]["task_class"] = item.get("task_class")
+        policies[cid]["privacy"] = item.get("privacy")
+        policies[cid]["scope_history"].append({"from_scope": item.get("from_scope"),
+            "to_scope": item.get("to_scope"), "revision_id": item.get("revision_id"),
+            "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at")})
 
 
 def _fold(records: List[Dict[str, Any]]) -> Dict[str, Any]:
     policies: Dict[str, Any] = {}
     for item in sorted(records, key=lambda x: (x.get("event_seq", 0), x.get("id", ""))):
-        kind = item.get("record_type")
-        cid = item.get("correction_id")
-        if kind == "correction_capture":
-            policies[cid] = {
-                "status": "captured", "scope": item.get("scope"),
-                "privacy": item.get("privacy"), "task_ref": item.get("task_ref"),
-                "task_class": item.get("task_class"), "topic_key": item.get("topic_key"),
-                "host_authorization_ref": item.get("host_authorization_ref"),
-                "required_evaluations": list(item.get("required_evaluations") or []),
-                "current_revision_id": item.get("revision_id"),
-                "promoted_revision_id": None, "active_revision_id": None,
-                "revisions": {}, "evaluations": {}, "activations": [],
-                "scope_history": [], "status_history": [],
-            }
-            policies[cid]["revisions"][item["revision_id"]] = {
-                "user_utterance": item.get("user_utterance"),
-                "agent_interpretation": item.get("agent_interpretation"),
-                "base_revision_id": None, "truncated": item.get("truncated", False),
-                "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at"),
-                "outcome_tallies": {name: 0 for name in _OUTCOME},
-            }
-        elif cid not in policies:
-            continue
-        elif kind == "correction_revision":
-            policies[cid]["revisions"][item["revision_id"]] = {
-                "user_utterance": item.get("user_utterance"),
-                "agent_interpretation": item.get("agent_interpretation"),
-                "base_revision_id": item.get("base_revision_id"),
-                "truncated": item.get("truncated", False), "event_seq": item.get("event_seq"),
-                "emitted_at": item.get("emitted_at"),
-                "outcome_tallies": {name: 0 for name in _OUTCOME}}
-            policies[cid]["current_revision_id"] = item["revision_id"]
-        elif kind == "correction_outcome":
-            revision = policies[cid]["revisions"].get(item["revision_id"])
-            if revision is not None:
-                revision["outcome_tallies"][item["outcome"]] += 1
-        elif kind == "correction_evaluation":
-            key = (item["revision_id"], item["evaluation_kind"])
-            policies[cid]["evaluations"][key] = {
-                "verdict": item.get("verdict"), "evaluated_scope": item.get("evaluated_scope"),
-                "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at")}
-        elif kind == "correction_status":
-            policies[cid]["status"] = item.get("to_status")
-            if item.get("to_status") == "promoted":
-                policies[cid]["promoted_revision_id"] = item.get("promoted_revision_id")
-            policies[cid]["status_history"].append({"from_status": item.get("from_status"),
-                "to_status": item.get("to_status"), "event_seq": item.get("event_seq")})
-        elif kind == "correction_activation":
-            policies[cid]["active_revision_id"] = item.get("to_revision_id")
-            policies[cid]["activations"].append({"from_revision_id": item.get("from_revision_id"),
-                "to_revision_id": item.get("to_revision_id"),
-                "activation_kind": item.get("activation_kind"), "event_seq": item.get("event_seq")})
-        elif kind == "correction_scope":
-            policies[cid]["scope"] = item.get("to_scope")
-            policies[cid]["task_ref"] = item.get("task_ref")
-            policies[cid]["task_class"] = item.get("task_class")
-            policies[cid]["privacy"] = item.get("privacy")
-            policies[cid]["scope_history"].append({"from_scope": item.get("from_scope"),
-                "to_scope": item.get("to_scope"), "revision_id": item.get("revision_id"),
-                "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at")})
+        _fold_item(policies, item)
     return policies
 
 
