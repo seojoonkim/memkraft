@@ -49,6 +49,21 @@ def test_capture_truncates_each_role_explicitly(tmp_path):
     assert record["truncated"] is True
 
 
+def test_private_pointer_never_persists_raw_role_content(tmp_path):
+    store = mk(tmp_path)
+    record = capture(
+        store,
+        privacy="private_pointer",
+        user_utterance="SECRET USER CONTENT",
+        agent_interpretation="SECRET AGENT CONTENT",
+    )["record"]
+    assert record["user_utterance"] == "[private_pointer]"
+    assert record["agent_interpretation"] == "[private_pointer]"
+    raw = path(store).read_text(encoding="utf-8")
+    assert "SECRET USER CONTENT" not in raw
+    assert "SECRET AGENT CONTENT" not in raw
+
+
 def test_scope_context_and_shared_privacy_fail_closed(tmp_path):
     store = mk(tmp_path)
     for kwargs in ({"scope": "task"}, {"scope": "task_class"},
