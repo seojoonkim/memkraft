@@ -88,7 +88,8 @@
         "234f62730f4c756757d3e86616f895a0c76ec866",
         "91bbb21844178f4de55094fcd16b164e49e21f6a",
         "f1216b176063dbb78e43977ba5cc3480a19d61e6",
-        "966c03f565ae840d3c4039658600c9db87242385"
+        "966c03f565ae840d3c4039658600c9db87242385",
+        "b336e14123237b6d8c9b279651dd51bc7afb76a1"
       ],
       "evaluation_refs": [
         {
@@ -186,8 +187,7 @@
         "src/memkraft/install_integrity.py",
         "src/memkraft/selfupdate.py",
         "src/memkraft/doctor.py",
-        "src/memkraft/cli.py",
-        "src/memkraft/hermes_provider.py"
+        "src/memkraft/cli.py"
       ]
     }
   ],
@@ -235,10 +235,6 @@
       "scripts/check_project_state.py",
       "scripts/install_hermes_plugin.py",
       "setup.py",
-      "src/memkraft/cli.py",
-      "src/memkraft/doctor.py",
-      "src/memkraft/install_integrity.py",
-      "src/memkraft/selfupdate.py",
       "tests/conformance/**",
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
@@ -279,6 +275,7 @@
       "tests/test_state_contract.py",
       "tests/test_store_core_lock_nb.py",
       "tests/test_touch_last_accessed.py",
+      "tests/test_v081_doctor.py",
       "tests/test_v081_mcp.py",
       "tests/test_v082_doctor_check_updates.py",
       "tests/test_v082_selfupdate.py",
