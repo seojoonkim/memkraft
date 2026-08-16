@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [3.5.2] — 2026-08-16
+
+- Fixed `selfupdate --converge` to select the highest stable release with published artifacts when PyPI summary metadata is stale.
+- Preserved the official wheel filename in the verified temporary download so pip accepts the artifact, while rejecting unsafe paths and removing the private temporary directory afterward.
+
 ## [3.5.1] — 2026-08-16
 
 - Improved uncached top-k search latency by deferring fallback snippet extraction until after stable ranking and limiting; the paired 3,000-document benchmark observed a 5.71% p50 improvement without changing recall or result-prefix contracts.

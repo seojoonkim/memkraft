@@ -157,10 +157,10 @@
       "state": "verified"
     },
     {
-      "id": "maintenance.install-integrity-convergence-3.5.1",
+      "id": "maintenance.install-integrity-convergence-3.5.2",
       "state": "verified",
-      "proposal_id": "prop.install-integrity-convergence-3.5.1",
-      "revision_id": "r1",
+      "proposal_id": "prop.install-integrity-convergence-3.5.2",
+      "revision_id": "r2",
       "evaluation_refs": [
         {
           "kind": "pytest",
@@ -176,13 +176,14 @@
       "promotion_evidence": [
         {
           "kind": "release-note",
-          "path": "docs/releases/3.5.1.md",
-          "claim": "Installation integrity and convergence"
+          "path": "docs/releases/3.5.2.md",
+          "claim": "Self-update convergence"
         }
       ],
       "commits": [
         "f62e463693191ed10116c05b201ebe8404ef8247",
-        "c11fe69a85d8289a087381eb27c3556b6d36fc8b"
+        "c11fe69a85d8289a087381eb27c3556b6d36fc8b",
+        "fe8f2e6bcbf9902257aa292e66be235924b56c3e"
       ],
       "source_paths": [
         "src/memkraft/install_integrity.py",
@@ -193,7 +194,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/3.5.1",
+    "active_branch": "release/3.5.2",
     "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -227,6 +228,7 @@
       "docs/releases/3.4.1.md",
       "docs/releases/3.5.0.md",
       "docs/releases/3.5.1.md",
+      "docs/releases/3.5.2.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -285,7 +287,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.5.1"
+    "version": "3.5.2"
   },
   "schema": 2
 }
