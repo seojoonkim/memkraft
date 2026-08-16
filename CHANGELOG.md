@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [3.6.0] — 2026-08-16
+
+- Added opt-in Correction Learning with role-separated user evidence, append-only scoped policy lifecycle, authority and freshness gates, and rollback-safe projections.
+- Added deterministic bounded correction injection with explicit task, project, task-class, and global precedence while preserving private-profile isolation.
+- Connected correction outcomes to the existing Evaluation Corpus and added a frozen release gate for fidelity, interference, recurrence prevention, token budget, determinism, and latency.
+
 ## [3.5.2] — 2026-08-16
 
 - Fixed `selfupdate --converge` to select the highest stable release with published artifacts when PyPI summary metadata is stale.

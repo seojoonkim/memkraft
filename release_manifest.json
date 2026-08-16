@@ -2,200 +2,80 @@
   "excluded": [],
   "features": [
     {
-      "commits": [
-        "22c97d20b8392e2fdbac2c0829293c26683ec624",
-        "37b53c848e9ead9a736da99837eea3dc20944041",
-        "d3b2bcd791bc3f33f453f4217a55f8f27d527b06",
-        "f225d758d45c3ae2db9edfa3a0d1b4a7849d4ef2"
-      ],
+      "id": "feature.correction-learning-3.6",
+      "state": "verified",
+      "proposal_id": "prop.correction-learning-3.6",
+      "revision_id": "r1",
       "evaluation_refs": [
         {
           "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_project_memory_contract.py"
+          "path": "tests/test_correction_policy.py",
+          "node": "all"
         },
         {
           "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_project_memory_normalize.py"
+          "path": "tests/test_correction_injection.py",
+          "node": "all"
         },
         {
           "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_project_memory_store.py"
+          "path": "tests/test_correction_outcomes.py",
+          "node": "all"
         },
         {
           "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_project_memory_api.py"
+          "path": "tests/test_correction_benchmark_gate.py",
+          "node": "all"
         }
       ],
-      "id": "project-memory-compiler",
       "promotion_evidence": [
         {
-          "claim": "Project Memory Compiler v0 Preview",
           "kind": "release-note",
-          "path": "docs/PROJECT_MEMORY_COMPILER.md"
+          "path": "docs/releases/3.6.0.md",
+          "claim": "Governed correction policies"
         }
       ],
-      "proposal_id": "prop.project-memory-compiler",
-      "revision_id": "r1",
+      "commits": [
+        "0d7b1a5c954a0c6087c31c7adde7752d4577b657",
+        "74a0ed6dead8d9c55c343b173542b76149dd6ee3",
+        "b729ee0b43fad9b226dbea9ec63bc32ce1292c10"
+      ],
       "source_paths": [
         "src/memkraft/__init__.py",
-        "src/memkraft/project_memory/__init__.py",
-        "src/memkraft/project_memory/api.py",
-        "src/memkraft/project_memory/digest.py",
-        "src/memkraft/project_memory/errors.py",
-        "src/memkraft/project_memory/model.py",
-        "src/memkraft/project_memory/normalize.py",
-        "src/memkraft/project_memory/reducer.py",
-        "src/memkraft/project_memory/store.py"
-      ],
-      "state": "verified"
+        "src/memkraft/correction_policy.py",
+        "src/memkraft/evaluation_corpus.py"
+      ]
     },
     {
-      "commits": [
-        "d3b2bcd791bc3f33f453f4217a55f8f27d527b06"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_delay_ledger.py"
-        }
-      ],
-      "id": "adaptive-eta.delay-ledger-preview",
-      "promotion_evidence": [
-        {
-          "claim": "Adaptive ETA and Delay Ledger Preview",
-          "kind": "release-note",
-          "path": "docs/ADAPTIVE_ETA_DELAY_LEDGER.md"
-        }
-      ],
-      "proposal_id": "prop.adaptive-eta-delay",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/delay_ledger.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "b1f3f5f94c43ffcc62f500101f7a8ad40bb0afee",
-        "5f56f5741c30d857557078b09cf3747924641567",
-        "81a88e9ffb3be4d344fe1ad53a4fe60894a87fda",
-        "81f49003c3c5bce2de9c8952423036989f2aa191",
-        "234f62730f4c756757d3e86616f895a0c76ec866",
-        "91bbb21844178f4de55094fcd16b164e49e21f6a",
-        "f1216b176063dbb78e43977ba5cc3480a19d61e6",
-        "966c03f565ae840d3c4039658600c9db87242385",
-        "f62e463693191ed10116c05b201ebe8404ef8247"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_hermes_agent_compat.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_hermes_provider.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_hermes_install_contract.py"
-        }
-      ],
-      "id": "adapter.hermes-agent-memory-provider",
-      "promotion_evidence": [
-        {
-          "claim": "Hermes Agent memory-provider adapter",
-          "kind": "release-note",
-          "path": "docs/releases/3.5.0.md"
-        }
-      ],
-      "proposal_id": "prop.hermes-agent-memory-provider",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/hermes_install.py",
-        "src/memkraft/hermes_provider.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "5302bf00fe4d2e3335b960f0835973356aba227b"
-      ],
-      "evaluation_refs": [
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_benchmark_scripts.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_touch_last_accessed.py"
-        }
-      ],
-      "id": "maintenance.search-performance-3.5",
-      "promotion_evidence": [
-        {
-          "claim": "Search performance maintenance audit",
-          "kind": "release-note",
-          "path": "docs/bench/search-performance-3.5-maintenance.md"
-        }
-      ],
-      "proposal_id": "prop.search-performance-maintenance",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/_core_lifecycle_helpers.py",
-        "src/memkraft/core.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "id": "maintenance.install-integrity-convergence-3.5.2",
+      "id": "feature.hermes-role-evidence-3.6",
       "state": "verified",
-      "proposal_id": "prop.install-integrity-convergence-3.5.2",
-      "revision_id": "r2",
+      "proposal_id": "prop.hermes-role-evidence-3.6",
+      "revision_id": "r1",
       "evaluation_refs": [
         {
           "kind": "pytest",
-          "path": "tests/test_install_integrity.py",
-          "node": "all"
-        },
-        {
-          "kind": "pytest",
-          "path": "tests/test_v082_selfupdate.py",
+          "path": "tests/test_hermes_provider.py",
           "node": "all"
         }
       ],
       "promotion_evidence": [
         {
           "kind": "release-note",
-          "path": "docs/releases/3.5.2.md",
-          "claim": "Self-update convergence"
+          "path": "docs/releases/3.6.0.md",
+          "claim": "Preserves user and assistant evidence as separate roles."
         }
       ],
       "commits": [
-        "f62e463693191ed10116c05b201ebe8404ef8247",
-        "c11fe69a85d8289a087381eb27c3556b6d36fc8b",
-        "cb763ae2f6f8d28e1cf9d5fe63f0c73833d907a6"
+        "f24fd77facf993b758cf8fe71091d37735eee192"
       ],
       "source_paths": [
-        "src/memkraft/install_integrity.py",
-        "src/memkraft/selfupdate.py",
-        "src/memkraft/doctor.py",
-        "src/memkraft/cli.py"
+        "src/memkraft/hermes_provider.py"
       ]
     }
   ],
   "release": {
-    "active_branch": "release/3.5.2",
-    "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
+    "active_branch": "release/3.6.0",
+    "base_sha": "b32d95fe2225fdb0a64c79ce2004b992ebf170b0",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
       ".github/workflows/hermes-compat.yml",
@@ -203,6 +83,8 @@
       "CHANGELOG.md",
       "MANIFEST.in",
       "README.md",
+      "benchmarks/corrections/cases_v1.json",
+      "benchmarks/corrections/run.py",
       "benchmarks/longmemeval/harness.py",
       "benchmarks/search_scale_bench.py",
       "docs/ADAPTERS.md",
@@ -217,6 +99,7 @@
       "docs/STATE_CONTRACT.md",
       "docs/THREAT_MODEL.md",
       "docs/V3_API.md",
+      "docs/bench/results/3.6.0-corrections-gate.json",
       "docs/bench/results/mkep-3.3.0-g11-g12-macos-arm64.json",
       "docs/bench/search-performance-3.5-maintenance.md",
       "docs/plans/2026-08-04-memkraft-runtime-neutral-execution-protocol-development-plan.md",
@@ -229,6 +112,7 @@
       "docs/releases/3.5.0.md",
       "docs/releases/3.5.1.md",
       "docs/releases/3.5.2.md",
+      "docs/releases/3.6.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -245,6 +129,13 @@
       "tests/test_benchmark_scripts.py",
       "tests/test_cli_release_smoke.py",
       "tests/test_context_compiler.py",
+      "tests/test_correction_benchmark_gate.py",
+      "tests/test_correction_hardening.py",
+      "tests/test_correction_injection.py",
+      "tests/test_correction_lifecycle.py",
+      "tests/test_correction_outcomes.py",
+      "tests/test_correction_policy.py",
+      "tests/test_correction_projection.py",
       "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
@@ -287,7 +178,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.5.2"
+    "version": "3.6.0"
   },
   "schema": 2
 }
