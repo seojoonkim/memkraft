@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memkraft"
-version = "3.5.0"
+version = "3.5.1"
 description = "The compound knowledge system for AI agents"
 readme = "README.md"
 license = "MIT"

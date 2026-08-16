@@ -1,4 +1,4 @@
-**v3.5.0**
+**v3.5.1**
 
 <div align="center">
 
@@ -484,7 +484,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.5.0**.
+Current version: **3.5.1**.
 
 ```bash
 pipx upgrade memkraft
@@ -498,7 +498,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.5.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.0) (current)
+### [v3.5.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.1) (current)
+
+MemKraft 3.5.1 adds fail-closed installation integrity diagnostics and explicit convergence to a hash-verified official PyPI wheel. Read the [release notes](docs/releases/3.5.1.md).
+
+### [v3.5.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.0)
 
 MemKraft 3.5.0 is the active development release line after the immutable
 v3.4.1 baseline. Its verified Adaptive ETA and Delay Ledger Preview is

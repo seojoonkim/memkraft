@@ -154,10 +154,45 @@
         "src/memkraft/core.py"
       ],
       "state": "verified"
+    },
+    {
+      "id": "maintenance.install-integrity-convergence-3.5.1",
+      "state": "verified",
+      "proposal_id": "prop.install-integrity-convergence-3.5.1",
+      "revision_id": "r1",
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "path": "tests/test_install_integrity.py",
+          "node": "all"
+        },
+        {
+          "kind": "pytest",
+          "path": "tests/test_v082_selfupdate.py",
+          "node": "all"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/releases/3.5.1.md",
+          "claim": "Installation integrity and convergence"
+        }
+      ],
+      "commits": [
+        "b336e14123237b6d8c9b279651dd51bc7afb76a1"
+      ],
+      "source_paths": [
+        "src/memkraft/install_integrity.py",
+        "src/memkraft/selfupdate.py",
+        "src/memkraft/doctor.py",
+        "src/memkraft/cli.py",
+        "src/memkraft/hermes_provider.py"
+      ]
     }
   ],
   "release": {
-    "active_branch": "release/3.5.0",
+    "active_branch": "release/3.5.1",
     "base_sha": "2fab3e69b3a96ffd57ac34a796ccfd5555ff0204",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -190,6 +225,7 @@
       "docs/releases/3.4.0.md",
       "docs/releases/3.4.1.md",
       "docs/releases/3.5.0.md",
+      "docs/releases/3.5.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -199,11 +235,16 @@
       "scripts/check_project_state.py",
       "scripts/install_hermes_plugin.py",
       "setup.py",
+      "src/memkraft/cli.py",
+      "src/memkraft/doctor.py",
+      "src/memkraft/install_integrity.py",
+      "src/memkraft/selfupdate.py",
       "tests/conformance/**",
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/hermes_lifecycle_smoke.py",
       "tests/test_benchmark_scripts.py",
+      "tests/test_cli_release_smoke.py",
       "tests/test_context_compiler.py",
       "tests/test_delay_ledger.py",
       "tests/test_evaluation_corpus.py",
@@ -226,6 +267,7 @@
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
+      "tests/test_install_integrity.py",
       "tests/test_packaging_version.py",
       "tests/test_project_memory_api.py",
       "tests/test_project_memory_contract.py",
@@ -238,12 +280,14 @@
       "tests/test_store_core_lock_nb.py",
       "tests/test_touch_last_accessed.py",
       "tests/test_v081_mcp.py",
+      "tests/test_v082_doctor_check_updates.py",
+      "tests/test_v082_selfupdate.py",
       "tools/pin_golden_usage_id.py"
     ],
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.5.0"
+    "version": "3.5.1"
   },
   "schema": 2
 }
