@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [3.5.1] — 2026-08-16
+
+- Improved uncached top-k search latency by deferring fallback snippet extraction until after stable ranking and limiting; the paired 3,000-document benchmark observed a 5.71% p50 improvement without changing recall or result-prefix contracts.
+- Added fail-closed installation integrity diagnostics across package version, distribution metadata, import provenance, duplicate installs, and editable redirects.
+- Added explicit `memkraft selfupdate --converge` repair using the exact official PyPI wheel URL and SHA-256, with fresh-process verification and rollback-safe editable-artifact quarantine.
+- Exposed machine-readable installation health through `memkraft doctor --install --json` and the Hermes provider, with `warn`, `strict`, and `off` integration modes.
+
 ## [3.5.0] — 2026-08-14
 
 Development release line opened after the immutable v3.4.1 baseline rollover.
