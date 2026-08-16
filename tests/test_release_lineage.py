@@ -495,6 +495,8 @@ def test_same_day_patch_release_transition_is_allowed(auditor, tmp_path):
 @pytest.mark.parametrize("release_date, reason", [
     ("2025-12-31", "moved backwards"),
     ("not-a-date", "not ISO YYYY-MM-DD"),
+    ("20260816", "not ISO YYYY-MM-DD"),
+    ("2026-W33-7", "not ISO YYYY-MM-DD"),
 ])
 def test_release_transition_rejects_invalid_date_lineage(
     auditor, tmp_path, release_date, reason,
