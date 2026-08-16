@@ -90,11 +90,21 @@ def test_truncated_text_idempotency_binds_full_original_input(tmp_path):
 
 
 @pytest.mark.parametrize("field", ["user_utterance", "agent_interpretation"])
-def test_visible_correction_text_tampering_is_rejected_on_replay(tmp_path, field):
+def test_same_length_visible_text_tampering_is_rejected_on_replay(tmp_path, field):
     store = store_at(tmp_path)
     capture(store)
     values = records(store)
-    values[0][field] += " tampered"
+    values[0][field] = "X" + values[0][field][1:]
+    rewrite(store, values)
+    assert_corrupt_readable_write_closed(store)
+
+
+@pytest.mark.parametrize("field", ["user_utterance", "agent_interpretation"])
+def test_visible_text_sha_tampering_is_rejected_on_replay(tmp_path, field):
+    store = store_at(tmp_path)
+    capture(store)
+    values = records(store)
+    values[0][field + "_input_sha256"] = "0" * 64
     rewrite(store, values)
     assert_corrupt_readable_write_closed(store)
 

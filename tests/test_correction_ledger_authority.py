@@ -100,6 +100,25 @@ def test_approved_unrelated_digest_cannot_authorize_different_injected_content()
     assert compile_fake(improvement=improvements(content_digest=unrelated))["selected_ids"] == []
 
 
+@pytest.mark.parametrize("ledger_field", ["candidate_digest", "content_digest"])
+def test_each_ledger_digest_must_independently_match_canonical_content(ledger_field):
+    improvement = improvements()
+    unrelated = hashlib.sha256((ledger_field + " mismatch").encode()).hexdigest()
+    if ledger_field == "candidate_digest":
+        improvement["proposals"]["prop.alpha"][ledger_field] = unrelated
+    else:
+        improvement["artifacts"]["corr.alpha"]["revisions"]["r1"][ledger_field] = unrelated
+    assert compile_fake(improvement=improvement)["selected_ids"] == []
+
+
+def test_revision_digest_is_sha256_of_exact_rendered_canonical_line():
+    result = compile_fake()
+    rendered_line = result["rendered_text"].splitlines()[1]
+    independent = hashlib.sha256(rendered_line.encode("utf-8")).hexdigest()
+    policy = corrections()["policies"]["corr.alpha"]
+    assert correction_revision_digest("corr.alpha", policy, "r1") == independent
+
+
 def _govern(store, revision_id, proposal_id, digest, base_revision_id=None):
     store.improvement_propose(
         proposal_id, "corr.alpha", "Correction revision", "Validated correction",
