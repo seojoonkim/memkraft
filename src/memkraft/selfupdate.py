@@ -34,8 +34,20 @@ class ArtifactError(RuntimeError):
 def latest_version(timeout: int = PYPI_TIMEOUT_SECONDS) -> Optional[str]:
     try:
         with urllib.request.urlopen(PYPI_URL, timeout=timeout) as response:
-            value = json.load(response).get("info", {}).get("version")
-            return str(value) if value else None
+            payload = json.load(response)
+        candidates = []
+        value = payload.get("info", {}).get("version")
+        if value:
+            candidates.append(str(value))
+        releases = payload.get("releases", {})
+        if isinstance(releases, dict):
+            candidates.extend(
+                str(version)
+                for version, files in releases.items()
+                if files and _PUBLIC_VERSION.fullmatch(str(version))
+            )
+        public = [version for version in candidates if _PUBLIC_VERSION.fullmatch(version)]
+        return max(public, key=_parse_version) if public else None
     except Exception:
         return None
 
@@ -97,10 +109,14 @@ def release_artifact(version: str, timeout: int = PYPI_TIMEOUT_SECONDS) -> Dict[
 @contextmanager
 def download_verified_wheel(artifact: Dict[str, str], timeout: int = PYPI_TIMEOUT_SECONDS) -> Iterator[str]:
     """Download to a private temporary file, verify SHA256, and always remove it."""
-    fd, path = tempfile.mkstemp(prefix="memkraft-update-", suffix=".whl")
+    filename = str(artifact.get("filename") or "")
+    if Path(filename).name != filename or not filename.endswith(".whl"):
+        raise ArtifactError("wheel has no safe canonical filename")
+    directory = tempfile.mkdtemp(prefix="memkraft-update-")
+    path = str(Path(directory) / filename)
     try:
         digest = hashlib.sha256()
-        with os.fdopen(fd, "wb") as output:
+        with open(path, "xb") as output:
             with urllib.request.urlopen(artifact["url"], timeout=timeout) as response:
                 while True:
                     chunk = response.read(1024 * 1024)
@@ -114,10 +130,7 @@ def download_verified_wheel(artifact: Dict[str, str], timeout: int = PYPI_TIMEOU
             raise ArtifactError("downloaded wheel SHA256 mismatch")
         yield path
     finally:
-        try:
-            Path(path).unlink()
-        except FileNotFoundError:
-            pass
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def _verify_fresh(expected: str) -> subprocess.CompletedProcess:
