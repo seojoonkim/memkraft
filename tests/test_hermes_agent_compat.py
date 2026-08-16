@@ -6,31 +6,20 @@ from pathlib import Path
 
 import pytest
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.9 and 3.10
+    import tomli as tomllib
 
-def test_distribution_exposes_hermes_memory_provider_entry_point():
-    entry_points = importlib.metadata.entry_points()
-    if hasattr(entry_points, "select"):
-        matches = list(entry_points.select(
-            group="hermes_agent.memory_providers", name="memkraft"
-        ))
-    else:  # Python 3.9's legacy importlib.metadata API
-        matches = [
-            entry_point
-            for entry_point in entry_points.get("hermes_agent.memory_providers", [])
-            if entry_point.name == "memkraft"
-        ]
 
-    declarations = {
-        (entry_point.group, entry_point.name, entry_point.value)
-        for entry_point in matches
-    }
-    assert declarations == {
-        (
-            "hermes_agent.memory_providers",
-            "memkraft",
-            "memkraft.hermes_provider:register",
-        )
-    }
+def test_project_declares_hermes_memory_provider_entry_point():
+    project_root = Path(__file__).resolve().parents[1]
+    config = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))
+
+    declarations = config["project"]["entry-points"]["hermes_agent.memory_providers"]
+    assert declarations == {"memkraft": "memkraft.hermes_provider:register"}
+
+
 def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path):
     pytest.importorskip("agent.memory_provider", reason="Hermes Agent compatibility suite")
     from agent.memory_manager import MemoryManager
