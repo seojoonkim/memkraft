@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
 import json
 import re
@@ -162,6 +163,13 @@ def _valid_version_transition(repo: Path, commit: str,
         return "packaging RELEASE_VERSION does not match"
     if _constant(old_tests, "RELEASE_VERSION") == _constant(new_tests, "RELEASE_VERSION"):
         return "packaging RELEASE_VERSION did not change"
+    try:
+        old_date = dt.date.fromisoformat(_constant(old_tests, "RELEASE_DATE"))
+        new_date = dt.date.fromisoformat(_constant(new_tests, "RELEASE_DATE"))
+    except ValueError:
+        return "packaging RELEASE_DATE is not ISO YYYY-MM-DD"
+    if new_date < old_date:
+        return "packaging RELEASE_DATE moved backwards"
     if not _tree_has(repo, commit, note_path):
         return "new release note is missing"
     if not re.search(r"(?m)^## MemKraft %s\s*$" % re.escape(new_version),
