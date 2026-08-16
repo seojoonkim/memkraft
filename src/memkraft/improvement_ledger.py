@@ -307,34 +307,102 @@ def _differing_keys(stored: Dict[str, Any],
 
 
 _FOLD_REQUIRED_FIELDS = {
-    "improvement_proposal": frozenset({"proposal_id", "artifact_id"}),
-    "evaluation_receipt": frozenset({"proposal_id", "evaluation_kind"}),
-    "improvement_proposal_status": frozenset({"proposal_id", "to_status"}),
-    "artifact_revision": frozenset({"artifact_id", "revision_id"}),
-    "artifact_activation": frozenset({"artifact_id", "to_revision_id"}),
+    "improvement_proposal": frozenset({
+        "proposal_id", "artifact_id", "candidate_digest", "base_revision_id",
+        "required_evaluations",
+    }),
+    "evaluation_receipt": frozenset({
+        "proposal_id", "evaluation_kind", "verdict",
+        "evaluated_candidate_digest", "evaluated_base_revision_id",
+    }),
+    "improvement_proposal_status": frozenset({
+        "proposal_id", "from_status", "to_status", "promoted_revision_id",
+    }),
+    "artifact_revision": frozenset({
+        "artifact_id", "revision_id", "content_digest", "parent_revision_id",
+        "proposal_id",
+    }),
+    "artifact_activation": frozenset({
+        "artifact_id", "to_revision_id", "expected_active_revision_id",
+        "from_revision_id", "activation_kind", "proposal_id",
+    }),
 }
 _MAX_EVENT_SEQ = (1 << 63) - 1
 
 
 def _structurally_valid(stored: Dict[str, Any]) -> bool:
-    """Reject parseable records that cannot participate in a safe fold."""
+    """Validate every fold-affecting field using the append-side grammars."""
     record_type = stored.get("record_type")
     event_seq = stored.get("event_seq")
     required = (_FOLD_REQUIRED_FIELDS.get(record_type)
                 if isinstance(record_type, str) else None)
-    return (required is not None
-            and isinstance(event_seq, int)
-            and not isinstance(event_seq, bool)
-            and 0 < event_seq <= _MAX_EVENT_SEQ
-            and all(field in stored and stored[field] is not None
-                    for field in required))
+    if (required is None
+            or not isinstance(event_seq, int) or isinstance(event_seq, bool)
+            or not 0 < event_seq <= _MAX_EVENT_SEQ
+            or any(field not in stored for field in required)):
+        return False
+    try:
+        if record_type == "improvement_proposal":
+            _pattern("proposal_id", stored["proposal_id"], _ID)
+            _pattern("artifact_id", stored["artifact_id"], _ID)
+            _pattern("candidate_digest", stored["candidate_digest"], _SHA256)
+            _optional(lambda f, v: _pattern(f, v, _REVISION_ID),
+                      "base_revision_id", stored["base_revision_id"])
+            _required_evaluations(stored["required_evaluations"])
+        elif record_type == "evaluation_receipt":
+            _pattern("proposal_id", stored["proposal_id"], _ID)
+            _bounded("evaluation_kind", stored["evaluation_kind"],
+                     _MAX_EVALUATION_KIND)
+            _enum("verdict", stored["verdict"], _VERDICT)
+            _pattern("evaluated_candidate_digest",
+                     stored["evaluated_candidate_digest"], _SHA256)
+            _optional(lambda f, v: _pattern(f, v, _REVISION_ID),
+                      "evaluated_base_revision_id",
+                      stored["evaluated_base_revision_id"])
+        elif record_type == "improvement_proposal_status":
+            _pattern("proposal_id", stored["proposal_id"], _ID)
+            _enum("from_status", stored["from_status"], _STATUSES)
+            to_status = _enum("to_status", stored["to_status"], _STATUSES)
+            promoted = _optional(
+                lambda f, v: _pattern(f, v, _REVISION_ID),
+                "promoted_revision_id", stored["promoted_revision_id"])
+            if (to_status == _PROMOTED) != (promoted is not None):
+                return False
+        elif record_type == "artifact_revision":
+            _pattern("artifact_id", stored["artifact_id"], _ID)
+            _pattern("revision_id", stored["revision_id"], _REVISION_ID)
+            _pattern("content_digest", stored["content_digest"], _SHA256)
+            _optional(lambda f, v: _pattern(f, v, _REVISION_ID),
+                      "parent_revision_id", stored["parent_revision_id"])
+            _optional(lambda f, v: _pattern(f, v, _ID),
+                      "proposal_id", stored["proposal_id"])
+        else:
+            _pattern("artifact_id", stored["artifact_id"], _ID)
+            _pattern("to_revision_id", stored["to_revision_id"], _REVISION_ID)
+            expected = _optional(
+                lambda f, v: _pattern(f, v, _REVISION_ID),
+                "expected_active_revision_id",
+                stored["expected_active_revision_id"])
+            previous = _optional(
+                lambda f, v: _pattern(f, v, _REVISION_ID),
+                "from_revision_id", stored["from_revision_id"])
+            _enum("activation_kind", stored["activation_kind"], _ACTIVATION_KIND)
+            _optional(lambda f, v: _pattern(f, v, _ID),
+                      "proposal_id", stored["proposal_id"])
+            if previous != expected:
+                return False
+    except ImprovementError:
+        return False
+    return True
 
 
 def _partition(read_result) -> Any:
-    """Split a read into usable records and corruption, including seq clashes.
+    """Return writer-valid history and a deterministic corruption count.
 
-    Every record sharing a duplicate sequence is excluded: selecting one by
-    physical line order would make projection non-deterministic.
+    Structural and duplicate-sequence checks happen first.  The remaining
+    records are then validated incrementally in event order against the state
+    produced by earlier usable events.  A rejected event never mutates that
+    state, so forged dependencies fail closed as replay advances.
     """
     candidates = []
     corrupt = read_result.skipped
@@ -350,10 +418,29 @@ def _partition(read_result) -> Any:
     for stored in candidates:
         event_seq = stored["event_seq"]
         counts[event_seq] = counts.get(event_seq, 0) + 1
-    usable = [
-        stored for stored in candidates if counts[stored["event_seq"]] == 1
-    ]
-    corrupt += len(candidates) - len(usable)
+    unique = [stored for stored in candidates
+              if counts[stored["event_seq"]] == 1]
+    corrupt += len(candidates) - len(unique)
+
+    proposals: Dict[str, Any] = {}
+    artifacts: Dict[str, Any] = {}
+    operation_ids = set()
+    previously_active: Dict[str, Any] = {}
+    usable = []
+    for stored in sorted(unique, key=_fold_key):
+        if not _replay_semantically_valid(
+                stored, proposals, artifacts, operation_ids,
+                previously_active):
+            corrupt += 1
+            continue
+        usable.append(stored)
+        operation_id = stored.get("operation_id")
+        if operation_id is not None:
+            operation_ids.add(operation_id)
+        _apply_fold_event(stored, proposals, artifacts)
+        if stored["record_type"] == "artifact_activation":
+            previously_active.setdefault(stored["artifact_id"], set()).add(
+                stored["to_revision_id"])
     return usable, corrupt
 
 
@@ -363,6 +450,62 @@ def _fold_key(stored: Dict[str, Any]):
 
 
 # -- projection (pure) -------------------------------------------------------
+
+def _apply_fold_event(stored: Dict[str, Any], proposals: Dict[str, Any],
+                      artifacts: Dict[str, Any]) -> None:
+    """Apply one event already proven valid to an incremental projection."""
+    record_type = stored["record_type"]
+    if record_type == "improvement_proposal":
+        proposals[stored["proposal_id"]] = {
+            "status": _DRAFT, "promoted_revision_id": None,
+            "artifact_id": stored["artifact_id"],
+            "base_revision_id": stored["base_revision_id"],
+            "candidate_digest": stored["candidate_digest"],
+            "required_evaluations": list(stored["required_evaluations"]),
+            "evaluations": {}, "status_history": [],
+        }
+    elif record_type == "evaluation_receipt":
+        proposals[stored["proposal_id"]]["evaluations"][
+            stored["evaluation_kind"]] = {
+                "verdict": stored["verdict"],
+                "evaluated_candidate_digest": stored[
+                    "evaluated_candidate_digest"],
+                "evaluated_base_revision_id": stored[
+                    "evaluated_base_revision_id"],
+                "event_seq": stored["event_seq"],
+            }
+    elif record_type == "improvement_proposal_status":
+        proposal = proposals[stored["proposal_id"]]
+        proposal["status"] = stored["to_status"]
+        if stored["to_status"] == _PROMOTED:
+            proposal["promoted_revision_id"] = stored["promoted_revision_id"]
+        proposal["status_history"].append({
+            "from_status": stored["from_status"],
+            "to_status": stored["to_status"],
+            "event_seq": stored["event_seq"],
+        })
+    elif record_type == "artifact_revision":
+        artifact = artifacts.setdefault(stored["artifact_id"], {
+            "active_revision_id": None, "revisions": {}, "activations": [],
+        })
+        artifact["revisions"][stored["revision_id"]] = {
+            "content_digest": stored["content_digest"],
+            "parent_revision_id": stored["parent_revision_id"],
+            "proposal_id": stored["proposal_id"],
+            "event_seq": stored["event_seq"],
+        }
+    else:
+        artifact = artifacts[stored["artifact_id"]]
+        artifact["active_revision_id"] = stored["to_revision_id"]
+        artifact["activations"].append({
+            "from_revision_id": stored["from_revision_id"],
+            "to_revision_id": stored["to_revision_id"],
+            "activation_kind": stored["activation_kind"],
+            "proposal_id": stored["proposal_id"],
+            "external_receipt_ref": stored.get("external_receipt_ref"),
+            "event_seq": stored["event_seq"],
+        })
+
 
 def _fold(records: List[Dict[str, Any]]) -> Any:
     """Fold ``records`` into ``(proposals, artifacts)`` in ``(event_seq, id)`` order.
@@ -376,75 +519,7 @@ def _fold(records: List[Dict[str, Any]]) -> Any:
     artifacts: Dict[str, Any] = {}
 
     for stored in sorted(records, key=_fold_key):
-        record_type = stored.get("record_type")
-        if record_type == "improvement_proposal":
-            proposals[stored["proposal_id"]] = {
-                "status": _DRAFT,
-                "promoted_revision_id": None,
-                "artifact_id": stored.get("artifact_id"),
-                "base_revision_id": stored.get("base_revision_id"),
-                "candidate_digest": stored.get("candidate_digest"),
-                "required_evaluations": list(
-                    stored.get("required_evaluations") or []
-                ),
-                "evaluations": {},
-                "status_history": [],
-            }
-        elif record_type == "evaluation_receipt":
-            proposal = proposals.get(stored.get("proposal_id"))
-            if proposal is None:
-                continue
-            # Fold order is total, so the last write for a kind is the latest
-            # receipt by ``(event_seq, id)``: an older pass never overrides a
-            # newer failure.
-            proposal["evaluations"][stored["evaluation_kind"]] = {
-                "verdict": stored.get("verdict"),
-                "evaluated_candidate_digest": stored.get(
-                    "evaluated_candidate_digest"
-                ),
-                "evaluated_base_revision_id": stored.get(
-                    "evaluated_base_revision_id"
-                ),
-                "event_seq": stored.get("event_seq"),
-            }
-        elif record_type == "improvement_proposal_status":
-            proposal = proposals.get(stored.get("proposal_id"))
-            if proposal is None:
-                continue
-            proposal["status"] = stored.get("to_status")
-            if stored.get("to_status") == _PROMOTED:
-                proposal["promoted_revision_id"] = stored.get("promoted_revision_id")
-            proposal["status_history"].append({
-                "from_status": stored.get("from_status"),
-                "to_status": stored.get("to_status"),
-                "event_seq": stored.get("event_seq"),
-            })
-        elif record_type == "artifact_revision":
-            artifact = artifacts.setdefault(stored["artifact_id"], {
-                "active_revision_id": None, "revisions": {}, "activations": [],
-            })
-            artifact["revisions"][stored["revision_id"]] = {
-                "content_digest": stored.get("content_digest"),
-                "parent_revision_id": stored.get("parent_revision_id"),
-                "proposal_id": stored.get("proposal_id"),
-                "event_seq": stored.get("event_seq"),
-            }
-        elif record_type == "artifact_activation":
-            artifact = artifacts.setdefault(stored["artifact_id"], {
-                "active_revision_id": None, "revisions": {}, "activations": [],
-            })
-            # §5.6: the pointer is a fold over an append-only history, so it
-            # holds exactly one value at every prefix, and the history that
-            # produced it stays readable in full.
-            artifact["active_revision_id"] = stored.get("to_revision_id")
-            artifact["activations"].append({
-                "from_revision_id": stored.get("from_revision_id"),
-                "to_revision_id": stored.get("to_revision_id"),
-                "activation_kind": stored.get("activation_kind"),
-                "proposal_id": stored.get("proposal_id"),
-                "external_receipt_ref": stored.get("external_receipt_ref"),
-                "event_seq": stored.get("event_seq"),
-            })
+        _apply_fold_event(stored, proposals, artifacts)
 
     return proposals, artifacts
 
@@ -709,6 +784,68 @@ def _promotion_report(proposals: Dict[str, Any], artifacts: Dict[str, Any],
     return {"blockers": blockers, "current_status": proposal["status"],
             "active_revision_id": active_revision_id,
             "required_evaluations": rows}
+
+
+def _replay_semantically_valid(stored: Dict[str, Any],
+                               proposals: Dict[str, Any],
+                               artifacts: Dict[str, Any], operation_ids,
+                               previously_active: Dict[str, Any]) -> bool:
+    """Apply append-side semantic guards to one persisted event in O(1) amortized.
+
+    Promotion alone inspects the bounded (at most eight) required evaluations.
+    Rollback history uses an auxiliary set rather than scanning activations, so
+    the full replay remains linear after its deterministic sort.
+    """
+    operation_id = stored.get("operation_id")
+    if operation_id is not None and operation_id in operation_ids:
+        return False
+
+    record_type = stored["record_type"]
+    if record_type == "improvement_proposal":
+        return stored["proposal_id"] not in proposals
+
+    if record_type == "evaluation_receipt":
+        proposal = proposals.get(stored["proposal_id"])
+        return (proposal is not None
+                and stored["evaluated_candidate_digest"]
+                == proposal["candidate_digest"]
+                and stored["evaluated_base_revision_id"]
+                == proposal["base_revision_id"])
+
+    if record_type == "improvement_proposal_status":
+        if stored["to_status"] == _PROMOTED:
+            return not _promotion_report(
+                proposals, artifacts, stored["proposal_id"],
+                stored["promoted_revision_id"], stored["from_status"],
+            )["blockers"]
+        return not _transition_blockers(
+            proposals, stored["proposal_id"], stored["from_status"],
+            stored["to_status"],
+        )
+
+    if record_type == "artifact_revision":
+        artifact = artifacts.get(stored["artifact_id"]) or {}
+        if stored["revision_id"] in (artifact.get("revisions") or {}):
+            return False
+        parent = stored["parent_revision_id"]
+        if parent is not None and parent not in (artifact.get("revisions") or {}):
+            return False
+        proposal_id = stored["proposal_id"]
+        return proposal_id is None or proposal_id in proposals
+
+    artifact = artifacts.get(stored["artifact_id"]) or {}
+    if stored["to_revision_id"] not in (artifact.get("revisions") or {}):
+        return False
+    active = artifact.get("active_revision_id")
+    if (stored["expected_active_revision_id"] != active
+            or stored["from_revision_id"] != active):
+        return False
+    if (stored["activation_kind"] == "rollback"
+            and stored["to_revision_id"] not in previously_active.get(
+                stored["artifact_id"], set())):
+        return False
+    proposal_id = stored["proposal_id"]
+    return proposal_id is None or proposal_id in proposals
 
 
 class ImprovementLedgerMixin:

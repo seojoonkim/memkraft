@@ -29,6 +29,17 @@ def _append(mk, record):
         handle.write(json.dumps(record, sort_keys=True) + "\n")
 
 
+def _mutate_record(mk, record_type, **changes):
+    records = [json.loads(line) for line in _path(mk).read_text(
+        encoding="utf-8").splitlines()]
+    record = next(item for item in records if item["record_type"] == record_type)
+    record.update(changes)
+    _path(mk).write_text(
+        "".join(json.dumps(item, sort_keys=True) + "\n" for item in records),
+        encoding="utf-8",
+    )
+
+
 def _propose(mk):
     return mk.improvement_propose(
         "prop.review-one", "artifact.review-one", "Review proposal",
@@ -127,3 +138,49 @@ def test_two_character_revision_can_be_a_proposal_base(tmp_path):
         base_revision_id="r1", required_evaluations=["suite-green"],
     )
     assert result["record"]["base_revision_id"] == "r1"
+
+
+def test_replay_skips_forged_draft_to_promoted_status(tmp_path):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    mk.improvement_set_status(
+        "prop.review-one", "draft", "under_evaluation", now=NOW,
+    )
+    mk.artifact_register_revision(
+        "artifact.review-one", "r1", DIGEST_A, now=NOW,
+        proposal_id="prop.review-one",
+    )
+    _mutate_record(
+        mk, "improvement_proposal_status", to_status="promoted",
+        promoted_revision_id="r1",
+    )
+
+    view = mk.improvement_project(now=NOW)
+    assert view["skipped_lines"] == 1
+    assert view["proposals"]["prop.review-one"]["status"] == "draft"
+    assert view["proposals"]["prop.review-one"]["promoted_revision_id"] is None
+
+
+def test_replay_skips_forged_activation_cas_without_moving_pointer(tmp_path):
+    mk = _mk(tmp_path)
+    mk.artifact_register_revision("artifact.review-one", "r1", DIGEST_A, now=NOW)
+    mk.artifact_register_revision("artifact.review-one", "r2", DIGEST_B, now=NOW)
+    mk.artifact_activate_revision("artifact.review-one", "r1", now=NOW)
+    mk.artifact_activate_revision(
+        "artifact.review-one", "r2", now=NOW,
+        expected_active_revision_id="r1",
+    )
+    records = [json.loads(line) for line in _path(mk).read_text(
+        encoding="utf-8").splitlines()]
+    activation = [item for item in records
+                  if item["record_type"] == "artifact_activation"][-1]
+    activation["expected_active_revision_id"] = None
+    activation["from_revision_id"] = None
+    _path(mk).write_text(
+        "".join(json.dumps(item, sort_keys=True) + "\n" for item in records),
+        encoding="utf-8",
+    )
+
+    view = mk.improvement_project(now=NOW)
+    assert view["skipped_lines"] == 1
+    assert view["artifacts"]["artifact.review-one"]["active_revision_id"] == "r1"

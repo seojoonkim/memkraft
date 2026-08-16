@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import pytest
 
@@ -164,3 +165,40 @@ def test_private_pointer_governance_uses_only_opaque_ids_and_digest(tmp_path):
     assert secret not in ledger
     assert "correction://corr.alpha/r1" in ledger
     assert digest in ledger
+
+
+def test_compile_fails_closed_on_forged_persisted_promotion(tmp_path):
+    store = MemKraft(base_dir=str(tmp_path)); store.init(verbose=False)
+    store.correction_capture("corr.alpha", "Use UTC", "Use UTC", now=NOW)
+    digest = hashlib.sha256(b"corr.alpha/r1").hexdigest()
+    store.improvement_propose(
+        "prop.alpha-r1", "corr.alpha", "Correction revision",
+        "Validated correction", digest, now=NOW,
+        required_evaluations=["offline_replay"],
+    )
+    store.improvement_set_status(
+        "prop.alpha-r1", "draft", "under_evaluation", now=NOW,
+    )
+    store.artifact_register_revision(
+        "corr.alpha", "r1", digest, now=NOW, proposal_id="prop.alpha-r1",
+    )
+    store.artifact_activate_revision(
+        "corr.alpha", "r1", now=NOW, proposal_id="prop.alpha-r1",
+    )
+    path = store._improvement_events_path()
+    records = [json.loads(line) for line in path.read_text(
+        encoding="utf-8").splitlines()]
+    status = next(item for item in records
+                  if item["record_type"] == "improvement_proposal_status")
+    status.update(to_status="promoted", promoted_revision_id="r1")
+    path.write_text(
+        "".join(json.dumps(item, sort_keys=True) + "\n" for item in records),
+        encoding="utf-8",
+    )
+
+    view = store.improvement_project(now=NOW)
+    assert view["skipped_lines"] > 0
+    assert view["proposals"]["prop.alpha-r1"]["status"] == "draft"
+    with pytest.raises(CorrectionError) as error:
+        store.compile_corrections(1000)
+    assert error.value.code == "E_CORRECTION_IMPROVEMENT_LOG_CORRUPT"
