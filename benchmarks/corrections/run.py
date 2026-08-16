@@ -23,7 +23,7 @@ from memkraft.correction_policy import compile_corrections  # noqa: E402
 
 
 CASES_PATH = Path(__file__).with_name("cases_v1.json")
-CASES_SHA256 = "95f933be0dd0c19a572999f44fa99c4e4e90e5ef238b1174148f23562fbbb9a0"
+CASES_SHA256 = "6ba4095b414b44bf90663a11f2eb22ace2e48fd3b86d8a88ed1b26fd385ac498"
 WARM_P95_BOUND_MS = 50.0
 TWO_HOST_NOT_READY = {
     "status": "not_ready",
@@ -46,8 +46,26 @@ def _load_cases() -> Dict[str, Any]:
     return fixture
 
 
-def _execute_recurrence_case(case: Dict[str, Any]) -> Dict[str, Any]:
-    """Exercise the persisted lifecycle and return its projected outcome evidence."""
+def _synthetic_improvement(policies: Dict[str, Any]) -> Dict[str, Any]:
+    """Build the matching pure ledger projection declared by frozen policy cases."""
+    proposals, artifacts = {}, {}
+    for correction_id, policy in policies.items():
+        active = policy.get("active_revision_id")
+        proposal_id = "prop." + correction_id[5:]
+        proposals[proposal_id] = {
+            "artifact_id": correction_id, "status": policy.get("status"),
+            "promoted_revision_id": active,
+        }
+        artifacts[correction_id] = {
+            "active_revision_id": active,
+            "revisions": {revision_id: {"proposal_id": proposal_id}
+                          for revision_id in policy.get("revisions", {})},
+        }
+    return {"proposals": proposals, "artifacts": artifacts, "skipped_lines": 0}
+
+
+def _execute_outcome_case(case: Dict[str, Any]) -> Dict[str, Any]:
+    """Persist declared outcomes and return the correction projection tallies."""
     correction_id, source = next(iter(case["policies"].items()))
     revision_id = source["active_revision_id"]
     revision = source["revisions"][revision_id]
@@ -70,19 +88,34 @@ def _execute_recurrence_case(case: Dict[str, Any]) -> Dict[str, Any]:
             required_evaluations=["replay"],
             **envelope,
         )
-        store.correction_set_status(
-            correction_id, "captured", "under_evaluation", now=now, **envelope)
-        store.correction_record_evaluation(
-            correction_id, revision_id, "replay", "pass", now=now,
-            evaluated_scope=source["scope"],
-            **envelope,
+        identity = json.dumps({
+            "artifact_id": correction_id, "revision_id": revision_id,
+            "content_metadata": "frozen-benchmark-correction",
+        }, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        candidate_digest = hashlib.sha256(identity).hexdigest()
+        proposal_id = "prop." + correction_id[5:] + "-" + revision_id
+        store.improvement_propose(
+            proposal_id, correction_id, "Correction revision",
+            "Frozen benchmark outcome plumbing", candidate_digest, now=now,
+            candidate_locator="correction://%s/%s" % (correction_id, revision_id),
+            required_evaluations=["replay"],
         )
-        store.correction_set_status(
-            correction_id, "under_evaluation", "promoted", now=now,
-            promoted_revision_id=revision_id,
-            **envelope,
+        store.improvement_set_status(
+            proposal_id, "draft", "under_evaluation", now=now)
+        store.artifact_register_revision(
+            correction_id, revision_id, candidate_digest, now=now,
+            proposal_id=proposal_id,
+            locator="correction://%s/%s" % (correction_id, revision_id),
         )
-        store.correction_activate(correction_id, revision_id, now=now, **envelope)
+        store.improvement_record_evaluation(
+            proposal_id, "replay", "pass", candidate_digest, now=now,
+            evidence_refs=["benchmark://evaluation/replay"],
+        )
+        store.improvement_set_status(
+            proposal_id, "under_evaluation", "promoted", now=now,
+            promoted_revision_id=revision_id)
+        store.artifact_activate_revision(
+            correction_id, revision_id, now=now, proposal_id=proposal_id)
         actual = store.compile_corrections(
             case["budget"],
             task_ref=context.get("task_ref"),
@@ -103,10 +136,10 @@ def _execute_recurrence_case(case: Dict[str, Any]) -> Dict[str, Any]:
 
 def _execute_case(case: Dict[str, Any]) -> Dict[str, Any]:
     context = case["context"]
-    recurrence = case["capability"] == "recurrence_prevention"
-    persisted = _execute_recurrence_case(case) if recurrence else None
+    outcome_case = case["capability"] == "recorded_outcome_plumbing"
+    persisted = _execute_outcome_case(case) if outcome_case else None
     actual = persisted["actual"] if persisted else compile_corrections(
-            case["policies"], case["budget"],
+            case["policies"], _synthetic_improvement(case["policies"]), case["budget"],
             task_ref=context.get("task_ref"),
             task_class=context.get("task_class"),
             explicit_topics=context.get("explicit_topics", []))
@@ -163,10 +196,10 @@ def validate_report(report: Dict[str, Any]) -> List[str]:
         errors.append("budget overflow detected")
     if metrics.get("unresolved_conflicts_injected") != 0:
         errors.append("unresolved conflict was incorrectly injected")
-    if metrics.get("recurrence_prevention_rate") != 1.0:
-        errors.append("recurrence prevention rate must equal 1.0")
+    if metrics.get("recorded_compliance_rate") != 1.0:
+        errors.append("recorded compliance rate must equal 1.0")
     if metrics.get("outcomes_observable") is not True:
-        errors.append("recurrence outcomes are not observable")
+        errors.append("persisted correction outcomes are not observable")
     if report.get("two_host_evidence") != TWO_HOST_NOT_READY:
         errors.append("two-host evidence is fabricated or not honestly marked not_ready")
 
@@ -201,9 +234,9 @@ def run_benchmark(warm_iterations: int = 100) -> Dict[str, Any]:
         _execute_suite(cases)
         warm_samples.append((time.perf_counter_ns() - started) / 1_000_000)
 
-    recurrence_results = [r for r in results if r["capability"] == "recurrence_prevention"]
+    outcome_results = [r for r in results if r["capability"] == "recorded_outcome_plumbing"]
     outcome_tallies = [
-        result["observed"].get("outcome_tallies", {}) for result in recurrence_results
+        result["observed"].get("outcome_tallies", {}) for result in outcome_results
     ]
     complied = sum(tallies.get("complied", 0) for tallies in outcome_tallies)
     observed_outcomes = sum(sum(tallies.values()) for tallies in outcome_tallies)
@@ -217,7 +250,7 @@ def run_benchmark(warm_iterations: int = 100) -> Dict[str, Any]:
         "unresolved_conflicts_injected": sum(
             result["unresolved_conflicts_injected"] for result in results
         ),
-        "recurrence_prevention_rate": (
+        "recorded_compliance_rate": (
             complied / observed_outcomes if observed_outcomes else 0.0
         ),
         "outcomes_observable": observed_outcomes > 0,

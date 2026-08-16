@@ -92,8 +92,8 @@
       }
     },
     {
-      "id": "recurrence-prevention-observed",
-      "capability": "recurrence_prevention",
+      "id": "recorded-outcome-plumbing",
+      "capability": "recorded_outcome_plumbing",
       "budget": 256,
       "context": {"task_ref": null, "task_class": "deploy", "explicit_topics": []},
       "policies": {

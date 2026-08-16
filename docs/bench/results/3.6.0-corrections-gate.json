@@ -140,7 +140,7 @@
     {
       "budget": 256,
       "budget_overflow": false,
-      "capability": "recurrence_prevention",
+      "capability": "recorded_outcome_plumbing",
       "estimated_tokens": 65,
       "expected": {
         "conflicts": [],
@@ -154,7 +154,7 @@
           "corr.no-force"
         ]
       },
-      "id": "recurrence-prevention-observed",
+      "id": "recorded-outcome-plumbing",
       "observed": {
         "conflicts": [],
         "omitted": [],
@@ -171,24 +171,24 @@
       "unresolved_conflicts_injected": 0
     }
   ],
-  "cases_sha256": "95f933be0dd0c19a572999f44fa99c4e4e90e5ef238b1174148f23562fbbb9a0",
+  "cases_sha256": "6ba4095b414b44bf90663a11f2eb22ace2e48fd3b86d8a88ed1b26fd385ac498",
   "gate": {
     "errors": [],
     "passed": true,
     "warm_p95_bound_ms": 50.0
   },
   "latency_ms": {
-    "cold": 4.073042,
+    "cold": 4.57625,
     "warm_iterations": 100,
-    "warm_p50": 3.013208,
-    "warm_p95": 3.613625
+    "warm_p50": 3.107875,
+    "warm_p95": 3.754542
   },
   "metrics": {
     "budget_overflows": 0,
     "fidelity": 1.0,
     "interference": 0,
     "outcomes_observable": true,
-    "recurrence_prevention_rate": 1.0,
+    "recorded_compliance_rate": 1.0,
     "unresolved_conflicts_injected": 0
   },
   "schema_version": 1,

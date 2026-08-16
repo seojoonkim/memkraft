@@ -26,9 +26,7 @@ def test_pure_projection_is_order_independent_and_does_not_write(tmp_path):
          "required_evaluations": ["replay"], "scope": "project", "privacy": "local_private",
          "task_ref": None, "task_class": None, "topic_key": None, "truncated": False,
          "event_seq": 1, "id": "a"},
-        {"record_type": "correction_status", "correction_id": "corr.alpha",
-         "from_status": "captured", "to_status": "under_evaluation",
-         "promoted_revision_id": None, "event_seq": 2, "id": "b"},
+
     ]
     assert project_corrections(records, NOW) == project_corrections(list(reversed(records)), NOW)
     store = setup_policy(tmp_path)
@@ -89,8 +87,8 @@ def test_widening_requires_new_revision_and_fresh_target_scope_pass(tmp_path):
     assert result["outcome"] == "applied"
     policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
     assert policy["scope"] == "project"
-    assert policy["status"] == "captured"
-    assert policy["active_revision_id"] is None
+    assert "status" not in policy
+    assert "active_revision_id" not in policy
 
 
 def test_narrowing_requires_evidence_and_never_deactivates(tmp_path):
@@ -103,4 +101,4 @@ def test_narrowing_requires_evidence_and_never_deactivates(tmp_path):
                                   task_ref="task://run/1", evidence_refs=["review://human/1"])
     policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
     assert policy["scope"] == "task"
-    assert policy["active_revision_id"] is None
+    assert "active_revision_id" not in policy

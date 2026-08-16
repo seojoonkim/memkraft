@@ -161,21 +161,6 @@ def test_shared_evaluation_evidence_carries_own_safety_and_authorization(tmp_pat
     assert result["record"]["evaluated_scope"] == "shared"
 
 
-def test_promotion_requires_current_revision_and_latest_evaluation_pass(tmp_path):
-    store = store_at(tmp_path)
-    capture(store); evaluate(store); revise(store)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=T2)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_set_status("corr.alpha", "under_evaluation", "promoted", now=T3,
-                                    promoted_revision_id="r1")
-    assert error.value.code == "E_CORRECTION_EVALUATION_STALE"
-    evaluate(store, revision="r2", verdict="pass", now=T2, operation_id="pass")
-    evaluate(store, revision="r2", verdict="fail", now=T3, operation_id="fail")
-    with pytest.raises(ExecutionError) as error:
-        store.correction_set_status("corr.alpha", "under_evaluation", "promoted", now=T4,
-                                    promoted_revision_id="r2")
-    assert error.value.code == "E_CORRECTION_EVALUATION_FAILED"
-
 
 def test_widening_requires_current_revision_and_evidence_after_revision_and_transition(tmp_path):
     store = store_at(tmp_path)
@@ -201,28 +186,6 @@ def test_widening_requires_current_revision_and_evidence_after_revision_and_tran
                                       evidence_refs=["eval://old-revision"])
     assert error.value.code == "E_CORRECTION_WIDENING_EVIDENCE"
 
-
-def test_self_rollback_and_never_prior_target_are_rejected(tmp_path):
-    store = store_at(tmp_path)
-    capture(store)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=T1)
-    evaluate(store)
-    store.correction_set_status("corr.alpha", "under_evaluation", "promoted", now=T2,
-                                promoted_revision_id="r1")
-    store.correction_activate("corr.alpha", "r1", now=T3)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_rollback("corr.alpha", "r1", now=T4,
-                                  expected_active_revision_id="r1")
-    assert error.value.code == "E_CORRECTION_ROLLBACK_TARGET"
-
-
-def test_activation_kind_is_closed_enum(tmp_path):
-    store = store_at(tmp_path)
-    capture(store)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_activate("corr.alpha", "r1", now=T1,
-                                  activation_kind="surprise")
-    assert error.value.code == "E_CORRECTION_PATTERN"
 
 
 @pytest.mark.parametrize("field,value", [
@@ -265,17 +228,6 @@ def test_authority_verified_true_for_any_claim_is_rejected(tmp_path):
         assert error.value.code == "E_CORRECTION_SCOPE_UNAUTHORIZED"
 
 
-def test_persisted_activation_kind_unknown_is_corrupt(tmp_path):
-    store = store_at(tmp_path)
-    capture(store)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=T1)
-    evaluate(store)
-    store.correction_set_status("corr.alpha", "under_evaluation", "promoted", now=T2,
-                                promoted_revision_id="r1")
-    store.correction_activate("corr.alpha", "r1", now=T3)
-    values = records(store); values[-1]["activation_kind"] = "surprise"; rewrite(store, values)
-    assert_corrupt_readable_write_closed(store)
-
 
 def test_duplicate_record_id_is_corrupt(tmp_path):
     store = store_at(tmp_path)
@@ -283,30 +235,6 @@ def test_duplicate_record_id_is_corrupt(tmp_path):
     values = records(store); values[1]["id"] = values[0]["id"]; rewrite(store, values)
     assert_corrupt_readable_write_closed(store)
 
-
-def test_forged_status_from_state_is_corrupt(tmp_path):
-    store = store_at(tmp_path)
-    capture(store)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=T1)
-    values = records(store)
-    values[-1]["from_status"] = "rejected"
-    rewrite(store, values)
-    assert_corrupt_readable_write_closed(store)
-
-
-def test_forged_activation_cas_chain_is_corrupt(tmp_path):
-    store = store_at(tmp_path)
-    capture(store)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=T1)
-    evaluate(store)
-    store.correction_set_status("corr.alpha", "under_evaluation", "promoted", now=T2,
-                                promoted_revision_id="r1")
-    store.correction_activate("corr.alpha", "r1", now=T3)
-    values = records(store)
-    values[-1]["expected_active_revision_id"] = "r1"
-    values[-1]["from_revision_id"] = "r1"
-    rewrite(store, values)
-    assert_corrupt_readable_write_closed(store)
 
 
 def test_forged_scope_from_state_is_corrupt(tmp_path):
