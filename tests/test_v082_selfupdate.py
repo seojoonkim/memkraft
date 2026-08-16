@@ -1,10 +1,12 @@
 """Tests for memkraft.selfupdate (0.8.2)."""
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from contextlib import contextmanager
 from io import BytesIO
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -119,6 +121,24 @@ def test_latest_version_success():
         assert su.latest_version() == "0.8.2"
 
 
+def test_latest_version_prefers_highest_published_release_over_stale_info():
+    payload = {
+        "info": {"version": "3.5.0"},
+        "releases": {"3.5.0": [{}], "3.5.1": [{}]},
+    }
+    with mock.patch.object(su.urllib.request, "urlopen", return_value=_mock_urlopen(payload)):
+        assert su.latest_version() == "3.5.1"
+
+
+def test_latest_version_ignores_empty_or_non_public_release_entries():
+    payload = {
+        "info": {"version": "3.5.0"},
+        "releases": {"3.5.1": [], "3.6.0rc1": [{}], "invalid": [{}]},
+    }
+    with mock.patch.object(su.urllib.request, "urlopen", return_value=_mock_urlopen(payload)):
+        assert su.latest_version() == "3.5.0"
+
+
 def test_latest_version_offline_returns_none():
     import urllib.error
     with mock.patch.object(
@@ -185,6 +205,41 @@ def test_selfupdate_runs_pip_when_newer(capsys):
     assert run_mock.call_count == 2
     cmd = run_mock.call_args_list[0].args[0]
     assert cmd == [sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", "/tmp/verified.whl"]
+
+
+def test_download_verified_wheel_preserves_official_wheel_filename():
+    payload = b"verified wheel bytes"
+    artifact = {
+        "filename": "memkraft-3.5.1-py3-none-any.whl",
+        "url": "https://files.pythonhosted.org/x/memkraft-3.5.1-py3-none-any.whl",
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
+    response = mock.MagicMock()
+    response.__enter__.return_value = BytesIO(payload)
+    response.__exit__.return_value = False
+
+    with mock.patch.object(su.urllib.request, "urlopen", return_value=response):
+        with su.download_verified_wheel(artifact) as wheel:
+            wheel_path = Path(wheel)
+            directory = wheel_path.parent
+            assert wheel_path.name == artifact["filename"]
+            assert wheel_path.read_bytes() == payload
+
+    assert not directory.exists()
+
+
+@pytest.mark.parametrize("filename", [
+    "", "../memkraft.whl", "nested/memkraft.whl", "memkraft.zip",
+])
+def test_download_verified_wheel_rejects_unsafe_or_non_wheel_filename(filename):
+    artifact = {
+        "filename": filename,
+        "url": "https://files.pythonhosted.org/x/memkraft.whl",
+        "sha256": "a" * 64,
+    }
+    with pytest.raises(su.ArtifactError, match="safe canonical filename"):
+        with su.download_verified_wheel(artifact):
+            pass
 
 
 def test_selfupdate_pip_failure_propagates_returncode():
