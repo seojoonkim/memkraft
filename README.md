@@ -1,4 +1,4 @@
-**v3.5.2**
+**v3.6.0**
 
 <div align="center">
 
@@ -484,7 +484,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.5.2**.
+Current version: **3.6.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -498,7 +498,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.5.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.2) (current)
+### [v3.6.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.0) (current)
+
+MemKraft 3.6.0 adds opt-in Correction Learning with governed scoped policies, bounded deterministic injection, outcome tracking, and a frozen accuracy and latency gate. Read the [release notes](docs/releases/3.6.0.md).
+
+### [v3.5.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.2)
 
 MemKraft 3.5.2 makes `selfupdate --converge` select the highest published stable release and preserves the official wheel filename required by pip. Read the [release notes](docs/releases/3.5.2.md).
 
