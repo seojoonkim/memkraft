@@ -52,9 +52,10 @@ def test_record_outcome_has_exact_schema_and_revision_tallies_only(tmp_path):
     assert policy["revisions"]["r2"]["outcome_tallies"] == {
         "complied": 1, "violated": 0, "not_applicable": 0,
     }
-    for field in ("status", "scope", "promoted_revision_id", "active_revision_id",
-                  "evaluations"):
+    for field in ("scope", "evaluations"):
         assert policy[field] == before[field]
+    for field in ("status", "promoted_revision_id", "active_revision_id"):
+        assert field not in policy
 
 
 def test_outcome_enum_unknown_target_and_idempotency(tmp_path):
@@ -132,15 +133,12 @@ def test_concurrent_outcomes_are_serialized_without_lost_tallies(tmp_path):
     assert policy["revisions"]["r1"]["outcome_tallies"]["complied"] == 8
 
 
-def test_outcome_does_not_satisfy_evaluation_gate(tmp_path):
+def test_outcome_does_not_create_lifecycle_state(tmp_path):
     store = mk(tmp_path)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=LATER)
     store.correction_record_outcome("corr.alpha", "r1", "complied", now=LATER)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_set_status(
-            "corr.alpha", "under_evaluation", "promoted", now=LATER,
-            promoted_revision_id="r1")
-    assert error.value.code == "E_CORRECTION_EVALUATION_MISSING"
+    policy = store.correction_project(now=LATER)["policies"]["corr.alpha"]
+    assert policy["revisions"]["r1"]["outcome_tallies"]["complied"] == 1
+    assert "status" not in policy
 
 
 def test_evaluation_corpus_bridge_accepts_correction_trace_ref(tmp_path):

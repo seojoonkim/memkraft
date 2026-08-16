@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "benchmarks" / "corrections" / "cases_v1.json"
 RUNNER = ROOT / "benchmarks" / "corrections" / "run.py"
-CASES_SHA256 = "95f933be0dd0c19a572999f44fa99c4e4e90e5ef238b1174148f23562fbbb9a0"
+CASES_SHA256 = "6ba4095b414b44bf90663a11f2eb22ace2e48fd3b86d8a88ed1b26fd385ac498"
 
 
 def _load_runner():
@@ -32,7 +32,7 @@ def test_frozen_cases_digest_and_contract():
     assert len(fixture["cases"]) >= 5
     capabilities = {item["capability"] for item in fixture["cases"]}
     assert {"fidelity", "interference", "conflict_handling", "budget_omission",
-            "recurrence_prevention"} <= capabilities
+            "recorded_outcome_plumbing"} <= capabilities
 
 
 def test_benchmark_is_green_and_repeatable():
@@ -46,18 +46,18 @@ def test_benchmark_is_green_and_repeatable():
     assert first["metrics"]["interference"] == 0
     assert first["metrics"]["budget_overflows"] == 0
     assert first["metrics"]["unresolved_conflicts_injected"] == 0
-    assert first["metrics"]["recurrence_prevention_rate"] == 1.0
+    assert first["metrics"]["recorded_compliance_rate"] == 1.0
     assert first["metrics"]["outcomes_observable"] is True
-    recurrence = next(
+    outcome_case = next(
         result for result in first["case_results"]
-        if result["capability"] == "recurrence_prevention"
+        if result["capability"] == "recorded_outcome_plumbing"
     )
-    assert recurrence["observed"]["outcome_tallies"] == {
+    assert outcome_case["observed"]["outcome_tallies"] == {
         "complied": 2, "violated": 0, "not_applicable": 0,
     }
 
 
-def test_recurrence_gate_depends_on_persisted_memkraft_outcomes(monkeypatch):
+def test_recorded_outcome_gate_depends_on_persisted_memkraft_outcomes(monkeypatch):
     runner = _load_runner()
 
     def drop_outcome(self, *args, **kwargs):
@@ -67,8 +67,8 @@ def test_recurrence_gate_depends_on_persisted_memkraft_outcomes(monkeypatch):
     report = runner.run_benchmark(warm_iterations=5)
 
     assert report["gate"]["passed"] is False
-    assert report["metrics"]["recurrence_prevention_rate"] == 0.0
-    assert any("recurrence" in error for error in report["gate"]["errors"])
+    assert report["metrics"]["recorded_compliance_rate"] == 0.0
+    assert any("recorded compliance" in error for error in report["gate"]["errors"])
 
 
 def test_benchmark_reports_honest_host_and_latency_evidence():

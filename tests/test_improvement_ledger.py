@@ -874,7 +874,9 @@ def test_slice2_promotion_with_every_required_evaluation_passing_succeeds(tmp_pa
     assert record["promoted_revision_id"] == PROMOTED_REVISION
 
     view = mk.improvement_project(now=NOW)
-    assert view["proposals"][PROPOSAL["proposal_id"]]["status"] == "promoted"
+    proposal = view["proposals"][PROPOSAL["proposal_id"]]
+    assert proposal["status"] == "promoted"
+    assert proposal["promoted_revision_id"] == PROMOTED_REVISION
 
 
 def test_slice2_a_required_evaluation_never_recorded_blocks_promotion(tmp_path):

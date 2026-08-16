@@ -19,6 +19,8 @@ Remember sourced facts. Retrieve bounded context. Act with any model or agent. R
 
 > **3.5.0 Verified Preview:** The Python-only [Adaptive ETA and Delay Ledger](docs/ADAPTIVE_ETA_DELAY_LEDGER.md) records private append-only run timing, deterministic estimates, anomalies, and inert retrospective evidence. Its contract and fail-closed replay behavior are covered by the 3.5.0 validation suite. It does not execute or schedule work.
 
+> **3.6.0 Correction Learning:** Corrections own append-only capture, revision, scope, scope-widening evaluation, and the exact `complied` / `violated` / `not_applicable` outcomes. The Improvement Ledger alone governs promotion, activation, and rollback. Injection uses a deterministic token estimate; the frozen benchmark verifies persisted outcome plumbing and marks two-host evidence `not_ready`, without claiming behavioral recurrence prevention.
+
 MemKraft keeps its human-facing knowledge in files you can read, diff, edit, and version. Its core install uses the Python standard library, makes no model calls, and needs no API key. Your agent supplies the intelligence; MemKraft supplies persistent knowledge, provenance, lifecycle controls, and a feedback ledger.
 
 Hermes Agent users can enable MemKraft as the active memory provider. The exact verified versions and profile-safe setup steps are in [`docs/HERMES_AGENT.md`](docs/HERMES_AGENT.md).

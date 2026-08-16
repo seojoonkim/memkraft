@@ -2,9 +2,9 @@
 
 ## [3.6.0] — 2026-08-16
 
-- Added opt-in Correction Learning with role-separated user evidence, append-only scoped policy lifecycle, authority and freshness gates, and rollback-safe projections.
+- Added opt-in Correction Learning with role-separated user evidence and append-only capture, revision, scope, evaluation, and outcome records; the Improvement Ledger is the sole promotion, activation, and rollback authority.
 - Added deterministic bounded correction injection with explicit task, project, task-class, and global precedence while preserving private-profile isolation.
-- Connected correction outcomes to the existing Evaluation Corpus and added a frozen release gate for fidelity, interference, recurrence prevention, token budget, determinism, and latency.
+- Connected the exact `complied`, `violated`, and `not_applicable` correction outcomes to the existing Evaluation Corpus and added a frozen gate for fidelity, interference, persisted outcome plumbing, token-estimate budget, determinism, and latency.
 
 ## [3.5.2] — 2026-08-16
 

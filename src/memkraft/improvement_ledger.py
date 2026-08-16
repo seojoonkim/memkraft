@@ -380,6 +380,7 @@ def _fold(records: List[Dict[str, Any]]) -> Any:
         if record_type == "improvement_proposal":
             proposals[stored["proposal_id"]] = {
                 "status": _DRAFT,
+                "promoted_revision_id": None,
                 "artifact_id": stored.get("artifact_id"),
                 "base_revision_id": stored.get("base_revision_id"),
                 "candidate_digest": stored.get("candidate_digest"),
@@ -411,6 +412,8 @@ def _fold(records: List[Dict[str, Any]]) -> Any:
             if proposal is None:
                 continue
             proposal["status"] = stored.get("to_status")
+            if stored.get("to_status") == _PROMOTED:
+                proposal["promoted_revision_id"] = stored.get("promoted_revision_id")
             proposal["status_history"].append({
                 "from_status": stored.get("from_status"),
                 "to_status": stored.get("to_status"),

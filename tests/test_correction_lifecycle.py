@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 import pytest
 
 from memkraft import MemKraft
@@ -8,95 +11,110 @@ NOW = "2026-08-16T10:00:00Z"
 
 def setup_policy(tmp_path):
     store = MemKraft(base_dir=str(tmp_path)); store.init(verbose=False)
-    store.correction_capture("corr.alpha", "Use UTC", "Use UTC", now=NOW,
-                             required_evaluations=["replay"])
+    store.correction_capture("corr.alpha", "Use UTC", "Use UTC", now=NOW)
     return store
 
 
-def evaluate(store, revision="r1", verdict="pass", scope="project", op=None):
-    return store.correction_record_evaluation(
-        "corr.alpha", revision, "replay", verdict, now=NOW,
-        evaluated_scope=scope, operation_id=op)
+def digest_for(revision_id, label):
+    metadata = {"artifact_id": "corr.alpha", "revision_id": revision_id, "label": label}
+    return hashlib.sha256(json.dumps(metadata, sort_keys=True).encode("utf-8")).hexdigest()
 
 
-def promote(store, revision="r1"):
-    return store.correction_set_status(
-        "corr.alpha", "under_evaluation", "promoted", now=NOW,
-        promoted_revision_id=revision)
+def propose(store, revision_id, proposal_id, label, base=None, verdict="pass",
+            evaluated_digest=None):
+    candidate = digest_for(revision_id, label)
+    store.improvement_propose(
+        proposal_id, "corr.alpha", "Correction revision", "Host-reviewed correction",
+        candidate, now=NOW, base_revision_id=base,
+        candidate_locator="correction://corr.alpha/%s" % revision_id,
+        required_evaluations=["offline_replay"],
+    )
+    store.improvement_set_status(proposal_id, "draft", "under_evaluation", now=NOW)
+    store.artifact_register_revision(
+        "corr.alpha", revision_id, candidate, now=NOW, parent_revision_id=base,
+        proposal_id=proposal_id, locator="correction://corr.alpha/%s" % revision_id,
+    )
+    if verdict is not None:
+        store.improvement_record_evaluation(
+            proposal_id, "offline_replay", verdict, evaluated_digest or candidate, now=NOW,
+            evaluated_base_revision_id=base, evidence_refs=["eval://offline"],
+        )
+    return candidate
 
 
-def test_evaluation_does_not_auto_promote(tmp_path):
+def promote(store, proposal_id, revision_id):
+    return store.improvement_set_status(
+        proposal_id, "under_evaluation", "promoted", now=NOW,
+        promoted_revision_id=revision_id,
+    )
+
+
+def test_evaluation_does_not_auto_promote_or_activate(tmp_path):
     store = setup_policy(tmp_path)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=NOW)
-    evaluate(store)
-    assert store.correction_project(now=NOW)["policies"]["corr.alpha"]["status"] == "under_evaluation"
-    assert promote(store)["outcome"] == "applied"
+    propose(store, "r1", "prop.alpha-r1", "utc")
+    proposal = store.improvement_project(now=NOW)["proposals"]["prop.alpha-r1"]
+    assert proposal["status"] == "under_evaluation"
+    assert store.compile_corrections(1000)["selected_ids"] == []
+    promote(store, "prop.alpha-r1", "r1")
+    assert store.compile_corrections(1000)["selected_ids"] == []
 
 
-def test_promotion_requires_every_latest_pass_on_promoted_revision(tmp_path):
+def test_promotion_uses_ledger_evidence_gate(tmp_path):
     store = setup_policy(tmp_path)
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=NOW)
+    propose(store, "r1", "prop.alpha-r1", "utc", verdict=None)
     with pytest.raises(ExecutionError) as error:
-        promote(store)
-    assert error.value.code == "E_CORRECTION_EVALUATION_MISSING"
-    evaluate(store, verdict="pass", op="pass-old")
-    evaluate(store, verdict="fail", op="fail-new")
+        promote(store, "prop.alpha-r1", "r1")
+    assert error.value.code == "E_IMPROVEMENT_EVALUATION_MISSING"
+    candidate = digest_for("r1", "utc")
+    store.improvement_record_evaluation(
+        "prop.alpha-r1", "offline_replay", "fail", candidate, now=NOW,
+        evidence_refs=["eval://failed"],
+    )
     with pytest.raises(ExecutionError) as error:
-        promote(store)
-    assert error.value.code == "E_CORRECTION_EVALUATION_FAILED"
+        promote(store, "prop.alpha-r1", "r1")
+    assert error.value.code == "E_IMPROVEMENT_EVALUATION_FAILED"
 
 
-def test_old_revision_evidence_is_stale_for_new_revision(tmp_path):
+def test_wrong_revision_cannot_be_promoted(tmp_path):
     store = setup_policy(tmp_path)
-    evaluate(store)
-    store.correction_revise("corr.alpha", "r2", "Use ISO UTC", "ISO UTC", now=NOW,
+    propose(store, "r1", "prop.alpha-r1", "utc")
+    other = digest_for("r2", "other")
+    store.artifact_register_revision("corr.alpha", "r2", other, now=NOW,
+                                     proposal_id="prop.alpha-r1")
+    with pytest.raises(ExecutionError) as error:
+        promote(store, "prop.alpha-r1", "r2")
+    assert error.value.code == "E_IMPROVEMENT_VALIDATION"
+
+
+def test_activation_is_cas_and_compile_follows_ledger_pointer(tmp_path):
+    store = setup_policy(tmp_path)
+    propose(store, "r1", "prop.alpha-r1", "utc"); promote(store, "prop.alpha-r1", "r1")
+    store.artifact_activate_revision("corr.alpha", "r1", now=NOW,
+                                     proposal_id="prop.alpha-r1")
+    assert store.compile_corrections(1000)["selected_ids"] == ["corr.alpha"]
+    with pytest.raises(ExecutionError) as error:
+        store.artifact_activate_revision("corr.alpha", "r1", now=NOW,
+                                         expected_active_revision_id=None,
+                                         proposal_id="prop.alpha-r1",
+                                         operation_id="stale-activation")
+    assert error.value.code == "E_IMPROVEMENT_ACTIVATION_CONFLICT"
+
+
+def test_rollback_to_prior_ledger_target_changes_compiled_revision(tmp_path):
+    store = setup_policy(tmp_path)
+    propose(store, "r1", "prop.alpha-r1", "utc"); promote(store, "prop.alpha-r1", "r1")
+    store.artifact_activate_revision("corr.alpha", "r1", now=NOW,
+                                     proposal_id="prop.alpha-r1")
+    store.correction_revise("corr.alpha", "r2", "Use ISO UTC", "Use ISO UTC", now=NOW,
                             base_revision_id="r1", reason="clarify")
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=NOW)
-    with pytest.raises(ExecutionError) as error:
-        promote(store, "r2")
-    assert error.value.code == "E_CORRECTION_EVALUATION_STALE"
-
-
-def test_transition_matrix_rejects_every_undeclared_pair(tmp_path):
-    allowed = {("captured", "under_evaluation"), ("under_evaluation", "promoted"),
-               ("under_evaluation", "rejected"), ("promoted", "retired"),
-               ("rejected", "under_evaluation")}
-    statuses = ["captured", "under_evaluation", "promoted", "rejected", "retired"]
-    for source in statuses:
-        for target in statuses:
-            if (source, target) in allowed:
-                continue
-            store = setup_policy(tmp_path / (source + "-" + target))
-            # Direct pure guard via projected current state is covered by making only
-            # captured reachable here; all other supplied sources must mismatch too.
-            with pytest.raises(ExecutionError) as error:
-                store.correction_set_status("corr.alpha", source, target, now=NOW)
-            assert error.value.code == "E_CORRECTION_TRANSITION"
-
-
-def test_activation_is_promoted_only_and_compare_and_swap(tmp_path):
-    store = setup_policy(tmp_path)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_activate("corr.alpha", "r1", now=NOW)
-    assert error.value.code == "E_CORRECTION_TRANSITION"
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=NOW)
-    evaluate(store); promote(store)
-    store.correction_activate("corr.alpha", "r1", now=NOW,
-                              expected_active_revision_id=None, operation_id="activate-first")
-    with pytest.raises(ExecutionError) as error:
-        store.correction_activate("corr.alpha", "r1", now=NOW,
-                                  expected_active_revision_id=None, operation_id="activate-stale")
-    assert error.value.code == "E_CORRECTION_ACTIVATION_CONFLICT"
-
-
-def test_rollback_requires_previously_active_target(tmp_path):
-    store = setup_policy(tmp_path)
-    store.correction_revise("corr.alpha", "r2", "Use ISO UTC", "ISO UTC", now=NOW,
-                            base_revision_id="r1", reason="clarify")
-    store.correction_set_status("corr.alpha", "captured", "under_evaluation", now=NOW)
-    evaluate(store, "r2"); promote(store, "r2")
-    store.correction_activate("corr.alpha", "r2", now=NOW)
-    with pytest.raises(ExecutionError) as error:
-        store.correction_rollback("corr.alpha", "r1", now=NOW,
-                                  expected_active_revision_id="r2")
-    assert error.value.code == "E_CORRECTION_ROLLBACK_TARGET"
+    propose(store, "r2", "prop.alpha-r2", "iso-utc", base="r1")
+    promote(store, "prop.alpha-r2", "r2")
+    store.artifact_activate_revision("corr.alpha", "r2", now=NOW,
+                                     expected_active_revision_id="r1",
+                                     proposal_id="prop.alpha-r2")
+    assert "Use ISO UTC" in store.compile_corrections(1000)["rendered_text"]
+    store.artifact_rollback_revision("corr.alpha", "r1", now=NOW,
+                                     expected_active_revision_id="r2",
+                                     proposal_id="prop.alpha-r1")
+    rendered = store.compile_corrections(1000)["rendered_text"]
+    assert "Use UTC" in rendered and "Use ISO UTC" not in rendered

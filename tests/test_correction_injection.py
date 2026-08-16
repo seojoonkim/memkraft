@@ -4,11 +4,29 @@ from memkraft.correction_policy import CorrectionPolicyMixin
 
 
 class PolicyStore(CorrectionPolicyMixin):
-    def __init__(self, policies):
-        self.policies = policies
+    def __init__(self, entries):
+        self.policies = {}
+        proposals, artifacts = {}, {}
+        for correction_id, value, status, active in entries:
+            self.policies[correction_id] = value
+            proposal_id = "prop." + correction_id[5:]
+            proposals[proposal_id] = {
+                "artifact_id": correction_id, "status": status,
+                "promoted_revision_id": "r1" if status == "promoted" else None,
+            }
+            artifacts[correction_id] = {
+                "active_revision_id": active,
+                "revisions": {"r1": {"proposal_id": proposal_id}},
+            }
+        self.improvement = {
+            "skipped_lines": 0, "proposals": proposals, "artifacts": artifacts,
+        }
 
     def correction_project(self, *, now, correction_id=None, scope=None):
-        return {"policies": self.policies}
+        return {"skipped": 0, "policies": self.policies}
+
+    def improvement_project(self, *, now):
+        return self.improvement
 
 
 def policy(correction_id, scope, topic, text, *, task_ref=None,
@@ -17,24 +35,22 @@ def policy(correction_id, scope, topic, text, *, task_ref=None,
     if active is None and status == "promoted":
         active = "r1"
     return correction_id, {
-        "status": status,
         "scope": scope,
         "privacy": privacy,
         "task_ref": task_ref,
         "task_class": task_class,
         "topic_key": topic,
-        "active_revision_id": active,
         "revisions": {
             "r1": {
                 "user_utterance": user,
                 "agent_interpretation": text,
             }
         },
-    }
+    }, status, active
 
 
 def store(*entries):
-    return PolicyStore(dict(entries))
+    return PolicyStore(entries)
 
 
 def test_selects_only_active_promoted_applicable_policies_in_precedence_order():
