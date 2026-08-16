@@ -333,3 +333,57 @@ def test_forged_widening_without_fresh_target_evidence_is_corrupt(tmp_path):
     values[-1]["event_seq"] = 3
     rewrite(store, values)
     assert_corrupt_readable_write_closed(store)
+
+
+def test_one_character_private_pointer_capture_projects_and_remains_writable(tmp_path):
+    store = store_at(tmp_path)
+    result = capture(store, user_utterance="x", agent_interpretation="y",
+                     privacy="private_pointer")
+    assert result["record"]["user_utterance_input_length"] == 1
+    assert result["record"]["user_utterance"] == "[private_pointer]"
+    view = store.correction_project(now=T1)
+    assert view["skipped"] == 0
+    assert view["policies"]["corr.alpha"]["privacy"] == "private_pointer"
+    store.correction_revise("corr.alpha", "r2", "z", "q", now=T1,
+                            base_revision_id="r1", reason="short")
+    assert store.correction_project(now=T2)["skipped"] == 0
+
+
+def test_private_pointer_revision_omission_never_persists_raw_text(tmp_path):
+    store = store_at(tmp_path)
+    capture(store, privacy="private_pointer")
+    user_secret = "RAW-USER-SECRET-NEVER-PERSIST"
+    agent_secret = "RAW-AGENT-SECRET-NEVER-PERSIST"
+    store.correction_revise("corr.alpha", "r2", user_secret, agent_secret, now=T1,
+                            base_revision_id="r1", reason="clarify")
+    raw = log_path(store).read_text(encoding="utf-8")
+    assert user_secret not in raw
+    assert agent_secret not in raw
+    revision = records(store)[-1]
+    assert revision["privacy"] == "private_pointer"
+    assert revision["user_utterance"] == "[private_pointer]"
+
+
+def test_scope_adjustment_preserves_privacy_and_rejects_unauthorized_downgrade(tmp_path):
+    store = store_at(tmp_path)
+    capture(store, privacy="private_pointer")
+    result = store.correction_adjust_scope(
+        "corr.alpha", "r1", "project", "task", now=T1,
+        task_ref="task://1", evidence_refs=["review://1"])
+    assert result["record"]["privacy"] == "private_pointer"
+    with pytest.raises(ExecutionError) as error:
+        store.correction_adjust_scope(
+            "corr.alpha", "r1", "task", "project", now=T2,
+            privacy="local_private", evidence_refs=["review://2"])
+    assert error.value.code == "E_CORRECTION_SCOPE_UNAUTHORIZED"
+
+
+def test_compile_fails_closed_when_projection_skipped_corrupt_log(tmp_path):
+    store = store_at(tmp_path)
+    capture(store)
+    with log_path(store).open("ab") as stream:
+        stream.write(b"not-json\n")
+    assert store.correction_project(now=T1)["skipped"] == 1
+    with pytest.raises(ExecutionError) as error:
+        store.compile_corrections(budget=100)
+    assert error.value.code == "E_CORRECTION_LOG_CORRUPT"

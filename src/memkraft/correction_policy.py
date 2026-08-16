@@ -272,9 +272,11 @@ def _structural(record: Dict[str, Any]) -> bool:
             shown = record.get(field)
             length = record.get(field + "_input_length")
             digest = record.get(field + "_input_sha256")
+            pointer = (record.get("privacy") == "private_pointer"
+                       and shown == "[private_pointer]")
             if not (isinstance(shown, str) and shown and len(shown) <= 2000
                     and isinstance(length, int) and not isinstance(length, bool)
-                    and length >= len(shown) and isinstance(digest, str)
+                    and (pointer or length >= len(shown)) and isinstance(digest, str)
                     and bool(re.fullmatch(r"[0-9a-f]{64}", digest))):
                 return False
         if not isinstance(record.get("truncated"), bool) or not _valid_refs(record.get("evidence_refs")):
@@ -421,6 +423,7 @@ def _fold(records: List[Dict[str, Any]]) -> Dict[str, Any]:
                 "status": "captured", "scope": item.get("scope"),
                 "privacy": item.get("privacy"), "task_ref": item.get("task_ref"),
                 "task_class": item.get("task_class"), "topic_key": item.get("topic_key"),
+                "host_authorization_ref": item.get("host_authorization_ref"),
                 "required_evaluations": list(item.get("required_evaluations") or []),
                 "current_revision_id": item.get("revision_id"),
                 "promoted_revision_id": None, "active_revision_id": None,
@@ -632,7 +635,7 @@ class CorrectionPolicyMixin:
         return Path(self.base_dir) / ".memkraft" / "corrections.jsonl"
 
     def _correction_append(self, record: Dict[str, Any], operation_id: Optional[str],
-                           unique=None, guard=None) -> Dict[str, Any]:
+                           unique=None, guard=None, prepare=None) -> Dict[str, Any]:
         record = dict(record)
         path = self._correction_events_path()
         try:
@@ -649,6 +652,8 @@ class CorrectionPolicyMixin:
             if corrupt:
                 _fail("E_CORRECTION_LOG_CORRUPT", "correction log is damaged",
                       skipped=corrupt)
+            if prepare:
+                prepare(existing, record)
             record["operation_id"] = _operation(record, operation_id)
             fingerprint = _fingerprint(record)
             for stored in existing:
@@ -711,19 +716,40 @@ class CorrectionPolicyMixin:
     def correction_revise(self, correction_id, revision_id, user_utterance,
                           agent_interpretation, *, now, base_revision_id, reason,
                           evidence_refs=(), operation_id=None, **envelope):
-        record = _common("correction_revision", now, **envelope)
-        record["correction_id"] = _pattern("correction_id", correction_id, _ID)
-        record["revision_id"] = _pattern("revision_id", revision_id, _REV)
-        record["base_revision_id"] = _pattern("base_revision_id", base_revision_id, _REV)
-        _stored_text(record, "user_utterance", user_utterance)
-        _stored_text(record, "agent_interpretation", agent_interpretation)
-        record["truncated"] = (record["user_utterance_input_length"] > 2000 or
-                               record["agent_interpretation_input_length"] > 2000)
-        if record["privacy"] == "private_pointer":
-            record["user_utterance"] = "[private_pointer]"
-            record["agent_interpretation"] = "[private_pointer]"
-        record["reason"] = _text("reason", reason)
-        record["evidence_refs"] = _refs("evidence_refs", evidence_refs)
+        # Keep raw input outside the persistable record until captured privacy
+        # context is known under the store lock.
+        user_utterance = _text("user_utterance", user_utterance,
+                               max(2000, len(user_utterance))
+                               if isinstance(user_utterance, str) else 2000)
+        agent_interpretation = _text("agent_interpretation", agent_interpretation,
+                                     max(2000, len(agent_interpretation))
+                                     if isinstance(agent_interpretation, str) else 2000)
+        record = {
+            "correction_id": _pattern("correction_id", correction_id, _ID),
+            "revision_id": _pattern("revision_id", revision_id, _REV),
+            "base_revision_id": _pattern("base_revision_id", base_revision_id, _REV),
+            "reason": _text("reason", reason),
+            "evidence_refs": _refs("evidence_refs", evidence_refs),
+        }
+        def prepare(existing, target):
+            policy = _fold(existing).get(correction_id)
+            if policy is None:
+                _fail("E_CORRECTION_NOT_FOUND", "correction was never captured")
+            inherited = {name: policy.get(name) for name in
+                         ("scope", "privacy", "task_ref", "task_class",
+                          "host_authorization_ref")}
+            for name, value in envelope.items():
+                if name in inherited and value != inherited[name]:
+                    _fail("E_CORRECTION_SCOPE_UNAUTHORIZED",
+                          "revision context must match captured policy", name)
+            target.update(_common("correction_revision", now, **inherited))
+            _stored_text(target, "user_utterance", user_utterance)
+            _stored_text(target, "agent_interpretation", agent_interpretation)
+            target["truncated"] = (target["user_utterance_input_length"] > 2000 or
+                                   target["agent_interpretation_input_length"] > 2000)
+            if target["privacy"] == "private_pointer":
+                target["user_utterance"] = "[private_pointer]"
+                target["agent_interpretation"] = "[private_pointer]"
         def guard(existing):
             policy = _fold(existing).get(correction_id)
             if policy is None:
@@ -732,7 +758,7 @@ class CorrectionPolicyMixin:
                 _fail("E_CORRECTION_ALREADY_EXISTS", "revision identity already exists")
             if policy["current_revision_id"] != base_revision_id:
                 _fail("E_CORRECTION_TRANSITION", "base revision is not current")
-        return self._correction_append(record, operation_id, guard=guard)
+        return self._correction_append(record, operation_id, guard=guard, prepare=prepare)
 
     def correction_record_evaluation(self, correction_id, revision_id,
                                      evaluation_kind, verdict, *, now,
@@ -842,15 +868,31 @@ class CorrectionPolicyMixin:
     def correction_adjust_scope(self, correction_id, revision_id, from_scope,
                                 to_scope, *, now, evidence_refs,
                                 operation_id=None, **envelope):
-        # The target context belongs to the adjustment, so validate/build using it.
         envelope = dict(envelope)
-        envelope["scope"] = to_scope
-        record = _common("correction_scope", now, **envelope)
-        record["correction_id"] = _pattern("correction_id", correction_id, _ID)
-        record["revision_id"] = _pattern("revision_id", revision_id, _REV)
-        record["from_scope"] = _enum("from_scope", from_scope, _SCOPE)
-        record["to_scope"] = _enum("to_scope", to_scope, _SCOPE)
-        record["evidence_refs"] = _refs("evidence_refs", evidence_refs)
+        record = {
+            "correction_id": _pattern("correction_id", correction_id, _ID),
+            "revision_id": _pattern("revision_id", revision_id, _REV),
+            "from_scope": _enum("from_scope", from_scope, _SCOPE),
+            "to_scope": _enum("to_scope", to_scope, _SCOPE),
+            "evidence_refs": _refs("evidence_refs", evidence_refs),
+        }
+        def prepare(existing, target):
+            policy = _fold(existing).get(correction_id)
+            if policy is None:
+                _fail("E_CORRECTION_NOT_FOUND", "correction revision was never recorded")
+            privacy = envelope.get("privacy", policy["privacy"])
+            if privacy != policy["privacy"] and (not target["evidence_refs"] or
+                    envelope.get("host_authorization_ref") is None):
+                _fail("E_CORRECTION_SCOPE_UNAUTHORIZED",
+                      "privacy changes require authorization and evidence", "privacy")
+            context = {
+                "scope": to_scope, "privacy": privacy,
+                "task_ref": envelope.get("task_ref", policy.get("task_ref")),
+                "task_class": envelope.get("task_class", policy.get("task_class")),
+                "host_authorization_ref": envelope.get(
+                    "host_authorization_ref", policy.get("host_authorization_ref")),
+            }
+            target.update(_common("correction_scope", now, **context))
         def guard(existing):
             policy = _fold(existing).get(correction_id)
             if policy is None or revision_id not in policy["revisions"]:
@@ -879,7 +921,7 @@ class CorrectionPolicyMixin:
                              policy["scope_history"][-1]["emitted_at"])):
                         _fail("E_CORRECTION_WIDENING_EVIDENCE",
                               "widening requires fresh target-scope pass evaluations")
-        return self._correction_append(record, operation_id, guard=guard)
+        return self._correction_append(record, operation_id, guard=guard, prepare=prepare)
 
     def correction_project(self, *, now, correction_id=None, scope=None):
         existing, corrupt = _read(self._correction_events_path())
@@ -890,6 +932,9 @@ class CorrectionPolicyMixin:
                             explicit_topics=()):
         """Return deterministic, budget-bounded correction evidence."""
         projection = self.correction_project(now="1970-01-01T00:00:00Z")
+        if projection.get("skipped", 0):
+            _fail("E_CORRECTION_LOG_CORRUPT", "correction log is damaged",
+                  skipped=projection["skipped"])
         return compile_corrections(projection["policies"], budget, task_ref=task_ref,
                                    task_class=task_class,
                                    explicit_topics=explicit_topics)
