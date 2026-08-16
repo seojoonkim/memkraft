@@ -1,9 +1,7 @@
-import hashlib
-import json
-
 import pytest
 
 from memkraft import MemKraft
+from memkraft.correction_policy import correction_revision_digest
 from memkraft.execution_protocol import ExecutionError
 
 NOW = "2026-08-16T10:00:00Z"
@@ -15,14 +13,14 @@ def setup_policy(tmp_path):
     return store
 
 
-def digest_for(revision_id, label):
-    metadata = {"artifact_id": "corr.alpha", "revision_id": revision_id, "label": label}
-    return hashlib.sha256(json.dumps(metadata, sort_keys=True).encode("utf-8")).hexdigest()
+def digest_for(store, revision_id):
+    policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
+    return correction_revision_digest("corr.alpha", policy, revision_id)
 
 
 def propose(store, revision_id, proposal_id, label, base=None, verdict="pass",
             evaluated_digest=None):
-    candidate = digest_for(revision_id, label)
+    candidate = digest_for(store, revision_id)
     store.improvement_propose(
         proposal_id, "corr.alpha", "Correction revision", "Host-reviewed correction",
         candidate, now=NOW, base_revision_id=base,
@@ -65,7 +63,7 @@ def test_promotion_uses_ledger_evidence_gate(tmp_path):
     with pytest.raises(ExecutionError) as error:
         promote(store, "prop.alpha-r1", "r1")
     assert error.value.code == "E_IMPROVEMENT_EVALUATION_MISSING"
-    candidate = digest_for("r1", "utc")
+    candidate = digest_for(store, "r1")
     store.improvement_record_evaluation(
         "prop.alpha-r1", "offline_replay", "fail", candidate, now=NOW,
         evidence_refs=["eval://failed"],
@@ -78,7 +76,9 @@ def test_promotion_uses_ledger_evidence_gate(tmp_path):
 def test_wrong_revision_cannot_be_promoted(tmp_path):
     store = setup_policy(tmp_path)
     propose(store, "r1", "prop.alpha-r1", "utc")
-    other = digest_for("r2", "other")
+    store.correction_revise("corr.alpha", "r2", "Other", "Other", now=NOW,
+                            base_revision_id="r1", reason="test")
+    other = digest_for(store, "r2")
     store.artifact_register_revision("corr.alpha", "r2", other, now=NOW,
                                      proposal_id="prop.alpha-r1")
     with pytest.raises(ExecutionError) as error:

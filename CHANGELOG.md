@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [3.6.1] — 2026-08-17
+
+- Bound promoted Improvement Ledger revisions to the exact canonical correction payload injected into context and rejected unrelated approved digests.
+- Revalidated visible correction lengths and SHA-256 metadata during append-only replay while preserving documented truncation semantics.
+- Preserved legacy combined-turn Hermes extraction unless callers explicitly provide role-message evidence.
+
 ## [3.6.0] — 2026-08-16
 
 - Added opt-in Correction Learning with role-separated user evidence and append-only capture, revision, scope, evaluation, and outcome records; the Improvement Ledger is the sole promotion, activation, and rollback authority.

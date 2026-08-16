@@ -10,7 +10,8 @@
         "f4fb481340aac73e108cb9e8a0398abf8f3f5aa4",
         "3f90b9e8f389334065bdfc19949c0bdeb80b012e",
         "2ce982d6f340b8dfef55c741804762cf8e70dc6e",
-        "3b20b9ebbf0ec21a18651935b8d2ee04a40d0ca6"
+        "3b20b9ebbf0ec21a18651935b8d2ee04a40d0ca6",
+        "b89ed7e9b0c6dc3cc404b5d7d2fadf9289e0db27"
       ],
       "evaluation_refs": [
         {
@@ -59,7 +60,8 @@
     },
     {
       "commits": [
-        "b96cd94f8058738abdc042eb472f350b4152842a"
+        "b96cd94f8058738abdc042eb472f350b4152842a",
+        "b89ed7e9b0c6dc3cc404b5d7d2fadf9289e0db27"
       ],
       "evaluation_refs": [
         {
@@ -85,7 +87,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/3.6.0",
+    "active_branch": "release/3.6.1",
     "base_sha": "b32d95fe2225fdb0a64c79ce2004b992ebf170b0",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -124,6 +126,7 @@
       "docs/releases/3.5.1.md",
       "docs/releases/3.5.2.md",
       "docs/releases/3.6.0.md",
+      "docs/releases/3.6.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -190,7 +193,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.6.0"
+    "version": "3.6.1"
   },
   "schema": 2
 }

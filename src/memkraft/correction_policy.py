@@ -18,7 +18,7 @@ from .execution_protocol import ExecutionError, canonical_timestamp
 from .store_core import StoreBusy, _unlock, append
 
 __all__ = ["CorrectionPolicyMixin", "CorrectionError", "project_corrections",
-           "compile_corrections"]
+           "compile_corrections", "correction_revision_digest"]
 
 CORRECTION_SCHEMA = 1
 CORRECTION_LOCK_TIMEOUT_S = 2.0
@@ -257,6 +257,7 @@ def _structural(record: Dict[str, Any]) -> bool:
     if not common:
         return False
     if kind in ("correction_capture", "correction_revision"):
+        any_truncated = False
         for field in ("user_utterance", "agent_interpretation"):
             shown = record.get(field)
             length = record.get(field + "_input_length")
@@ -268,7 +269,20 @@ def _structural(record: Dict[str, Any]) -> bool:
                     and (pointer or length >= len(shown)) and isinstance(digest, str)
                     and bool(re.fullmatch(r"[0-9a-f]{64}", digest))):
                 return False
-        if not isinstance(record.get("truncated"), bool) or not _valid_refs(record.get("evidence_refs")):
+            if not pointer:
+                if length <= 2000:
+                    if (length != len(shown) or
+                            digest != hashlib.sha256(shown.encode("utf-8")).hexdigest()):
+                        return False
+                elif len(shown) != 2000:
+                    # The digest binds the unavailable full input; replay can
+                    # still enforce the persisted prefix/length semantics.
+                    return False
+                any_truncated = any_truncated or length > 2000
+        if (not isinstance(record.get("truncated"), bool)
+                or (record.get("privacy") != "private_pointer"
+                    and record["truncated"] != any_truncated)
+                or not _valid_refs(record.get("evidence_refs"))):
             return False
     if kind == "correction_capture":
         return (record.get("revision_id") == "r1"
@@ -458,10 +472,12 @@ def _applicable(policy: Dict[str, Any], task_ref: Optional[str],
     return scope in ("project", "shared")
 
 
-def _correction_line(correction_id: str, policy: Dict[str, Any]) -> str:
-    revision = policy["revisions"][policy["selected_revision_id"]]
+def _correction_revision_payload(correction_id: str, policy: Dict[str, Any],
+                                 revision_id: str) -> Dict[str, Any]:
+    """Canonical content authorized by the ledger and injected by the compiler."""
+    revision = policy["revisions"][revision_id]
     private = policy.get("privacy") == "private_pointer"
-    quoted = {
+    return {
         "agent_interpretation": ("[private_pointer]" if private else
                                  revision.get("agent_interpretation")),
         "correction_id": correction_id,
@@ -470,8 +486,21 @@ def _correction_line(correction_id: str, policy: Dict[str, Any]) -> str:
         "user_utterance": ("[private_pointer]" if private else
                            revision.get("user_utterance")),
     }
-    return json.dumps(quoted, ensure_ascii=False, sort_keys=True,
-                      separators=(",", ":"), allow_nan=False)
+
+
+def correction_revision_digest(correction_id: str, policy: Dict[str, Any],
+                               revision_id: str) -> str:
+    """SHA-256 of the exact deterministic correction line injected into context."""
+    raw = json.dumps(_correction_revision_payload(correction_id, policy, revision_id),
+                     ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                     allow_nan=False).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _correction_line(correction_id: str, policy: Dict[str, Any]) -> str:
+    return json.dumps(_correction_revision_payload(
+        correction_id, policy, policy["selected_revision_id"]),
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
 def compile_corrections(policies: Dict[str, Dict[str, Any]],
@@ -512,8 +541,8 @@ def compile_corrections(policies: Dict[str, Dict[str, Any]],
         ledger_revisions = artifact.get("revisions") or {}
         if not isinstance(ledger_revisions, dict):
             continue
-        revision = ledger_revisions.get(active) if active else None
-        if revision is not None and not isinstance(revision, dict):
+        revision = ledger_revisions.get(active) if isinstance(active, str) else None
+        if not isinstance(revision, dict):
             continue
         proposal_id = revision.get("proposal_id") if revision else None
         proposal = proposals.get(proposal_id) if proposal_id else None
@@ -522,10 +551,15 @@ def compile_corrections(policies: Dict[str, Dict[str, Any]],
         correction_revisions = original.get("revisions", {})
         if not isinstance(correction_revisions, dict):
             continue
+        expected_digest = (correction_revision_digest(correction_id, original, active)
+                           if isinstance(active, str) and active in correction_revisions
+                           else None)
         if (not active or active not in correction_revisions or
                 proposal is None or proposal.get("artifact_id") != correction_id or
                 proposal.get("status") != "promoted" or
                 proposal.get("promoted_revision_id") != active or
+                proposal.get("candidate_digest") != expected_digest or
+                revision.get("content_digest") != expected_digest or
                 not _applicable(original, task_ref, task_class)):
             continue
         policy = dict(original)

@@ -1,6 +1,6 @@
 import json
 
-from memkraft.correction_policy import CorrectionPolicyMixin
+from memkraft.correction_policy import CorrectionPolicyMixin, correction_revision_digest
 
 
 class PolicyStore(CorrectionPolicyMixin):
@@ -10,13 +10,17 @@ class PolicyStore(CorrectionPolicyMixin):
         for correction_id, value, status, active in entries:
             self.policies[correction_id] = value
             proposal_id = "prop." + correction_id[5:]
+            digest = correction_revision_digest(correction_id, value, "r1")
             proposals[proposal_id] = {
                 "artifact_id": correction_id, "status": status,
                 "promoted_revision_id": "r1" if status == "promoted" else None,
+                "candidate_digest": digest,
             }
             artifacts[correction_id] = {
                 "active_revision_id": active,
-                "revisions": {"r1": {"proposal_id": proposal_id}},
+                "revisions": {"r1": {
+                    "proposal_id": proposal_id, "content_digest": digest,
+                }},
             }
         self.improvement = {
             "skipped_lines": 0, "proposals": proposals, "artifacts": artifacts,

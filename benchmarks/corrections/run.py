@@ -19,7 +19,9 @@ if str(SOURCE) not in sys.path:
     sys.path.insert(0, str(SOURCE))
 
 from memkraft import MemKraft  # noqa: E402
-from memkraft.correction_policy import compile_corrections  # noqa: E402
+from memkraft.correction_policy import (  # noqa: E402
+    compile_corrections, correction_revision_digest,
+)
 
 
 CASES_PATH = Path(__file__).with_name("cases_v1.json")
@@ -52,14 +54,24 @@ def _synthetic_improvement(policies: Dict[str, Any]) -> Dict[str, Any]:
     for correction_id, policy in policies.items():
         active = policy.get("active_revision_id")
         proposal_id = "prop." + correction_id[5:]
+        revision_digests = {
+            revision_id: correction_revision_digest(correction_id, policy, revision_id)
+            for revision_id in policy.get("revisions", {})
+        }
         proposals[proposal_id] = {
             "artifact_id": correction_id, "status": policy.get("status"),
             "promoted_revision_id": active,
+            "candidate_digest": revision_digests.get(active),
         }
         artifacts[correction_id] = {
             "active_revision_id": active,
-            "revisions": {revision_id: {"proposal_id": proposal_id}
-                          for revision_id in policy.get("revisions", {})},
+            "revisions": {
+                revision_id: {
+                    "proposal_id": proposal_id,
+                    "content_digest": digest,
+                }
+                for revision_id, digest in revision_digests.items()
+            },
         }
     return {"proposals": proposals, "artifacts": artifacts, "skipped_lines": 0}
 
@@ -88,11 +100,8 @@ def _execute_outcome_case(case: Dict[str, Any]) -> Dict[str, Any]:
             required_evaluations=["replay"],
             **envelope,
         )
-        identity = json.dumps({
-            "artifact_id": correction_id, "revision_id": revision_id,
-            "content_metadata": "frozen-benchmark-correction",
-        }, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        candidate_digest = hashlib.sha256(identity).hexdigest()
+        policy = store.correction_project(now=now)["policies"][correction_id]
+        candidate_digest = correction_revision_digest(correction_id, policy, revision_id)
         proposal_id = "prop." + correction_id[5:] + "-" + revision_id
         store.improvement_propose(
             proposal_id, correction_id, "Correction revision",
