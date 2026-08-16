@@ -41,6 +41,92 @@ def test_search_scale_bench_summary_shape():
     assert summary["p95_ms"] == 29.0
 
 
+def test_search_scale_bench_bypasses_result_cache():
+    mod = _load_module("search_scale_bench_cache_contract", "benchmarks/search_scale_bench.py")
+    calls = []
+
+    class FakeMemKraft:
+        def search(self, query, **kwargs):
+            calls.append((query, kwargs))
+            return []
+
+    mod._search(FakeMemKraft(), "needle", top_k=7)
+
+    assert calls == [("needle", {"top_k": 7, "cache": False})]
+
+
+def test_search_scale_bench_separates_cold_build_from_warm_samples(monkeypatch, tmp_path):
+    mod = _load_module("search_scale_bench_phases", "benchmarks/search_scale_bench.py")
+    calls = []
+
+    class FakeMemKraft:
+        def __init__(self, base_dir):
+            self.base_dir = base_dir
+
+    def fake_seed(base, n, words_per_doc):
+        base.mkdir(parents=True, exist_ok=True)
+
+    def fake_time(_mk, _query, iterations, top_k=None):
+        calls.append((iterations, top_k))
+        if len(calls) == 1:
+            return [100.0], 30
+        return [float(len(calls))] * iterations, 20 if top_k else 30
+
+    monkeypatch.setattr(mod, "MemKraft", FakeMemKraft)
+    monkeypatch.setattr(mod, "_seed_corpus", fake_seed)
+    monkeypatch.setattr(mod, "_time_searches", fake_time)
+
+    result = mod.run_one(30, iterations=3, words_per_doc=5, top_k=20)
+
+    assert calls == [(1, None), (3, None), (3, 20)]
+    assert result["cold_index_build"]["n"] == 1
+    assert result["cold_index_build"]["mean_ms"] == 100.0
+    assert result["unlimited"]["warm"]["n"] == 3
+    assert result["unlimited"]["warm"]["mean_ms"] == 2.0
+    assert result["limited"]["warm"]["mean_ms"] == 3.0
+
+
+def test_top_k_search_defers_token_snippets_until_after_ranking(tmp_path, monkeypatch):
+    from memkraft import MemKraft
+
+    for index in range(30):
+        (tmp_path / f"entity-{index:02d}.md").write_text(
+            f"# Entity {index}\n\nneedle common token {index}\n",
+            encoding="utf-8",
+        )
+    mk = MemKraft(base_dir=tmp_path)
+    original = mk._best_token_snippet
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(mk, "_best_token_snippet", counted)
+    limited = mk.search("needle missing", top_k=5, cache=False)
+
+    assert len(limited) == 5
+    assert len(calls) <= len(limited)
+    assert all(result["snippet"] for result in limited)
+    assert all(set(result) == {"file", "score", "match", "snippet"} for result in limited)
+
+
+def test_top_k_deferred_snippets_match_unlimited_prefix(tmp_path):
+    from memkraft import MemKraft
+
+    for index in range(12):
+        (tmp_path / f"entity-{index:02d}.md").write_text(
+            f"# Entity {index}\n\nneedle common token {index}\n",
+            encoding="utf-8",
+        )
+    mk = MemKraft(base_dir=tmp_path)
+
+    unlimited = mk.search("needle missing", cache=False)
+    limited = mk.search("needle missing", top_k=5, cache=False)
+
+    assert limited == unlimited[:5]
+
+
 def _load_reasoning_injection_ab():
     return _load_module(
         "reasoning_injection_ab",

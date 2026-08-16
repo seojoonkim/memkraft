@@ -177,7 +177,7 @@ def _touch_reset_for_tests() -> None:
     _TOUCH_LAST_AT.clear()
 
 
-def touch_last_accessed(base_dir: Path, rel_path: str, timestamp: str) -> None:
+def touch_last_accessed(base_dir: Path, rel_path: str, timestamp: str) -> bool:
     """Update 'Last Accessed' timestamp in an entity/note file.
 
     v2.8.2: throttled per-process to avoid write-on-read storms during
@@ -186,13 +186,14 @@ def touch_last_accessed(base_dir: Path, rel_path: str, timestamp: str) -> None:
     skip entirely.
     """
     if not rel_path:
-        return
+        return False
+    write_attempted = False
     try:
         full_path = base_dir / rel_path
         if _touch_should_skip(full_path):
-            return
+            return False
         if not full_path.exists() or not full_path.is_file():
-            return
+            return False
         content = full_path.read_text(encoding="utf-8", errors="replace")
         pattern = r'\*\*Last Accessed:\*\*\s*.*'
         replacement = f'**Last Accessed:** {timestamp}'
@@ -214,10 +215,14 @@ def touch_last_accessed(base_dir: Path, rel_path: str, timestamp: str) -> None:
                     new_content = content
         # Skip write if no actual change (cheap byte compare).
         if new_content == content:
-            return
+            return False
+        write_attempted = True
         full_path.write_text(new_content, encoding="utf-8")
+        return True
     except Exception:
-        pass
+        # A write may have reached disk before close/flush raised. Invalidate
+        # conservatively whenever mutation was attempted.
+        return write_attempted
 
 
 # ── Gather memory files ────────────────────────────────────
