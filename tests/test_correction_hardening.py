@@ -89,6 +89,24 @@ def test_truncated_text_idempotency_binds_full_original_input(tmp_path):
     assert error.value.code == "E_CORRECTION_IDEMPOTENCY_MISMATCH"
 
 
+@pytest.mark.parametrize("field", ["user_utterance", "agent_interpretation"])
+def test_visible_correction_text_tampering_is_rejected_on_replay(tmp_path, field):
+    store = store_at(tmp_path)
+    capture(store)
+    values = records(store)
+    values[0][field] += " tampered"
+    rewrite(store, values)
+    assert_corrupt_readable_write_closed(store)
+
+
+def test_untampered_truncated_text_remains_replayable(tmp_path):
+    store = store_at(tmp_path)
+    capture(store, user_utterance="x" * 2001)
+    view = store.correction_project(now=T1)
+    assert view["skipped"] == 0
+    assert view["policies"]["corr.alpha"]["revisions"]["r1"]["truncated"] is True
+
+
 @pytest.mark.parametrize("mutation", [
     lambda rs: rs[0].update(extra_field="forbidden"),
     lambda rs: rs[0].pop("privacy"),

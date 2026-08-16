@@ -4,7 +4,9 @@ import json
 import pytest
 
 from memkraft import MemKraft
-from memkraft.correction_policy import CorrectionError, CorrectionPolicyMixin
+from memkraft.correction_policy import (
+    CorrectionError, CorrectionPolicyMixin, correction_revision_digest,
+)
 
 NOW = "2026-08-16T10:00:00Z"
 
@@ -23,21 +25,26 @@ def corrections(revisions=None, **forged):
 
 
 def improvements(*, status="promoted", promoted="r1", active="r1",
-                 proposal_artifact="corr.alpha", revision_proposal="prop.alpha"):
+                 proposal_artifact="corr.alpha", revision_proposal="prop.alpha",
+                 content_digest=None):
+    policy = corrections()["policies"]["corr.alpha"]
+    content_digest = content_digest or correction_revision_digest("corr.alpha", policy, "r1")
     return {
         "skipped_lines": 0,
         "proposals": {
             "prop.alpha": {
                 "artifact_id": proposal_artifact, "status": status,
-                "promoted_revision_id": promoted,
+                "promoted_revision_id": promoted, "candidate_digest": content_digest,
             }
         },
         "artifacts": {
             "corr.alpha": {
                 "active_revision_id": active,
                 "revisions": {
-                    "r1": {"proposal_id": revision_proposal},
-                    "r2": {"proposal_id": revision_proposal},
+                    "r1": {"proposal_id": revision_proposal,
+                           "content_digest": content_digest},
+                    "r2": {"proposal_id": revision_proposal,
+                           "content_digest": content_digest},
                 },
             }
         },
@@ -88,6 +95,11 @@ def test_exact_promoted_active_link_is_selected():
     assert compile_fake()["selected_ids"] == ["corr.alpha"]
 
 
+def test_approved_unrelated_digest_cannot_authorize_different_injected_content():
+    unrelated = hashlib.sha256(b"approved but unrelated content").hexdigest()
+    assert compile_fake(improvement=improvements(content_digest=unrelated))["selected_ids"] == []
+
+
 def _govern(store, revision_id, proposal_id, digest, base_revision_id=None):
     store.improvement_propose(
         proposal_id, "corr.alpha", "Correction revision", "Validated correction",
@@ -116,12 +128,14 @@ def _govern(store, revision_id, proposal_id, digest, base_revision_id=None):
 def test_real_ledger_rollback_switches_selected_correction_revision(tmp_path):
     store = MemKraft(base_dir=str(tmp_path)); store.init(verbose=False)
     store.correction_capture("corr.alpha", "Use UTC", "Use UTC", now=NOW)
-    d1 = hashlib.sha256(b"corr.alpha/r1").hexdigest()
+    policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
+    d1 = correction_revision_digest("corr.alpha", policy, "r1")
     _govern(store, "r1", "prop.alpha-r1", d1)
     store.artifact_activate_revision("corr.alpha", "r1", now=NOW, proposal_id="prop.alpha-r1")
     store.correction_revise("corr.alpha", "r2", "Use ISO UTC", "Use ISO UTC", now=NOW,
                             base_revision_id="r1", reason="clarify")
-    d2 = hashlib.sha256(b"corr.alpha/r2").hexdigest()
+    policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
+    d2 = correction_revision_digest("corr.alpha", policy, "r2")
     _govern(store, "r2", "prop.alpha-r2", d2, base_revision_id="r1")
     store.artifact_activate_revision("corr.alpha", "r2", now=NOW,
                                      expected_active_revision_id="r1", proposal_id="prop.alpha-r2")
@@ -159,7 +173,8 @@ def test_private_pointer_governance_uses_only_opaque_ids_and_digest(tmp_path):
     secret = "RAW PRIVATE SECRET"
     store = MemKraft(base_dir=str(tmp_path)); store.init(verbose=False)
     store.correction_capture("corr.alpha", secret, secret, now=NOW, privacy="private_pointer")
-    digest = hashlib.sha256(b"corr.alpha/r1").hexdigest()
+    policy = store.correction_project(now=NOW)["policies"]["corr.alpha"]
+    digest = correction_revision_digest("corr.alpha", policy, "r1")
     _govern(store, "r1", "prop.alpha-r1", digest)
     ledger = store._improvement_events_path().read_text(encoding="utf-8")
     assert secret not in ledger

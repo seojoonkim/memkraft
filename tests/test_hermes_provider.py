@@ -61,6 +61,10 @@ def test_sync_turn_extracts_user_and_assistant_as_role_specific_evidence(tmp_pat
             "The user evidence is QuartzFalcon.",
             "The assistant evidence is EmberOtter.",
             session_id="role-separated",
+            messages=[
+                {"role": "user", "content": "The user evidence is QuartzFalcon."},
+                {"role": "assistant", "content": "The assistant evidence is EmberOtter."},
+            ],
         )
 
     assert extract.call_args_list == [
@@ -73,6 +77,20 @@ def test_sync_turn_extracts_user_and_assistant_as_role_specific_evidence(tmp_pat
             source="hermes:role-separated#assistant",
         ),
     ]
+
+
+def test_sync_turn_preserves_legacy_combined_extraction_without_role_messages(tmp_path):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("legacy-combined", hermes_home=str(tmp_path))
+
+    with mock.patch.object(provider._store, "extract") as extract:
+        provider.sync_turn("User evidence.", "Assistant evidence.",
+                           session_id="legacy-combined")
+
+    extract.assert_called_once_with(
+        "User: User evidence.\nAssistant: Assistant evidence.",
+        source="hermes:legacy-combined",
+    )
 
 
 def test_sync_turn_preserves_completed_turn_chunk_bytes(tmp_path):
@@ -99,12 +117,12 @@ def test_sync_turn_preserves_completed_turn_chunk_bytes(tmp_path):
         (
             "",
             "Assistant only.",
-            [mock.call("Assistant only.", source="hermes:empty-side#assistant")],
+            [mock.call("User: \nAssistant: Assistant only.", source="hermes:empty-side")],
         ),
         (
             "User only.",
             "",
-            [mock.call("User only.", source="hermes:empty-side#user")],
+            [mock.call("User: User only.\nAssistant: ", source="hermes:empty-side")],
         ),
         ("", "", []),
     ],

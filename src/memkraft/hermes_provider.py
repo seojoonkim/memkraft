@@ -206,19 +206,22 @@ class MemKraftMemoryProvider(MemoryProvider):
         session_id: str = "",
         messages: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
-        if self._store is None:
+        if self._store is None or not (user_content or assistant_content):
             return
-        content = "User: {}\nAssistant: {}".format(user_content, assistant_content).strip()
-        if not content:
-            return
+        content = "User: {}\nAssistant: {}".format(user_content, assistant_content)
         source_session = session_id or self._session_id or "unknown"
         source = "hermes:{}".format(source_session)
         self._persist_completed_turn(source_session, content)
         with redirect_stdout(io.StringIO()):
-            if user_content:
-                self._store.extract(user_content, source=source + "#user")
-            if assistant_content:
-                self._store.extract(assistant_content, source=source + "#assistant")
+            if messages is None:
+                # Preserve the pre-3.6 extraction contract for existing callers.
+                self._store.extract(content, source=source)
+            else:
+                # Role-aware callers retain separate evidence boundaries.
+                if user_content:
+                    self._store.extract(user_content, source=source + "#user")
+                if assistant_content:
+                    self._store.extract(assistant_content, source=source + "#assistant")
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []

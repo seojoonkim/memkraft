@@ -1,4 +1,4 @@
-**v3.6.0**
+**v3.6.1**
 
 <div align="center">
 
@@ -486,7 +486,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.6.0**.
+Current version: **3.6.1**.
 
 ```bash
 pipx upgrade memkraft
@@ -500,7 +500,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.6.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.0) (current)
+### [v3.6.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.1) (current)
+
+MemKraft 3.6.1 is the publishable integrity patch for the 3.6 Correction Learning line. It binds promoted ledger evidence to the exact injected correction payload, verifies visible persisted correction metadata on replay, and preserves legacy Hermes extraction for callers that do not provide role messages. Read the [release notes](docs/releases/3.6.1.md).
+
+### [v3.6.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.0)
 
 MemKraft 3.6.0 adds opt-in Correction Learning with governed scoped policies, bounded deterministic injection, outcome tracking, and a frozen accuracy and latency gate. Read the [release notes](docs/releases/3.6.0.md).
 
