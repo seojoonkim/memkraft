@@ -122,6 +122,38 @@
         "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "8cd7347fb407276973c8b12b1dc5410e7af6ed12"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_benchmark_scripts.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_touch_last_accessed.py"
+        }
+      ],
+      "id": "maintenance.search-performance-3.5",
+      "promotion_evidence": [
+        {
+          "claim": "Search performance maintenance audit",
+          "kind": "release-note",
+          "path": "docs/bench/search-performance-3.5-maintenance.md"
+        }
+      ],
+      "proposal_id": "prop.search-performance-maintenance",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/_core_lifecycle_helpers.py",
+        "src/memkraft/core.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
@@ -135,6 +167,7 @@
       "MANIFEST.in",
       "README.md",
       "benchmarks/longmemeval/harness.py",
+      "benchmarks/search_scale_bench.py",
       "docs/ADAPTERS.md",
       "docs/ADAPTIVE_ETA_DELAY_LEDGER.md",
       "docs/CONTINUAL_IMPROVEMENT_LEDGER.md",
@@ -148,6 +181,7 @@
       "docs/THREAT_MODEL.md",
       "docs/V3_API.md",
       "docs/bench/results/mkep-3.3.0-g11-g12-macos-arm64.json",
+      "docs/bench/search-performance-3.5-maintenance.md",
       "docs/plans/2026-08-04-memkraft-runtime-neutral-execution-protocol-development-plan.md",
       "docs/plans/2026-08-06-memkraft-continual-improvement-ledger-preview-plan.md",
       "docs/plans/2026-08-12-project-memory-compiler-plan.md",
@@ -168,6 +202,7 @@
       "tests/conformance/**",
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
+      "tests/hermes_lifecycle_smoke.py",
       "tests/test_benchmark_scripts.py",
       "tests/test_context_compiler.py",
       "tests/test_delay_ledger.py",
@@ -187,7 +222,6 @@
       "tests/test_execution_protocol.py",
       "tests/test_execution_records.py",
       "tests/test_hermes_agent_compat.py",
-      "tests/hermes_lifecycle_smoke.py",
       "tests/test_hermes_install_contract.py",
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
@@ -202,6 +236,7 @@
       "tests/test_sleep_governance.py",
       "tests/test_state_contract.py",
       "tests/test_store_core_lock_nb.py",
+      "tests/test_touch_last_accessed.py",
       "tests/test_v081_mcp.py",
       "tools/pin_golden_usage_id.py"
     ],
