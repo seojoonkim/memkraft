@@ -89,7 +89,7 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}\Z")
 #: string — is outside the grammar and is rejected, not truncated.
 _REF_SCHEMES = (
     "corpus", "trace", "note", "report", "artifact", "run", "case", "eval",
-    "label", "bundle",
+    "label", "bundle", "correction",
 )
 _REF_URI = re.compile(
     r"^(?:%s)://[a-z0-9][a-z0-9._-]{0,63}(?:/[A-Za-z0-9._-]{1,64}){1,8}\Z"

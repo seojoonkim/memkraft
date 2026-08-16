@@ -101,6 +101,15 @@ def test_register_case_accepts_hermes_eval_bridge_failure_types(
     assert result["record"]["failure_type"] == failure_type
 
 
+def test_register_case_accepts_opaque_correction_trace_ref(tmp_path):
+    mk = _mk(tmp_path)
+    result = _register(
+        mk, failure_type="user_correction",
+        trace_ref="correction://corr.alpha/r2",
+    )
+    assert result["record"]["trace_ref"] == "correction://corr.alpha/r2"
+
+
 def test_register_case_rejects_raw_content_kwargs(tmp_path):
     mk = _mk(tmp_path)
     with pytest.raises(TypeError):

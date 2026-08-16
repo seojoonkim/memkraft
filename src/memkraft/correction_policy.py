@@ -57,6 +57,7 @@ _SCOPE = ("task", "project", "task_class", "shared")
 _PRIVACY = ("public_safe", "local_private", "private_pointer")
 _AUTHORITY = ("agent", "human", "system")
 _VERDICT = ("pass", "fail", "inconclusive")
+_OUTCOME = ("complied", "violated", "not_applicable")
 _ACTIVATION_KINDS = ("activate", "rollback")
 _STATUSES = ("captured", "under_evaluation", "promoted", "rejected", "retired")
 _TRANSITIONS = frozenset({
@@ -85,6 +86,8 @@ _TYPE_FIELDS = {
         "agent_interpretation_input_sha256", "truncated", "reason", "evidence_refs"}),
     "correction_evaluation": frozenset({"correction_id", "revision_id",
         "evaluation_kind", "verdict", "evaluated_scope", "evidence_refs", "notes"}),
+    "correction_outcome": frozenset({"correction_id", "revision_id", "outcome",
+        "evidence_refs"}),
     "correction_status": frozenset({"correction_id", "from_status", "to_status",
         "reason", "promoted_revision_id"}),
     "correction_activation": frozenset({"correction_id", "to_revision_id",
@@ -292,6 +295,11 @@ def _structural(record: Dict[str, Any]) -> bool:
             and record.get("scope") == record.get("evaluated_scope")
             and _valid_refs(record.get("evidence_refs"))
             and _valid_optional_text(record.get("notes"), 512))
+    if kind == "correction_outcome":
+        return (isinstance(record.get("revision_id"), str)
+            and bool(_REV.fullmatch(record["revision_id"]))
+            and record.get("outcome") in _OUTCOME
+            and _valid_refs(record.get("evidence_refs")))
     if kind == "correction_status":
         promoted = record.get("promoted_revision_id")
         return (record.get("from_status") in _STATUSES and record.get("to_status") in _STATUSES
@@ -342,7 +350,7 @@ def _read(path: Path) -> Tuple[List[Dict[str, Any]], int]:
             if kind == "correction_revision":
                 valid = (valid and (cid, item["revision_id"]) not in revisions
                          and (cid, item["base_revision_id"]) in revisions)
-            elif kind in ("correction_evaluation", "correction_scope"):
+            elif kind in ("correction_evaluation", "correction_outcome", "correction_scope"):
                 valid = valid and (cid, item["revision_id"]) in revisions
             elif kind == "correction_activation":
                 valid = valid and (cid, item["to_revision_id"]) in revisions
@@ -424,6 +432,7 @@ def _fold(records: List[Dict[str, Any]]) -> Dict[str, Any]:
                 "agent_interpretation": item.get("agent_interpretation"),
                 "base_revision_id": None, "truncated": item.get("truncated", False),
                 "event_seq": item.get("event_seq"), "emitted_at": item.get("emitted_at"),
+                "outcome_tallies": {name: 0 for name in _OUTCOME},
             }
         elif cid not in policies:
             continue
@@ -433,8 +442,13 @@ def _fold(records: List[Dict[str, Any]]) -> Dict[str, Any]:
                 "agent_interpretation": item.get("agent_interpretation"),
                 "base_revision_id": item.get("base_revision_id"),
                 "truncated": item.get("truncated", False), "event_seq": item.get("event_seq"),
-                "emitted_at": item.get("emitted_at")}
+                "emitted_at": item.get("emitted_at"),
+                "outcome_tallies": {name: 0 for name in _OUTCOME}}
             policies[cid]["current_revision_id"] = item["revision_id"]
+        elif kind == "correction_outcome":
+            revision = policies[cid]["revisions"].get(item["revision_id"])
+            if revision is not None:
+                revision["outcome_tallies"][item["outcome"]] += 1
         elif kind == "correction_evaluation":
             key = (item["revision_id"], item["evaluation_kind"])
             policies[cid]["evaluations"][key] = {
@@ -740,6 +754,23 @@ class CorrectionPolicyMixin:
             policy = _fold(existing).get(correction_id)
             if policy is None or revision_id not in policy["revisions"]:
                 _fail("E_CORRECTION_NOT_FOUND", "correction revision was never recorded")
+        return self._correction_append(record, operation_id, guard=guard)
+
+    def correction_record_outcome(self, correction_id, revision_id, outcome, *, now,
+                                  evidence_refs=(), operation_id=None, **envelope):
+        """Append an observation without changing correction lifecycle state."""
+        record = _common("correction_outcome", now, **envelope)
+        record["correction_id"] = _pattern("correction_id", correction_id, _ID)
+        record["revision_id"] = _pattern("revision_id", revision_id, _REV)
+        record["outcome"] = _enum("outcome", outcome, _OUTCOME)
+        record["evidence_refs"] = _refs("evidence_refs", evidence_refs)
+
+        def guard(existing):
+            policy = _fold(existing).get(correction_id)
+            if policy is None or revision_id not in policy["revisions"]:
+                _fail("E_CORRECTION_NOT_FOUND",
+                      "correction revision was never recorded")
+
         return self._correction_append(record, operation_id, guard=guard)
 
     def correction_set_status(self, correction_id, from_status, to_status, *, now,
