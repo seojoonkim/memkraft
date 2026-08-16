@@ -1418,6 +1418,7 @@ class MemKraft:
             heading_bonus = 0.0
             recency_bonus = 0.0
             best_snippet = ""
+            defer_token_snippet = False
 
             if query_lower in content_lower:
                 exact_score = 1.0
@@ -1455,7 +1456,10 @@ class MemKraft:
                 total_idf = sum(idf_weights) or 1.0
                 matched_weight = sum(w for t, w in zip(query_tokens, idf_weights) if t in content_tokens or t in filename_tokens)
                 token_score = matched_weight / total_idf
-                if token_score and not best_snippet:
+                defer_token_snippet = bool(
+                    result_limit is not None and token_score and not best_snippet
+                )
+                if token_score and not best_snippet and not defer_token_snippet:
                     best_snippet = self._best_token_snippet(query_tokens, lines, lines_orig)
 
                 # v2.3: BM25 (Okapi) scoring — a 4th retrieval signal that
@@ -1551,7 +1555,15 @@ class MemKraft:
                 )
             final_score = min(1.0, final_score + phrase_bonus + heading_bonus + recency_bonus)
             if exact_score or token_score or bm25_score or (fuzzy and fuzzy_score >= 0.3):
-                results.append({"file": str(rel_path), "score": round(final_score, 2), "match": md.stem, "snippet": best_snippet})
+                result = {
+                    "file": str(rel_path),
+                    "score": round(final_score, 2),
+                    "match": md.stem,
+                    "snippet": best_snippet,
+                }
+                if defer_token_snippet:
+                    result["_deferred_token_snippet"] = True
+                results.append(result)
 
         # ── v2.4: Search dedup — group by entity slug, keep highest score ──
         seen_entities: Dict[str, Dict[str, Any]] = {}
@@ -1582,6 +1594,22 @@ class MemKraft:
             ]
 
         visible_results = results if result_limit is None else results[:result_limit]
+
+        # ``top_k`` callers only observe the final ranked window.  Build token
+        # fallback snippets for those winners instead of scanning every matched
+        # document before ranking.  Candidate selection and scores are unchanged.
+        for result in visible_results:
+            if not result.pop("_deferred_token_snippet", False):
+                continue
+            try:
+                content = self._safe_read(self.base_dir / result["file"])
+            except OSError:
+                continue
+            result["snippet"] = self._best_token_snippet(
+                query_tokens,
+                content.lower().split("\n"),
+                content.split("\n"),
+            )
 
         if cache_obj is not None and cache_key is not None:
             cache_obj.set(cache_key, visible_results)
@@ -3766,19 +3794,7 @@ class MemKraft:
         searched entities don't decay away.
         """
         full_path = self.base_dir / rel_path
-        before = None
-        try:
-            st = full_path.stat()
-            before = (st.st_mtime_ns, st.st_size)
-        except OSError:
-            pass
-        _lh.touch_last_accessed(self.base_dir, rel_path, timestamp)
-        try:
-            st = full_path.stat()
-            after = (st.st_mtime_ns, st.st_size)
-        except OSError:
-            return
-        if before != after:
+        if _lh.touch_last_accessed(self.base_dir, rel_path, timestamp):
             from ._read_cache import get_cache
             get_cache().invalidate(full_path)
 

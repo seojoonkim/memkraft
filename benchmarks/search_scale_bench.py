@@ -83,8 +83,8 @@ def _seed_corpus(base: Path, n: int, words_per_doc: int) -> None:
 def _search(mk: MemKraft, query: str, top_k: typing.Optional[int] = None) -> list:
     fn = getattr(mk, "search")
     if top_k is None:
-        return fn(query)
-    return fn(query, top_k=top_k)
+        return fn(query, cache=False)
+    return fn(query, top_k=top_k, cache=False)
 
 
 def _time_searches(mk: MemKraft, query: str, iterations: int, top_k: typing.Optional[int] = None) -> tuple[List[float], int]:
@@ -105,11 +105,15 @@ def run_one(size: int, iterations: int, words_per_doc: int, top_k: int = 20) -> 
         _seed_corpus(root, size, words_per_doc)
         mk = MemKraft(base_dir=str(root))
         query = "search cache latency root cause"
+        cold_index_build, _ = _time_searches(mk, query, 1, top_k=None)
         unlimited_warm, unlimited_hits = _time_searches(mk, query, iterations, top_k=None)
         limited_warm, limited_hits = _time_searches(mk, query, iterations, top_k=top_k)
         return {
             "documents": size,
             "words_per_doc": words_per_doc,
+            "cold_index_build": summarise_samples(
+                "search_cold_index_build", cold_index_build
+            ),
             "unlimited": {
                 "warm": summarise_samples("search_unlimited_warm", unlimited_warm),
                 "hits": unlimited_hits,
