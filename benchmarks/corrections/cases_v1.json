@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "benchmark": "S7 Correction Learning gate",
+  "frozen": true,
+  "token_estimator": "ceil(utf8_bytes/4)",
+  "cases": [
+    {
+      "id": "fidelity-active-policy",
+      "capability": "fidelity",
+      "budget": 256,
+      "context": {"task_ref": "task://build/7", "task_class": "build", "explicit_topics": []},
+      "policies": {
+        "corr.utc": {
+          "status": "promoted", "scope": "project", "privacy": "local_private",
+          "task_ref": null, "task_class": null, "topic_key": "timezone",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use UTC.", "agent_interpretation": "Render all timestamps in UTC."}}
+        }
+      },
+      "expect": {"selected_ids": ["corr.utc"], "omitted": [], "conflicts": []}
+    },
+    {
+      "id": "interference-inapplicable-and-explicit",
+      "capability": "interference",
+      "budget": 256,
+      "context": {"task_ref": "task://current", "task_class": "test", "explicit_topics": ["format"]},
+      "policies": {
+        "corr.other-task": {
+          "status": "promoted", "scope": "task", "privacy": "local_private",
+          "task_ref": "task://other", "task_class": null, "topic_key": "timezone",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use UTC.", "agent_interpretation": "Use UTC."}}
+        },
+        "corr.explicit": {
+          "status": "promoted", "scope": "project", "privacy": "local_private",
+          "task_ref": null, "task_class": null, "topic_key": "format",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use JSON.", "agent_interpretation": "Return JSON."}}
+        }
+      },
+      "expect": {
+        "selected_ids": [],
+        "omitted": [{"correction_id": "corr.explicit", "reason": "explicit_instruction"}],
+        "conflicts": []
+      }
+    },
+    {
+      "id": "unresolved-same-rank-conflict",
+      "capability": "conflict_handling",
+      "budget": 256,
+      "context": {"task_ref": null, "task_class": null, "explicit_topics": []},
+      "policies": {
+        "corr.utc": {
+          "status": "promoted", "scope": "project", "privacy": "local_private",
+          "task_ref": null, "task_class": null, "topic_key": "timezone",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use UTC.", "agent_interpretation": "Use UTC."}}
+        },
+        "corr.pst": {
+          "status": "promoted", "scope": "project", "privacy": "local_private",
+          "task_ref": null, "task_class": null, "topic_key": "timezone",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use PST.", "agent_interpretation": "Use PST."}}
+        }
+      },
+      "expect": {
+        "selected_ids": [],
+        "omitted": [
+          {"correction_id": "corr.pst", "reason": "conflict"},
+          {"correction_id": "corr.utc", "reason": "conflict"}
+        ],
+        "conflicts": [{"topic_key": "timezone", "scope": "project", "correction_ids": ["corr.pst", "corr.utc"]}]
+      }
+    },
+    {
+      "id": "whole-item-budget-omission",
+      "capability": "budget_omission",
+      "budget": 1,
+      "context": {"task_ref": null, "task_class": null, "explicit_topics": []},
+      "policies": {
+        "corr.large": {
+          "status": "promoted", "scope": "project", "privacy": "local_private",
+          "task_ref": null, "task_class": null, "topic_key": "format",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Use structured output.", "agent_interpretation": "Return a complete deterministic JSON object."}}
+        }
+      },
+      "expect": {
+        "selected_ids": [],
+        "omitted": [{"correction_id": "corr.large", "reason": "budget"}],
+        "conflicts": []
+      }
+    },
+    {
+      "id": "recurrence-prevention-observed",
+      "capability": "recurrence_prevention",
+      "budget": 256,
+      "context": {"task_ref": null, "task_class": "deploy", "explicit_topics": []},
+      "policies": {
+        "corr.no-force": {
+          "status": "promoted", "scope": "task_class", "privacy": "local_private",
+          "task_ref": null, "task_class": "deploy", "topic_key": "deployment_safety",
+          "active_revision_id": "r1",
+          "revisions": {"r1": {"user_utterance": "Never force deploy.", "agent_interpretation": "Do not use force flags during deployment."}}
+        }
+      },
+      "expect": {
+        "selected_ids": ["corr.no-force"], "omitted": [], "conflicts": [],
+        "outcome_tallies": {"complied": 2, "violated": 0, "not_applicable": 0}
+      }
+    }
+  ]
+}

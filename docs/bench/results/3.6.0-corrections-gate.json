@@ -1,0 +1,201 @@
+{
+  "benchmark": "S7 Correction Learning gate",
+  "case_results": [
+    {
+      "budget": 256,
+      "budget_overflow": false,
+      "capability": "fidelity",
+      "estimated_tokens": 55,
+      "expected": {
+        "conflicts": [],
+        "omitted": [],
+        "selected_ids": [
+          "corr.utc"
+        ]
+      },
+      "id": "fidelity-active-policy",
+      "observed": {
+        "conflicts": [],
+        "omitted": [],
+        "selected_ids": [
+          "corr.utc"
+        ]
+      },
+      "passed": true,
+      "unresolved_conflicts_injected": 0
+    },
+    {
+      "budget": 256,
+      "budget_overflow": false,
+      "capability": "interference",
+      "estimated_tokens": 0,
+      "expected": {
+        "conflicts": [],
+        "omitted": [
+          {
+            "correction_id": "corr.explicit",
+            "reason": "explicit_instruction"
+          }
+        ],
+        "selected_ids": []
+      },
+      "id": "interference-inapplicable-and-explicit",
+      "observed": {
+        "conflicts": [],
+        "omitted": [
+          {
+            "correction_id": "corr.explicit",
+            "reason": "explicit_instruction"
+          }
+        ],
+        "selected_ids": []
+      },
+      "passed": true,
+      "unresolved_conflicts_injected": 0
+    },
+    {
+      "budget": 256,
+      "budget_overflow": false,
+      "capability": "conflict_handling",
+      "estimated_tokens": 0,
+      "expected": {
+        "conflicts": [
+          {
+            "correction_ids": [
+              "corr.pst",
+              "corr.utc"
+            ],
+            "scope": "project",
+            "topic_key": "timezone"
+          }
+        ],
+        "omitted": [
+          {
+            "correction_id": "corr.pst",
+            "reason": "conflict"
+          },
+          {
+            "correction_id": "corr.utc",
+            "reason": "conflict"
+          }
+        ],
+        "selected_ids": []
+      },
+      "id": "unresolved-same-rank-conflict",
+      "observed": {
+        "conflicts": [
+          {
+            "correction_ids": [
+              "corr.pst",
+              "corr.utc"
+            ],
+            "scope": "project",
+            "topic_key": "timezone"
+          }
+        ],
+        "omitted": [
+          {
+            "correction_id": "corr.pst",
+            "reason": "conflict"
+          },
+          {
+            "correction_id": "corr.utc",
+            "reason": "conflict"
+          }
+        ],
+        "selected_ids": []
+      },
+      "passed": true,
+      "unresolved_conflicts_injected": 0
+    },
+    {
+      "budget": 1,
+      "budget_overflow": false,
+      "capability": "budget_omission",
+      "estimated_tokens": 0,
+      "expected": {
+        "conflicts": [],
+        "omitted": [
+          {
+            "correction_id": "corr.large",
+            "reason": "budget"
+          }
+        ],
+        "selected_ids": []
+      },
+      "id": "whole-item-budget-omission",
+      "observed": {
+        "conflicts": [],
+        "omitted": [
+          {
+            "correction_id": "corr.large",
+            "reason": "budget"
+          }
+        ],
+        "selected_ids": []
+      },
+      "passed": true,
+      "unresolved_conflicts_injected": 0
+    },
+    {
+      "budget": 256,
+      "budget_overflow": false,
+      "capability": "recurrence_prevention",
+      "estimated_tokens": 65,
+      "expected": {
+        "conflicts": [],
+        "omitted": [],
+        "outcome_tallies": {
+          "complied": 2,
+          "not_applicable": 0,
+          "violated": 0
+        },
+        "selected_ids": [
+          "corr.no-force"
+        ]
+      },
+      "id": "recurrence-prevention-observed",
+      "observed": {
+        "conflicts": [],
+        "omitted": [],
+        "outcome_tallies": {
+          "complied": 2,
+          "not_applicable": 0,
+          "violated": 0
+        },
+        "selected_ids": [
+          "corr.no-force"
+        ]
+      },
+      "passed": true,
+      "unresolved_conflicts_injected": 0
+    }
+  ],
+  "cases_sha256": "95f933be0dd0c19a572999f44fa99c4e4e90e5ef238b1174148f23562fbbb9a0",
+  "gate": {
+    "errors": [],
+    "passed": true,
+    "warm_p95_bound_ms": 50.0
+  },
+  "latency_ms": {
+    "cold": 4.073042,
+    "warm_iterations": 100,
+    "warm_p50": 3.013208,
+    "warm_p95": 3.613625
+  },
+  "metrics": {
+    "budget_overflows": 0,
+    "fidelity": 1.0,
+    "interference": 0,
+    "outcomes_observable": true,
+    "recurrence_prevention_rate": 1.0,
+    "unresolved_conflicts_injected": 0
+  },
+  "schema_version": 1,
+  "source": "repository/src",
+  "two_host_evidence": {
+    "evidence": null,
+    "reason": "single-host deterministic benchmark cannot establish two-host evidence",
+    "status": "not_ready"
+  }
+}
