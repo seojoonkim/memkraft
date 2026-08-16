@@ -160,9 +160,8 @@ def _valid_version_transition(repo: Path, commit: str,
     new_tests = _tree_text(repo, commit, "tests/test_packaging_version.py")
     if _constant(new_tests, "RELEASE_VERSION") != new_version:
         return "packaging RELEASE_VERSION does not match"
-    for name in ("RELEASE_VERSION", "RELEASE_DATE"):
-        if _constant(old_tests, name) == _constant(new_tests, name):
-            return "packaging %s did not change" % name
+    if _constant(old_tests, "RELEASE_VERSION") == _constant(new_tests, "RELEASE_VERSION"):
+        return "packaging RELEASE_VERSION did not change"
     if not _tree_has(repo, commit, note_path):
         return "new release note is missing"
     if not re.search(r"(?m)^## MemKraft %s\s*$" % re.escape(new_version),

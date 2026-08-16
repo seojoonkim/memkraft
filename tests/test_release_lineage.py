@@ -440,7 +440,8 @@ def test_manifest_requires_memkraft_lineage_fields(auditor, tmp_path):
     assert any(f["code"] == "invalid_evaluation_refs" for f in report["findings"])
 
 
-def _commit_release_transition(repo: Path, base: str, *, omit="", extra_source=False, init_suffix=""):
+def _commit_release_transition(repo: Path, base: str, *, omit="", extra_source=False,
+                               init_suffix="", release_date="2026-02-02"):
     manifest = _manifest(base, base, paths=[])
     manifest["features"] = []
     manifest["release"]["version"] = "1.2.0"
@@ -456,7 +457,7 @@ def _commit_release_transition(repo: Path, base: str, *, omit="", extra_source=F
         "CHANGELOG.md": "## [1.2.0]\n## [1.1.0]\n",
         "docs/releases/1.2.0.md": "## MemKraft 1.2.0\n",
         "tests/test_packaging_version.py": (
-            'RELEASE_VERSION = "1.2.0"\nRELEASE_DATE = "2026-02-02"\n'
+            f'RELEASE_VERSION = "1.2.0"\nRELEASE_DATE = "{release_date}"\n'
         ),
     }
     for path, content in updates.items():
@@ -474,6 +475,17 @@ def _commit_release_transition(repo: Path, base: str, *, omit="", extra_source=F
 def test_atomic_version_only_release_transition_is_allowed(auditor, tmp_path):
     repo, base, branch = _repo(tmp_path)
     manifest, candidate = _commit_release_transition(repo, base)
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert report["release_ready"] is True, report["findings"]
+
+
+def test_same_day_patch_release_transition_is_allowed(auditor, tmp_path):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(
+        repo, base, release_date="2026-01-01",
+    )
 
     report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
 
