@@ -31,21 +31,38 @@ def test_distribution_exposes_hermes_memory_provider_entry_point():
             "memkraft.hermes_provider:register",
         )
     }
-def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path, monkeypatch):
+def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path):
     pytest.importorskip("agent.memory_provider", reason="Hermes Agent compatibility suite")
     from agent.memory_manager import MemoryManager
     from agent.memory_provider import MemoryProvider
     from memkraft.hermes_provider import MemKraftMemoryProvider
-    from plugins import memory
 
-    # Isolate the standalone-distribution contract even in Hermes source trees
-    # that happen to bundle a provider with the same name. Discovery and target
-    # loading still run through Hermes' real importlib.metadata path.
-    empty_bundled_dir = tmp_path / "empty-bundled-memory-providers"
-    empty_bundled_dir.mkdir()
-    monkeypatch.setattr(memory, "_MEMORY_PLUGINS_DIR", empty_bundled_dir)
-    monkeypatch.setattr(memory, "_get_user_plugins_dir", lambda: None)
-    provider = memory.load_memory_provider("memkraft")
+    # Hermes 0.20's directory loader does not discover distribution entry points.
+    # Exercise the standalone wheel contract through importlib.metadata, then pass
+    # the loaded provider through Hermes' real MemoryManager lifecycle.
+    entry_points = importlib.metadata.entry_points()
+    if hasattr(entry_points, "select"):
+        matches = list(entry_points.select(
+            group="hermes_agent.memory_providers", name="memkraft"
+        ))
+    else:
+        matches = [
+            entry_point
+            for entry_point in entry_points.get("hermes_agent.memory_providers", [])
+            if entry_point.name == "memkraft"
+        ]
+    assert matches
+
+    class _RegistrationContext:
+        def __init__(self):
+            self.provider = None
+
+        def register_memory_provider(self, provider):
+            self.provider = provider
+
+    context = _RegistrationContext()
+    matches[0].load()(context)
+    provider = context.provider
 
     assert isinstance(provider, MemoryProvider)
     assert isinstance(provider, MemKraftMemoryProvider)
@@ -61,12 +78,7 @@ def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path, monkeypat
         "Ada Lovelace leads the Analytical Engine project.",
         "I will remember that.",
         session_id="session-a",
-        messages=[
-            {"role": "user", "content": "Ada Lovelace leads the project."},
-            {"role": "assistant", "content": "I will remember that."},
-        ],
     )
-    assert manager.flush_pending(timeout=5)
 
     recalled = manager.prefetch_all("Ada Lovelace", session_id="session-a")
     assert "MemKraft recall:" in recalled

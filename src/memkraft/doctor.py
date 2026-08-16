@@ -4,6 +4,7 @@ Prints a tree with 🟢/🟡/🔴 icons and suggested next actions.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Dict, List, Tuple
 
 from . import __version__
 from .core import MemKraft
+from .install_integrity import installation_report
 
 _OK = "🟢"
 _WARN = "🟡"
@@ -31,7 +33,10 @@ def _check_python() -> Tuple[str, str]:
 
 
 def _check_memkraft() -> Tuple[str, str]:
-    return _OK, f"MemKraft v{__version__} installed at {Path(__file__).parent}"
+    report = installation_report()
+    icon = _OK if report["consistent"] else _ERR
+    detail = "consistent" if report["consistent"] else ", ".join(report["reasons"])
+    return icon, f"MemKraft v{__version__} at {report['import_path']} ({detail})"
 
 
 def _check_base_dir(mk: MemKraft) -> Tuple[str, str, bool]:
@@ -118,7 +123,11 @@ def _check_updates() -> Tuple[str, str]:
     latest = latest_version()
     if latest is None:
         return _ERR, "PyPI unreachable (offline or timeout)"
-    if needs_update(current, latest):
+    try:
+        update_available = needs_update(current, latest)
+    except (TypeError, ValueError) as exc:
+        return _ERR, f"version comparison failed: {exc}"
+    if update_available:
         return _WARN, f"Update available: {current} → {latest}  (run `memkraft selfupdate`)"
     return _OK, f"Up to date: {current}"
 
@@ -250,6 +259,8 @@ def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
 
     icon, msg = _check_memkraft()
     print(f"  {icon} {msg}")
+    if icon == _ERR:
+        status = "unhealthy"
 
     # env
     icon, msg = _check_env()
@@ -302,6 +313,8 @@ def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
         update_info = {"icon": u_icon, "message": u_msg}
         if u_icon == _WARN and status == "healthy":
             status = "degraded"
+        elif u_icon == _ERR:
+            status = "unhealthy"
 
     print()
     icon = {"healthy": _OK, "degraded": _WARN, "unhealthy": _ERR}[status]
@@ -319,6 +332,15 @@ def run(base_dir: str = "", check_updates: bool = False) -> Dict[str, object]:
 
 
 def cmd(args) -> int:
+    if getattr(args, "install", False) is True:
+        report = installation_report(check_updates=getattr(args, "check_updates", False))
+        if getattr(args, "json", False):
+            print(json.dumps(report, sort_keys=True))
+        else:
+            icon = _OK if report["consistent"] else _ERR
+            print("{} MemKraft installation: {}".format(icon, "consistent" if report["consistent"] else ", ".join(report["reasons"])))
+        return 0 if report["consistent"] else 1
+
     # --fix mode takes precedence
     if getattr(args, "fix", False):
         result = run_fix(

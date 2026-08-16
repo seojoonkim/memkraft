@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -23,7 +24,13 @@ def tmp_base():
 def test_doctor_healthy_after_init(tmp_base, capsys):
     mk = MemKraft(base_dir=tmp_base)
     mk.init(verbose=False)
-    report = doctor.run(base_dir=tmp_base)
+    clean_install = {
+        "consistent": True,
+        "import_path": "/venv/site-packages/memkraft/__init__.py",
+        "reasons": [],
+    }
+    with mock.patch("memkraft.doctor.installation_report", return_value=clean_install):
+        report = doctor.run(base_dir=tmp_base)
     out = capsys.readouterr().out
     assert "MemKraft doctor" in out
     assert report["status"] in ("healthy", "degraded")  # degraded if env mismatch
@@ -37,3 +44,11 @@ def test_doctor_flags_missing_structure(tmp_base, capsys):
     out = capsys.readouterr().out
     assert report["status"] in ("degraded", "unhealthy")
     assert "missing" in out
+
+
+def test_update_network_error_makes_doctor_unhealthy(tmp_base):
+    MemKraft(base_dir=tmp_base).init(verbose=False)
+    with mock.patch("memkraft.doctor._check_memkraft", return_value=(doctor._OK, "ok")), \
+         mock.patch("memkraft.doctor._check_updates", return_value=(doctor._ERR, "offline")):
+        report = doctor.run(base_dir=tmp_base, check_updates=True)
+    assert report["status"] == "unhealthy"
