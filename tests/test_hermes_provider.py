@@ -52,6 +52,75 @@ def test_completed_turn_is_persisted_and_recalled_on_next_turn(tmp_path):
     assert any(path.is_file() for path in (hermes_home / "memkraft").rglob("*.md"))
 
 
+def test_sync_turn_extracts_user_and_assistant_as_role_specific_evidence(tmp_path):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("role-separated", hermes_home=str(tmp_path))
+
+    with mock.patch.object(provider._store, "extract") as extract:
+        provider.sync_turn(
+            "The user evidence is QuartzFalcon.",
+            "The assistant evidence is EmberOtter.",
+            session_id="role-separated",
+        )
+
+    assert extract.call_args_list == [
+        mock.call(
+            "The user evidence is QuartzFalcon.",
+            source="hermes:role-separated#user",
+        ),
+        mock.call(
+            "The assistant evidence is EmberOtter.",
+            source="hermes:role-separated#assistant",
+        ),
+    ]
+
+
+def test_sync_turn_preserves_completed_turn_chunk_bytes(tmp_path):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("persisted-bytes", hermes_home=str(tmp_path))
+
+    with mock.patch.object(provider._store, "extract"):
+        provider.sync_turn("User evidence.", "Assistant evidence.", session_id="persisted-bytes")
+
+    digest = hashlib.sha256(b"persisted-bytes").hexdigest()[:16]
+    note = tmp_path / "memkraft" / "live-notes" / (
+        "hermes-session-{}-000001.md".format(digest)
+    )
+    assert note.read_bytes() == (
+        "# Hermes session {0} chunk 1\n\n"
+        "## Completed turn\n\n"
+        "User: User evidence.\nAssistant: Assistant evidence.\n\n"
+    ).format(digest).encode("utf-8")
+
+
+@pytest.mark.parametrize(
+    ("user_content", "assistant_content", "expected_calls"),
+    [
+        (
+            "",
+            "Assistant only.",
+            [mock.call("Assistant only.", source="hermes:empty-side#assistant")],
+        ),
+        (
+            "User only.",
+            "",
+            [mock.call("User only.", source="hermes:empty-side#user")],
+        ),
+        ("", "", []),
+    ],
+)
+def test_sync_turn_skips_extraction_for_empty_side(
+    tmp_path, user_content, assistant_content, expected_calls
+):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("empty-side", hermes_home=str(tmp_path))
+
+    with mock.patch.object(provider._store, "extract") as extract:
+        provider.sync_turn(user_content, assistant_content, session_id="empty-side")
+
+    assert extract.call_args_list == expected_calls
+
+
 def test_sync_turn_uses_switched_session_when_caller_omits_session_id(tmp_path):
     hermes_home = tmp_path / "hermes-home"
     provider = MemKraftMemoryProvider()
