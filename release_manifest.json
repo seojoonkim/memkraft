@@ -87,7 +87,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/3.6.1-lineage",
+    "active_branch": "release/3.6.1",
     "base_sha": "b32d95fe2225fdb0a64c79ce2004b992ebf170b0",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
