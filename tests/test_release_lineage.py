@@ -492,6 +492,27 @@ def test_same_day_patch_release_transition_is_allowed(auditor, tmp_path):
     assert report["release_ready"] is True, report["findings"]
 
 
+@pytest.mark.parametrize("release_date, reason", [
+    ("2025-12-31", "moved backwards"),
+    ("not-a-date", "not ISO YYYY-MM-DD"),
+])
+def test_release_transition_rejects_invalid_date_lineage(
+    auditor, tmp_path, release_date, reason,
+):
+    repo, base, branch = _repo(tmp_path)
+    manifest, candidate = _commit_release_transition(
+        repo, base, release_date=release_date,
+    )
+
+    report = auditor.audit_release_lineage(repo, manifest, candidate_sha=candidate)
+
+    assert any(
+        finding["code"] == "invalid_release_version_transition"
+        and reason in finding.get("reason", "")
+        for finding in report["findings"]
+    )
+
+
 def _commit_lineage_hotfix(repo: Path, manifest, feature_commit: str,
                             source_paths=None) -> str:
     manifest["features"] = [{
