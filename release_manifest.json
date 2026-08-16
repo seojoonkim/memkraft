@@ -181,7 +181,8 @@
         }
       ],
       "commits": [
-        "b336e14123237b6d8c9b279651dd51bc7afb76a1"
+        "b336e14123237b6d8c9b279651dd51bc7afb76a1",
+        "a567652a1fae61e1f372f57aa4a74e9f371140e7"
       ],
       "source_paths": [
         "src/memkraft/install_integrity.py",
