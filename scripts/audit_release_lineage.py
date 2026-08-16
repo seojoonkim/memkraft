@@ -163,9 +163,14 @@ def _valid_version_transition(repo: Path, commit: str,
         return "packaging RELEASE_VERSION does not match"
     if _constant(old_tests, "RELEASE_VERSION") == _constant(new_tests, "RELEASE_VERSION"):
         return "packaging RELEASE_VERSION did not change"
+    old_date_text = _constant(old_tests, "RELEASE_DATE")
+    new_date_text = _constant(new_tests, "RELEASE_DATE")
+    if not all(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)
+               for value in (old_date_text, new_date_text)):
+        return "packaging RELEASE_DATE is not ISO YYYY-MM-DD"
     try:
-        old_date = dt.date.fromisoformat(_constant(old_tests, "RELEASE_DATE"))
-        new_date = dt.date.fromisoformat(_constant(new_tests, "RELEASE_DATE"))
+        old_date = dt.date.fromisoformat(old_date_text)
+        new_date = dt.date.fromisoformat(new_date_text)
     except ValueError:
         return "packaging RELEASE_DATE is not ISO YYYY-MM-DD"
     if new_date < old_date:
