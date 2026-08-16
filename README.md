@@ -1,4 +1,4 @@
-**v3.5.1**
+**v3.5.2**
 
 <div align="center">
 
@@ -484,7 +484,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.5.1**.
+Current version: **3.5.2**.
 
 ```bash
 pipx upgrade memkraft
@@ -498,7 +498,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.5.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.1) (current)
+### [v3.5.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.2) (current)
+
+MemKraft 3.5.2 makes `selfupdate --converge` select the highest published stable release and preserves the official wheel filename required by pip. Read the [release notes](docs/releases/3.5.2.md).
+
+### [v3.5.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.5.1)
 
 MemKraft 3.5.1 adds fail-closed installation integrity diagnostics and explicit convergence to a hash-verified official PyPI wheel. Read the [release notes](docs/releases/3.5.1.md).
 
