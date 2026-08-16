@@ -184,3 +184,30 @@ def test_replay_skips_forged_activation_cas_without_moving_pointer(tmp_path):
     view = mk.improvement_project(now=NOW)
     assert view["skipped_lines"] == 1
     assert view["artifacts"]["artifact.review-one"]["active_revision_id"] == "r1"
+
+
+@pytest.mark.parametrize("changes", [
+    {"schema_version": 2},
+    {"improvement_schema": 2},
+    {"emitted_at": "not-a-timestamp"},
+    {"privacy": "public"},
+    {"authority_claim": "root"},
+    {"authority_verified": True},
+    {"scope": "shared", "host_authorization_ref": None},
+    {"host_authorization_ref": ""},
+    {"execution_run_id": "bad run id"},
+    {"operation_id": ""},
+    {"id": "forged"},
+    {"created_at": "not-a-timestamp"},
+])
+def test_replay_revalidates_common_writer_envelope_fail_closed(tmp_path, changes):
+    mk = _mk(tmp_path)
+    _propose(mk)
+    _mutate_record(mk, "improvement_proposal", **changes)
+
+    view = mk.improvement_project(now=NOW)
+    assert view["skipped_lines"] == 1
+    assert view["proposals"] == {}
+    with pytest.raises(ExecutionError) as excinfo:
+        _propose(mk)
+    assert excinfo.value.code == "E_IMPROVEMENT_LOG_CORRUPT"

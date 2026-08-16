@@ -101,6 +101,10 @@ _ID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,79}$")
 _REVISION_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{1,79}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _EXECUTION_RUN_ID = re.compile(r"^[a-z0-9]{8,64}$")
+_STORE_RECORD_ID = re.compile(r"^[0-9a-f]{32}$")
+_STORE_CREATED_AT = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$"
+)
 
 _PRIVACY = ("public_safe", "local_private", "private_pointer")
 _AUTHORITY_CLAIM = ("agent", "human", "system")
@@ -327,16 +331,61 @@ _FOLD_REQUIRED_FIELDS = {
         "from_revision_id", "activation_kind", "proposal_id",
     }),
 }
+_COMMON_STORED_FIELDS = frozenset({
+    "schema_version", "record_type", "improvement_schema", "emitted_at",
+    "privacy", "authority_claim", "authority_verified", "scope",
+    "host_authorization_ref", "execution_run_id", "operation_id", "id",
+    "created_at", "event_seq",
+})
 _MAX_EVENT_SEQ = (1 << 63) - 1
 
 
+def _common_stored_fields_valid(stored: Dict[str, Any]) -> bool:
+    """Reapply the append-side common envelope contract during replay."""
+    if (any(field not in stored for field in _COMMON_STORED_FIELDS)
+            or stored["schema_version"] != 1
+            or isinstance(stored["schema_version"], bool)
+            or stored["improvement_schema"] != IMPROVEMENT_SCHEMA
+            or isinstance(stored["improvement_schema"], bool)
+            or stored["authority_verified"] is not False):
+        return False
+    try:
+        common = _common_fields(
+            stored["record_type"], stored["emitted_at"],
+            privacy=stored["privacy"],
+            authority_claim=stored["authority_claim"],
+            authority_verified=stored["authority_verified"],
+            scope=stored["scope"],
+            host_authorization_ref=stored["host_authorization_ref"],
+            execution_run_id=stored["execution_run_id"],
+        )
+        if common["emitted_at"] != stored["emitted_at"]:
+            return False
+        operation_id = stored["operation_id"]
+        if not (isinstance(operation_id, str)
+                and 0 < len(operation_id) <= 128):
+            return False
+        if not (isinstance(stored["id"], str)
+                and _STORE_RECORD_ID.fullmatch(stored["id"])):
+            return False
+        created_at = stored["created_at"]
+        if not (isinstance(created_at, str)
+                and _STORE_CREATED_AT.fullmatch(created_at)):
+            return False
+        canonical_timestamp(created_at)
+    except (ImprovementError, ExecutionError):
+        return False
+    return True
+
+
 def _structurally_valid(stored: Dict[str, Any]) -> bool:
-    """Validate every fold-affecting field using the append-side grammars."""
+    """Validate every persisted field using the append-side grammars."""
     record_type = stored.get("record_type")
     event_seq = stored.get("event_seq")
     required = (_FOLD_REQUIRED_FIELDS.get(record_type)
                 if isinstance(record_type, str) else None)
     if (required is None
+            or not _common_stored_fields_valid(stored)
             or not isinstance(event_seq, int) or isinstance(event_seq, bool)
             or not 0 < event_seq <= _MAX_EVENT_SEQ
             or any(field not in stored for field in required)):
