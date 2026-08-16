@@ -53,6 +53,7 @@ from .execution_state import ExecutionStateMixin  # v3.3 MKEP/0 execution kernel
 from .execution_handoff import ExecutionHandoffMixin  # v3.3 MKEP/0 typed handoff
 from .evaluation_corpus import EvaluationCorpusMixin  # v3.3 evaluation corpus
 from .improvement_ledger import ImprovementLedgerMixin  # continual improvement ledger preview
+from .correction_policy import CorrectionPolicyMixin  # correction learning policy preview
 from .delay_ledger import DelayLedgerMixin  # timing and delay evidence preview
 from .state_contract import StateContractMixin  # v3.3 project-state contract
 from .project_memory import ProjectMemoryMixin  # v3.5 project memory compiler preview
@@ -86,6 +87,7 @@ _ADDITIVE_ONLY_MIXINS = (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    CorrectionPolicyMixin,
     DelayLedgerMixin,
     StateContractMixin,
     ProjectMemoryMixin,
@@ -136,6 +138,7 @@ for _mixin in (
     ExecutionHandoffMixin,
     EvaluationCorpusMixin,
     ImprovementLedgerMixin,
+    CorrectionPolicyMixin,
     DelayLedgerMixin,
     StateContractMixin,
     ProjectMemoryMixin,
