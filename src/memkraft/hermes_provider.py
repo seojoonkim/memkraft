@@ -215,7 +215,10 @@ class MemKraftMemoryProvider(MemoryProvider):
         source = "hermes:{}".format(source_session)
         self._persist_completed_turn(source_session, content)
         with redirect_stdout(io.StringIO()):
-            self._store.extract(content, source=source)
+            if user_content:
+                self._store.extract(user_content, source=source + "#user")
+            if assistant_content:
+                self._store.extract(assistant_content, source=source + "#assistant")
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []
