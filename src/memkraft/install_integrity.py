@@ -160,13 +160,16 @@ def evaluate_probe(probe: Dict[str, object]) -> Dict[str, object]:
         reasons.append("version_mismatch")
     if isinstance(count, int) and count > 1:
         reasons.append("duplicate_distributions")
-    if distribution and not _inside(import_path, str(probe.get("distribution_location") or "")):
+    distribution_location = str(probe.get("distribution_location") or "")
+    import_inside_distribution = bool(distribution and _inside(import_path, distribution_location))
+    if distribution and not import_inside_distribution:
         reasons.append("import_outside_distribution")
     if probe.get("editable_redirects"):
         reasons.append("editable_redirect")
     try:
         resolved = str(Path(import_path).resolve())
-        if resolved == "/tmp" or resolved.startswith("/tmp/") or resolved == "/private/tmp" or resolved.startswith("/private/tmp/"):
+        ephemeral = resolved == "/tmp" or resolved.startswith("/tmp/") or resolved == "/private/tmp" or resolved.startswith("/private/tmp/")
+        if ephemeral and not import_inside_distribution:
             reasons.append("ephemeral_import")
     except OSError:
         reasons.append("collection_failure")

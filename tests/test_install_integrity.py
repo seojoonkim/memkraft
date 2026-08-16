@@ -53,6 +53,20 @@ def test_clean_wheel_is_consistent():
     assert report["reasons"] == []
 
 
+def test_clean_wheel_inside_ephemeral_venv_is_consistent():
+    report = install_integrity.evaluate_probe(
+        _probe(
+            import_path="/private/tmp/clean-venv/site-packages/memkraft/__init__.py",
+            distribution_location="/private/tmp/clean-venv/site-packages",
+            distribution_provenance=[
+                "/private/tmp/clean-venv/site-packages/memkraft-3.5.1.dist-info"
+            ],
+        )
+    )
+    assert report["consistent"] is True
+    assert report["reasons"] == []
+
+
 def test_offline_public_check_is_fail_closed():
     report = install_integrity.evaluate_probe(
         _probe(public_check_requested=True, errors=["pypi: offline"])
