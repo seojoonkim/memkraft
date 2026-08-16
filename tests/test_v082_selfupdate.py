@@ -3,12 +3,24 @@ from __future__ import annotations
 
 import json
 import sys
+from contextlib import contextmanager
 from io import BytesIO
 from unittest import mock
 
 import pytest
 
 from memkraft import selfupdate as su
+
+
+@pytest.fixture(autouse=True)
+def _clean_install_report():
+    """Legacy update tests model a single, healthy wheel installation."""
+    with mock.patch.object(su, "installation_report", side_effect=lambda: {
+        "consistent": True,
+        "package_version": su.installed_version(),
+        "reasons": [],
+    }):
+        yield
 
 
 # ---------- needs_update / _parse_version ----------
@@ -18,9 +30,10 @@ def test_parse_version_basic():
     assert su._parse_version("1.0.0") == (1, 0, 0)
 
 
-def test_parse_version_with_suffix():
-    # PEP 440-ish; we only care about numeric ordering up to first non-digit
-    assert su._parse_version("0.8.2rc1") == (0, 8, 2)
+@pytest.mark.parametrize("value", ["0.8.2rc1", "1.0", "v1.2.3", "1.2.3+local"])
+def test_parse_version_rejects_versions_outside_supported_public_shape(value):
+    with pytest.raises(ValueError):
+        su._parse_version(value)
 
 
 def test_needs_update_strictly_newer():
@@ -42,6 +55,41 @@ def test_needs_update_empty_inputs():
     assert su.needs_update("", "0.8.2") is False
     assert su.needs_update("0.8.2", "") is False
     assert su.needs_update("", "") is False
+
+
+def test_needs_update_rejects_unsupported_version():
+    with pytest.raises(ValueError):
+        su.needs_update("1.0.0rc1", "1.0.0")
+
+
+def _release_payload(files=None):
+    wheel = {
+        "filename": "memkraft-3.5.1-py3-none-any.whl",
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "url": "https://files.pythonhosted.org/x/memkraft-3.5.1-py3-none-any.whl",
+        "digests": {"sha256": "a" * 64},
+    }
+    return {"info": {"version": "3.5.1"}, "urls": [wheel] if files is None else files}
+
+
+def test_release_artifact_selects_official_universal_wheel():
+    with mock.patch.object(su.urllib.request, "urlopen", return_value=_mock_urlopen(_release_payload())):
+        artifact = su.release_artifact("3.5.1")
+    assert artifact["filename"].endswith("-py3-none-any.whl")
+    assert artifact["sha256"] == "a" * 64
+
+
+@pytest.mark.parametrize("files", [
+    [],
+    [_release_payload()["urls"][0]] * 2,
+    [{**_release_payload()["urls"][0], "url": "https://evil.example/x.whl"}],
+    [{**_release_payload()["urls"][0], "digests": {"sha256": "bad"}}],
+])
+def test_release_artifact_rejects_missing_ambiguous_or_invalid_wheel(files):
+    with mock.patch.object(su.urllib.request, "urlopen", return_value=_mock_urlopen(_release_payload(files))):
+        with pytest.raises(su.ArtifactError):
+            su.release_artifact("3.5.1")
 
 
 # ---------- latest_version (network mocked) ----------
@@ -121,14 +169,22 @@ def test_selfupdate_dry_run_when_newer(capsys):
 
 
 def test_selfupdate_runs_pip_when_newer(capsys):
+    artifact = {"filename": "memkraft-0.8.2-py3-none-any.whl", "url": "https://files.pythonhosted.org/x.whl", "sha256": "a" * 64}
+
+    @contextmanager
+    def downloaded(_artifact):
+        yield "/tmp/verified.whl"
+
     with mock.patch.object(su, "installed_version", return_value="0.8.1"), \
          mock.patch.object(su, "latest_version", return_value="0.8.2"), \
+         mock.patch.object(su, "release_artifact", return_value=artifact), \
+         mock.patch.object(su, "download_verified_wheel", side_effect=downloaded), \
          mock.patch.object(su.subprocess, "run", return_value=mock.MagicMock(returncode=0)) as run_mock:
         rc = su.selfupdate(dry_run=False)
     assert rc == 0
-    run_mock.assert_called_once()
-    cmd = run_mock.call_args[0][0]
-    assert "-m" in cmd and "pip" in cmd and "install" in cmd and "-U" in cmd and "memkraft" in cmd
+    assert run_mock.call_count == 2
+    cmd = run_mock.call_args_list[0].args[0]
+    assert cmd == [sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", "/tmp/verified.whl"]
 
 
 def test_selfupdate_pip_failure_propagates_returncode():

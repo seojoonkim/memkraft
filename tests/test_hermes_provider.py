@@ -1,5 +1,6 @@
 import hashlib
 import multiprocessing
+from unittest import mock
 
 import pytest
 
@@ -183,3 +184,75 @@ def test_completed_turn_remains_recallable_after_provider_reinitialization(tmp_p
     second.initialize("durable", hermes_home=str(tmp_path))
 
     assert "CobaltHeron" in second.prefetch("CobaltHeron", session_id="durable")
+
+
+@pytest.mark.parametrize("mode", ["", "warn"])
+def test_install_check_default_and_warn_expose_report_without_failing(tmp_path, monkeypatch, mode):
+    if mode:
+        monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", mode)
+    report = {"consistent": False, "reasons": ["editable_redirect"]}
+    with mock.patch("memkraft.hermes_provider.installation_report", return_value=report):
+        provider = MemKraftMemoryProvider()
+        provider.initialize("warn", hermes_home=str(tmp_path))
+    assert provider._installation_report == report
+
+
+def test_install_check_strict_rejects_inconsistent_install(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", "strict")
+    report = {"consistent": False, "reasons": ["version_mismatch"]}
+    with mock.patch("memkraft.hermes_provider.installation_report", return_value=report):
+        with pytest.raises(RuntimeError, match="version_mismatch"):
+            MemKraftMemoryProvider().initialize("strict", hermes_home=str(tmp_path))
+
+
+def test_install_check_off_skips_probe(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", "off")
+    with mock.patch("memkraft.hermes_provider.installation_report") as probe:
+        provider = MemKraftMemoryProvider()
+        provider.initialize("off", hermes_home=str(tmp_path))
+    probe.assert_not_called()
+    assert provider._installation_report is None
+
+
+def test_installation_report_method_returns_fresh_report():
+    report = {"consistent": True, "reasons": []}
+    with mock.patch("memkraft.hermes_provider.installation_report", return_value=report):
+        assert MemKraftMemoryProvider().installation_report() == report
+
+
+def test_install_check_warn_catches_probe_exception_and_initializes(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", "warn")
+    with mock.patch("memkraft.hermes_provider.installation_report", side_effect=OSError("metadata unavailable")):
+        provider = MemKraftMemoryProvider()
+        provider.initialize("warn-exception", hermes_home=str(tmp_path))
+    assert provider._store is not None
+    assert provider._installation_report["reasons"] == ["probe_exception"]
+    assert provider._installation_report["errors"] == ["OSError: metadata unavailable"]
+
+
+def test_install_check_strict_wraps_probe_exception(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", "strict")
+    with mock.patch("memkraft.hermes_provider.installation_report", side_effect=OSError("metadata unavailable")):
+        with pytest.raises(RuntimeError, match="probe_exception"):
+            MemKraftMemoryProvider().initialize("strict-exception", hermes_home=str(tmp_path))
+
+
+def test_hermes_manager_loads_entrypoint_despite_warn_duplicate_report(tmp_path, monkeypatch):
+    from importlib.metadata import EntryPoint
+    from agent.memory_manager import MemoryManager
+
+    monkeypatch.setenv("MEMKRAFT_INSTALL_CHECK", "warn")
+    manager = MemoryManager()
+
+    class Context:
+        def register_memory_provider(self, provider):
+            manager.add_provider(provider)
+
+    report = {"consistent": False, "reasons": ["duplicate_distributions"]}
+    register = EntryPoint("memkraft", "memkraft.hermes_provider:register", "hermes_agent.memory_providers").load()
+    with mock.patch("memkraft.hermes_provider.installation_report", return_value=report):
+        register(Context())
+        provider = manager.get_provider("memkraft")
+        assert provider is not None
+        provider.initialize("manager", hermes_home=str(tmp_path))
+    assert provider._installation_report == report

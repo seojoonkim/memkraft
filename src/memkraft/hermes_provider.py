@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import os
 import threading
 import time
@@ -20,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from agent.memory_provider import MemoryProvider
 
 from . import MemKraft
+from .install_integrity import installation_report
 
 
 _TURN_WRITE_LOCK = threading.RLock()
@@ -89,6 +91,7 @@ class MemKraftMemoryProvider(MemoryProvider):
     def __init__(self) -> None:
         self._store: Optional[MemKraft] = None
         self._session_id = ""
+        self._installation_report: Optional[Dict[str, object]] = None
 
     @property
     def name(self) -> str:
@@ -97,7 +100,30 @@ class MemKraftMemoryProvider(MemoryProvider):
     def is_available(self) -> bool:
         return True
 
+    def installation_report(self) -> Dict[str, object]:
+        """Return a fresh, machine-readable report for this interpreter."""
+        return installation_report()
+
     def initialize(self, session_id: str, **kwargs: Any) -> None:
+        mode = os.environ.get("MEMKRAFT_INSTALL_CHECK", "warn").strip().lower()
+        if mode != "off":
+            try:
+                self._installation_report = self.installation_report()
+            except Exception as exc:
+                self._installation_report = {
+                    "consistent": False,
+                    "reasons": ["probe_exception"],
+                    "errors": ["{}: {}".format(type(exc).__name__, exc)],
+                }
+            if not self._installation_report["consistent"]:
+                reasons = self._installation_report.get("reasons")
+                detail = ", ".join(str(reason) for reason in reasons) if isinstance(reasons, list) else "unknown drift"
+                if mode == "strict":
+                    raise RuntimeError("Inconsistent MemKraft installation: {}".format(detail))
+                logging.getLogger(__name__).warning(
+                    "Inconsistent MemKraft installation: %s; run `memkraft selfupdate --converge`",
+                    detail,
+                )
         hermes_home = Path(str(kwargs.get("hermes_home") or Path.home() / ".hermes"))
         base_dir = Path(os.environ.get("MEMKRAFT_DIR", str(hermes_home / "memkraft")))
         self._store = MemKraft(base_dir=str(base_dir))

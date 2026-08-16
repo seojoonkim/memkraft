@@ -359,6 +359,8 @@ def main(argv=None):
     # doctor
     doctor_parser = subparsers.add_parser("doctor", help="Health check for MemKraft install + memory structure")
     doctor_parser.add_argument("--check-updates", action="store_true", help="Also check PyPI for newer version (requires network)")
+    doctor_parser.add_argument("--install", action="store_true", help="Check installation integrity only")
+    doctor_parser.add_argument("--json", action="store_true", help="Machine-readable output (requires --install)")
     doctor_parser.add_argument("--base-dir", default="", help="Override base directory")
     doctor_parser.add_argument("--fix", action="store_true", help="Auto-repair missing structure (safe: create-only, never deletes)")
     doctor_parser.add_argument("--dry-run", action="store_true", help="Preview fixes without applying (use with --fix)")
@@ -380,6 +382,8 @@ def main(argv=None):
     # selfupdate
     su_parser = subparsers.add_parser("selfupdate", help="Self-upgrade MemKraft via pip (when newer version on PyPI)")
     su_parser.add_argument("--dry-run", action="store_true", help="Check only, do not install")
+    su_parser.add_argument("--converge", action="store_true", help="Force-reinstall the exact PyPI version as a wheel")
+    su_parser.add_argument("--yes", action="store_true", help="Confirm convergence without prompting")
 
     # watch
     watch_parser = subparsers.add_parser("watch", help="Watch memory/ for changes and auto-reindex (requires memkraft[watch])")
@@ -396,6 +400,9 @@ def main(argv=None):
     fresh_parser.add_argument("--json", action="store_true", help="Machine-readable output")
 
     args = parser.parse_args(effective_argv)
+
+    if args.command == "doctor" and getattr(args, "json", False) and not getattr(args, "install", False):
+        doctor_parser.error("--json requires --install")
 
     if not args.command:
         parser.print_help()
