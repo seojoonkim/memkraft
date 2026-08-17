@@ -1,4 +1,4 @@
-**v3.6.1**
+**v3.6.2**
 
 <div align="center">
 
@@ -486,7 +486,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.6.1**.
+Current version: **3.6.2**.
 
 ```bash
 pipx upgrade memkraft
@@ -500,7 +500,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.6.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.1) (current)
+### [v3.6.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.2) (current)
+
+MemKraft 3.6.2 adds structured completed-content artifacts with exact phrase and provenance-scoped retrieval. It preserves direct source turns over summaries, does not invent missing runtime metadata, and publishes artifact metadata atomically. Read the [release notes](docs/releases/3.6.2.md).
+
+### [v3.6.1](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.1)
 
 MemKraft 3.6.1 is the publishable integrity patch for the 3.6 Correction Learning line. It binds promoted ledger evidence to the exact injected correction payload, verifies visible persisted correction metadata on replay, and preserves legacy Hermes extraction for callers that do not provide role messages. Read the [release notes](docs/releases/3.6.1.md).
 

@@ -3,92 +3,42 @@
   "features": [
     {
       "commits": [
-        "cbe749382d00d1b3e32a1f342a5615b04edacb8d",
-        "4ca588311ef9757e725cce78d38c7e1ff8ac17b4",
-        "a261c6f6805a87bd2fa768e49fcd1c9d28b10c8b",
-        "899aec84d8c9d8e46435e8c0055514c61ee53e82",
-        "f4fb481340aac73e108cb9e8a0398abf8f3f5aa4",
-        "3f90b9e8f389334065bdfc19949c0bdeb80b012e",
-        "2ce982d6f340b8dfef55c741804762cf8e70dc6e",
-        "3b20b9ebbf0ec21a18651935b8d2ee04a40d0ca6",
-        "18e5ca6adff6c69e621c0ce37fc05403adbde3a8"
+        "1b7a724f8cd693f777799e097c6f2f427d0f6f17"
       ],
       "evaluation_refs": [
         {
           "kind": "pytest",
           "node": "all",
-          "path": "tests/test_correction_policy.py"
+          "path": "tests/test_artifacts.py"
         },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_correction_injection.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_correction_outcomes.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_correction_benchmark_gate.py"
-        },
-        {
-          "kind": "pytest",
-          "node": "all",
-          "path": "tests/test_correction_ledger_authority.py"
-        }
-      ],
-      "id": "feature.correction-learning-3.6",
-      "promotion_evidence": [
-        {
-          "claim": "Governed correction policies",
-          "kind": "release-note",
-          "path": "docs/releases/3.6.0.md"
-        }
-      ],
-      "proposal_id": "prop.correction-learning-3.6",
-      "revision_id": "r1",
-      "source_paths": [
-        "src/memkraft/__init__.py",
-        "src/memkraft/correction_policy.py",
-        "src/memkraft/evaluation_corpus.py",
-        "src/memkraft/improvement_ledger.py"
-      ],
-      "state": "verified"
-    },
-    {
-      "commits": [
-        "b96cd94f8058738abdc042eb472f350b4152842a",
-        "18e5ca6adff6c69e621c0ce37fc05403adbde3a8"
-      ],
-      "evaluation_refs": [
         {
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_hermes_provider.py"
         }
       ],
-      "id": "feature.hermes-role-evidence-3.6",
+      "id": "feature.provenance-artifact-retrieval-3.6.2",
       "promotion_evidence": [
         {
-          "claim": "Preserves user and assistant evidence as separate roles.",
+          "claim": "Provenance-aware completed-content artifacts",
           "kind": "release-note",
-          "path": "docs/releases/3.6.0.md"
+          "path": "docs/releases/3.6.2.md"
         }
       ],
-      "proposal_id": "prop.hermes-role-evidence-3.6",
+      "proposal_id": "prop.provenance-artifact-retrieval-3.6.2",
       "revision_id": "r1",
       "source_paths": [
+        "src/memkraft/__init__.py",
+        "src/memkraft/artifacts.py",
+        "src/memkraft/core.py",
         "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/3.6.1",
-    "base_sha": "b32d95fe2225fdb0a64c79ce2004b992ebf170b0",
+    "active_branch": "release/3.6.2",
+    "base_sha": "525b2335c921d4badd4108699974cd6d02f389a0",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
       ".github/workflows/hermes-compat.yml",
@@ -127,6 +77,7 @@
       "docs/releases/3.5.2.md",
       "docs/releases/3.6.0.md",
       "docs/releases/3.6.1.md",
+      "docs/releases/3.6.2.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -174,6 +125,7 @@
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_install_integrity.py",
       "tests/test_packaging_version.py",
+      "tests/test_artifacts.py",
       "tests/test_project_memory_api.py",
       "tests/test_project_memory_contract.py",
       "tests/test_project_memory_normalize.py",
@@ -193,7 +145,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.6.1"
+    "version": "3.6.2"
   },
   "schema": 2
 }

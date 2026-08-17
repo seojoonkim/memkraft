@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [3.6.2] — 2026-08-17
+
+- Added provenance-aware completed-content artifact persistence with exact phrase, origin, session, channel, thread, and lineage-scoped retrieval.
+- Preserved direct source turns ahead of summaries without fabricating missing provenance, and normalized offset-aware timestamps for deterministic ordering.
+- Added crash-safe metadata publication and cleanup so partial artifact writes cannot leak orphaned content into ordinary search.
+
 ## [3.6.1] — 2026-08-17
 
 - Bound promoted Improvement Ledger revisions to the exact canonical correction payload injected into context and rejected unrelated approved digests.
