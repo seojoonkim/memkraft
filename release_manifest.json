@@ -21,7 +21,7 @@
       "id": "feature.provenance-artifact-retrieval-3.6.2",
       "promotion_evidence": [
         {
-          "claim": "Provenance-aware completed-content artifacts",
+          "claim": "provenance-aware artifact layer for completed content",
           "kind": "release-note",
           "path": "docs/releases/3.6.2.md"
         }
