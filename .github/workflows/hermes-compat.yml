@@ -34,6 +34,12 @@ jobs:
     name: Hermes ${{ matrix.hermes }} / Python ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Check out pinned Hermes source
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          ref: ${{ matrix.hermes-ref }}
+          path: hermes-agent
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -43,14 +49,12 @@ jobs:
           python -m build --wheel
       - name: Install pinned Hermes source and candidate wheel
         run: |
-          git clone https://github.com/NousResearch/hermes-agent.git /tmp/hermes-agent
-          git -C /tmp/hermes-agent checkout --detach "${{ matrix.hermes-ref }}"
-          test "$(git -C /tmp/hermes-agent rev-parse HEAD)" = "${{ matrix.hermes-ref }}"
-          python -m pip install -e /tmp/hermes-agent
+          test "$(git -C hermes-agent rev-parse HEAD)" = "${{ matrix.hermes-ref }}"
+          python -m pip install -e hermes-agent
           python -m pip install dist/*.whl
       - name: Run installed-wheel lifecycle
         env:
-          PYTHONPATH: /tmp/hermes-agent
+          PYTHONPATH: ${{ github.workspace }}/hermes-agent
         run: |
           install -d -m 700 "$RUNNER_TEMP/hermes-home"
           python tests/hermes_lifecycle_smoke.py \
