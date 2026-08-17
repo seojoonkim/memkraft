@@ -3774,7 +3774,7 @@ class MemKraft:
         return _lh.extract_section(content, section_name)
 
     def _all_md_files(self):
-        dirs = [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir]
+        dirs = [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir, self.base_dir / "artifacts"]
         return _lh.all_md_files(dirs, self.base_dir)
 
     def _safe_read(self, path: Path) -> str:

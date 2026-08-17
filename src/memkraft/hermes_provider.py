@@ -205,6 +205,9 @@ class MemKraftMemoryProvider(MemoryProvider):
         *,
         session_id: str = "",
         messages: Optional[List[Dict[str, Any]]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        provenance: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> None:
         if self._store is None or not (user_content or assistant_content):
             return
@@ -212,6 +215,18 @@ class MemKraftMemoryProvider(MemoryProvider):
         source_session = session_id or self._session_id or "unknown"
         source = "hermes:{}".format(source_session)
         self._persist_completed_turn(source_session, content)
+        artifact_provenance: Dict[str, Any] = {}
+        artifact_provenance.update(metadata or {})
+        artifact_provenance.update(provenance or {})
+        artifact_provenance.update(kwargs)
+        artifact_provenance["session_id"] = source_session
+        if messages:
+            for message in messages:
+                role = message.get("role")
+                message_id = message.get("message_id", message.get("id"))
+                if message_id is not None and role in ("user", "assistant"):
+                    artifact_provenance.setdefault(role + "_platform_message_id", message_id)
+        self._store.persist_artifact(content, provenance=artifact_provenance, source=source)
         with redirect_stdout(io.StringIO()):
             if messages is None:
                 # Preserve the pre-3.6 extraction contract for existing callers.

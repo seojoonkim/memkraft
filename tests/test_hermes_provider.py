@@ -52,6 +52,40 @@ def test_completed_turn_is_persisted_and_recalled_on_next_turn(tmp_path):
     assert any(path.is_file() for path in (hermes_home / "memkraft").rglob("*.md"))
 
 
+def test_sync_turn_accepts_generic_provenance_and_platform_message_ids(tmp_path):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("fallback-session", hermes_home=str(tmp_path))
+
+    provider.sync_turn(
+        "Artifact title: Generic Provenance Contract",
+        "Completed artifact body.",
+        session_id="artifact-session",
+        metadata={
+            "parent_session_id": "parent-session", "lineage_key": "lineage-1",
+            "platform": "telegram", "chat_id": 42, "thread_id": 7,
+            "account_id": "acct", "profile": "default", "agent_identity": "general-agent",
+            "timestamp": "2026-08-17T12:00:00Z", "origin_kind": "original",
+        },
+        messages=[
+            {"role": "user", "content": "Artifact title", "message_id": 100},
+            {"role": "assistant", "content": "Completed", "id": "101"},
+        ],
+    )
+
+    result = provider._store.search_artifacts(
+        "Generic Provenance Contract",
+        provenance={"session_id": "artifact-session", "profile": "default"},
+    )[0]
+    assert result["provenance"] == {
+        "session_id": "artifact-session", "parent_session_id": "parent-session",
+        "lineage_key": "lineage-1", "platform": "telegram", "chat_id": "42",
+        "thread_id": "7", "account_id": "acct", "profile": "default",
+        "agent_identity": "general-agent", "user_platform_message_id": "100",
+        "assistant_platform_message_id": "101", "timestamp": "2026-08-17T12:00:00Z",
+        "origin_kind": "original",
+    }
+
+
 def test_sync_turn_extracts_user_and_assistant_as_role_specific_evidence(tmp_path):
     provider = MemKraftMemoryProvider()
     provider.initialize("role-separated", hermes_home=str(tmp_path))
