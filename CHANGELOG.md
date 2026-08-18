@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [3.7.0] — 2026-08-18
+
+- Added an additive append-only typed Memory Graph projection for artifacts, claims, typed relations, and lifecycle state without modifying the legacy graph database or correction authority.
+- Added canonical normalization, strict append/replay hashing, CAS/idempotent operations, bitemporal validity, provenance-path explanations, exact-first retrieval, contradiction/supersession lifecycle handling, and blast-radius validation.
+- Added atomic mutation safeguards with advisory locking, short-write rollback, stale-lock tolerance, fail-closed correction-ledger references, and inactive-seed isolation.
+- Added `graph-replay` and `graph-recall` CLI commands while preserving existing APIs and legacy stores.
+
 ## [3.6.2] — 2026-08-17
 
 - Added provenance-aware completed-content artifact persistence with exact phrase, origin, session, channel, thread, and lineage-scoped retrieval.

@@ -1,4 +1,4 @@
-**v3.6.2**
+**v3.7.0**
 
 <div align="center">
 
@@ -486,7 +486,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **3.6.2**.
+Current version: **3.7.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -500,7 +500,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.6.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.2) (current)
+### [v3.7.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.7.0) (current)
+
+MemKraft 3.7.0 adds an additive typed Memory Graph for accountable claims, artifacts, relations, lifecycles, provenance paths, guarded atomic mutation, exact-first retrieval, strict replay, and CLI inspection. Existing APIs and legacy stores remain compatible. Read the [release notes](docs/releases/3.7.0.md).
+
+### [v3.6.2](https://github.com/seojoonkim/memkraft/releases/tag/v3.6.2)
 
 MemKraft 3.6.2 adds structured completed-content artifacts with exact phrase and provenance-scoped retrieval. It preserves direct source turns over summaries, does not invent missing runtime metadata, and publishes artifact metadata atomically. Read the [release notes](docs/releases/3.6.2.md).
 

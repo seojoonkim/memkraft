@@ -3,43 +3,47 @@
   "features": [
     {
       "commits": [
-        "1b7a724f8cd693f777799e097c6f2f427d0f6f17",
-        "7ae9856e6a7e7da5ca15442dfd014b322f7198ee"
+        "4649a6142f28f5f5b554cd916f10951072a06912"
       ],
       "evaluation_refs": [
         {
           "kind": "pytest",
           "node": "all",
-          "path": "tests/test_artifacts.py"
+          "path": "tests/test_memory_graph_release.py"
         },
         {
           "kind": "pytest",
           "node": "all",
-          "path": "tests/test_hermes_provider.py"
+          "path": "tests/test_memory_graph_schema.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_packaging_version.py"
         }
       ],
-      "id": "feature.provenance-artifact-retrieval-3.6.2",
+      "id": "feature.typed-memory-graph-3.7.0",
       "promotion_evidence": [
         {
-          "claim": "provenance-aware artifact layer for completed content",
+          "claim": "additive typed Memory Graph",
           "kind": "release-note",
-          "path": "docs/releases/3.6.2.md"
+          "path": "docs/releases/3.7.0.md"
         }
       ],
-      "proposal_id": "prop.provenance-artifact-retrieval-3.6.2",
+      "proposal_id": "prop.typed-memory-graph-3.7.0",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/__init__.py",
+        "src/memkraft/memory_graph.py",
         "src/memkraft/artifacts.py",
-        "src/memkraft/core.py",
-        "src/memkraft/hermes_provider.py"
+        "src/memkraft/cli.py",
+        "src/memkraft/__init__.py"
       ],
       "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/3.6.2",
-    "base_sha": "525b2335c921d4badd4108699974cd6d02f389a0",
+    "active_branch": "release/3.7.0",
+    "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
       ".github/workflows/hermes-compat.yml",
@@ -79,6 +83,7 @@
       "docs/releases/3.6.0.md",
       "docs/releases/3.6.1.md",
       "docs/releases/3.6.2.md",
+      "docs/releases/3.7.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -92,6 +97,7 @@
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/hermes_lifecycle_smoke.py",
+      "tests/test_artifacts.py",
       "tests/test_benchmark_scripts.py",
       "tests/test_cli_release_smoke.py",
       "tests/test_context_compiler.py",
@@ -125,8 +131,9 @@
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_install_integrity.py",
+      "tests/test_memory_graph_release.py",
+      "tests/test_memory_graph_schema.py",
       "tests/test_packaging_version.py",
-      "tests/test_artifacts.py",
       "tests/test_project_memory_api.py",
       "tests/test_project_memory_contract.py",
       "tests/test_project_memory_normalize.py",
@@ -146,7 +153,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.6.2"
+    "version": "3.7.0"
   },
   "schema": 2
 }
