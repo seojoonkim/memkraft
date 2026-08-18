@@ -8,9 +8,9 @@ authority behind it — Hermes remains the sole authority for that.
 
 Selection is a pure function of the persisted records and an explicitly
 supplied timezone-aware ``now``; there is no implicit clock, so a compiled
-context is reproducible from its inputs. Malformed or expired records are
-dropped on read rather than repaired, and at most :data:`MAX_ACTIVE_FOCUS`
-entries are ever returned.
+context is reproducible from its inputs. Semantically malformed records are
+dropped, but physical JSONL corruption fails the ledger closed. At most
+:data:`MAX_ACTIVE_FOCUS` entries are ever returned.
 """
 from __future__ import annotations
 
@@ -188,7 +188,10 @@ class FocusMixin:
         return Path(self.base_dir) / ".memkraft" / "focus" / "events.jsonl"
 
     def _focus_read(self) -> List[Dict[str, Any]]:
-        return read_all(self._focus_events_path()).records
+        result = read_all(self._focus_events_path())
+        if result.skipped:
+            _fail("focus ledger is not structurally valid")
+        return result.records
 
     def focus_record(self, topic: Any, statement: Any, *, now: Any,
                      ttl_seconds: int = 3600) -> Dict[str, Any]:

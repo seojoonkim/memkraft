@@ -1,3 +1,4 @@
+**v3.8.0**
 Current version: **3.8.0**
 
 <div align="center">

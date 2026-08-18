@@ -314,7 +314,6 @@ def test_authority_active_skips_malformed_persisted_records(tmp_path):
         "privacy": "local_private", "authority_verified": False,
     }
     with open(mk._authority_events_path(), "a", encoding="utf-8") as handle:
-        handle.write("{not json\n")
         for index, bad in enumerate((
             {"authority_id": "bad id!"},
             {"authority_id": "unverified", "authority_verified": True},
@@ -484,3 +483,20 @@ def test_focus_output_is_unchanged_by_the_authority_feature(tmp_path):
     assert [item["statement"] for item in with_focus_only["sections"]["focus"]] == [
         "cut 3.8.0"
     ]
+
+
+def test_authority_states_projects_expired_status(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    _assert(mk, expires_at=_later(60))
+
+    assert mk.authority_states(now=_later(60))[0]["status"] == "expired"
+
+
+def test_authority_read_fails_closed_on_corrupt_jsonl(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    _assert(mk)
+    with mk._authority_events_path().open("a", encoding="utf-8") as stream:
+        stream.write("{not-json}\n")
+
+    with pytest.raises(AuthorityError, match="not structurally valid"):
+        mk.authority_active(now=NOW)

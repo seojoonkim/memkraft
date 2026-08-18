@@ -11,8 +11,8 @@ authority for all of that. ``authority_verified`` is therefore written as
 
 Selection is a pure function of the persisted records and an explicitly
 supplied timezone-aware ``now``; there is no implicit clock, so a compiled
-context is reproducible from its inputs. Malformed persisted records are
-dropped on read rather than repaired, and at most
+context is reproducible from its inputs. Semantically malformed records are
+dropped, but physical JSONL corruption fails the ledger closed. At most
 :data:`MAX_ACTIVE_AUTHORITY` entries are ever returned.
 """
 from __future__ import annotations
@@ -50,6 +50,7 @@ _REVOCATION = "authority_revocation"
 _ASSERTED = "asserted"
 _REVOKED = "revoked"
 _SUPERSEDED = "superseded"
+_EXPIRED = "expired"
 
 AUTHORITY_ERROR_REGISTRY = {
     "E_AUTHORITY_VALIDATION": ("input", False),
@@ -225,6 +226,9 @@ def authority_states(records: List[Dict[str, Any]],
             status = _SUPERSEDED
         elif revoked_key is not None and revoked_key > assertion_key:
             status = _REVOKED
+        elif (now is not None and record.get("expires_at") is not None
+              and record["expires_at"] <= now):
+            status = _EXPIRED
         else:
             status = _ASSERTED
         entries.append(_entry(record, status))
@@ -257,7 +261,10 @@ class AuthorityMixin:
         return Path(self.base_dir) / ".memkraft" / "authority" / "events.jsonl"
 
     def _authority_read(self) -> List[Dict[str, Any]]:
-        return read_all(self._authority_events_path()).records
+        result = read_all(self._authority_events_path())
+        if result.skipped:
+            _fail("authority ledger is not structurally valid")
+        return result.records
 
     def _authority_limit(self, limit: Any) -> int:
         if (not isinstance(limit, int) or isinstance(limit, bool)

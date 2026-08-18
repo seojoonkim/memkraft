@@ -184,7 +184,6 @@ def test_focus_active_skips_malformed_persisted_records(tmp_path):
     mk.focus_record("release", "cut 3.8.0", now=NOW, ttl_seconds=600)
     path = mk._focus_events_path()
     with open(path, "a", encoding="utf-8") as handle:
-        handle.write("{not json\n")
         handle.write(json.dumps({
             "id": "x1", "schema_version": 1, "record_type": "focus",
             "topic": "bad topic!", "statement": "nope",
@@ -355,3 +354,13 @@ def test_focus_changes_the_usage_id_only_when_it_is_compiled(tmp_path):
     mk.focus_record("release", "cut 3.8.0", now=NOW, ttl_seconds=600)
     with_focus = mk.compile_context("answer the user", 800, now=NOW, focus_budget=200)
     assert without["usage_id"] != with_focus["usage_id"]
+
+
+def test_focus_read_fails_closed_on_corrupt_jsonl(tmp_path):
+    mk = MemKraft(str(tmp_path))
+    mk.focus_record("release", "cut 3.8.0", now=NOW, ttl_seconds=600)
+    with mk._focus_events_path().open("a", encoding="utf-8") as stream:
+        stream.write("{not-json}\n")
+
+    with pytest.raises(FocusError, match="not structurally valid"):
+        mk.focus_active(now=NOW)
