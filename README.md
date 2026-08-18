@@ -1,4 +1,4 @@
-**v3.7.0**
+Current version: **3.8.0**
 
 <div align="center">
 
@@ -500,7 +500,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.7.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.7.0) (current)
+### [v3.8.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.8.0) (current)
+
+MemKraft 3.8.0 adds opt-in ambient context: TTL-bound Current Focus and a separate append-only Decision Authority provenance ledger. Both compile into bounded context only when explicitly budgeted; unused compiler output and identity remain compatible. Read the [release notes](docs/releases/3.8.0.md).
+
+### [v3.7.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.7.0)
 
 MemKraft 3.7.0 adds an additive typed Memory Graph for accountable claims, artifacts, relations, lifecycles, provenance paths, guarded atomic mutation, exact-first retrieval, strict replay, and CLI inspection. Existing APIs and legacy stores remain compatible. Read the [release notes](docs/releases/3.7.0.md).
 
