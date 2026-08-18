@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [3.8.0] — 2026-08-19
+
+- Added TTL-bound Current Focus records with deterministic as-of projection, explicit release, fail-closed replay, and bounded rendering.
+- Added a separate append-only Decision Authority provenance ledger with active/revoked/superseded/expired lifecycle projection; it records context provenance but grants no execution authority.
+- Added opt-in focus and authority budgets to context compilation while preserving byte-identical output and `usage_id` when both features are unused.
+- Added regression coverage for future-record isolation, same-timestamp ordering, canonical validation, source aggregation, corruption handling, and Hermes provider compatibility.
+
 ## [3.7.0] — 2026-08-18
 
 - Added an additive append-only typed Memory Graph projection for artifacts, claims, typed relations, and lifecycle state without modifying the legacy graph database or correction authority.
