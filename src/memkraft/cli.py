@@ -119,6 +119,18 @@ def main(argv=None):
     # health-check
     subparsers.add_parser("health-check", help="Run memory health assertions (self-diagnostic)")
 
+    # memory graph (v3.7 additive)
+    graph_replay_parser = subparsers.add_parser("graph-replay", help="Validate and summarize the append-only memory graph")
+    graph_replay_parser.add_argument("--base-dir", default="", help="Override base directory")
+    graph_recall_parser = subparsers.add_parser("graph-recall", help="Exact-first memory graph retrieval")
+    graph_recall_parser.add_argument("query", help="Exact graph query")
+    graph_recall_parser.add_argument("--base-dir", default="", help="Override base directory")
+    graph_recall_parser.add_argument("--scope", default=None)
+    graph_recall_parser.add_argument("--include-inactive", action="store_true")
+    graph_recall_parser.add_argument("--max-hops", type=int, default=2)
+    graph_recall_parser.add_argument("--limit", type=int, default=20)
+    graph_recall_parser.add_argument("--json", action="store_true")
+
     # links
     links_parser = subparsers.add_parser("links", help="Show backlinks to an entity")
     links_parser.add_argument("name", help="Entity name")
@@ -419,7 +431,8 @@ def main(argv=None):
         forwarded.extend(["--lock-timeout", args.lock_timeout])
         return execution_cli.main(forwarded)
 
-    mc = MemKraft()
+    configured_base_dir = getattr(args, "base_dir", "") or None
+    mc = MemKraft(base_dir=configured_base_dir) if configured_base_dir else MemKraft()
 
     if args.command == "init":
         # First, run normal init to lay down memory/ structure
@@ -534,6 +547,19 @@ def main(argv=None):
                           file_back=getattr(args, 'file_back', False))
     elif args.command == "health-check":
         mc.health_check()
+    elif args.command == "graph-replay":
+        result = mc.memory_graph_replay_check()
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    elif args.command == "graph-recall":
+        result = mc.memory_graph_recall(
+            args.query, scope=args.scope, include_inactive=args.include_inactive,
+            max_hops=args.max_hops, limit=args.limit)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        else:
+            for item in result:
+                claim = item["claim"]
+                print("{} [{}] {}".format(claim["claim_id"], item["state"], claim["statement"]))
     elif args.command == "resolve-conflicts":
         mc.resolve_conflicts(strategy=args.strategy, dry_run=args.dry_run)
     elif args.command == "debug":

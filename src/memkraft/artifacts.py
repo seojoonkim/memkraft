@@ -178,6 +178,23 @@ class ArtifactMixin:
         found.sort(key=rank, reverse=True)
         return found[:top_k] if isinstance(top_k, int) and top_k > 0 else found
 
+    def artifact_lookup(self, source_handle: str) -> Optional[Dict[str, Any]]:
+        """Resolve one exact artifact handle without mutating artifact state."""
+        if not isinstance(source_handle, str) or not source_handle:
+            return None
+        artifact_id = (source_handle.split(":", 1)[1]
+                       if source_handle.startswith("artifact:") else source_handle)
+        if not re.fullmatch(r"[0-9a-f]{32}", artifact_id):
+            return None
+        path = self.base_dir / "artifacts" / (artifact_id + ".json")
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            return None
+        if not isinstance(record, dict) or record.get("id") != artifact_id:
+            return None
+        return self._artifact_result(record, path, score=1.0)
+
     def _artifact_result(self, record: Mapping[str, Any], path: Path, score: float) -> Dict[str, Any]:
         return {
             "content": str(record.get("content") or ""),
