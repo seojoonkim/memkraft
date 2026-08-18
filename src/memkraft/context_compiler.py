@@ -6,7 +6,10 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from .authority import MAX_AUTHORITY_TOKENS
+from .authority import require_aware_now as require_aware_authority_now
 from .execution_projection import project
+from .focus import MAX_FOCUS_TOKENS, require_aware_now
 from .store_core import read_all
 
 
@@ -65,6 +68,8 @@ class ContextCompilerMixin:
         pinned_sources: Optional[List[str]] = None,
         goal_id: Optional[str] = None,
         execution_budget: int = 0,
+        focus_budget: int = 0,
+        authority_budget: int = 0,
     ) -> Dict[str, Any]:
         task = _required_text(task, "task")
         if type(budget) is not int or budget <= 0:
@@ -77,6 +82,24 @@ class ContextCompilerMixin:
             goal_id = _required_text(goal_id, "goal_id")
         if type(execution_budget) is not int or execution_budget < 0:
             raise ValueError("execution_budget must be a non-negative integer")
+        if type(focus_budget) is not int or focus_budget < 0:
+            raise ValueError("focus_budget must be a non-negative integer")
+        focus_enabled = focus_budget > 0
+        if focus_enabled:
+            # Focus is TTL-bounded, so it is only reproducible against a `now`
+            # the caller stated explicitly rather than one we invent here.
+            require_aware_now(now)
+            if focus_budget >= budget - execution_budget:
+                raise ValueError("focus_budget must leave room within budget")
+        if type(authority_budget) is not int or authority_budget < 0:
+            raise ValueError("authority_budget must be a non-negative integer")
+        authority_enabled = authority_budget > 0
+        if authority_enabled:
+            # Authority selection is window-bounded, so like focus it is only
+            # reproducible against a `now` the caller stated explicitly.
+            require_aware_authority_now(now)
+            if authority_budget >= budget - execution_budget - focus_budget:
+                raise ValueError("authority_budget must leave room within budget")
         if pinned_sources is not None and (not isinstance(pinned_sources, list) or any(
             not isinstance(source, str) or not source.strip() for source in pinned_sources
         )):
@@ -127,7 +150,8 @@ class ContextCompilerMixin:
         sources: List[str] = []
         used = _rendered_tokens(sections, sources)
         execution_enabled = goal_id is not None and execution_budget > 0
-        content_budget = budget - execution_budget if execution_enabled else budget
+        content_budget = (budget - (execution_budget if execution_enabled else 0)
+                          - focus_budget - authority_budget)
         for name, candidates in (("truth", truth), ("timeline", timeline), ("session", session)):
             baseline = {self._context_item_id(name, item): index for index, item in enumerate(candidates)}
             candidates.sort(key=lambda item: (
@@ -144,6 +168,64 @@ class ContextCompilerMixin:
                     sections = proposed
                     sources = proposed_sources
                     used = proposed_tokens
+        if focus_enabled:
+            # Focus goes in before execution so the gates stay the last thing
+            # read, and is capped independently of the caller's budget.
+            focus: List[Dict[str, Any]] = []
+            for entry in self.focus_active(now=now):
+                item = {
+                    "topic": entry["topic"],
+                    "statement": entry["statement"],
+                    "expires_at": entry["expires_at"],
+                    "source": "current_focus",
+                }
+                proposed_focus = focus + [item]
+                focus_tokens = _rendered_tokens({"focus": proposed_focus}, [])
+                proposed = {key: list(items) for key, items in sections.items()}
+                proposed["focus"] = proposed_focus
+                proposed_sources = _sources(proposed)
+                proposed_tokens = _rendered_tokens(proposed, proposed_sources)
+                if (focus_tokens <= min(focus_budget, MAX_FOCUS_TOKENS)
+                        and proposed_tokens <= budget - (
+                            execution_budget if execution_enabled else 0)):
+                    focus = proposed_focus
+                    sources = proposed_sources
+                    used = proposed_tokens
+            if focus:
+                sections["focus"] = focus
+        if authority_enabled:
+            # Authority sits after focus and before execution: it is provenance
+            # for the gates, never a substitute for reading them. The section is
+            # inert — nothing here approves or authorizes anything.
+            authority: List[Dict[str, Any]] = []
+            for entry in self.authority_active(now=now):
+                item = {
+                    "authority_id": entry["authority_id"],
+                    "source_ref": entry["source_ref"],
+                    "authority_version": entry["authority_version"],
+                    "scopes": list(entry["scopes"]),
+                    "issued_at": entry["issued_at"],
+                    "expires_at": entry["expires_at"],
+                    "status": entry["status"],
+                    "authority_verified": False,
+                    "source": "decision_authority",
+                }
+                proposed_authority = authority + [item]
+                authority_tokens = _rendered_tokens(
+                    {"authority": proposed_authority}, []
+                )
+                proposed = {key: list(items) for key, items in sections.items()}
+                proposed["authority"] = proposed_authority
+                proposed_sources = _sources(proposed)
+                proposed_tokens = _rendered_tokens(proposed, proposed_sources)
+                if (authority_tokens <= min(authority_budget, MAX_AUTHORITY_TOKENS)
+                        and proposed_tokens <= budget - (
+                            execution_budget if execution_enabled else 0)):
+                    authority = proposed_authority
+                    sources = proposed_sources
+                    used = proposed_tokens
+            if authority:
+                sections["authority"] = authority
         if execution_enabled:
             execution_now = now or datetime.now(timezone.utc)
             execution_read = read_all(self._execution_events_path())
