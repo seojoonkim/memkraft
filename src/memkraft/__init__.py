@@ -58,6 +58,7 @@ from .delay_ledger import DelayLedgerMixin  # timing and delay evidence preview
 from .state_contract import StateContractMixin  # v3.3 project-state contract
 from .project_memory import ProjectMemoryMixin  # v3.5 project memory compiler preview
 from .artifacts import ArtifactMixin  # structured completed-content artifacts
+from .memory_graph import MemoryGraphMixin  # strict append-only exact memory graph
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -93,6 +94,7 @@ _ADDITIVE_ONLY_MIXINS = (
     StateContractMixin,
     ProjectMemoryMixin,
     ArtifactMixin,
+    MemoryGraphMixin,
 )
 
 for _mixin in (
@@ -145,6 +147,7 @@ for _mixin in (
     StateContractMixin,
     ProjectMemoryMixin,
     ArtifactMixin,
+    MemoryGraphMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
