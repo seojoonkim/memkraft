@@ -39,9 +39,9 @@ Clearly label verified baseline facts versus proposals/hypotheses. Be specific a
 ## Current draft (challenge it)
      1|# MemKraft 4.0 Self-Evolving Agent Substrate
      2|
-     3|**Status:** proposal for design review  
-     4|**Baseline:** MemKraft 3.8.0  
-     5|**Theme:** Experience → Evaluation → Promotion → Activation → Rollback  
+     3|**Status:** proposal for design review
+     4|**Baseline:** MemKraft 3.8.0
+     5|**Theme:** Experience → Evaluation → Promotion → Activation → Rollback
      6|**Decision rule:** 4.0 is justified only if this lifecycle becomes a stable, replayable public contract without granting MemKraft execution or self-authorization power.
      7|
      8|## 1. Executive decision

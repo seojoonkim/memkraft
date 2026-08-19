@@ -1,8 +1,8 @@
 # MemKraft 4.0 Self-Evolving Agent Substrate
 
-**Status:** implemented in 4.0.0; retained as design rationale  
-**Baseline:** MemKraft 3.8.0  
-**Theme:** Experience → Evaluation → Promotion → Activation → Rollback  
+**Status:** implemented in 4.0.0; retained as design rationale
+**Baseline:** MemKraft 3.8.0
+**Theme:** Experience → Evaluation → Promotion → Activation → Rollback
 **Decision rule:** 4.0 is justified only if this lifecycle becomes a stable, replayable public contract without granting MemKraft execution or self-authorization power.
 
 ## 1. Executive decision
