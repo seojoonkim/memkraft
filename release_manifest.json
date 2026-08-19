@@ -5,7 +5,8 @@
       "commits": [
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
         "7970273cc5e7a5a55226237300216afe9132cf7d",
-        "68cbf08330c661dabb3edb48c68b34083661512c"
+        "68cbf08330c661dabb3edb48c68b34083661512c",
+        "2be331aa3a0c59b769ca98724785927d2aed6a9d"
       ],
       "evaluation_refs": [
         {
@@ -93,7 +94,8 @@
     },
     {
       "commits": [
-        "68cbf08330c661dabb3edb48c68b34083661512c"
+        "68cbf08330c661dabb3edb48c68b34083661512c",
+        "2be331aa3a0c59b769ca98724785927d2aed6a9d"
       ],
       "evaluation_refs": [
         {
@@ -140,7 +142,8 @@
       "source_paths": [
         "src/memkraft/self_evolving.py",
         "src/memkraft/adapter.py",
-        "benchmarks/gold_retrieval_bench.py"
+        "src/memkraft/core.py",
+        "src/memkraft/compat.py"
       ],
       "state": "verified"
     }
@@ -262,9 +265,9 @@
       "tests/conftest.py",
       "tests/test_version_integrity.py",
       "tests/test_self_evolving.py",
+      "tests/test_search_cache.py",
       "docs/plans/2026-08-20-memkraft-4-independent-planning-brief.md",
       "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md",
-      "src/memkraft/adapter.py",
       "tests/test_adapter_contract.py",
       "benchmarks/gold_retrieval_bench.py",
       "tests/test_gold_retrieval_bench.py"
