@@ -11,7 +11,7 @@ import json
 import math
 import statistics
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 ADAPTER_OPERATIONS = ("remember", "recall", "feedback", "health")
 
@@ -53,7 +53,7 @@ def evaluate_query(
     *,
     latency_ms: float,
     top_k: int,
-    stale_ids: set[str] | None = None,
+    stale_ids: Optional[set[str]] = None,
 ) -> dict[str, Any]:
     retrieved = _ids(ranked)[:top_k]
     return {
