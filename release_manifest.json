@@ -92,7 +92,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/3.8.0",
+    "active_branch": "release/4.0.0",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -136,6 +136,9 @@
       "docs/releases/3.6.2.md",
       "docs/releases/3.7.0.md",
       "docs/releases/3.8.0.md",
+      "docs/releases/4.0.0.md",
+      "src/memkraft/self_evolving.py",
+      "tests/test_self_evolving.py",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -207,7 +210,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "3.8.0"
+    "version": "4.0.0"
   },
   "schema": 2
 }

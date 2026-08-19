@@ -1,5 +1,5 @@
-**v3.8.0**
-Current version: **3.8.0**
+**v4.0.0**
+Current version: **4.0.0**
 
 <div align="center">
 
@@ -501,9 +501,9 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v3.8.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.8.0) (current)
+### [v4.0.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.0.0) (current)
 
-MemKraft 3.8.0 adds opt-in ambient context: TTL-bound Current Focus and a separate append-only Decision Authority provenance ledger. Both compile into bounded context only when explicitly budgeted; unused compiler output and identity remain compatible. Read the [release notes](docs/releases/3.8.0.md).
+MemKraft 4.0.0 adds the Self-Evolving Agent Substrate: sanitized experience, capability manifests, evaluator receipts, and post-activation observations with append-only evidence and explicit host-owned authority. Read the [release notes](docs/releases/4.0.0.md).
 
 ### [v3.7.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.7.0)
 

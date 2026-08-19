@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [4.0.0] — 2026-08-20
+
+- Added the Self-Evolving Agent Substrate: sanitized experience records, artifact capability manifests, evaluator receipts bound to candidate/base/corpus digests, and post-activation observations.
+- Kept execution, deployment, scheduling, permission grants, evaluator execution, and promotion authority outside MemKraft.
+- Added append-only, corruption fail-closed storage and regression coverage for evidence, privacy, scope, and rollback observation contracts.
+
 ## [3.8.0] — 2026-08-19
 
 - Added TTL-bound Current Focus records with deterministic as-of projection, explicit release, fail-closed replay, and bounded rendering.
