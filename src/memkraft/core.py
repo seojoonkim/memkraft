@@ -1119,6 +1119,7 @@ class MemKraft:
         fuzzy: bool = False,
         top_k: Any = None,
         cache: bool = True,
+        touch_accessed: bool = False,
     ) -> List[Dict[str, Any]]:
         """Search memory with hybrid exact/token matching and optional fuzzy matching.
 
@@ -1149,9 +1150,10 @@ class MemKraft:
             )
             cached = cache_obj.get(cache_key)
             if cached is not None:
-                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                for r in cached[:20]:
-                    self._touch_last_accessed(r.get("file", ""), now_str)
+                if touch_accessed:
+                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    for r in cached[:20]:
+                        self._touch_last_accessed(r.get("file", ""), now_str)
                 if not cached:
                     print(f"No results for '{query}'.")
                     log.debug("search results=0 cache_hit=True")
@@ -1614,10 +1616,12 @@ class MemKraft:
         if cache_obj is not None and cache_key is not None:
             cache_obj.set(cache_key, visible_results)
 
-        # ── v2.4: Search hit decay reset — update last_accessed_at ──
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for r in visible_results[:20]:
-            self._touch_last_accessed(r.get("file", ""), now_str)
+        # Access timestamps are opt-in because they write every hit file and
+        # invalidate read/index caches on the hot retrieval path.
+        if touch_accessed:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for r in visible_results[:20]:
+                self._touch_last_accessed(r.get("file", ""), now_str)
 
         if not visible_results:
             print(f"No results for '{query}'.")

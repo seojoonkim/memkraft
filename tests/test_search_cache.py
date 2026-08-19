@@ -167,6 +167,20 @@ def test_legacy_search_cache_false_bypasses_cache(mk):
     assert s2["misses"] == s1["misses"]
 
 
+def test_search_does_not_write_access_timestamp_by_default(mk, monkeypatch):
+    calls = []
+    monkeypatch.setattr(mk, "_touch_last_accessed", lambda path, timestamp: calls.append(path))
+    mk.search("Alice", cache=False)
+    assert calls == []
+
+
+def test_search_can_opt_in_to_access_timestamp_updates(mk, monkeypatch):
+    calls = []
+    monkeypatch.setattr(mk, "_touch_last_accessed", lambda path, timestamp: calls.append(path))
+    mk.search("Alice", cache=False, touch_accessed=True)
+    assert calls
+
+
 def test_search_v2_cache_false_bypasses_core_legacy_cache(mk):
     mk.search("Alice")
     s1 = mk.cache_stats()

@@ -110,6 +110,16 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_packaging_version.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_adapter_contract.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_gold_retrieval_bench.py"
         }
       ],
       "id": "feature.self-evolving-substrate-4.0.0",
@@ -128,7 +138,9 @@
       "proposal_id": "prop.self-evolving-substrate-4.0.0",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/self_evolving.py"
+        "src/memkraft/self_evolving.py",
+        "src/memkraft/adapter.py",
+        "benchmarks/gold_retrieval_bench.py"
       ],
       "state": "verified"
     }
@@ -251,7 +263,11 @@
       "tests/test_version_integrity.py",
       "tests/test_self_evolving.py",
       "docs/plans/2026-08-20-memkraft-4-independent-planning-brief.md",
-      "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md"
+      "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md",
+      "src/memkraft/adapter.py",
+      "tests/test_adapter_contract.py",
+      "benchmarks/gold_retrieval_bench.py",
+      "tests/test_gold_retrieval_bench.py"
     ],
     "remote": "origin",
     "removed_paths": [],
