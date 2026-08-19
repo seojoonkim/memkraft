@@ -1,6 +1,6 @@
 """MemKraft — The compound knowledge system for AI agents"""
 
-__version__ = "3.8.0"
+__version__ = "4.0.0"
 
 from .core import MemKraft as _BaseMemKraft
 from .bitemporal import BitemporalMixin
@@ -61,6 +61,8 @@ from .artifacts import ArtifactMixin  # structured completed-content artifacts
 from .memory_graph import MemoryGraphMixin  # strict append-only exact memory graph
 from .focus import FocusMixin  # v3.8 TTL-bounded inert current focus
 from .authority import AuthorityMixin  # v3.8 decision authority provenance
+from .self_evolving import SelfEvolvingMixin  # v4.0 self-evolving substrate
+from .adapter import MemoryAdapter  # v4.0 transport-neutral agent contract
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
 # Note: PreferenceMixin is NOT added to the global mixin loop because its
@@ -99,6 +101,7 @@ _ADDITIVE_ONLY_MIXINS = (
     MemoryGraphMixin,
     FocusMixin,
     AuthorityMixin,
+    SelfEvolvingMixin,
 )
 
 for _mixin in (
@@ -154,6 +157,7 @@ for _mixin in (
     MemoryGraphMixin,
     FocusMixin,
     AuthorityMixin,
+    SelfEvolvingMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):

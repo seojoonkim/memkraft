@@ -56,9 +56,13 @@ def install_v3_compat(cls: type) -> None:
         if mode not in mode_targets:
             raise ValueError("mode must be one of: legacy, v2, smart, hybrid")
         if mode == "legacy":
+            touch_accessed = kwargs.pop("touch_accessed", False)
             if kwargs:
                 raise TypeError(f"unexpected search arguments: {', '.join(sorted(kwargs))}")
-            return legacy_search(self, query, fuzzy=fuzzy, top_k=top_k, cache=cache)
+            return legacy_search(
+                self, query, fuzzy=fuzzy, top_k=top_k, cache=cache,
+                touch_accessed=bool(touch_accessed),
+            )
         target = mode_targets[mode]
         call_kwargs = dict(kwargs)
         if top_k is not None:

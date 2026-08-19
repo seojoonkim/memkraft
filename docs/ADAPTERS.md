@@ -2,6 +2,32 @@
 
 Adapters translate a runtime boundary into the existing 15 MKEP/0 operations. They do not add domain semantics.
 
+## Memory substrate contract (v4.0)
+
+External agent hosts can use the transport-neutral `MemoryAdapter` facade:
+
+```python
+from memkraft import MemKraft, MemoryAdapter
+
+adapter = MemoryAdapter(MemKraft(base_dir="/path/to/memory"))
+adapter.remember(name="Project", info="...", source="hermes")
+adapter.recall(query="project context", top_k=5)
+adapter.feedback(
+    classification="success",
+    task_ref="task:example",
+    outcome_ref="outcome:example",
+    input_snapshot_ref="snapshot:example",
+)
+adapter.health()
+```
+
+Each call returns an envelope with `ok` and `operation`. Failures include a
+stable error code and `retryable` flag. The adapter delegates persistence and
+experience validation to MemKraft; it never evaluates, promotes, activates, or
+authorizes a candidate. Hermes, OpenClaw, and MCP integrations should expose
+this same four-operation contract through their own transport layer.
+
+
 ## Startup and calls
 
 1. Call `describe`; require `mkep: "0"`, required operations, limits, and guarantees.

@@ -26,6 +26,8 @@ jobs:
           python-version: "3.12"
       - name: Audit single release lineage
         run: python scripts/audit_release_lineage.py --repo . --manifest release_manifest.json --candidate-sha "$CANDIDATE_SHA"
+      - name: Audit version source and release tag integrity
+        run: python scripts/check_version_integrity.py --repo .
       - name: Build distributions
         run: |
           python -m pip install build
