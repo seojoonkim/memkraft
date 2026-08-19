@@ -3,8 +3,7 @@
   "features": [
     {
       "commits": [
-        "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
-        "7970273cc5e7a5a55226237300216afe9132cf7d"
+        "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b"
       ],
       "evaluation_refs": [
         {
@@ -126,7 +125,8 @@
       "proposal_id": "prop.self-evolving-substrate-4.0.0",
       "revision_id": "r1",
       "source_paths": [
-        "src/memkraft/self_evolving.py"
+        "src/memkraft/self_evolving.py",
+        "src/memkraft/__init__.py"
       ],
       "state": "verified"
     }
