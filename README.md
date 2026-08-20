@@ -1,5 +1,5 @@
-**v4.0.0**
-Current version: **4.0.0**
+**v4.0.1**
+Current version: **4.0.1**
 
 <div align="center">
 
@@ -501,9 +501,9 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.0.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.0.0) (current)
+### [v4.0.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.0.1) (current)
 
-MemKraft 4.0.0 adds the Self-Evolving Agent Substrate: sanitized experience, capability manifests, evaluator receipts, and post-activation observations with append-only evidence and explicit host-owned authority. Read the [release notes](docs/releases/4.0.0.md).
+MemKraft 4.0.1 adds a host-neutral JSON-stdio agent bridge, idempotent setup metadata, and integration diagnostics. Read the [release notes](docs/releases/4.0.1.md).
 
 ### [v3.7.0](https://github.com/seojoonkim/memkraft/releases/tag/v3.7.0)
 

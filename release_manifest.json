@@ -37,7 +37,6 @@
       "source_paths": [
         "src/memkraft/memory_graph.py",
         "src/memkraft/artifacts.py",
-        "src/memkraft/cli.py",
         "src/memkraft/__init__.py"
       ],
       "state": "verified"
@@ -144,10 +143,50 @@
         "src/memkraft/compat.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
+        "f9c8514fa4d51517ffba1be2faaca49ecbf67942"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_agent_bridge.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_integrations.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_setup.py"
+        }
+      ],
+      "id": "feature.host-neutral-agent-bridge",
+      "promotion_evidence": [
+        {
+          "claim": "Host-neutral bridge",
+          "kind": "release-note",
+          "path": "docs/ADAPTERS.md"
+        }
+      ],
+      "proposal_id": "prop.host-neutral-agent-bridge",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/agent_bridge.py",
+        "src/memkraft/cli.py",
+        "src/memkraft/integrations.py",
+        "src/memkraft/setup.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/4.0.0",
+    "active_branch": "release/4.0.1",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -192,6 +231,7 @@
       "docs/releases/3.7.0.md",
       "docs/releases/3.8.0.md",
       "docs/releases/4.0.0.md",
+      "docs/releases/4.0.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -267,13 +307,16 @@
       "docs/plans/2026-08-20-memkraft-4-independent-planning-brief.md",
       "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md",
       "tests/test_adapter_contract.py",
+      "tests/test_agent_bridge.py",
+      "tests/test_integrations.py",
+      "tests/test_setup.py",
       "benchmarks/gold_retrieval_bench.py",
       "tests/test_gold_retrieval_bench.py"
     ],
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.0.0"
+    "version": "4.0.1"
   },
   "schema": 2
 }
