@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [4.0.1] — 2026-08-20
+
+- Added a host-neutral JSON-stdio agent bridge for `remember`, `recall`, `feedback`, and `health`.
+- Added idempotent setup metadata and integration diagnostics for Hermes, MCP, and other agent hosts.
+
 ## [4.0.0] — 2026-08-20
 
 - Added the Self-Evolving Agent Substrate: sanitized experience records, artifact capability manifests, evaluator receipts bound to candidate/base/corpus digests, and post-activation observations.
