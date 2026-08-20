@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [4.0.1] — 2026-08-20
+## [4.0.2] — 2026-08-20
 
 - Added a host-neutral JSON-stdio agent bridge for `remember`, `recall`, `feedback`, and `health`.
 - Added idempotent setup metadata and integration diagnostics for Hermes, MCP, and other agent hosts.
