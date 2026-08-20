@@ -55,11 +55,16 @@ def check(repo: Path) -> dict:
     if branch.startswith("release/") and branch != expected_branch:
         findings.append({"code": "release_branch_version_mismatch", "observed": branch, "expected": expected_branch})
 
-    tag_commit = git(repo, "rev-parse", f"refs/tags/v{version}^{{commit}}")
-    tag_source = git(repo, "show", f"{tag_commit}:pyproject.toml")
-    tag_match = re.search(r"(?m)^version\s*=\s*\"([^\"]+)\"", tag_source)
-    if not tag_match or tag_match.group(1) != version:
-        findings.append({"code": "tag_source_version_mismatch", "observed": tag_match.group(1) if tag_match else None, "expected": version})
+    tag_commit = None
+    # A feature PR is intentionally created before its immutable release tag.
+    # Enforce tag convergence on the release branch and tag-triggered release,
+    # while keeping pre-merge source validation useful.
+    if branch == expected_branch:
+        tag_commit = git(repo, "rev-parse", f"refs/tags/v{version}^{{commit}}")
+        tag_source = git(repo, "show", f"{tag_commit}:pyproject.toml")
+        tag_match = re.search(r"(?m)^version\s*=\s*\"([^\"]+)\"", tag_source)
+        if not tag_match or tag_match.group(1) != version:
+            findings.append({"code": "tag_source_version_mismatch", "observed": tag_match.group(1) if tag_match else None, "expected": version})
 
     changelog = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
     if not re.search(rf"(?m)^## \[{re.escape(version)}\]", changelog):
