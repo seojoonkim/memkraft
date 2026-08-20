@@ -404,6 +404,29 @@ def main(argv=None):
     integrations_parser.add_argument("--base-dir", default="", help="Override the MemKraft workspace")
     integrations_parser.add_argument("--json", action="store_true", help="Machine-readable output")
 
+    # version-drift (local development repository drift guard)
+    ps_parser = subparsers.add_parser(
+        "version-drift",
+        aliases=["drift", "beacon", "project-sync"],
+        help="Scan and safely fast-forward local Git project checkouts",
+    )
+    ps_parser.add_argument("--base-dir", default="", help="MemKraft workspace for sync event logs")
+    ps_sub = ps_parser.add_subparsers(dest="project_sync_command", help="version-drift subcommands")
+    ps_scan = ps_sub.add_parser("scan", help="Discover Git projects under roots and record drift")
+    ps_scan.add_argument("--root", action="append", default=[], help="Root directory to scan; repeatable")
+    ps_scan.add_argument("--max-depth", type=int, default=5, help="Directory depth below each root")
+    ps_scan.add_argument("--fetch", action="store_true", help="Fetch remotes before comparing")
+    ps_scan.add_argument("--json", action="store_true", help="Machine-readable output")
+    ps_inspect = ps_sub.add_parser("inspect", help="Inspect one Git project and record drift")
+    ps_inspect.add_argument("path", help="Git worktree path")
+    ps_inspect.add_argument("--fetch", action="store_true", help="Fetch remote before comparing")
+    ps_inspect.add_argument("--json", action="store_true", help="Machine-readable output")
+    ps_sync = ps_sub.add_parser("sync", help="Safely fast-forward one clean project")
+    ps_sync.add_argument("path", help="Git worktree path")
+    ps_sync.add_argument("--apply", action="store_true", help="Actually run git pull --ff-only")
+    ps_sync.add_argument("--no-fetch", action="store_true", help="Skip fetch before deciding")
+    ps_sync.add_argument("--json", action="store_true", help="Machine-readable output")
+
     # mcp (admin)
     mcp_parser = subparsers.add_parser("mcp", help="MCP server admin (doctor/test)")
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_command", help="MCP subcommands")
@@ -790,6 +813,15 @@ def main(argv=None):
         report = _integrations.integration_report(getattr(args, "base_dir", "") or None)
         print(_integrations.format_report(report) if args.json else _integrations.format_report(report))
         return 0 if report.get("ok") else 1
+    elif args.command in {"version-drift", "drift", "beacon", "project-sync"}:
+        try:
+            from version_drift import cli as _project_sync
+        except ImportError:
+            from . import project_sync as _project_sync
+        if not getattr(args, "project_sync_command", None):
+            ps_parser.print_help()
+            return 64
+        return _project_sync.cmd(args)
     elif args.command == "mcp":
         from . import mcp_admin as _mcp_admin
         return _mcp_admin.cmd(args)
