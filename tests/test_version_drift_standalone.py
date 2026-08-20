@@ -46,10 +46,8 @@ def test_standalone_cli_runs_without_memkraft_import(tmp_path, capsys):
     assert '"state": "blocked"' in capsys.readouterr().out
 
 
-def test_installed_entrypoint_is_declared():
+def test_memkraft_cli_keeps_version_drift_bridge():
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
-    assert 'version-drift = "version_drift.cli:main"' not in pyproject
     assert 'memkraft = "memkraft.cli:main"' in pyproject
-    standalone = Path("packages/version-drift/pyproject.toml").read_text(encoding="utf-8")
-    assert 'version-drift = "version_drift.cli:main"' in standalone
+    assert 'version-drift = "version_drift.cli:main"' not in pyproject
     assert 'version-drift = ["version-drift>=0.1.0,<0.2.0"]' in pyproject

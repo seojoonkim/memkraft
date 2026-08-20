@@ -88,7 +88,7 @@ def test_sync_clean_behind_fast_forwards_only_with_apply(tmp_path):
 
     (origin / "README.md").write_text("v2\n", encoding="utf-8")
     _git(origin, "commit", "-am", "v2")
-    _git(origin, "push")
+    _git(origin, "push", "origin", "HEAD:main")
 
     dry = project_sync.sync_project(str(clone), base_dir=str(tmp_path / "memory"), apply=False, fetch=True)
     assert dry["applied"] is False
