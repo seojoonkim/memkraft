@@ -148,7 +148,8 @@
       "commits": [
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
         "0cc2c31406c7cd591692f28444ad10cced62883c",
-        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c"
+        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c",
+        "1219f28cc1aa69a68d061afbb7d713c92d922162"
       ],
       "evaluation_refs": [
         {
@@ -187,7 +188,8 @@
     },
     {
       "commits": [
-        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c"
+        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c",
+        "1219f28cc1aa69a68d061afbb7d713c92d922162"
       ],
       "evaluation_refs": [
         {
