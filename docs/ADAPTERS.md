@@ -24,19 +24,46 @@ adapter.health()
 Each call returns an envelope with `ok` and `operation`. Failures include a
 stable error code and `retryable` flag. The adapter delegates persistence and
 experience validation to MemKraft; it never evaluates, promotes, activates, or
-authorizes a candidate. Hermes, OpenClaw, and MCP integrations should expose
-this same four-operation contract through their own transport layer.
+authorizes a candidate.
+
+### Host-neutral bridge
+
+For subprocess-based hosts, use the closed JSON-stdio bridge. It is the
+portable integration surface for Hermes, OpenClaw, MCP clients, Claude Code,
+Codex, and custom agent runtimes:
+
+```bash
+pip install memkraft
+memkraft integrations --json
+printf '%s' '{"operation":"health"}' | memkraft bridge call --base-dir /path/to/memory
+```
+
+The bridge protocol is `memkraft-agent-bridge/1` and exposes exactly
+`remember`, `recall`, `feedback`, and `health`. It emits one JSON response on
+stdout; human progress output is suppressed so any host can safely parse it.
+
+`memkraft setup --base-dir BASE` writes `BASE/integrations/memkraft.json`.
+The operation is idempotent and manifest-only: it never overwrites host
+credentials or unrelated configuration. Host-native registration remains an
+adapter responsibility, while every host can consume the generated command.
+Unknown operations and malformed requests return structured errors rather than
+being dispatched dynamically. `memkraft integrations --json` separately
+reports the live bridge health, Hermes entry-point discovery, MCP module
+availability, and installation-path consistency. A development `PYTHONPATH`
+or
+stale editable source override is reported instead of silently claiming that
+the installed wheel is active.
 
 
 ## Startup and calls
 
-1. Call `describe`; require `mkep: "0"`, required operations, limits, and guarantees.
-2. Select `base_dir` explicitly. Never infer a workspace from subprocess cwd.
-3. Mint opaque namespaced `goal_id`, runtime-stable `execution_run_id`, and deterministic `operation_id` for each apply.
-4. Bound each call inside the host hook budget. A timeout is an unknown outcome: replay the identical request/id.
-5. Re-read projections after mutations. Do not cache through a write.
-6. Enforce leases at an authoritative host boundary and propagate `fence_token` to every protected write.
-7. Record receipts only from observed artifacts/tool results. Core validates digest format, not artifact bytes.
+There are two intentionally separate subprocess contracts:
+
+- `memkraft bridge call`: memory operations for any host.
+- `memkraft exec call`: the closed MKEP/0 execution-state operations; it is not
+a replacement for the memory bridge.
+
+For the MKEP/0 execution transport, call `describe`; require `mkep: "0"`, required operations, limits, and guarantees. Select `base_dir` explicitly, mint opaque namespaced IDs, bound calls inside the host hook budget, re-read projections after mutations, enforce leases at an authoritative host boundary, and record receipts only from observed artifacts.
 
 For subprocess use argv, never a shell string: `memkraft exec call --base-dir BASE --lock-timeout 1.5`; request JSON is stdin, response JSON is stdout, diagnostics are stderr. Exit 0–3 carries a response; 64/70 does not.
 

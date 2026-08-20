@@ -31,6 +31,14 @@ def main(argv=None):
     exec_call.add_argument("--base-dir", default=None)
     exec_call.add_argument("--lock-timeout", default="2.0")
 
+    # Agent-neutral bridge used by Hermes, OpenClaw, MCP hosts, and
+    # lightweight subprocess agents.
+    bridge_parser = subparsers.add_parser("bridge", help="Host-neutral agent memory bridge")
+    bridge_sub = bridge_parser.add_subparsers(dest="bridge_command")
+    bridge_call = bridge_sub.add_parser("call", help="one JSON memory request on stdin")
+    bridge_call.add_argument("--base-dir", default=None)
+    bridge_sub.add_parser("describe", help="describe the stable bridge contract")
+
     sleep_parser = subparsers.add_parser("sleep", help="Preview or apply canonical truth compilation")
     sleep_mode = sleep_parser.add_mutually_exclusive_group()
     sleep_mode.add_argument("--dry-run", action="store_true", help="Preview with zero writes (default)")
@@ -384,6 +392,18 @@ def main(argv=None):
     stats_parser.add_argument("--export", default="", choices=["", "json", "csv", "human"], help="Output format (default: human)")
     stats_parser.add_argument("--out", default="", help="Write output to file instead of stdout")
 
+    # setup (idempotent host-neutral integration manifest)
+    setup_parser = subparsers.add_parser("setup", help="Create an idempotent agent integration manifest")
+    setup_parser.add_argument("--base-dir", default="", help="MemKraft workspace")
+    setup_parser.add_argument("--output", default="", help="Explicit manifest path")
+
+    # integrations (read-only host discovery + live bridge smoke)
+    integrations_parser = subparsers.add_parser(
+        "integrations", help="Report agent integrations and run a live bridge health smoke"
+    )
+    integrations_parser.add_argument("--base-dir", default="", help="Override the MemKraft workspace")
+    integrations_parser.add_argument("--json", action="store_true", help="Machine-readable output")
+
     # mcp (admin)
     mcp_parser = subparsers.add_parser("mcp", help="MCP server admin (doctor/test)")
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_command", help="MCP subcommands")
@@ -430,6 +450,17 @@ def main(argv=None):
             forwarded.extend(["--base-dir", args.base_dir])
         forwarded.extend(["--lock-timeout", args.lock_timeout])
         return execution_cli.main(forwarded)
+
+    if args.command == "bridge":
+        from .agent_bridge import AgentBridge, call_stdio
+        if args.bridge_command == "call":
+            return call_stdio(base_dir=args.base_dir)
+        if args.bridge_command == "describe":
+            print(json.dumps(AgentBridge(MemKraft()).describe(), ensure_ascii=False,
+                             sort_keys=True, separators=(",", ":")))
+            return 0
+        bridge_parser.print_help()
+        return 64
 
     configured_base_dir = getattr(args, "base_dir", "") or None
     mc = MemKraft(base_dir=configured_base_dir) if configured_base_dir else MemKraft()
@@ -751,6 +782,14 @@ def main(argv=None):
     elif args.command == "stats":
         from . import stats as _stats
         return _stats.cmd(args)
+    elif args.command == "setup":
+        from . import setup as _setup
+        return _setup.cmd(args)
+    elif args.command == "integrations":
+        from . import integrations as _integrations
+        report = _integrations.integration_report(getattr(args, "base_dir", "") or None)
+        print(_integrations.format_report(report) if args.json else _integrations.format_report(report))
+        return 0 if report.get("ok") else 1
     elif args.command == "mcp":
         from . import mcp_admin as _mcp_admin
         return _mcp_admin.cmd(args)
