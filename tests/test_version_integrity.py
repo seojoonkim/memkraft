@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_current_4_0_source_and_release_metadata_converge():
     report = check(ROOT)
-    assert report["version"] == "4.0.0"
+    assert report["version"] == "4.0.1"
     assert report["version_integrity"] is True
     assert report["findings"] == []
 
