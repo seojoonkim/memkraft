@@ -147,7 +147,8 @@
     {
       "commits": [
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
-        "0cc2c31406c7cd591692f28444ad10cced62883c"
+        "0cc2c31406c7cd591692f28444ad10cced62883c",
+        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c"
       ],
       "evaluation_refs": [
         {
@@ -181,6 +182,40 @@
         "src/memkraft/cli.py",
         "src/memkraft/integrations.py",
         "src/memkraft/setup.py"
+      ],
+      "state": "verified"
+    },
+    {
+      "commits": [
+        "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_project_sync.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_version_drift_standalone.py"
+        }
+      ],
+      "id": "feature.version-drift-standalone",
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/releases/4.0.2.md",
+          "claim": "VersionDrift standalone CLI with MemKraft bridge"
+        }
+      ],
+      "proposal_id": "prop.version-drift-standalone",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/project_sync.py",
+        "src/version_drift/__init__.py",
+        "src/version_drift/cli.py",
+        "src/version_drift/core.py"
       ],
       "state": "verified"
     }
@@ -311,7 +346,10 @@
       "tests/test_integrations.py",
       "tests/test_setup.py",
       "benchmarks/gold_retrieval_bench.py",
-      "tests/test_gold_retrieval_bench.py"
+      "tests/test_gold_retrieval_bench.py",
+      ".gitignore",
+      "tests/test_project_sync.py",
+      "tests/test_version_drift_standalone.py"
     ],
     "remote": "origin",
     "removed_paths": [],
