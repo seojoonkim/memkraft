@@ -5,7 +5,8 @@
       "commits": [
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
         "7970273cc5e7a5a55226237300216afe9132cf7d",
-        "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998"
+        "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
+        "9a7d386fbc5607c26343ea93f0caa6deb38f861a"
       ],
       "evaluation_refs": [
         {
@@ -220,6 +221,43 @@
         "src/version_drift/core.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "9a7d386fbc5607c26343ea93f0caa6deb38f861a"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_development_experience.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_provider.py"
+        }
+      ],
+      "id": "feature.development-experience-loop",
+      "promotion_evidence": [
+        {
+          "claim": "Automatic development-experience learning",
+          "kind": "documentation",
+          "path": "docs/HERMES_AGENT.md"
+        },
+        {
+          "claim": "Added conservative development-experience capture",
+          "kind": "changelog",
+          "path": "CHANGELOG.md"
+        }
+      ],
+      "proposal_id": "prop.development-experience-loop",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/development_experience.py",
+        "src/memkraft/hermes_provider.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
@@ -296,6 +334,7 @@
       "tests/test_correction_policy.py",
       "tests/test_correction_projection.py",
       "tests/test_delay_ledger.py",
+      "tests/test_development_experience.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
       "tests/test_execution_cli.py",
