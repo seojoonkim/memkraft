@@ -27,6 +27,7 @@ from .install_integrity import installation_report
 _TURN_WRITE_LOCK = threading.RLock()
 _DEFAULT_TURN_FILE_BYTES = 256 * 1024
 _MIN_TURN_FILE_BYTES = 512
+_FALSE_VALUES = {"0", "false", "no", "off"}
 
 
 def _turn_file_limit() -> int:
@@ -37,6 +38,10 @@ def _turn_file_limit() -> int:
     except ValueError:
         configured = _DEFAULT_TURN_FILE_BYTES
     return max(_MIN_TURN_FILE_BYTES, configured)
+
+
+def _development_experience_enabled() -> bool:
+    return os.environ.get("MEMKRAFT_HERMES_DEV_EXPERIENCE", "on").strip().lower() not in _FALSE_VALUES
 
 
 def _utf8_prefix(payload: bytes, byte_limit: int) -> tuple[bytes, bytes]:
@@ -142,15 +147,21 @@ class MemKraftMemoryProvider(MemoryProvider):
             return ""
         with redirect_stdout(io.StringIO()):
             results = self._store.search(query, top_k=5)
-        if not results:
-            return ""
-        lines = ["MemKraft recall:"]
+            reasoning = (
+                self._store.development_inject_for_task(query, style="full")
+                if _development_experience_enabled()
+                else ""
+            )
+        lines: List[str] = []
+        if results:
+            lines.append("MemKraft recall:")
         for result in results:
             snippet = str(result.get("snippet") or result.get("match") or "").strip()
             source = str(result.get("file") or "memory")
             if snippet:
                 lines.append("- {}: {}".format(source, snippet))
-        return "\n".join(lines) if len(lines) > 1 else ""
+        recall = "\n".join(lines) if len(lines) > 1 else ""
+        return "\n\n".join(block for block in (recall, reasoning) if block)
 
     def _persist_completed_turn(self, session_id: str, content: str) -> None:
         """Append a completed Hermes turn to bounded, searchable chunks."""
@@ -237,6 +248,18 @@ class MemKraftMemoryProvider(MemoryProvider):
                     self._store.extract(user_content, source=source + "#user")
                 if assistant_content:
                     self._store.extract(assistant_content, source=source + "#assistant")
+        if messages is not None and _development_experience_enabled():
+            try:
+                self._store.development_capture_turn(
+                    user_content,
+                    messages,
+                    session_id=source_session,
+                )
+            except Exception:
+                logging.getLogger(__name__).warning(
+                    "MemKraft development-experience capture failed",
+                    exc_info=True,
+                )
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
         return []
