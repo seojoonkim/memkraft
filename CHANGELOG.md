@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## Unreleased
+
+- Added conservative development-experience capture for Hermes completed turns: failed tool routes are paired with a later final successful verifier, sanitized into ReasoningBank failure/success trajectories, deduplicated by deterministic turn identity, and injected into similar later tasks.
+- Kept raw tool arguments and outputs out of learned trajectories, failed closed when verification is absent or ends in failure, and added `MEMKRAFT_HERMES_DEV_EXPERIENCE=off` as an emergency opt-out.
+
 ## [4.0.2] — 2026-08-20
 
 - Added a host-neutral JSON-stdio agent bridge for `remember`, `recall`, `feedback`, and `health`.

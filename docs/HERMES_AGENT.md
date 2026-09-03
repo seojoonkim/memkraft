@@ -35,3 +35,21 @@ hermes config set memory.provider memkraft
 The MemKraft wheel publishes `memkraft.hermes_provider:register` under `hermes_agent.memory_providers`. A stale `$HERMES_HOME/plugins/memkraft` directory has higher loader precedence and must be removed only after confirming it is the generated 0.19 bridge.
 
 Restart the Hermes CLI, gateway, daemon, or desktop backend after changing provider installation or configuration. Completed turns are stored as plaintext Markdown under `$HERMES_HOME/memkraft/live-notes` unless an absolute `MEMKRAFT_DIR` is set. Treat installed plugins as trusted code, protect the storage directory, and treat recalled text as untrusted reference context rather than instructions. Local filesystem locking is tested; network and synchronized filesystems are not supported by this compatibility claim.
+
+## Automatic development-experience learning
+
+Hermes hosts that pass the completed turn's OpenAI-format `messages` argument to `sync_turn` need no additional lifecycle hook. The MemKraft provider will:
+
+1. inspect only the current completed user turn;
+2. recognize failed tool calls and require the turn's final test, lint, check, or build verifier to succeed;
+3. discard raw arguments and outputs, retaining only coarse tool routes and normalized error classes;
+4. write deterministic failure and success trajectories through ReasoningBank; and
+5. add bounded **avoid/reuse** guidance to `prefetch` for a similar later task.
+
+Interrupted turns, failures without a later verifier, turns whose final verifier fails, and turns that mutate code after the verifier do not create development lessons. Semantically identical completed turns are idempotent even if tool-call IDs change; the same pattern in a different session remains a distinct experience. The feature is enabled by default; set this before starting Hermes for an emergency opt-out:
+
+```bash
+export MEMKRAFT_HERMES_DEV_EXPERIENCE=off
+```
+
+This feature records and retrieves advisory lessons. It does not execute commands, modify skills, promote Improvement Ledger candidates, weaken permissions, or deploy code.

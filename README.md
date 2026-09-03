@@ -249,6 +249,8 @@ plugins:
 
 `plugins.memkraft.source_path` is only needed for an editable/source checkout. A normal wheel install imports `memkraft` from the active Python environment.
 
+On Hermes versions that pass completed-turn `messages` to memory providers, MemKraft automatically compiles a failed development route followed by a final successful test/lint/build verification into sanitized ReasoningBank lessons. The next similar task receives bounded **avoid/reuse** guidance during prefetch. Raw tool arguments and outputs are not copied into these lessons, unverified failures are not promoted, and repeated sync of the same turn is idempotent. Set `MEMKRAFT_HERMES_DEV_EXPERIENCE=off` before starting Hermes to disable this behavior.
+
 ```bash
 HERMES_HOME=/path/to/profile hermes memory status
 HERMES_HOME=/path/to/profile hermes chat -Q --toolsets memory -q 'Call memkraft_status.'
@@ -324,6 +326,8 @@ The 3.x lifecycle contract is documented in [`docs/V3_API.md`](docs/V3_API.md). 
 | `log_hypothesis` / `log_evidence` | Record theories and test results |
 | `reject_hypothesis` / `confirm_hypothesis` | Preserve failed and confirmed approaches |
 | `search_debug_sessions` / `search_rejected_hypotheses` | Reuse past debugging evidence |
+| `development_capture_turn(task, messages, session_id=...)` | Compile verified, sanitized development detours into ReasoningBank |
+| `development_inject_for_task(task_query, ...)` | Retrieve bounded avoid/reuse guidance for a similar task |
 
 ### Preview and secondary APIs
 
