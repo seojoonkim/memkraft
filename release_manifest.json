@@ -242,7 +242,7 @@
       "promotion_evidence": [
         {
           "claim": "Automatic development-experience learning",
-          "kind": "documentation",
+          "kind": "release-note",
           "path": "docs/HERMES_AGENT.md"
         },
         {
