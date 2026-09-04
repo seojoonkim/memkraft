@@ -174,6 +174,10 @@ def test_release_contract_pins_exact_matrix_and_user_steps():
     assert "dist/*.whl" in workflow
     assert "tests/hermes_lifecycle_smoke.py" in workflow
 
+    smoke = (REPO_ROOT / "tests" / "hermes_lifecycle_smoke.py").read_text(encoding="utf-8")
+    assert 'integration["smoke"]["timing_round_trip"]' in smoke
+    assert 'integration["smoke"]["round_trip"]' not in smoke
+
     release_paths = set(manifest["release"]["release_paths"])
     assert {
         ".github/workflows/hermes-compat.yml",
