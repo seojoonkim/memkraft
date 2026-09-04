@@ -1,5 +1,5 @@
-**v4.0.2**
-Current version: **4.0.2**
+**v4.1.0**
+Current version: **4.1.0**
 
 <div align="center">
 
@@ -505,7 +505,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.0.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.0.2) (current)
+### [v4.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.0) (current)
+
+MemKraft 4.1.0 adds a default-on Hermes capability bundle for adaptive ETA, remaining-time and phase learning, plus conservative development-detour learning. Read the [release notes](docs/releases/4.1.0.md).
+
+### [v4.0.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.0.2)
 
 MemKraft 4.0.2 adds a host-neutral JSON-stdio agent bridge, idempotent setup metadata, and integration diagnostics. Read the [release notes](docs/releases/4.0.2.md).
 

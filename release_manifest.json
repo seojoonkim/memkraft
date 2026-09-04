@@ -6,7 +6,7 @@
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
         "7970273cc5e7a5a55226237300216afe9132cf7d",
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
-        "9a7d386fbc5607c26343ea93f0caa6deb38f861a"
+        "5d2d8c6af01d34f1e36f49d23e357c7770041924"
       ],
       "evaluation_refs": [
         {
@@ -224,7 +224,8 @@
     },
     {
       "commits": [
-        "9a7d386fbc5607c26343ea93f0caa6deb38f861a"
+        "5d2d8c6af01d34f1e36f49d23e357c7770041924",
+        "0bb8d7b04864ffcf54c85ed859302312d6018b28"
       ],
       "evaluation_refs": [
         {
@@ -235,23 +236,33 @@
         {
           "kind": "pytest",
           "node": "all",
-          "path": "tests/test_hermes_provider.py"
+          "path": "tests/test_hermes_auto_features.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/hermes_lifecycle_smoke.py"
         }
       ],
-      "id": "feature.development-experience-loop",
+      "id": "feature.hermes-agent-auto-bundle-4.1.0",
       "promotion_evidence": [
         {
-          "claim": "Automatic development-experience learning",
+          "claim": "Automatic feature bundle",
           "kind": "release-note",
           "path": "docs/HERMES_AGENT.md"
         },
         {
-          "claim": "Added conservative development-experience capture",
+          "claim": "default-on Hermes capability bundle",
+          "kind": "release-note",
+          "path": "docs/releases/4.1.0.md"
+        },
+        {
+          "claim": "default-on Hermes capability bundle",
           "kind": "changelog",
           "path": "CHANGELOG.md"
         }
       ],
-      "proposal_id": "prop.development-experience-loop",
+      "proposal_id": "prop.hermes-agent-auto-bundle-4.1.0",
       "revision_id": "r1",
       "source_paths": [
         "src/memkraft/development_experience.py",
@@ -261,17 +272,19 @@
     }
   ],
   "release": {
-    "active_branch": "release/4.0.2",
+    "active_branch": "release/4.1.0",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
       ".github/workflows/hermes-compat.yml",
       ".github/workflows/release.yml",
+      ".gitignore",
       "CHANGELOG.md",
       "MANIFEST.in",
       "README.md",
       "benchmarks/corrections/cases_v1.json",
       "benchmarks/corrections/run.py",
+      "benchmarks/gold_retrieval_bench.py",
       "benchmarks/longmemeval/harness.py",
       "benchmarks/search_scale_bench.py",
       "docs/ADAPTERS.md",
@@ -293,6 +306,8 @@
       "docs/plans/2026-08-06-memkraft-continual-improvement-ledger-preview-plan.md",
       "docs/plans/2026-08-12-project-memory-compiler-plan.md",
       "docs/plans/2026-08-18-memkraft-3.8-ambient-context-plan.md",
+      "docs/plans/2026-08-20-memkraft-4-independent-planning-brief.md",
+      "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md",
       "docs/plans/memkraft-3.4-feature-backlog.md",
       "docs/releases/3.3.0.md",
       "docs/releases/3.4.0.md",
@@ -307,6 +322,7 @@
       "docs/releases/3.8.0.md",
       "docs/releases/4.0.0.md",
       "docs/releases/4.0.2.md",
+      "docs/releases/4.1.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -314,12 +330,16 @@
       "scripts/audit_release_lineage.py",
       "scripts/benchmark_execution_gates.py",
       "scripts/check_project_state.py",
+      "scripts/check_version_integrity.py",
       "scripts/install_hermes_plugin.py",
       "setup.py",
       "tests/conformance/**",
+      "tests/conftest.py",
       "tests/golden/README.md",
       "tests/golden/usage_id.json",
       "tests/hermes_lifecycle_smoke.py",
+      "tests/test_adapter_contract.py",
+      "tests/test_agent_bridge.py",
       "tests/test_artifacts.py",
       "tests/test_authority.py",
       "tests/test_benchmark_scripts.py",
@@ -351,12 +371,15 @@
       "tests/test_execution_protocol.py",
       "tests/test_execution_records.py",
       "tests/test_focus.py",
+      "tests/test_gold_retrieval_bench.py",
       "tests/test_hermes_agent_compat.py",
+      "tests/test_hermes_auto_features.py",
       "tests/test_hermes_install_contract.py",
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_install_integrity.py",
+      "tests/test_integrations.py",
       "tests/test_memory_graph_release.py",
       "tests/test_memory_graph_schema.py",
       "tests/test_packaging_version.py",
@@ -364,8 +387,12 @@
       "tests/test_project_memory_contract.py",
       "tests/test_project_memory_normalize.py",
       "tests/test_project_memory_store.py",
+      "tests/test_project_sync.py",
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
+      "tests/test_search_cache.py",
+      "tests/test_self_evolving.py",
+      "tests/test_setup.py",
       "tests/test_sleep_governance.py",
       "tests/test_state_contract.py",
       "tests/test_store_core_lock_nb.py",
@@ -374,28 +401,14 @@
       "tests/test_v081_mcp.py",
       "tests/test_v082_doctor_check_updates.py",
       "tests/test_v082_selfupdate.py",
-      "tools/pin_golden_usage_id.py",
-      "scripts/check_version_integrity.py",
-      "tests/conftest.py",
+      "tests/test_version_drift_standalone.py",
       "tests/test_version_integrity.py",
-      "tests/test_self_evolving.py",
-      "tests/test_search_cache.py",
-      "docs/plans/2026-08-20-memkraft-4-independent-planning-brief.md",
-      "docs/plans/2026-08-20-memkraft-4-self-evolving-agent-substrate-plan.md",
-      "tests/test_adapter_contract.py",
-      "tests/test_agent_bridge.py",
-      "tests/test_integrations.py",
-      "tests/test_setup.py",
-      "benchmarks/gold_retrieval_bench.py",
-      "tests/test_gold_retrieval_bench.py",
-      ".gitignore",
-      "tests/test_project_sync.py",
-      "tests/test_version_drift_standalone.py"
+      "tools/pin_golden_usage_id.py"
     ],
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.0.2"
+    "version": "4.1.0"
   },
   "schema": 2
 }
