@@ -41,7 +41,10 @@ def main() -> None:
     manager = MemoryManager()
     manager.add_provider(provider)
     manager.initialize_all("compat-a", hermes_home=str(home), platform="ci")
-    capabilities = manager.feature_capabilities()
+    # The pinned Hermes compatibility matrix predates manager-side capability
+    # aggregation. Verify the installed provider's additive contract here;
+    # current Hermes tests cover automatic manager consumption separately.
+    capabilities = provider.feature_capabilities()
     assert capabilities["adaptive_eta"] is True
     assert capabilities["remaining_time"] is True
     assert capabilities["development_experience"] is True
