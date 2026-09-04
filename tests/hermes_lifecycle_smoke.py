@@ -41,6 +41,13 @@ def main() -> None:
     manager = MemoryManager()
     manager.add_provider(provider)
     manager.initialize_all("compat-a", hermes_home=str(home), platform="ci")
+    capabilities = manager.feature_capabilities()
+    assert capabilities["adaptive_eta"] is True
+    assert capabilities["remaining_time"] is True
+    assert capabilities["development_experience"] is True
+    integration = provider.integration_report(run_smoke=True)
+    assert integration["ready"] is True, integration
+    assert integration["smoke"]["round_trip"] is True
     manager.sync_all(
         "Grace Hopper leads the compiler project.",
         "I will remember that.",

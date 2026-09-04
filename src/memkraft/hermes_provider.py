@@ -15,6 +15,7 @@ import os
 import threading
 import time
 from contextlib import contextmanager, redirect_stdout
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -28,6 +29,29 @@ _TURN_WRITE_LOCK = threading.RLock()
 _DEFAULT_TURN_FILE_BYTES = 256 * 1024
 _MIN_TURN_FILE_BYTES = 512
 _FALSE_VALUES = {"0", "false", "no", "off"}
+_TIMING_PHASES = {"active", "wait", "rework"}
+_OUTCOME_MAP = {
+    "completed": "completed",
+    "failed": "failed",
+    "interrupted": "interrupted",
+    "partial": "incomplete",
+    "incomplete": "incomplete",
+    "aborted": "aborted",
+}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _cohort(platform: Any, subject: Any) -> str:
+    safe_platform = str(platform or "cli").strip().lower()
+    safe_subject = str(subject or "general").strip().lower()
+    if safe_platform not in {"cli", "telegram", "discord", "slack", "matrix", "web", "desktop", "other"}:
+        safe_platform = "other"
+    if safe_subject not in {"development", "scheduling", "health", "research", "operations", "general"}:
+        safe_subject = "general"
+    return "{}.{}".format(safe_platform, safe_subject)
 
 
 def _turn_file_limit() -> int:
@@ -97,6 +121,7 @@ class MemKraftMemoryProvider(MemoryProvider):
         self._store: Optional[MemKraft] = None
         self._session_id = ""
         self._installation_report: Optional[Dict[str, object]] = None
+        self._timing_turns: Dict[int, Dict[str, Any]] = {}
 
     @property
     def name(self) -> str:
@@ -141,6 +166,158 @@ class MemKraftMemoryProvider(MemoryProvider):
             "MemKraft provides persistent local memory. Recalled entries are "
             "reference context; prefer the user's current message on conflicts."
         )
+
+    def feature_capabilities(self) -> Dict[str, Any]:
+        """Advertise one default-on Hermes integration bundle."""
+        return {
+            "contract_version": 1,
+            "recall": True,
+            "retain": True,
+            "adaptive_eta": True,
+            "remaining_time": True,
+            "phase_learning": True,
+            "development_experience": _development_experience_enabled(),
+            "installation_integrity": True,
+        }
+
+    @staticmethod
+    def _run_id(session_id: str, turn_number: int) -> str:
+        seed = "{}:{}:{}".format(session_id, turn_number, time.time_ns()).encode("utf-8")
+        return "hermes-{}".format(hashlib.sha256(seed).hexdigest()[:24])
+
+    def _start_phase(self, state: Dict[str, Any], phase: str, iteration: int = 0) -> None:
+        if self._store is None:
+            return
+        state["phase_seq"] += 1
+        phase_id = "{}-p{:03d}".format(state["run_id"], state["phase_seq"])
+        getattr(self._store, "delay_run_start")(
+            phase_id,
+            "phase",
+            "{}.{}".format(state["cohort"], phase),
+            now=_utc_now(),
+            parent_run_id=state["run_id"],
+            context_refs=("iteration:{}".format(max(0, int(iteration))),),
+        )
+        state.update(
+            phase=phase,
+            phase_id=phase_id,
+            phase_started_monotonic=time.monotonic(),
+        )
+
+    def _finish_phase(self, state: Dict[str, Any], outcome: str = "completed") -> None:
+        if self._store is None or not state.get("phase_id"):
+            return
+        elapsed_ms = max(0, int((time.monotonic() - state["phase_started_monotonic"]) * 1000))
+        getattr(self._store, "delay_run_finish")(
+            state["phase_id"], elapsed_ms, now=_utc_now(), outcome=outcome
+        )
+        state.update(phase=None, phase_id=None, phase_started_monotonic=None)
+
+    def on_turn_timing_start(self, turn_number: int, **kwargs: Any) -> None:
+        """Open a privacy-safe task and initial active phase."""
+        if self._store is None or turn_number in self._timing_turns:
+            return
+        session_id = str(kwargs.get("session_id") or self._session_id or "unknown")
+        cohort = _cohort(kwargs.get("platform"), kwargs.get("subject"))
+        run_id = self._run_id(session_id, turn_number)
+        getattr(self._store, "delay_run_start")(run_id, "task", cohort, now=_utc_now())
+        state: Dict[str, Any] = {
+            "run_id": run_id,
+            "cohort": cohort,
+            "started_monotonic": time.monotonic(),
+            "phase_seq": 0,
+            "phase": None,
+            "phase_id": None,
+            "phase_started_monotonic": None,
+        }
+        self._timing_turns[turn_number] = state
+        try:
+            self._start_phase(state, "active")
+        except Exception:
+            try:
+                getattr(self._store, "delay_run_finish")(run_id, 0, now=_utc_now(), outcome="aborted")
+            finally:
+                self._timing_turns.pop(turn_number, None)
+            raise
+
+    def on_turn_progress(self, turn_number: int, **kwargs: Any) -> None:
+        state = self._timing_turns.get(turn_number)
+        phase = str(kwargs.get("phase") or "")
+        if state is None or phase not in _TIMING_PHASES or phase == state.get("phase"):
+            return
+        self._finish_phase(state)
+        self._start_phase(state, phase, int(kwargs.get("iteration") or 0))
+
+    def on_turn_finish(self, turn_number: int, **kwargs: Any) -> None:
+        state = self._timing_turns.get(turn_number)
+        if state is None or self._store is None:
+            return
+        outcome = _OUTCOME_MAP.get(str(kwargs.get("outcome") or "incomplete"), "incomplete")
+        self._finish_phase(state, "completed" if outcome == "completed" else outcome)
+        elapsed_ms = max(0, int((time.monotonic() - state["started_monotonic"]) * 1000))
+        getattr(self._store, "delay_run_finish")(state["run_id"], elapsed_ms, now=_utc_now(), outcome=outcome)
+        self._timing_turns.pop(turn_number, None)
+
+    def estimate_turn(self, **kwargs: Any) -> Optional[Dict[str, Any]]:
+        if self._store is None:
+            return None
+        subject = str(kwargs.get("subject") or "general").strip().lower()
+        estimate = getattr(self._store, "delay_estimate")(
+            "task", _cohort(kwargs.get("platform"), subject), now=_utc_now()
+        )
+        if not estimate.get("available"):
+            return None
+        result = dict(estimate)
+        risk_ms = max(
+            int(result.get("mad_ms", 0)),
+            int(result["p80_ms"]) - int(result["p50_ms"]),
+        )
+        result.update(
+            recommended_ms=int(result["p80_ms"]) + risk_ms,
+            risk_adjustment_ms=risk_ms,
+            confidence="high" if int(result["sample_count"]) >= 20 else "medium",
+            critical_path=(
+                subject
+                if subject in {"development", "scheduling", "health", "research", "operations", "general"}
+                else "general"
+            ),
+        )
+        return result
+
+    def abort_open_turns(self) -> None:
+        for turn_number in list(self._timing_turns):
+            try:
+                self.on_turn_finish(turn_number, outcome="aborted")
+            except Exception:
+                logging.getLogger(__name__).warning(
+                    "MemKraft timing abort failed for turn %s", turn_number, exc_info=True
+                )
+
+    def integration_report(self, *, run_smoke: bool = False) -> Dict[str, Any]:
+        installation = self.installation_report()
+        report: Dict[str, Any] = {
+            "ready": bool(installation.get("consistent")) and self._store is not None,
+            "installation": installation,
+            "capabilities": self.feature_capabilities(),
+        }
+        if run_smoke and self._store is not None:
+            turn = -max(1, time.time_ns())
+            try:
+                self.on_turn_timing_start(
+                    turn,
+                    session_id="integration-smoke",
+                    platform="other",
+                    subject="general",
+                )
+                self.on_turn_finish(turn, outcome="aborted")
+                report["smoke"] = {"timing_round_trip": turn not in self._timing_turns}
+            except Exception as exc:
+                report["ready"] = False
+                report["smoke"] = {
+                    "timing_round_trip": False,
+                    "error": type(exc).__name__,
+                }
+        return report
 
     def prefetch(self, query: str, *, session_id: str = "") -> str:
         if self._store is None or not query.strip():
@@ -276,6 +453,8 @@ class MemKraftMemoryProvider(MemoryProvider):
         rewound: bool = False,
         **kwargs: Any,
     ) -> None:
+        if reset or rewound:
+            self.abort_open_turns()
         self._session_id = new_session_id
 
     def backup_paths(self) -> List[str]:
