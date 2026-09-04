@@ -12,11 +12,19 @@ hermes config set memory.provider memkraft
 hermes gateway restart   # when a gateway is running
 ```
 
+## Verified release matrix
+
+The MemKraft 4.1.0 release gates test Hermes Agent 0.19.0 at commit
+`3ef6bbd201263d354fd83ec55b3c306ded2eb72a` and Hermes Agent 0.20.1 source at
+commit `45af7a71fcd420b4422d2c074b1ce58b9ce0d048`, each on Python 3.11 and 3.12.
+This pinned matrix is not a claim of compatibility with every Hermes release.
+
 A generated directory bridge remains available only for the verified legacy
-Hermes Agent 0.19.0 target:
+0.19.0 target. From a source checkout, install it with
+`scripts/install_hermes_plugin.py`:
 
 ```bash
-memkraft-hermes-install \
+python scripts/install_hermes_plugin.py \
   --hermes-version 0.19.0 \
   --hermes-home "$HERMES_HOME"
 ```
