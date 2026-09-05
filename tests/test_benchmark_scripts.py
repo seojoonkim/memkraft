@@ -486,8 +486,11 @@ def test_longmemeval_sample_latency_summary_is_deterministic():
         mod = _load_longmemeval_run()
 
         expected_src = str((Path(__file__).resolve().parents[1] / "src").resolve())
+        harness_source = (
+            Path("benchmarks/longmemeval/harness.py").resolve().read_text(encoding="utf-8")
+        )
         assert expected_src in sys.path
-        assert "/Users/gimseojun/memcraft/src" not in sys.path
+        assert "/Users/gimseojun/memcraft/src" not in harness_source
         assert [entry for entry in sys.path if entry != expected_src] == [
             entry for entry in original_path if entry != expected_src
         ]
