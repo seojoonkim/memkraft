@@ -505,7 +505,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.0) (current)
+### v4.1.1 (current)
+
+Adds deterministic WikiSkill records; automatic host injection is not included. See [release notes](docs/releases/4.1.1.md).
+
+### [v4.1.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.0)
 
 MemKraft 4.1.0 adds a default-on Hermes capability bundle for adaptive ETA, remaining-time and phase learning, plus conservative development-detour learning. Read the [release notes](docs/releases/4.1.0.md).
 
