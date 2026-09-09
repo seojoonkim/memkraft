@@ -303,8 +303,7 @@
       "revision_id": "r1",
       "state": "verified",
       "commits": [
-        "18a01b43f428f84198386b19fdb9e2c39d9d960f",
-        "72e1c8756fab53956d6c72788ab438d163c8af56"
+        "98fa3f0e99b86871775973d4e6d2c912a45c7b0c"
       ],
       "source_paths": [
         "src/memkraft/mcp.py"
