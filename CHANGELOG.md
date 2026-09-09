@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [4.1.1] — 2026-09-09
+
+- Added verified WikiSkill experience capture, promotion, and runtime-safe skill listing for Hermes and OpenClaw adapters.
+
 ## [4.1.0] — 2026-09-05
 
 - Added conservative development-experience capture for Hermes completed turns: failed tool routes are paired with a later final successful verifier, sanitized into ReasoningBank failure/success trajectories, deduplicated by deterministic turn identity, and injected into similar later tasks.
