@@ -17,6 +17,8 @@ Exposes four tools:
 from __future__ import annotations
 
 import sys
+import json
+from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -127,9 +129,17 @@ def _tool_schemas() -> list:
 
 
 def json_text(payload: Dict[str, Any]) -> str:
-    """Deterministic JSON TextContent fallback."""
-    from .execution_protocol import MAX_PROTOCOL_ARRAY_LENGTH, mkcjson
-    return mkcjson(payload, MAX_PROTOCOL_ARRAY_LENGTH).decode("utf-8")
+    """Strict deterministic JSON for the execution protocol."""
+    from .execution_protocol import mkcjson
+    return mkcjson(payload).decode("utf-8")
+
+
+def wire_json_text(payload: Any) -> str:
+    """Serialize ordinary MCP memory results without protocol limits."""
+    if isinstance(payload, list):
+        payload = {"results": payload}
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False)
 
 
 def dispatch_execution(mk, request: Dict[str, Any], now: str = "") -> Dict[str, Any]:
@@ -147,7 +157,11 @@ def dispatch_execution(mk, request: Dict[str, Any], now: str = "") -> Dict[str, 
 def dispatch(mk, name: str, args: Dict[str, Any]) -> Any:
     """Pure dispatch — no MCP dependency. Unit-testable."""
     if name == "remember":
-        mk.update(args["name"], args["info"], source=args.get("source", "mcp"))
+        entity = args["name"]
+        track = getattr(mk, "track", None)
+        if callable(track):
+            track(entity)
+        mk.update(entity, args["info"], source=args.get("source", "mcp"))
         return {"ok": True, "name": args["name"]}
     if name == "search":
         return mk.search(args["query"], fuzzy=args.get("fuzzy", True))
@@ -217,8 +231,10 @@ def main() -> None:
     @server.call_tool()
     async def _call_tool(name: str, arguments: Dict[str, Any]):
         try:
-            result = dispatch(mk, name, arguments or {})
-            content = [types.TextContent(type="text", text=json_text(result))]
+            with redirect_stdout(sys.stderr):
+                result = dispatch(mk, name, arguments or {})
+            text = json_text(result) if name.startswith("memkraft_execution_") else wire_json_text(result)
+            content = [types.TextContent(type="text", text=text)]
             if name.startswith("memkraft_execution_") and hasattr(types, "CallToolResult"):
                 return types.CallToolResult(
                     content=content, structuredContent=result,
@@ -228,7 +244,7 @@ def main() -> None:
         except Exception as error:
             payload = {"ok": False, "error": {"class": "io", "code": "E_INTERNAL",
                        "message": "%s" % error, "retryable": True, "details": {}}}
-            return [types.TextContent(type="text", text=json_text(payload))]
+            return [types.TextContent(type="text", text=wire_json_text(payload))]
 
     async def _run():
         async with stdio_server() as (read_stream, write_stream):

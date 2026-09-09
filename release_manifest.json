@@ -7,7 +7,7 @@
         "7970273cc5e7a5a55226237300216afe9132cf7d",
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
-        "dcd774412c6cb3d25bc1c9b2e36c414ddc39236d"
+        "053792e599a5420e90a284985bce51aa9aaedd85"
       ],
       "evaluation_refs": [
         {
@@ -273,7 +273,7 @@
     },
     {
       "commits": [
-        "dcd774412c6cb3d25bc1c9b2e36c414ddc39236d"
+        "053792e599a5420e90a284985bce51aa9aaedd85"
       ],
       "evaluation_refs": [
         {
@@ -296,6 +296,38 @@
         "src/memkraft/wikiskill.py"
       ],
       "state": "verified"
+    },
+    {
+      "id": "feature.mcp-persistence-wire",
+      "proposal_id": "prop.mcp-persistence-wire",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "18a01b43f428f84198386b19fdb9e2c39d9d960f",
+        "72e1c8756fab53956d6c72788ab438d163c8af56"
+      ],
+      "source_paths": [
+        "src/memkraft/mcp.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_v081_mcp.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_execution_mcp.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/MCP.md",
+          "claim": "MCP"
+        }
+      ]
     }
   ],
   "release": {
@@ -433,7 +465,8 @@
       "tools/pin_golden_usage_id.py",
       "docs/releases/4.1.1.md",
       "docs/WIKISKILL.md",
-      "tests/test_wikiskill.py"
+      "tests/test_wikiskill.py",
+      "docs/MCP.md"
     ],
     "remote": "origin",
     "removed_paths": [],
