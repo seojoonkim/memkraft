@@ -40,6 +40,7 @@ def test_dispatch_remember_and_search(mk):
 
     hits = mcp_mod.dispatch(mk, "search", {"query": "Simon"})
     assert isinstance(hits, list)
+    assert hits and "score" in hits[0]
 
 
 def test_dispatch_unknown_tool_raises(mk):

@@ -129,9 +129,17 @@ def _tool_schemas() -> list:
 
 
 def json_text(payload: Dict[str, Any]) -> str:
-    """Deterministic JSON TextContent fallback."""
-    from .execution_protocol import MAX_PROTOCOL_ARRAY_LENGTH, mkcjson
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    """Strict deterministic JSON for the execution protocol."""
+    from .execution_protocol import mkcjson
+    return mkcjson(payload).decode("utf-8")
+
+
+def wire_json_text(payload: Any) -> str:
+    """Serialize ordinary MCP memory results without protocol limits."""
+    if isinstance(payload, list):
+        payload = {"results": payload}
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False)
 
 
 def dispatch_execution(mk, request: Dict[str, Any], now: str = "") -> Dict[str, Any]:
@@ -156,7 +164,7 @@ def dispatch(mk, name: str, args: Dict[str, Any]) -> Any:
         mk.update(entity, args["info"], source=args.get("source", "mcp"))
         return {"ok": True, "name": args["name"]}
     if name == "search":
-        return {"ok": True, "results": mk.search(args["query"], fuzzy=args.get("fuzzy", True))}
+        return mk.search(args["query"], fuzzy=args.get("fuzzy", True))
     if name == "recall":
         brief = getattr(mk, "brief", None)
         if not callable(brief):
@@ -225,7 +233,8 @@ def main() -> None:
         try:
             with redirect_stdout(sys.stderr):
                 result = dispatch(mk, name, arguments or {})
-            content = [types.TextContent(type="text", text=json_text(result))]
+            text = json_text(result) if name.startswith("memkraft_execution_") else wire_json_text(result)
+            content = [types.TextContent(type="text", text=text)]
             if name.startswith("memkraft_execution_") and hasattr(types, "CallToolResult"):
                 return types.CallToolResult(
                     content=content, structuredContent=result,
@@ -235,7 +244,7 @@ def main() -> None:
         except Exception as error:
             payload = {"ok": False, "error": {"class": "io", "code": "E_INTERNAL",
                        "message": "%s" % error, "retryable": True, "details": {}}}
-            return [types.TextContent(type="text", text=json_text(payload))]
+            return [types.TextContent(type="text", text=wire_json_text(payload))]
 
     async def _run():
         async with stdio_server() as (read_stream, write_stream):

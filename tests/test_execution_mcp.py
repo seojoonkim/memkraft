@@ -72,3 +72,16 @@ def test_json_text_fallback_is_deterministic_and_not_python_repr():
     source = inspect.getsource(mcp)
     assert "str(result)" not in source
     assert 'f"error:' not in source
+
+
+def test_execution_json_text_uses_strict_protocol_encoder():
+    assert mcp.json_text({"ok": True}) == '{"ok":true}'
+    with __import__('pytest').raises(ValueError):
+        mcp.json_text({"bad": float("nan")})
+
+
+def test_wire_serializer_wraps_lists_and_rejects_nonfinite_scores():
+    text = mcp.wire_json_text([{"score": 0.25}])
+    assert json.loads(text) == {"results": [{"score": 0.25}]}
+    with __import__('pytest').raises(ValueError):
+        mcp.wire_json_text({"score": float("inf")})
