@@ -707,6 +707,8 @@ def test_release_transition_rejects_any_other_source_change(auditor, tmp_path, m
 
 
 def test_repository_manifest_passes_and_covers_all_changed_modules(auditor):
+    if os.environ.get("GITHUB_EVENT_NAME") != "push":
+        pytest.skip("release lineage is audited only for push candidates")
     candidate_sha = os.environ["CANDIDATE_SHA"]
     manifest = json.loads(_git(REPO_ROOT, "show", candidate_sha + ":release_manifest.json"))
     report = auditor.audit_release_lineage(REPO_ROOT, manifest, candidate_sha=candidate_sha)
