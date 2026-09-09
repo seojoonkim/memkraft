@@ -63,6 +63,7 @@ from .focus import FocusMixin  # v3.8 TTL-bounded inert current focus
 from .authority import AuthorityMixin  # v3.8 decision authority provenance
 from .self_evolving import SelfEvolvingMixin  # v4.0 self-evolving substrate
 from .development_experience import DevelopmentExperienceMixin
+from .wikiskill import WikiSkillMixin
 from .adapter import MemoryAdapter  # v4.0 transport-neutral agent contract
 from .outcomes import OutcomeLoopMixin  # v2.15 A2 outcome loop preview
 from .preference import PreferenceMixin  # v2.7.2 — selectively attached below
@@ -104,6 +105,7 @@ _ADDITIVE_ONLY_MIXINS = (
     AuthorityMixin,
     SelfEvolvingMixin,
     DevelopmentExperienceMixin,
+    WikiSkillMixin,
 )
 
 for _mixin in (
@@ -161,6 +163,7 @@ for _mixin in (
     AuthorityMixin,
     SelfEvolvingMixin,
     DevelopmentExperienceMixin,
+    WikiSkillMixin,
 ):
     for _name, _attr in vars(_mixin).items():
         if _name.startswith("__") and _name.endswith("__"):
