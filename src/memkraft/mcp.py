@@ -17,6 +17,8 @@ Exposes four tools:
 from __future__ import annotations
 
 import sys
+import json
+from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -129,7 +131,7 @@ def _tool_schemas() -> list:
 def json_text(payload: Dict[str, Any]) -> str:
     """Deterministic JSON TextContent fallback."""
     from .execution_protocol import MAX_PROTOCOL_ARRAY_LENGTH, mkcjson
-    return mkcjson(payload, MAX_PROTOCOL_ARRAY_LENGTH).decode("utf-8")
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def dispatch_execution(mk, request: Dict[str, Any], now: str = "") -> Dict[str, Any]:
@@ -147,10 +149,14 @@ def dispatch_execution(mk, request: Dict[str, Any], now: str = "") -> Dict[str, 
 def dispatch(mk, name: str, args: Dict[str, Any]) -> Any:
     """Pure dispatch — no MCP dependency. Unit-testable."""
     if name == "remember":
-        mk.update(args["name"], args["info"], source=args.get("source", "mcp"))
+        entity = args["name"]
+        track = getattr(mk, "track", None)
+        if callable(track):
+            track(entity)
+        mk.update(entity, args["info"], source=args.get("source", "mcp"))
         return {"ok": True, "name": args["name"]}
     if name == "search":
-        return mk.search(args["query"], fuzzy=args.get("fuzzy", True))
+        return {"ok": True, "results": mk.search(args["query"], fuzzy=args.get("fuzzy", True))}
     if name == "recall":
         brief = getattr(mk, "brief", None)
         if not callable(brief):
@@ -217,7 +223,8 @@ def main() -> None:
     @server.call_tool()
     async def _call_tool(name: str, arguments: Dict[str, Any]):
         try:
-            result = dispatch(mk, name, arguments or {})
+            with redirect_stdout(sys.stderr):
+                result = dispatch(mk, name, arguments or {})
             content = [types.TextContent(type="text", text=json_text(result))]
             if name.startswith("memkraft_execution_") and hasattr(types, "CallToolResult"):
                 return types.CallToolResult(
