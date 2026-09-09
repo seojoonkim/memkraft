@@ -269,10 +269,36 @@
         "src/memkraft/hermes_provider.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "dcd774412c6cb3d25bc1c9b2e36c414ddc39236d"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_wikiskill.py"
+        }
+      ],
+      "id": "feature.wikiskill-experience-pipeline-4.1.1",
+      "promotion_evidence": [
+        {
+          "claim": "verified WikiSkill experience pipeline",
+          "kind": "release-note",
+          "path": "docs/releases/4.1.1.md"
+        }
+      ],
+      "proposal_id": "prop.wikiskill-experience-pipeline-4.1.1",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/wikiskill.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/4.1.0",
+    "active_branch": "release/4.1.1",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -403,12 +429,15 @@
       "tests/test_v082_selfupdate.py",
       "tests/test_version_drift_standalone.py",
       "tests/test_version_integrity.py",
-      "tools/pin_golden_usage_id.py"
+      "tools/pin_golden_usage_id.py",
+      "docs/releases/4.1.1.md",
+      "docs/WIKISKILL.md",
+      "tests/test_wikiskill.py"
     ],
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.1.0"
+    "version": "4.1.1"
   },
   "schema": 2
 }

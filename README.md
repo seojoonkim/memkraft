@@ -1,5 +1,5 @@
-**v4.1.0**
-Current version: **4.1.0**
+**v4.1.1**
+Current version: **4.1.1**
 
 <div align="center">
 
