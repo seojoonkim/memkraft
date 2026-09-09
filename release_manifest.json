@@ -465,7 +465,8 @@
       "tools/pin_golden_usage_id.py",
       "docs/releases/4.1.1.md",
       "docs/WIKISKILL.md",
-      "tests/test_wikiskill.py"
+      "tests/test_wikiskill.py",
+      "docs/MCP.md"
     ],
     "remote": "origin",
     "removed_paths": [],
