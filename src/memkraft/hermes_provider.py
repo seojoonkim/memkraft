@@ -342,10 +342,11 @@ class MemKraftMemoryProvider(MemoryProvider):
 
     def _filter_stub_hits(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Drop entity pages that only record detections, so facts reach the top slots."""
-        from ._core_search_helpers import is_stub_entity_text
+        from ._core_search_helpers import is_chat_derived_template_entity, is_stub_entity_text
 
         base = Path(getattr(self._store, "base_dir", "") or ".")
         kept: List[Dict[str, Any]] = []
+        demoted: List[Dict[str, Any]] = []
         for result in results or []:
             rel = str(result.get("file") or "")
             if rel.startswith("entities/"):
@@ -355,8 +356,13 @@ class MemKraftMemoryProvider(MemoryProvider):
                     text = ""
                 if text and is_stub_entity_text(text):
                     continue
+                if text and is_chat_derived_template_entity(text):
+                    # Clause fragments copied from turns that are already stored in
+                    # full as artifacts/live-notes; use them only when nothing else hit.
+                    demoted.append(result)
+                    continue
             kept.append(result)
-        return kept
+        return kept if kept else demoted
 
     def _persist_completed_turn(self, session_id: str, content: str) -> None:
         """Append a completed Hermes turn to bounded, searchable chunks."""

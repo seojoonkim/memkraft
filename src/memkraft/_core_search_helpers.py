@@ -417,6 +417,31 @@ def is_stub_entity_text(content: str) -> bool:
     return all(_STUB_TIMELINE_RE.match(ln) for ln in rows)
 
 
+_ROW_SOURCE_RE = re.compile(r"\[Source: ([^\]|]+)")
+
+
+def is_chat_derived_template_entity(content: str, source_prefix: str = "hermes:") -> bool:
+    """True for template entity pages whose every timeline row came from chat auto-extraction.
+
+    Hermes extracts entities from each turn, so words such as 게이트웨 or 기록 become
+    pages holding clause fragments ("재시작까지 끝났어") copied from that turn. The
+    full turn is already stored as an artifact, so these pages only duplicate it and
+    crowd recall. A page is kept once it is enriched (template markers removed) or
+    has any row from a non-chat source.
+    """
+    if not any(m in content for m in _STUB_MARKERS):
+        return False
+    timeline = content.split("## Timeline", 1)[-1] if "## Timeline" in content else ""
+    rows = [ln for ln in timeline.splitlines() if ln.startswith("- **")]
+    if not rows:
+        return True
+    for ln in rows:
+        m = _ROW_SOURCE_RE.search(ln)
+        if not m or not m.group(1).strip().startswith(source_prefix):
+            return False
+    return True
+
+
 # ── Entity detection (regex-based) ─────────────────────────
 def detect_regex(
     text: str,
