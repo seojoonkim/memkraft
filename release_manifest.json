@@ -226,7 +226,8 @@
     {
       "commits": [
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
-        "2a6c95de5aab592fbcd11e441b3dc101422dce60"
+        "2a6c95de5aab592fbcd11e441b3dc101422dce60",
+        "8f4e1c08cd5745c3f0c2da2a1c7ef06301a074f1"
       ],
       "evaluation_refs": [
         {
@@ -325,6 +326,40 @@
           "kind": "release-note",
           "path": "docs/MCP.md",
           "claim": "MCP"
+        }
+      ]
+    },
+    {
+      "id": "feature.korean-chat-entity-noise-recall",
+      "proposal_id": "prop.korean-chat-entity-noise-recall",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "8f4e1c08cd5745c3f0c2da2a1c7ef06301a074f1"
+      ],
+      "source_paths": [
+        "src/memkraft/_core_search_helpers.py",
+        "src/memkraft/_regexes.py",
+        "tests/test_hermes_prefetch_stub_filter.py",
+        "tests/test_korean_chat_entity_noise.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_korean_chat_entity_noise.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_prefetch_stub_filter.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/ADAPTERS.md",
+          "claim": "stub entity pages"
         }
       ]
     }

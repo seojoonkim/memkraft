@@ -78,3 +78,7 @@ For subprocess use argv, never a shell string: `memkraft exec call --base-dir BA
 Gates are advisory, authority strings are unverified, and `should_run` is not permission. Handoff digests prove self-consistency, not sender authenticity. Do not hold a lease across a boundary whose completion the adapter cannot guarantee. Expiry is the primary recovery path where shutdown hooks are unreliable.
 
 Graph-runtime mappings and examples are in [GRAPH_ENGINEERING_ADAPTERS.md](GRAPH_ENGINEERING_ADAPTERS.md); protocol details are in [EXECUTION_PROTOCOL.md](EXECUTION_PROTOCOL.md).
+
+## Hermes recall: stub entity pages
+
+Hermes prefetch searches 12 candidates and drops stub entity pages (auto-created pages whose timeline only records detections) before keeping the top 5, so remembered facts are not crowded out. Korean chat predicates such as 보이게 or 연결해줘 are not created as entities, and detected URLs drop trailing markdown such as `**`.
