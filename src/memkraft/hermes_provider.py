@@ -323,7 +323,7 @@ class MemKraftMemoryProvider(MemoryProvider):
         if self._store is None or not query.strip():
             return ""
         with redirect_stdout(io.StringIO()):
-            results = self._store.search(query, top_k=5)
+            results = self._filter_stub_hits(self._store.search(query, top_k=12))[:5]
             reasoning = (
                 self._store.development_inject_for_task(query, style="full")
                 if _development_experience_enabled()
@@ -339,6 +339,24 @@ class MemKraftMemoryProvider(MemoryProvider):
                 lines.append("- {}: {}".format(source, snippet))
         recall = "\n".join(lines) if len(lines) > 1 else ""
         return "\n\n".join(block for block in (recall, reasoning) if block)
+
+    def _filter_stub_hits(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Drop entity pages that only record detections, so facts reach the top slots."""
+        from ._core_search_helpers import is_stub_entity_text
+
+        base = Path(getattr(self._store, "base_dir", "") or ".")
+        kept: List[Dict[str, Any]] = []
+        for result in results or []:
+            rel = str(result.get("file") or "")
+            if rel.startswith("entities/"):
+                try:
+                    text = (base / rel).read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    text = ""
+                if text and is_stub_entity_text(text):
+                    continue
+            kept.append(result)
+        return kept
 
     def _persist_completed_turn(self, session_id: str, content: str) -> None:
         """Append a completed Hermes turn to bounded, searchable chunks."""
