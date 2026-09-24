@@ -339,9 +339,7 @@
       ],
       "source_paths": [
         "src/memkraft/_core_search_helpers.py",
-        "src/memkraft/_regexes.py",
-        "tests/test_hermes_prefetch_stub_filter.py",
-        "tests/test_korean_chat_entity_noise.py"
+        "src/memkraft/_regexes.py"
       ],
       "evaluation_refs": [
         {
@@ -386,12 +384,14 @@
       "docs/EXECUTION_PROTOCOL.md",
       "docs/GRAPH_ENGINEERING_ADAPTERS.md",
       "docs/HERMES_AGENT.md",
+      "docs/MCP.md",
       "docs/MIGRATIONS.md",
       "docs/PROJECT_MEMORY_COMPILER.md",
       "docs/RELEASE_CHECKLIST.md",
       "docs/STATE_CONTRACT.md",
       "docs/THREAT_MODEL.md",
       "docs/V3_API.md",
+      "docs/WIKISKILL.md",
       "docs/bench/results/3.6.0-corrections-gate.json",
       "docs/bench/results/mkep-3.3.0-g11-g12-macos-arm64.json",
       "docs/bench/search-performance-3.5-maintenance.md",
@@ -416,6 +416,7 @@
       "docs/releases/4.0.0.md",
       "docs/releases/4.0.2.md",
       "docs/releases/4.1.0.md",
+      "docs/releases/4.1.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -468,11 +469,13 @@
       "tests/test_hermes_agent_compat.py",
       "tests/test_hermes_auto_features.py",
       "tests/test_hermes_install_contract.py",
+      "tests/test_hermes_prefetch_stub_filter.py",
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_install_integrity.py",
       "tests/test_integrations.py",
+      "tests/test_korean_chat_entity_noise.py",
       "tests/test_memory_graph_release.py",
       "tests/test_memory_graph_schema.py",
       "tests/test_packaging_version.py",
@@ -496,11 +499,8 @@
       "tests/test_v082_selfupdate.py",
       "tests/test_version_drift_standalone.py",
       "tests/test_version_integrity.py",
-      "tools/pin_golden_usage_id.py",
-      "docs/releases/4.1.1.md",
-      "docs/WIKISKILL.md",
       "tests/test_wikiskill.py",
-      "docs/MCP.md"
+      "tools/pin_golden_usage_id.py"
     ],
     "remote": "origin",
     "removed_paths": [],
