@@ -228,7 +228,7 @@
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
         "2a6c95de5aab592fbcd11e441b3dc101422dce60",
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
-        "5ad167ce5828c5c571d33503a821c1e891c5a745"
+        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef"
       ],
       "evaluation_refs": [
         {
@@ -337,7 +337,7 @@
       "state": "verified",
       "commits": [
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
-        "5ad167ce5828c5c571d33503a821c1e891c5a745"
+        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef"
       ],
       "source_paths": [
         "src/memkraft/_core_search_helpers.py",
