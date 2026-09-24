@@ -82,3 +82,5 @@ Graph-runtime mappings and examples are in [GRAPH_ENGINEERING_ADAPTERS.md](GRAPH
 ## Hermes recall: stub entity pages
 
 Hermes prefetch searches 12 candidates and drops stub entity pages (auto-created pages whose timeline only records detections) before keeping the top 5, so remembered facts are not crowded out. Korean chat predicates such as 보이게 or 연결해줘 are not created as entities, and detected URLs drop trailing markdown such as `**`.
+
+Template entity pages whose every timeline row comes from Hermes chat extraction (clause fragments already stored in full as artifacts) are offered to prefetch only when no other note matches.
