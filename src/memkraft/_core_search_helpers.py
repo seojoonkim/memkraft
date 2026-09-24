@@ -6,6 +6,8 @@ Public MemKraft API is unchanged — methods now delegate here.
 """
 from __future__ import annotations
 
+import re
+
 import json
 import math
 from difflib import SequenceMatcher
@@ -28,6 +30,9 @@ from ._regexes import (
     _NAME_3WORDS_RE,
     _KOREAN_NAME_RE,
     _KOREAN_VERB_SUFFIX_RE,
+    _KOREAN_PREDICATE_TOKEN_RE,
+    _KOREAN_PREDICATE_WHOLE,
+    _URL_TRAILING_JUNK_RE,
     _CHINESE_CHAR_RUN_RE,
     _HANDLE_RE,
     _EMAIL_RE,
@@ -388,6 +393,30 @@ def file_back_results(
         print(f"📂 Filed back {filed_count} results into entity timelines")
 
 
+def is_korean_predicate_token(token: str) -> bool:
+    """True when a Hangul token is a conversational predicate, not an entity."""
+    if token in _KOREAN_PREDICATE_WHOLE:
+        return True
+    return len(token) >= 3 and bool(_KOREAN_PREDICATE_TOKEN_RE.search(token))
+
+
+_STUB_MARKERS = ("(enrichment needed)", "Initial entity — enrichment needed")
+_STUB_TIMELINE_RE = re.compile(r"^- \*\*\d{4}-\d{2}-\d{2}\*\* \| (?:Re-detected|Entity first detected) \[", re.M)
+
+
+def is_stub_entity_text(content: str) -> bool:
+    """True for auto-created entity pages that hold no fact beyond detections.
+
+    Such pages carry only the template plus "Re-detected" timeline rows, so a
+    search hit on them is a hit on the file name, not on remembered knowledge.
+    """
+    if not any(m in content for m in _STUB_MARKERS):
+        return False
+    timeline = content.split("## Timeline", 1)[-1] if "## Timeline" in content else ""
+    rows = [ln for ln in timeline.splitlines() if ln.startswith("- **")]
+    return all(_STUB_TIMELINE_RE.match(ln) for ln in rows)
+
+
 # ── Entity detection (regex-based) ─────────────────────────
 def detect_regex(
     text: str,
@@ -422,6 +451,8 @@ def detect_regex(
         if name not in common and name.split()[0] not in common and name.split()[1] not in common and not is_substring:
             entities.append({"name": name, "type": "person", "context": "auto-detected"})
     for name in set(korean_names):
+        if is_korean_predicate_token(name):
+            continue
         if len(name) >= 2 and name not in korean_stopwords:
             stripped = strip_korean_josa_fn(name)
             if stripped != name and stripped not in korean_stopwords:
@@ -465,8 +496,8 @@ def detect_regex(
     for email in set(emails):
         entities.append({"name": email, "type": "contact", "context": "auto-detected (email)"})
 
-    urls = _URL_RE.findall(text)
-    for url in set(urls):
+    urls = {_URL_TRAILING_JUNK_RE.sub('', u) for u in _URL_RE.findall(text)}
+    for url in sorted(u for u in urls if len(u) > len('https://x')):
         entities.append({"name": url, "type": "reference", "context": "auto-detected (URL)"})
 
     known_orgs = {'Apple', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Tesla', 'Netflix', 'Nvidia', 'OpenAI', 'Anthropic', 'Samsung', 'Hashed', 'Tencent', 'Alibaba', 'ByteDance', 'Baidu', 'Sony', 'Toyota', 'Hyundai', 'LG', 'Kakao', 'Naver', 'Coupang', 'Toss', 'Stripe', 'SpaceX', 'Palantir', 'Uber', 'Airbnb', 'Coinbase', 'Binance', 'Riot', 'Epic', 'Valve', 'Blizzard'}

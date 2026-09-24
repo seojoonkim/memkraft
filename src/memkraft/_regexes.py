@@ -81,6 +81,21 @@ _KOREAN_VERB_SUFFIX_RE = re.compile(
     r'(다|해|함|요|서|고|며|니|까|지|은|는|이|을|를|와|과|도|만|로|으로|라|라서|의)?$'
 )
 _CHINESE_CHAR_RUN_RE = re.compile(r'[\u4E00-\u9FFF]+')
+# Conversational predicate endings (requests, plans, reports). Tokens that end
+# this way are verbs/adjectives from chat turns ("보이게", "해줘", "고쳤어"), not
+# names. Applied only to tokens of 3+ syllables, or to exact whole-token matches,
+# so 2-syllable names such as 하나/시온/사노 are never touched.
+_KOREAN_PREDICATE_TOKEN_RE = re.compile(
+    r'(?:해줘|해봐|하자|해요|했어|했다|할게|할까|한다|된다|됐어|이다|이야|인데|'
+    r'보이게|하게|되게|주세요|줘요|거야|건데|잖아|네요|어요|아요|했음|하기|되기|'
+    r'찾아|고쳐|바꿔|넣어|빼줘|올려|알려|만들어|해줄래|해주세요)$'
+)
+_KOREAN_PREDICATE_WHOLE = frozenset({
+    '해줘', '해봐', '하자', '해요', '했어', '할게', '한다', '된다', '이다', '이야',
+    '보이게', '하게', '되게', '찾아', '고쳐', '바꿔', '넣어', '빼줘', '올려', '알려',
+})
+# Trailing markdown/punctuation that the URL regex swallows (e.g. **bold** links).
+_URL_TRAILING_JUNK_RE = re.compile(r'[*_`\'".,;:!?)\]>]+$')
 _HANDLE_RE = re.compile(r'(?:^|(?<=\s))@(\w+)')
 _EMAIL_RE = re.compile(
     r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b'
