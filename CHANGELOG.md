@@ -1,11 +1,5 @@
 # CHANGELOG
 
-## [Unreleased]
-
-- Hermes prefetch no longer fills recall slots with auto-created entity pages that hold only detection rows; it searches 12 candidates and keeps the top 5 non-stub hits.
-- Korean regex entity detection skips conversational predicate tokens (e.g. 보이게, 연결해줘, 해줘) while keeping 2-syllable names.
-- Detected URLs drop trailing markdown/punctuation such as `**` from bold links.
-
 ## [4.1.1] — 2026-09-09
 
 - Added verified WikiSkill experience capture, promotion, and runtime-safe skill listing for Hermes and OpenClaw adapters.
