@@ -13,8 +13,8 @@ except ImportError:  # Python 3.9/3.10
 import memkraft
 
 
-RELEASE_VERSION = "4.1.1"
-RELEASE_DATE = "2026-09-09"
+RELEASE_VERSION = "4.1.2"
+RELEASE_DATE = "2026-09-27"
 
 
 def _project_version() -> str:

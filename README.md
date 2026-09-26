@@ -1,5 +1,5 @@
-**v4.1.1**
-Current version: **4.1.1**
+**v4.1.2**
+Current version: **4.1.2**
 
 <div align="center">
 
@@ -505,7 +505,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.1.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.1) (current)
+### [v4.1.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.2) (current)
+
+Makes Delay Ledger writes linear in ledger size, removing a per-tool-step stall on long-running Hermes installs. See [release notes](docs/releases/4.1.2.md).
+
+### [v4.1.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.1.1)
 
 Adds deterministic WikiSkill records; automatic host injection is not included. See [release notes](docs/releases/4.1.1.md).
 

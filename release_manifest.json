@@ -367,10 +367,41 @@
           "claim": "stub entity pages"
         }
       ]
+    },
+    {
+      "id": "feature.delay-ledger-linear-fold",
+      "proposal_id": "prop.delay-ledger-linear-fold",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "d0a03b5e8cfb534548a1888a464d2ccb3f78aaa4"
+      ],
+      "source_paths": [
+        "src/memkraft/delay_ledger.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_delay_ledger.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_delay_ledger_performance.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/releases/4.1.2.md",
+          "claim": "linear"
+        }
+      ]
     }
   ],
   "release": {
-    "active_branch": "release/4.1.1",
+    "active_branch": "release/4.1.2",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -424,6 +455,7 @@
       "docs/releases/4.0.2.md",
       "docs/releases/4.1.0.md",
       "docs/releases/4.1.1.md",
+      "docs/releases/4.1.2.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -456,6 +488,7 @@
       "tests/test_correction_policy.py",
       "tests/test_correction_projection.py",
       "tests/test_delay_ledger.py",
+      "tests/test_delay_ledger_performance.py",
       "tests/test_development_experience.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
@@ -513,7 +546,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.1.1"
+    "version": "4.1.2"
   },
   "schema": 2
 }
