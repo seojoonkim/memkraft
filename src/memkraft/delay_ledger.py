@@ -268,12 +268,7 @@ def _persisted_valid(record: Dict[str, Any]) -> bool:
 
 def _estimate_runs(runs: Dict[str, Dict[str, Any]], kind: str, subject: str,
                    window: int, through_seq: Optional[int]) -> Dict[str, Any]:
-    samples = [run for run in runs.values() if run["finished"]
-               and run.get("outcome") == "completed" and run["kind"] == kind
-               and run["subject"] == subject
-               and (through_seq is None or run["finish_seq"] <= through_seq)]
-    samples.sort(key=lambda item: item["finish_seq"])
-    values = [item["elapsed_ms"] for item in samples[-window:]]
+    values = _window_values(runs, kind, subject, window, through_seq)
     if len(values) < 5:
         return {"available": False, "reason": "insufficient_samples",
                 "sample_count": len(values), "through_seq": through_seq}
@@ -302,8 +297,45 @@ def _trusted_anomaly_claim(runs: Dict[str, Dict[str, Any]],
             "trigger_algorithm": "nearest-rank-p50-plus-4mad-v1"}
 
 
+class _Runs(dict):
+    """``run_id -> run`` plus incremental indexes that keep ``_fold`` linear.
+
+    ``samples[(kind, subject)]`` holds completed runs in finish order, and
+    ``open_children[parent_id]`` counts unfinished direct children. Both are
+    derived purely from the same validated transitions as the dict itself.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.samples: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+        self.open_children: Dict[str, int] = {}
+
+
+def _window_values(runs: Dict[str, Dict[str, Any]], kind: str, subject: str,
+                   window: int, through_seq: Optional[int]) -> List[int]:
+    samples = getattr(runs, "samples", None)
+    if samples is None:
+        picked = [run for run in runs.values() if run["finished"]
+                  and run.get("outcome") == "completed" and run["kind"] == kind
+                  and run["subject"] == subject
+                  and (through_seq is None or run["finish_seq"] <= through_seq)]
+        picked.sort(key=lambda item: item["finish_seq"])
+        return [item["elapsed_ms"] for item in picked[-window:]]
+    series = samples.get((kind, subject), [])
+    if through_seq is not None:
+        lo, hi = 0, len(series)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if series[mid]["finish_seq"] <= through_seq:
+                lo = mid + 1
+            else:
+                hi = mid
+        series = series[:lo]
+    return [item["elapsed_ms"] for item in series[-window:]]
+
+
 def _fold(records: List[Dict[str, Any]]):
-    runs: Dict[str, Dict[str, Any]] = {}
+    runs: Dict[str, Dict[str, Any]] = _Runs()
     chain: Dict[str, Dict[str, Any]] = {}
     corrupt = 0
     for record in records:
@@ -337,6 +369,8 @@ def _fold(records: List[Dict[str, Any]]):
                 "start_seq": record["event_seq"],
                 "finished": False,
             }
+            if parent_id is not None:
+                runs.open_children[parent_id] = runs.open_children.get(parent_id, 0) + 1
         elif kind == "delay_run_finish":
             run = runs.get(record.get("run_id"))
             elapsed = record.get("elapsed_ms")
@@ -348,8 +382,7 @@ def _fold(records: List[Dict[str, Any]]):
             if outcome not in _OUTCOMES:
                 corrupt += 1
                 continue
-            if any(not child["finished"] and child.get("parent_run_id") == record.get("run_id")
-                   for child in runs.values()):
+            if runs.open_children.get(record.get("run_id"), 0):
                 corrupt += 1
                 continue
             estimate = _estimate_runs(runs, run["kind"], run["subject"], 100, None)
@@ -364,6 +397,11 @@ def _fold(records: List[Dict[str, Any]]):
                         "outcome": outcome,
                         "finish_seq": record["event_seq"],
                         "finish_record": record})
+            parent_id = run.get("parent_run_id")
+            if parent_id is not None:
+                runs.open_children[parent_id] -= 1
+            if outcome == "completed":
+                runs.samples.setdefault((run["kind"], run["subject"]), []).append(run)
         elif kind in ("delay_retrospective", "delay_action",
                       "delay_application", "delay_verification"):
             record_id = record.get("chain_id")
@@ -433,7 +471,8 @@ class DelayLedgerMixin:
         try:
             _secure_delay_path(path)
             records, corrupt = _partition(read_all(path, include_tombstoned=True))
-            _, _, semantic_corrupt = _fold(records)
+            folded = _fold(records)
+            _, _, semantic_corrupt = folded
             if corrupt or semantic_corrupt:
                 _fail("E_DELAY_LOG_CORRUPT",
                       "the delay log is inconsistent; refusing a partial-view write",
@@ -453,9 +492,9 @@ class DelayLedgerMixin:
                 _fail("E_DELAY_IDEMPOTENCY_MISMATCH",
                       "operation_id was used with different arguments")
             if snapshot is not None:
-                snapshot(records, record)
+                snapshot(records, record, folded)
             if prepare is not None:
-                prepare(records, record)
+                prepare(records, record, folded)
             record["event_seq"] = max([0] + [item["event_seq"] for item in records]) + 1
             candidate = dict(record, schema_version=1)
             if not _valid_common_record(candidate) or not _persisted_valid(candidate):
@@ -492,8 +531,8 @@ class DelayLedgerMixin:
         if kind not in _KINDS:
             _fail("E_DELAY_VALIDATION", "kind is outside its closed domain", "kind")
 
-        def prepare(records, candidate):
-            runs, _, _ = _fold(records)
+        def prepare(records, candidate, folded):
+            runs, _, _ = folded
             parent = runs.get(candidate["parent_run_id"])
             valid = ((candidate["kind"] == "task" and parent is None
                       and candidate["parent_run_id"] is None)
@@ -520,17 +559,16 @@ class DelayLedgerMixin:
         record.update({"run_id": _identity("run_id", run_id),
                        "elapsed_ms": elapsed_ms, "outcome": outcome})
 
-        def prepare(records, candidate):
-            runs, _, _ = _fold(records)
+        def prepare(records, candidate, folded):
+            runs, _, _ = folded
             run = runs.get(candidate["run_id"])
             if run is None:
                 _fail("E_DELAY_NOT_FOUND", "run was never started", "run_id")
             if run["finished"]:
                 _fail("E_DELAY_FINISHED", "run was already finished", "run_id")
-            if any(not child["finished"] and child.get("parent_run_id") == candidate["run_id"]
-                   for child in runs.values()):
+            if runs.open_children.get(candidate["run_id"], 0):
                 _fail("E_DELAY_HIERARCHY", "run has an unfinished child", "run_id")
-            estimate = _estimate_from(records, run["kind"], run["subject"], 100, None)
+            estimate = _estimate_runs(runs, run["kind"], run["subject"], 100, None)
             candidate["anomaly"] = bool(
                 estimate.get("available")
                 and candidate["elapsed_ms"] > estimate["anomaly_threshold_ms"])
@@ -567,16 +605,16 @@ class DelayLedgerMixin:
                        "observation": _opaque("observation", observation),
                        "predecessor_id": None})
 
-        def snapshot(records, candidate):
-            runs, _, _ = _fold(records)
+        def snapshot(records, candidate, folded):
+            runs, _, _ = folded
             run = runs.get(candidate["run_id"])
             claim = None if run is None else _trusted_anomaly_claim(runs, run)
             if claim is None:
                 _fail("E_DELAY_CHAIN", "retrospective requires a completed anomalous run")
             candidate.update(claim)
 
-        def prepare(records, candidate):
-            _, chain, _ = _fold(records)
+        def prepare(records, candidate, folded):
+            _, chain, _ = folded
             if candidate["chain_id"] in chain:
                 _fail("E_DELAY_CHAIN", "chain_id already exists")
         return self._delay_append(record, operation_id, prepare, snapshot)
@@ -600,8 +638,8 @@ class DelayLedgerMixin:
         expected = {"delay_action": "delay_retrospective",
                     "delay_application": "delay_action",
                     "delay_verification": "delay_application"}[record_type]
-        def prepare(records, candidate):
-            _, chain, _ = _fold(records)
+        def prepare(records, candidate, folded):
+            _, chain, _ = folded
             predecessor = chain.get(candidate["predecessor_id"])
             if predecessor is None or predecessor["record_type"] != expected:
                 _fail("E_DELAY_CHAIN", "the predecessor type is invalid")
