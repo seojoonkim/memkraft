@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [4.1.2] — 2026-09-27
+
+- Made Delay Ledger appends fold once in linear time; a 24k-event Hermes ledger no longer adds ~55 s per tool step. No migration required.
+
 ## [4.1.1] — 2026-09-09
 
 - Added verified WikiSkill experience capture, promotion, and runtime-safe skill listing for Hermes and OpenClaw adapters.
