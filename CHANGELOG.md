@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [4.2.0] — 2026-10-01
+
+- Added owner sayings (verbatim directives) and an irreversible-only decision queue, with five Hermes `owner_*` tools and shared owner storage across profiles.
+
 ## [4.1.2] — 2026-09-27
 
 - Made Delay Ledger appends fold once in linear time; a 24k-event Hermes ledger no longer adds ~55 s per tool step. No migration required.
