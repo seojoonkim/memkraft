@@ -7,7 +7,8 @@
         "7970273cc5e7a5a55226237300216afe9132cf7d",
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
-        "053792e599a5420e90a284985bce51aa9aaedd85"
+        "053792e599a5420e90a284985bce51aa9aaedd85",
+        "7b73d4e2cf1c17f3b09b93a5df2173f9840db5ca"
       ],
       "evaluation_refs": [
         {
@@ -228,7 +229,8 @@
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
         "2a6c95de5aab592fbcd11e441b3dc101422dce60",
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
-        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef"
+        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
+        "7b73d4e2cf1c17f3b09b93a5df2173f9840db5ca"
       ],
       "evaluation_refs": [
         {
@@ -398,10 +400,46 @@
           "claim": "linear"
         }
       ]
+    },
+    {
+      "id": "feature.owner-ledger-decision-queue",
+      "proposal_id": "prop.owner-ledger-decision-queue",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "7b73d4e2cf1c17f3b09b93a5df2173f9840db5ca"
+      ],
+      "source_paths": [
+        "src/memkraft/owner_ledger.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_owner_ledger.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_owner_tools.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_agent_compat.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/releases/4.2.0.md",
+          "claim": "Owner sayings"
+        }
+      ]
     }
   ],
   "release": {
-    "active_branch": "release/4.1.2",
+    "active_branch": "release/4.2.0",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -456,6 +494,7 @@
       "docs/releases/4.1.0.md",
       "docs/releases/4.1.1.md",
       "docs/releases/4.1.2.md",
+      "docs/releases/4.2.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -510,6 +549,7 @@
       "tests/test_hermes_agent_compat.py",
       "tests/test_hermes_auto_features.py",
       "tests/test_hermes_install_contract.py",
+      "tests/test_hermes_owner_tools.py",
       "tests/test_hermes_prefetch_stub_filter.py",
       "tests/test_hermes_provider.py",
       "tests/test_improvement_ledger.py",
@@ -519,6 +559,7 @@
       "tests/test_korean_chat_entity_noise.py",
       "tests/test_memory_graph_release.py",
       "tests/test_memory_graph_schema.py",
+      "tests/test_owner_ledger.py",
       "tests/test_packaging_version.py",
       "tests/test_project_memory_api.py",
       "tests/test_project_memory_contract.py",
@@ -546,7 +587,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.1.2"
+    "version": "4.2.0"
   },
   "schema": 2
 }
