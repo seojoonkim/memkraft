@@ -114,6 +114,48 @@ def _process_lock(path: Path):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+OWNER_TOOL_NAMES = (
+    "owner_saying_search",
+    "owner_saying_record",
+    "owner_decision_enqueue",
+    "owner_decision_list",
+    "owner_decision_resolve",
+)
+
+
+def _owner_tool_schemas() -> List[Dict[str, Any]]:
+    def obj(props: Dict[str, Any], required: List[str]) -> Dict[str, Any]:
+        return {"type": "object", "properties": props, "required": required}
+
+    s = {"type": "string"}
+    return [
+        {"name": "owner_saying_search",
+         "description": ("Search the owner's past directives, stored verbatim. Check this before "
+                         "asking the owner a question; if a saying answers it, act on it."),
+         "parameters": obj({"query": s, "scope": {"type": "string", "description": "profile name or 'all'"},
+                            "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, ["query"])},
+        {"name": "owner_saying_record",
+         "description": ("Record a directive the owner explicitly stated, verbatim (no paraphrase). "
+                         "Use only for the owner's own durable rules or preferences."),
+         "parameters": obj({"text": s, "scope": s, "tags": {"type": "array", "items": s},
+                            "source": s}, ["text"])},
+        {"name": "owner_decision_enqueue",
+         "description": ("Queue a question that needs the owner. Only money, delete, publish, account, "
+                         "credential, legal, or external_contract decisions are queued; reversible work "
+                         "returns action=proceed and should simply continue."),
+         "parameters": obj({"question": s, "category": s, "requester": s,
+                            "options": {"type": "array", "items": s}, "context": s,
+                            "reversible": {"type": "boolean"}}, ["question", "category", "requester"])},
+        {"name": "owner_decision_list",
+         "description": "List open owner decisions plus a batched digest to ask in one message.",
+         "parameters": obj({"status": {"type": "string", "enum": ["open", "resolved"]}}, [])},
+        {"name": "owner_decision_resolve",
+         "description": "Record the owner's answer to a queued decision.",
+         "parameters": obj({"decision_id": s, "answer": s, "resolved_by": s},
+                           ["decision_id", "answer", "resolved_by"])},
+    ]
+
+
 class MemKraftMemoryProvider(MemoryProvider):
     """Expose MemKraft as a context-only Hermes memory provider."""
 
@@ -159,12 +201,21 @@ class MemKraftMemoryProvider(MemoryProvider):
         self._store = MemKraft(base_dir=str(base_dir))
         with redirect_stdout(io.StringIO()):
             self._store.init(verbose=False)
+        # The owner's sayings apply to every profile, so they live in one shared
+        # directory beside (not inside) the per-profile memory.
+        owner_root = Path(str(kwargs.get("hermes_root") or "")) if kwargs.get("hermes_root") else None
+        if owner_root is None:
+            parts = hermes_home.parts
+            owner_root = Path(*parts[:-2]) if len(parts) > 2 and parts[-2] == "profiles" else hermes_home
+        self._store.owner_dir = os.environ.get("MEMKRAFT_OWNER_DIR") or str(owner_root / "memkraft-owner")
         self._session_id = session_id
 
     def system_prompt_block(self) -> str:
         return (
             "MemKraft provides persistent local memory. Recalled entries are "
-            "reference context; prefer the user's current message on conflicts."
+            "reference context; prefer the user's current message on conflicts. "
+            "Before asking the owner a question, check owner_saying_search; queue only "
+            "irreversible decisions with owner_decision_enqueue and keep working otherwise."
         )
 
     def feature_capabilities(self) -> Dict[str, Any]:
@@ -338,7 +389,15 @@ class MemKraftMemoryProvider(MemoryProvider):
             if snippet:
                 lines.append("- {}: {}".format(source, snippet))
         recall = "\n".join(lines) if len(lines) > 1 else ""
-        return "\n\n".join(block for block in (recall, reasoning) if block)
+        sayings = ""
+        try:
+            hits = self._store.saying_search(query, limit=2)
+        except Exception:
+            hits = []
+        if hits:
+            sayings = "Owner said (verbatim):\n" + "\n".join(
+                "- \"{}\" ({}, scope={})".format(h["text"], h["said_at"][:10], h["scope"]) for h in hits)
+        return "\n\n".join(block for block in (sayings, recall, reasoning) if block)
 
     def _filter_stub_hits(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Drop entity pages that only record detections, so facts reach the top slots."""
@@ -463,10 +522,39 @@ class MemKraftMemoryProvider(MemoryProvider):
                 )
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
-        return []
+        return _owner_tool_schemas()
 
     def handle_tool_call(self, tool_name: str, args: Dict[str, Any], **kwargs: Any) -> str:
-        return json.dumps({"success": False, "error": "MemKraft exposes no model tools"})
+        from .owner_ledger import OwnerLedgerError
+
+        if tool_name not in OWNER_TOOL_NAMES:
+            return json.dumps({"success": False, "error": "unknown MemKraft tool: {}".format(tool_name)})
+        if self._store is None:
+            return json.dumps({"success": False, "error": "MemKraft is not initialized"})
+        a = dict(args or {})
+        mk = self._store
+        try:
+            if tool_name == "owner_saying_search":
+                out = {"results": mk.saying_search(a.get("query", ""), scope=a.get("scope"),
+                                                   limit=int(a.get("limit") or 5))}
+            elif tool_name == "owner_saying_record":
+                out = mk.saying_record(a.get("text", ""), scope=a.get("scope") or "all",
+                                       tags=a.get("tags") or (), source=a.get("source") or "")
+            elif tool_name == "owner_decision_enqueue":
+                out = mk.decision_enqueue(a.get("question", ""), category=a.get("category", ""),
+                                          requester=a.get("requester", ""),
+                                          options=a.get("options") or (), context=a.get("context") or "",
+                                          reversible=bool(a.get("reversible", False)))
+            elif tool_name == "owner_decision_list":
+                status = a.get("status") or "open"
+                out = {"results": mk.decision_list(status=status),
+                       "digest": mk.decision_digest() if status == "open" else ""}
+            else:
+                out = mk.decision_resolve(a.get("decision_id", ""), a.get("answer", ""),
+                                          resolved_by=a.get("resolved_by", ""))
+        except OwnerLedgerError as exc:
+            return json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False)
+        return json.dumps(dict(out, success=True), ensure_ascii=False)
 
     def on_session_switch(
         self,
