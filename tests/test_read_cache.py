@@ -148,6 +148,84 @@ class TestReadCacheUnit:
         assert not errors
         assert cache.hits + cache.misses == 1000
 
+    @pytest.mark.parametrize("operation", ["cold_miss", "changed_file", "invalidate"])
+    def test_path_lookup_does_not_scan_cache(self, tmp_path: Path, operation):
+        from collections import OrderedDict
+
+        class NoScanOrderedDict(OrderedDict):
+            def __iter__(self):
+                raise AssertionError("path lookup must not scan cached entries")
+
+            keys = items = values = __iter__
+
+        cache = _ReadCache(capacity=16)
+        files = [tmp_path / f"scan_{i}.txt" for i in range(16)]
+        for f in files:
+            f.write_text("old", encoding="utf-8")
+            cache.get_or_read(f)
+        # Retain real mapping operations, but forbid cache-wide traversal.
+        cache._data = NoScanOrderedDict(cache._data)
+        if operation == "invalidate":
+            cache.invalidate(files[0])
+            assert cache.invalidations == 1
+            assert cache.stats()["size"] == 15
+        else:
+            target = tmp_path / "new.txt" if operation == "cold_miss" else files[0]
+            target.write_text("new content", encoding="utf-8")
+            assert cache.get_or_read(target) == "new content"
+            assert cache.get_or_read(target) == "new content"
+            assert cache.hits == 1
+            assert cache.invalidations == (operation == "changed_file")
+            assert cache.stats()["size"] == 16
+
+    def test_path_index_tracks_eviction_invalidation_and_clear(self, tmp_path: Path):
+        cache = _ReadCache(capacity=2)
+        files = [tmp_path / f"index_{i}.txt" for i in range(8)]
+        for f in files:
+            f.write_text("content", encoding="utf-8")
+            cache.get_or_read(f)
+            assert cache._path_keys == {key[0]: key for key in cache._data}
+            assert len(cache._path_keys) <= 2
+        # An evicted path must not count as an invalidation.
+        cache.invalidate(files[0])
+        assert cache.invalidations == 0
+        cache.invalidate(files[-1])
+        cache.invalidate(files[-1])
+        assert cache.invalidations == 1
+        assert cache._path_keys == {key[0]: key for key in cache._data}
+        cache.clear()
+        assert cache._path_keys == {}
+        assert cache.stats()["size"] == 0
+        assert cache.get_or_read(files[-1]) == "content"
+        assert cache.invalidations == 1
+        assert cache._path_keys == {key[0]: key for key in cache._data}
+
+    def test_concurrent_misses_keep_one_path_entry(self, tmp_path: Path, monkeypatch):
+        from concurrent.futures import ThreadPoolExecutor
+
+        cache = _ReadCache(capacity=2)
+        f = tmp_path / "concurrent.txt"
+        f.write_text("shared", encoding="utf-8")
+        barrier = threading.Barrier(4)
+        original_read = Path.read_text
+
+        def synchronized_read(path, *args, **kwargs):
+            barrier.wait(timeout=5)
+            return original_read(path, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", synchronized_read)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(cache.get_or_read, [f] * 4))
+        assert results == ["shared"] * 4
+        assert cache.misses == 4
+        assert cache.invalidations == 0
+        assert cache.stats()["size"] == 1
+        assert cache._path_keys == {key[0]: key for key in cache._data}
+        cache.invalidate(f)
+        assert cache._path_keys == {}
+        assert cache.stats()["size"] == 0
+        assert cache.invalidations == 1
+
     def test_stats(self, tmp_path: Path):
         cache = _ReadCache(capacity=16)
         f = tmp_path / "s.txt"

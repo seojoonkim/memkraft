@@ -142,6 +142,35 @@ class TestCorruptLines:
         assert result.skipped == 1
 
 
+@pytest.mark.parametrize("include_tombstoned", [False, True])
+def test_read_all_skips_invalid_utf8_per_line(tmp_path: Path, include_tombstoned):
+    path = tmp_path / "store.jsonl"
+    path.write_bytes(
+        b'{"id":"before"}\n'
+        b'{"id":"broken","text":"\xff"}\n'
+        b'{"id":"after","text":"\\ufffd"}\n'
+    )
+
+    result = read_all(path, include_tombstoned=include_tombstoned)
+
+    assert [record["id"] for record in result.records] == ["before", "after"]
+    assert result.records[1]["text"] == "\ufffd"
+    assert result.skipped == 1
+
+
+def test_compact_removes_invalid_utf8_even_inside_json_strings(tmp_path: Path):
+    path = tmp_path / "store.jsonl"
+    live = '{"id":"live","text":"한글 �"}\n'.encode("utf-8")
+    path.write_bytes(live + b'{"id":"broken","text":"\xff"}\n')
+
+    result = compact(path)
+
+    assert result.removed_corrupt == 1
+    assert result.kept == 1
+    assert path.read_bytes() == live
+    assert read_all(path).skipped == 0
+
+
 class TestWireFormat:
     def test_append_writes_single_newline_terminated_line(self, tmp_path: Path):
         path = tmp_path / "store.jsonl"

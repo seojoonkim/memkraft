@@ -116,6 +116,63 @@ def _iter_md_via_scandir(directory: Path, skip_system: bool = False):
             pass
 
 
+def _iter_md_stat_entries(directory: Path, skip_system: bool = False):
+    """Yield ``(path_str, mtime_ns, size)`` for markdown files in ``directory``.
+
+    Same selection rules as :func:`_iter_md_via_scandir` (no symlinks, regular
+    files only, optional system-file skip) but returns plain tuples taken from
+    the ``DirEntry`` so the corpus fingerprint can be computed without
+    materialising a :class:`Path` per file.
+    """
+    try:
+        it = _os_walk.scandir(directory)
+    except (FileNotFoundError, NotADirectoryError, PermissionError, OSError):
+        return
+    try:
+        for entry in it:
+            name = entry.name
+            if not name.endswith(".md"):
+                continue
+            if skip_system and name in _SYSTEM_FILES:
+                continue
+            try:
+                if entry.is_symlink():
+                    continue
+                if not entry.is_file(follow_symlinks=False):
+                    continue
+                st = entry.stat(follow_symlinks=False)
+            except OSError:
+                continue
+            yield entry.path, st.st_mtime_ns, st.st_size
+    finally:
+        try:
+            it.close()
+        except Exception:
+            pass
+
+
+def md_stat_snapshot(dirs: List[Path], base_dir: Path) -> list:
+    """Return sorted ``[(path_str, mtime_ns, size), ...]`` for the corpus.
+
+    The file set and order match :func:`all_md_files` sorted by ``str(path)``,
+    which is exactly what the corpus fingerprint hashes.  Used by the search
+    hot path to prove "nothing changed" cheaply on large stores.
+    """
+    seen = set()
+    rows = []
+    for subdir in dirs:
+        for row in _iter_md_stat_entries(subdir, skip_system=False):
+            if row[0] not in seen:
+                seen.add(row[0])
+                rows.append(row)
+    for row in _iter_md_stat_entries(base_dir, skip_system=True):
+        if row[0] not in seen:
+            seen.add(row[0])
+            rows.append(row)
+    rows.sort(key=lambda r: r[0])
+    return rows
+
+
 def all_md_files(dirs: List[Path], base_dir: Path):
     """Yield all markdown files from the given directories and base_dir.
 

@@ -374,7 +374,7 @@ class MemKraftMemoryProvider(MemoryProvider):
         if self._store is None or not query.strip():
             return ""
         with redirect_stdout(io.StringIO()):
-            results = self._filter_stub_hits(self._store.search(query, top_k=12))[:5]
+            results = self._recall_hits(query, want=5)
             reasoning = (
                 self._store.development_inject_for_task(query, style="full")
                 if _development_experience_enabled()
@@ -399,7 +399,25 @@ class MemKraftMemoryProvider(MemoryProvider):
                 "- \"{}\" ({}, scope={})".format(h["text"], h["said_at"][:10], h["scope"]) for h in hits)
         return "\n\n".join(block for block in (sayings, recall, reasoning) if block)
 
-    def _filter_stub_hits(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # Candidate windows tried in order.  Chat-derived template entities can
+    # take every top-12 slot through the filename bonus (one-word file names
+    # that equal a query word), so widen until enough real documents surface.
+    _RECALL_WINDOWS = (12, 80, 240)
+
+    def _recall_hits(self, query: str, want: int = 5) -> List[Dict[str, Any]]:
+        filtered: List[Dict[str, Any]] = []
+        seen_total = -1
+        for window in self._RECALL_WINDOWS:
+            raw = self._store.search(query, top_k=window)
+            filtered = self._filter_stub_hits(raw, keep_demoted=False)
+            if len(filtered) >= want or len(raw) < window or len(raw) == seen_total:
+                break
+            seen_total = len(raw)
+        if filtered:
+            return filtered[:want]
+        return self._filter_stub_hits(raw)[:want]
+
+    def _filter_stub_hits(self, results: List[Dict[str, Any]], keep_demoted: bool = True) -> List[Dict[str, Any]]:
         """Drop entity pages that only record detections, so facts reach the top slots."""
         from ._core_search_helpers import is_chat_derived_template_entity, is_stub_entity_text
 
@@ -421,7 +439,9 @@ class MemKraftMemoryProvider(MemoryProvider):
                     demoted.append(result)
                     continue
             kept.append(result)
-        return kept if kept else demoted
+        if kept or not keep_demoted:
+            return kept
+        return demoted
 
     def _persist_completed_turn(self, session_id: str, content: str) -> None:
         """Append a completed Hermes turn to bounded, searchable chunks."""

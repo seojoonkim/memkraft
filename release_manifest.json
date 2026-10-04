@@ -95,7 +95,8 @@
     },
     {
       "commits": [
-        "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998"
+        "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
+        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
       ],
       "evaluation_refs": [
         {
@@ -230,7 +231,8 @@
         "2a6c95de5aab592fbcd11e441b3dc101422dce60",
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
         "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
-        "76792573c1fe215c033a2ced7c0d8f8baacc79c0"
+        "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
+        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
       ],
       "evaluation_refs": [
         {
@@ -436,10 +438,60 @@
           "claim": "Owner sayings"
         }
       ]
+    },
+    {
+      "id": "feature.recall-hot-path-4.2.1",
+      "proposal_id": "prop.recall-hot-path-4.2.1",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
+      ],
+      "source_paths": [
+        "src/memkraft/_corpus_index.py",
+        "src/memkraft/_core_lifecycle_helpers.py",
+        "src/memkraft/_read_cache.py",
+        "src/memkraft/store_core.py",
+        "src/memkraft/derived_views.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_recall_hot_path.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_read_cache.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_store_core.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_candidates.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_hermes_provider.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "release-note",
+          "path": "docs/releases/4.2.1.md",
+          "claim": "Template-safe Hermes prefetch"
+        }
+      ]
     }
   ],
   "release": {
-    "active_branch": "release/4.2.0",
+    "active_branch": "release/4.2.1",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -495,6 +547,7 @@
       "docs/releases/4.1.1.md",
       "docs/releases/4.1.2.md",
       "docs/releases/4.2.0.md",
+      "docs/releases/4.2.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -515,6 +568,7 @@
       "tests/test_artifacts.py",
       "tests/test_authority.py",
       "tests/test_benchmark_scripts.py",
+      "tests/test_candidates.py",
       "tests/test_chat_derived_template_entity.py",
       "tests/test_cli_release_smoke.py",
       "tests/test_context_compiler.py",
@@ -566,6 +620,8 @@
       "tests/test_project_memory_normalize.py",
       "tests/test_project_memory_store.py",
       "tests/test_project_sync.py",
+      "tests/test_read_cache.py",
+      "tests/test_recall_hot_path.py",
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
       "tests/test_search_cache.py",
@@ -573,6 +629,7 @@
       "tests/test_setup.py",
       "tests/test_sleep_governance.py",
       "tests/test_state_contract.py",
+      "tests/test_store_core.py",
       "tests/test_store_core_lock_nb.py",
       "tests/test_touch_last_accessed.py",
       "tests/test_v081_doctor.py",
@@ -587,7 +644,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.2.0"
+    "version": "4.2.1"
   },
   "schema": 2
 }

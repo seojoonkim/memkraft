@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 from .store_core import _lock_current_inode, _lock_shared, _unlock, append, compact, read_all, mark_tombstone, mark_tombstones
+from .store_core import _parse_record_line
 
 # Preserve the historical fault-injection seam used by downstream tests and
 # plugins. Normal execution uses the O(n) batch path; an explicit monkeypatch
@@ -420,11 +421,8 @@ def _compaction_counts(path):
     except FileNotFoundError: lines=[]
     records=[]; corrupt=0
     for line in lines:
-        text=line.decode("utf-8",errors="replace").strip()
-        if not text: continue
-        try: row=json.loads(text)
-        except json.JSONDecodeError: row=None
-        if not isinstance(row,dict): row=None
+        if not line.strip(): continue
+        row=_parse_record_line(line)
         if row is None:
             if line.strip(): corrupt+=1
         else: records.append(row)

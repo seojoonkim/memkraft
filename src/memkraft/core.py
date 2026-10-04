@@ -1209,6 +1209,7 @@ class MemKraft:
             self._all_md_files,
             self._search_tokens,
             trust_write_hooks=True,  # v2.8.1: skip stat-scan between writes
+            stat_snapshot_fn=self._md_stat_snapshot,
         )
 
         # v2.9.0 — Bloom filter early-exit (P1, no-match short circuit).
@@ -3777,9 +3778,14 @@ class MemKraft:
     def _extract_section(self, content: str, section_name: str) -> str:
         return _lh.extract_section(content, section_name)
 
+    def _corpus_dirs(self):
+        return [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir, self.base_dir / "artifacts"]
+
     def _all_md_files(self):
-        dirs = [self.entities_dir, self.live_notes_dir, self.decisions_dir, self.originals_dir, self.inbox_dir, self.tasks_dir, self.meetings_dir, self.debug_dir, self.base_dir / "artifacts"]
-        return _lh.all_md_files(dirs, self.base_dir)
+        return _lh.all_md_files(self._corpus_dirs(), self.base_dir)
+
+    def _md_stat_snapshot(self):
+        return _lh.md_stat_snapshot(self._corpus_dirs(), self.base_dir)
 
     def _safe_read(self, path: Path) -> str:
         """Read file safely, returning empty string on any error.
