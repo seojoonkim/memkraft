@@ -216,7 +216,14 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd = _lock_current_inode(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND)
     try:
-        os.write(fd, data)
+        # os.write may return a short count (signals, pipes, full disks);
+        # loop so a record is never left half-written under the lock.
+        view = memoryview(data)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError("short write appending to {}".format(path))
+            view = view[written:]
     finally:
         _unlock(fd)
         os.close(fd)
@@ -241,18 +248,25 @@ def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadRe
     audit path). Corrupt lines (invalid UTF-8, invalid JSON or non-object values) are
     skipped and counted in ``ReadResult.skipped``. A missing file reads as
     empty.
+
+    Readers do not take the append lock, so a concurrent append can be
+    observed mid-write.  A final line without a trailing newline that does not
+    parse is treated as an in-flight append and ignored, not counted as
+    corrupt; a complete unterminated final line is still returned.
     """
     path = Path(path)
     records: List[Dict[str, Any]] = []
     skipped = 0
     try:
         with open(path, "rb") as f:
-            for line in f:
-                line = line.strip()
+            for raw in f:
+                line = raw.strip()
                 if not line:
                     continue
                 obj = _parse_record_line(line)
                 if obj is None:
+                    if not raw.endswith(b"\n") and line.startswith(b"{"):
+                        break  # torn tail of an append still in flight
                     skipped += 1
                     continue
                 records.append(obj)

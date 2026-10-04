@@ -234,20 +234,30 @@ memkraft mcp test
 
 Configuration examples for Claude Desktop and other MCP clients are in [`docs/mcp-setup.md`](docs/mcp-setup.md).
 
-### Hermes Agent
+### OpenClaw
 
-Hermes Agent includes a MemKraft memory-provider plugin. Install MemKraft in the same environment and configure the profile:
+OpenClaw connects through the same MCP server. Use the absolute path of the Python that has `memkraft[mcp]` installed:
 
-```yaml
-memory:
-  provider: memkraft
-plugins:
-  memkraft:
-    base_dir: $HERMES_HOME/memkraft-memory
-    prefetch_top_k: 5
+```bash
+pip install 'memkraft[mcp]'
+openclaw mcp set memkraft '{"command":"/ABSOLUTE/PATH/TO/python","args":["-m","memkraft.mcp"],"env":{"MEMKRAFT_DIR":"/ABSOLUTE/PATH/TO/memory"}}'
+openclaw mcp show memkraft
 ```
 
-`plugins.memkraft.source_path` is only needed for an editable/source checkout. A normal wheel install imports `memkraft` from the active Python environment.
+`memkraft agents-hint openclaw` prints an `AGENTS.md` block that teaches the agent when to call MemKraft. With OpenClaw 2026.5.12, an isolated `openclaw mcp set` config plus a real MCP client round trip (`remember` → `search` → `recall`) was checked against the 4.2.2 wheel.
+
+### Hermes Agent
+
+MemKraft registers itself as a Hermes memory provider through the `hermes_agent.memory_providers` entry point. Install it into the Python environment that runs Hermes, select it, and restart:
+
+```bash
+# use the same Python that runs Hermes (e.g. ~/.hermes/hermes-agent/.venv/bin/python)
+python -m pip install --upgrade memkraft
+hermes config set memory.provider memkraft
+hermes gateway restart   # only when a gateway is running
+```
+
+Memory is stored in `$HERMES_HOME/memkraft/` by default; set `MEMKRAFT_DIR` before starting Hermes to use another directory. No plugin directory copy is needed. A fresh Hermes 0.20.6 venv plus the 4.2.2 wheel was checked end to end: Hermes discovers and loads the provider, a completed turn is stored, and the next prefetch recalls it.
 
 On Hermes versions that pass completed-turn `messages` to memory providers, MemKraft automatically compiles a failed development route followed by a final successful test/lint/build verification into sanitized ReasoningBank lessons. The next similar task receives bounded **avoid/reuse** guidance during prefetch. Raw tool arguments and outputs are not copied into these lessons, unverified failures are not promoted, and repeated sync of the same turn is idempotent. Set `MEMKRAFT_HERMES_DEV_EXPERIENCE=off` before starting Hermes to disable this behavior.
 

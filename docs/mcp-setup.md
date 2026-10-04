@@ -96,6 +96,19 @@ Then restart Cursor.
 
 ---
 
+## 3a. OpenClaw
+
+OpenClaw stores MCP servers in its own config. Register MemKraft with the
+absolute path of the Python that has `memkraft[mcp]` installed:
+
+```bash
+openclaw mcp set memkraft '{"command":"/ABSOLUTE/PATH/TO/python","args":["-m","memkraft.mcp"],"env":{"MEMKRAFT_DIR":"/ABSOLUTE/PATH/TO/memory"}}'
+openclaw mcp show memkraft
+memkraft agents-hint openclaw   # optional AGENTS.md guidance block
+```
+
+Restart the OpenClaw gateway afterwards if one is running.
+
 ## 4. Troubleshooting
 
 ### `mcp package NOT installed`

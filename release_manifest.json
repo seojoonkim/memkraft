@@ -448,7 +448,9 @@
       "state": "verified",
       "commits": [
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
-        "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5"
+        "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
+        "de8d76fb6af9d13e052c67567fcbde802635aa95",
+        "5967253e900e8c3f0f4a5cf08f7e51c7c993b83a"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
@@ -487,6 +489,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_persistent_corpus_index.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_store_core_torn_tail.py"
         }
       ],
       "promotion_evidence": [
@@ -536,6 +543,7 @@
       "docs/bench/results/3.6.0-corrections-gate.json",
       "docs/bench/results/mkep-3.3.0-g11-g12-macos-arm64.json",
       "docs/bench/search-performance-3.5-maintenance.md",
+      "docs/mcp-setup.md",
       "docs/plans/2026-08-04-memkraft-runtime-neutral-execution-protocol-development-plan.md",
       "docs/plans/2026-08-06-memkraft-continual-improvement-ledger-preview-plan.md",
       "docs/plans/2026-08-12-project-memory-compiler-plan.md",
@@ -646,6 +654,7 @@
       "tests/test_state_contract.py",
       "tests/test_store_core.py",
       "tests/test_store_core_lock_nb.py",
+      "tests/test_store_core_torn_tail.py",
       "tests/test_touch_last_accessed.py",
       "tests/test_v081_doctor.py",
       "tests/test_v081_mcp.py",

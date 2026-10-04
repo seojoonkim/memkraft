@@ -5,6 +5,7 @@
 - Cold first search on large stores is 4-7x faster: per-document token maps and the derived postings are persisted under `.memkraft/index/`, so a restarted process re-reads only changed documents.
 - Hermes: repeated per-turn recall skips the whole-store stat scan for 15 s after a verified scan (`MEMKRAFT_HERMES_STAT_TTL`); in-process writes still invalidate immediately.
 - `MEMKRAFT_INDEX_CACHE=off` disables the on-disk cache.
+- JSONL store: `read_all()` no longer counts an append that is still being written as a corrupt line, and `append()` completes short writes.
 
 ## [4.2.1] — 2026-10-05
 
