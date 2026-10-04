@@ -199,6 +199,14 @@ class MemKraftMemoryProvider(MemoryProvider):
         hermes_home = Path(str(kwargs.get("hermes_home") or Path.home() / ".hermes"))
         base_dir = Path(os.environ.get("MEMKRAFT_DIR", str(hermes_home / "memkraft")))
         self._store = MemKraft(base_dir=str(base_dir))
+        # Every write this provider makes goes through the corpus invalidation
+        # hook, so the per-turn stat scan of the whole store is only needed to
+        # notice edits from other processes.  Reuse a verified scan briefly.
+        try:
+            from ._corpus_index import set_stat_ttl
+            set_stat_ttl(float(os.environ.get("MEMKRAFT_HERMES_STAT_TTL", "15")))
+        except (ImportError, ValueError):
+            pass
         with redirect_stdout(io.StringIO()):
             self._store.init(verbose=False)
         # The owner's sayings apply to every profile, so they live in one shared
