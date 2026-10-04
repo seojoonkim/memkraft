@@ -96,7 +96,8 @@
     {
       "commits": [
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
-        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
+        "adce99a6f17cf79e5c519a2ad448ef4cac708569"
       ],
       "evaluation_refs": [
         {
@@ -232,7 +233,8 @@
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
         "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
         "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
-        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
+        "adce99a6f17cf79e5c519a2ad448ef4cac708569"
       ],
       "evaluation_refs": [
         {
@@ -445,7 +447,8 @@
       "revision_id": "r1",
       "state": "verified",
       "commits": [
-        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
+        "adce99a6f17cf79e5c519a2ad448ef4cac708569"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
@@ -479,6 +482,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_hermes_provider.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_persistent_corpus_index.py"
         }
       ],
       "promotion_evidence": [
@@ -486,12 +494,17 @@
           "kind": "release-note",
           "path": "docs/releases/4.2.1.md",
           "claim": "Template-safe Hermes prefetch"
+        },
+        {
+          "kind": "release-note",
+          "path": "docs/releases/4.2.2.md",
+          "claim": "Persistent token cache"
         }
       ]
     }
   ],
   "release": {
-    "active_branch": "release/4.2.1",
+    "active_branch": "release/4.2.2",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -548,6 +561,7 @@
       "docs/releases/4.1.2.md",
       "docs/releases/4.2.0.md",
       "docs/releases/4.2.1.md",
+      "docs/releases/4.2.2.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -615,6 +629,7 @@
       "tests/test_memory_graph_schema.py",
       "tests/test_owner_ledger.py",
       "tests/test_packaging_version.py",
+      "tests/test_persistent_corpus_index.py",
       "tests/test_project_memory_api.py",
       "tests/test_project_memory_contract.py",
       "tests/test_project_memory_normalize.py",
@@ -644,7 +659,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.2.1"
+    "version": "4.2.2"
   },
   "schema": 2
 }
