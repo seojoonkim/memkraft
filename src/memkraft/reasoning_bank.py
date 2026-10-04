@@ -44,6 +44,8 @@ __all__ = ["ReasoningBankMixin"]
 
 # ── Module Constants ────────────────────────────────────────────────
 MIN_REPEAT_WARN = 2
+CURATED_TAG = "curated-lesson"
+CURATED_BOOST = 1.0      # curated rules outrank auto-captured tool detours on any trigger hit
 MAX_LESSONS_PER_PATTERN = 3
 MAX_TASK_IDS_PER_PATTERN = 50
 SCHEMA_VERSION = 1
@@ -117,6 +119,55 @@ def _tokenize(text: str, stopwords: Optional[set] = None) -> List[str]:
     raw = [t for t in cleaned.split() if t]
     sw = stopwords if stopwords is not None else _FALLBACK_STOPWORDS
     return [t for t in raw if t not in sw and len(t) > 1]
+
+
+# ── Recall-side normalisation (4.3.0) ───────────────────────────────
+# Chat hosts prepend quoted context to the user's message (Telegram "[Replying to: ...]",
+# recalled-memory blocks). Matching on that text recalls lessons for the *quoted* task.
+_QUOTED_CONTEXT_RES = (
+    re.compile(r"\[Replying to:.*?\]\s*(?=\S|$)", re.S),
+    re.compile(r"<memory-context>.*?</memory-context>", re.S),
+    re.compile(r"\[Incident Lab.*?(?:\n\s*\n|$)", re.S),
+)
+# Korean particles/endings stripped from the end of a Hangul token (longest first) so
+# "크기를" ~ "크기", "다듬어" ~ "다듬", "남은거" ~ "남은".
+_KO_SUFFIXES = tuple(sorted({
+    "으로", "에서", "에게", "까지", "부터", "처럼", "보다", "하고", "하게", "하자", "해줘", "해서",
+    "했어", "할게", "하는", "해야", "이랑", "랑", "를", "을", "는", "은", "이", "가", "에", "의",
+    "도", "로", "만", "과", "와", "거", "게", "고", "어", "아", "해", "줘", "자", "지", "요",
+}, key=len, reverse=True))
+_HANGUL_RE = re.compile(r"[가-힣]")
+
+
+def _strip_quoted_context(text: str) -> str:
+    """Drop host-quoted context so recall keys on the user's own words."""
+    out = str(text or "")
+    for rx in _QUOTED_CONTEXT_RES:
+        out = rx.sub(" ", out)
+    return out.strip() or str(text or "")
+
+
+def _ko_stem(token: str) -> str:
+    if not _HANGUL_RE.search(token):
+        return token
+    for suf in _KO_SUFFIXES:
+        if token.endswith(suf) and len(token) - len(suf) >= 2:
+            return token[: -len(suf)]
+    return token
+
+
+def _recall_tokens(text: str, stopwords: Optional[set] = None) -> List[str]:
+    """Tokens used for recall matching: surface tokens plus Korean stems.
+
+    Kept separate from ``_tokenize`` so stored pattern signatures don't change.
+    """
+    out: List[str] = []
+    for tok in _tokenize(text, stopwords=stopwords):
+        out.append(tok)
+        stem = _ko_stem(tok)
+        if stem != tok and stem not in (stopwords or ()):
+            out.append(stem)
+    return out
 
 
 def _derive_signature(lesson: str, tags: List[str], stopwords: Optional[set] = None) -> str:
@@ -526,7 +577,7 @@ class ReasoningBankMixin:
         Stopword-aware via ``self.stopwords`` if loaded.
         """
         sw = self._stopwords()
-        q_tokens = _tokenize(query or "", stopwords=sw)
+        q_tokens = _recall_tokens(_strip_quoted_context(query or ""), stopwords=sw)
         if not q_tokens:
             return []
 
@@ -589,11 +640,21 @@ class ReasoningBankMixin:
                 cand["title"], cand["lesson"], cand["pattern_signature"],
                 " ".join(cand["tags"]),
             ])
-            d_tokens = _tokenize(doc_text, stopwords=sw)
+            curated = CURATED_TAG in cand["tags"]
+            if curated:
+                # Curated lessons are matched on their trigger words only (title + tags):
+                # the rule text is advice, not a description of when it applies.
+                doc_text = " ".join([cand["title"], " ".join(cand["tags"])])
+            d_tokens = _recall_tokens(doc_text, stopwords=sw)
             score = _jaccard(q_tokens, d_tokens)
+            if curated and score > 0.0:
+                # Any trigger hit counts in full: a short query must not be diluted by a
+                # lesson's long trigger list (containment instead of Jaccard).
+                hit = len(set(q_tokens) & set(d_tokens)) / max(1, len(set(q_tokens)))
+                score = max(score, hit) + CURATED_BOOST
             if score < min_score or score <= 0.0:
                 continue
-            out.append({**cand, "score": round(float(score), 4)})
+            out.append({**cand, "score": round(float(score), 4), "curated": curated})
 
         out.sort(key=lambda r: (-r["score"], r.get("completed_at") or ""), reverse=False)
         # The above sort tuple makes "earlier completed_at" come first when
@@ -822,6 +883,7 @@ class ReasoningBankMixin:
                 "tags": list(hit.get("tags") or []),
                 "completed_at": hit.get("completed_at"),
                 "path": hit.get("path", ""),
+                "curated": bool(hit.get("curated")),
             })
         return out
 
@@ -934,6 +996,8 @@ class ReasoningBankMixin:
             title = _prompt_data(hit.get("title") or hit.get("task_id") or "untitled", min(80, per_item_chars_i))
             score = hit.get("score", 0.0)
             task_id = hit.get("task_id")
+            if kind == "failure" and hit.get("curated"):
+                return f"- Work rule `{task_id}`: {lesson}"
             if kind == "failure":
                 return f"- Avoid repeating `{task_id}` (score={score}): title={title}; lesson={lesson}"
             return f"- Reuse `{task_id}` (score={score}): title={title}; lesson={lesson}"
@@ -977,6 +1041,68 @@ class ReasoningBankMixin:
 
         block = "\n".join(lines)
         return finish(block)
+
+    # ── curated lessons (4.3.0) ───────────────────────────────────
+    def lesson_add(
+        self,
+        lesson_id: str,
+        *,
+        rule: str,
+        triggers: Any,
+        examples: Any = (),
+    ) -> Dict[str, Any]:
+        """Record a hand-written work rule ("same approach failed twice -> switch").
+
+        Auto-captured lessons only cover tool errors. A curated lesson is stored as a
+        failure trajectory tagged ``curated-lesson``; it is recalled by its ``triggers``
+        (the words the user actually says) and ranks above auto-captured detours.
+        ``examples`` are real user requests that must recall it (see ``lesson_check``).
+        Re-adding the same id replaces it.
+        """
+        tid = _safe_task_id(lesson_id)
+        trig = [t for t in _coerce_tags(triggers) if t]
+        if not trig:
+            raise ValueError("lesson_add needs at least one trigger word")
+        if not str(rule or "").strip():
+            raise ValueError("lesson_add needs a rule")
+        ex = [str(e) for e in (examples if isinstance(examples, (list, tuple)) else [examples]) if str(e or "").strip()]
+        path = self._trajectory_path(tid)
+        if path.exists():
+            path.unlink()  # start records are write-once; replace the whole lesson
+        tags = [CURATED_TAG] + trig
+        self.trajectory_start(tid, title=" ".join(trig), tags=tags)
+        if ex:
+            self.trajectory_log(tid, 1, action="examples", metadata={"examples": ex})
+        out = self.trajectory_complete(tid, status="failure", lesson=str(rule).strip(),
+                                       pattern_signature=f"lesson::{tid}", tags=tags)
+        return {"lesson_id": tid, "triggers": trig, "examples": ex, "path": str(path),
+                "completed_at": out["completed_at"]}
+
+    def lesson_list(self) -> List[Dict[str, Any]]:
+        rows = [r for r in self._read_reasoning_index().values() if CURATED_TAG in (r.get("tags") or [])]
+        out = []
+        for r in sorted(rows, key=lambda r: r.get("task_id") or ""):
+            ex: List[str] = []
+            for rec in _read_jsonl(Path(r.get("path") or self._trajectory_path(r["task_id"]))):
+                if rec.get("kind") == "step" and rec.get("action") == "examples":
+                    ex = list((rec.get("metadata") or {}).get("examples") or [])
+            out.append({"lesson_id": r["task_id"], "rule": r.get("lesson", ""),
+                        "triggers": [t for t in r.get("tags") or [] if t != CURATED_TAG], "examples": ex})
+        return out
+
+    def lesson_check(self, *, top_k: int = 3) -> Dict[str, Any]:
+        """Replay every stored example request; report examples that miss their lesson.
+
+        This is the regression test for "will this rule actually show up next time?".
+        """
+        results = []
+        for les in self.lesson_list():
+            for ex in les["examples"]:
+                ids = [h["task_id"] for h in self.reasoning_anti_patterns(ex, top_k=top_k)]
+                results.append({"lesson_id": les["lesson_id"], "example": ex,
+                                 "recalled": les["lesson_id"] in ids, "top": ids})
+        missed = [r for r in results if not r["recalled"]]
+        return {"checked": len(results), "missed": missed, "ok": not missed}
 
     # ── private helpers ───────────────────────────────────────────
     def _read_patterns(self) -> Dict[str, Any]:
