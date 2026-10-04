@@ -448,7 +448,8 @@
       "state": "verified",
       "commits": [
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
-        "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5"
+        "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
+        "de8d76fb6af9d13e052c67567fcbde802635aa95"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
@@ -487,6 +488,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_persistent_corpus_index.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_store_core_torn_tail.py"
         }
       ],
       "promotion_evidence": [
@@ -646,6 +652,7 @@
       "tests/test_state_contract.py",
       "tests/test_store_core.py",
       "tests/test_store_core_lock_nb.py",
+      "tests/test_store_core_torn_tail.py",
       "tests/test_touch_last_accessed.py",
       "tests/test_v081_doctor.py",
       "tests/test_v081_mcp.py",
