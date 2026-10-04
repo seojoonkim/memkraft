@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [4.3.0] — 2026-10-05
+
+- Curated work lessons: `lesson_add` / `lesson_list` / `lesson_check` and `memkraft lesson add|list|check`. Hand-written rules are recalled by trigger words and rank above auto-captured tool detours.
+- `memkraft lesson check` replays stored example requests and exits 1 when a lesson would not be recalled.
+- ReasoningBank recall ignores host-quoted context (`[Replying to: ...]`, `<memory-context>`) and matches Korean stems without particles.
+
 ## [4.2.2] — 2026-10-05
 
 - Cold first search on large stores is 4-7x faster: per-document token maps and the derived postings are persisted under `.memkraft/index/`, so a restarted process re-reads only changed documents.

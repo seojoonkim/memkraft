@@ -1,20 +1,20 @@
 # Hermes Agent integration
 
-MemKraft (4.1.0 and later; current 4.2.2) exposes one default-on auxiliary-feature bundle through the
+MemKraft (4.1.0 and later; current 4.3.0) exposes one default-on auxiliary-feature bundle through the
 `hermes_agent.memory_providers` entry point. Install it into the same Python
 environment that runs Hermes, select `memory.provider: memkraft`, and restart the
 Hermes process. No copied plugin bridge or per-feature toggle is required on
 current Hermes releases.
 
 ```bash
-python -m pip install "memkraft==4.2.2"
+python -m pip install "memkraft==4.3.0"
 hermes config set memory.provider memkraft
 hermes gateway restart   # when a gateway is running
 ```
 
 ## Verified release matrix
 
-The MemKraft release gates (unchanged since 4.1.0, re-run for 4.2.2) test Hermes Agent 0.19.0 at commit
+The MemKraft release gates (unchanged since 4.1.0, re-run for 4.3.0) test Hermes Agent 0.19.0 at commit
 `3ef6bbd201263d354fd83ec55b3c306ded2eb72a` and Hermes Agent 0.20.1 source at
 commit `45af7a71fcd420b4422d2c074b1ce58b9ce0d048`, each on Python 3.11 and 3.12.
 This pinned matrix is not a claim of compatibility with every Hermes release.

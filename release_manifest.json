@@ -154,7 +154,8 @@
         "f1fae8f1fbcf2e3597e13f7f2cff9407acff680b",
         "0cc2c31406c7cd591692f28444ad10cced62883c",
         "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c",
-        "1219f28cc1aa69a68d061afbb7d713c92d922162"
+        "1219f28cc1aa69a68d061afbb7d713c92d922162",
+        "5aae0ef100873a58c5ed18d56d2e0ed3c5ce58c3"
       ],
       "evaluation_refs": [
         {
@@ -507,10 +508,46 @@
           "claim": "Persistent token cache"
         }
       ]
+    },
+    {
+      "commits": [
+        "5aae0ef100873a58c5ed18d56d2e0ed3c5ce58c3"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_curated_lessons.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_reasoning_bank.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_reasoning_bank_injection.py"
+        }
+      ],
+      "id": "feature.curated-lessons-4.3.0",
+      "promotion_evidence": [
+        {
+          "claim": "Curated work lessons",
+          "kind": "release-note",
+          "path": "docs/releases/4.3.0.md"
+        }
+      ],
+      "proposal_id": "prop.curated-lessons-4.3.0",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/reasoning_bank.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
-    "active_branch": "release/4.2.2",
+    "active_branch": "release/4.3.0",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -569,6 +606,7 @@
       "docs/releases/4.2.0.md",
       "docs/releases/4.2.1.md",
       "docs/releases/4.2.2.md",
+      "docs/releases/4.3.0.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -601,6 +639,7 @@
       "tests/test_correction_outcomes.py",
       "tests/test_correction_policy.py",
       "tests/test_correction_projection.py",
+      "tests/test_curated_lessons.py",
       "tests/test_delay_ledger.py",
       "tests/test_delay_ledger_performance.py",
       "tests/test_development_experience.py",
@@ -643,6 +682,8 @@
       "tests/test_project_memory_store.py",
       "tests/test_project_sync.py",
       "tests/test_read_cache.py",
+      "tests/test_reasoning_bank.py",
+      "tests/test_reasoning_bank_injection.py",
       "tests/test_recall_hot_path.py",
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
@@ -667,7 +708,7 @@
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.2.2"
+    "version": "4.3.0"
   },
   "schema": 2
 }
