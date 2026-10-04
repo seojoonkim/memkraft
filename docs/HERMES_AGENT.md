@@ -1,20 +1,20 @@
 # Hermes Agent integration
 
-MemKraft (4.1.0 and later; current 4.2.1) exposes one default-on auxiliary-feature bundle through the
+MemKraft (4.1.0 and later; current 4.2.2) exposes one default-on auxiliary-feature bundle through the
 `hermes_agent.memory_providers` entry point. Install it into the same Python
 environment that runs Hermes, select `memory.provider: memkraft`, and restart the
 Hermes process. No copied plugin bridge or per-feature toggle is required on
 current Hermes releases.
 
 ```bash
-python -m pip install "memkraft==4.2.1"
+python -m pip install "memkraft==4.2.2"
 hermes config set memory.provider memkraft
 hermes gateway restart   # when a gateway is running
 ```
 
 ## Verified release matrix
 
-The MemKraft release gates (unchanged since 4.1.0, re-run for 4.2.1) test Hermes Agent 0.19.0 at commit
+The MemKraft release gates (unchanged since 4.1.0, re-run for 4.2.2) test Hermes Agent 0.19.0 at commit
 `3ef6bbd201263d354fd83ec55b3c306ded2eb72a` and Hermes Agent 0.20.1 source at
 commit `45af7a71fcd420b4422d2c074b1ce58b9ce0d048`, each on Python 3.11 and 3.12.
 This pinned matrix is not a claim of compatibility with every Hermes release.
@@ -63,6 +63,13 @@ every timeline row came from chat auto-extraction) are used only when nothing
 else matches. Since 4.2.1, when those pages fill the first 12 search results,
 prefetch widens the candidate window to 80 and then 240 results until five real
 documents surface. Up to two matching owner sayings are added verbatim.
+
+Since 4.2.2 the provider keeps a disposable token cache in
+`$HERMES_HOME/memkraft/.memkraft/index/`, so the first recall after a gateway
+restart re-reads only changed files. Between turns it reuses a verified store
+scan for 15 seconds (`MEMKRAFT_HERMES_STAT_TTL`, `0` disables); writes made by
+the provider invalidate immediately, and edits from other processes appear
+within that window.
 
 ## Privacy and storage
 

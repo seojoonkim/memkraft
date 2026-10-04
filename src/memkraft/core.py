@@ -1210,6 +1210,8 @@ class MemKraft:
             self._search_tokens,
             trust_write_hooks=True,  # v2.8.1: skip stat-scan between writes
             stat_snapshot_fn=self._md_stat_snapshot,
+            persist_path=self._corpus_token_cache_path(),
+            corpus_key=str(self.base_dir),
         )
 
         # v2.9.0 — Bloom filter early-exit (P1, no-match short circuit).
@@ -3786,6 +3788,10 @@ class MemKraft:
 
     def _md_stat_snapshot(self):
         return _lh.md_stat_snapshot(self._corpus_dirs(), self.base_dir)
+
+    def _corpus_token_cache_path(self):
+        """Disposable on-disk token cache that makes cold searches fast."""
+        return self.base_dir / ".memkraft" / "index" / "corpus-tokens-v1.bin"
 
     def _safe_read(self, path: Path) -> str:
         """Read file safely, returning empty string on any error.

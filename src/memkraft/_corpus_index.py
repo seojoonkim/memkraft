@@ -32,8 +32,11 @@ import typing
 
 import hashlib
 import logging
+import marshal
 import os
 import threading
+import time
+import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional, Set
@@ -140,6 +143,15 @@ _WRITE_GENERATION: int = 0
 _INDEX_GENERATION: int = -1  # generation captured when _INDEX_CACHE was built
 _FAST_HITS = 0
 _PENDING_INVALIDATIONS: Set[Path] = set()
+# 4.2.2: optional stat-scan TTL for trusted callers.  A long-lived host whose
+# writes all go through ``invalidate()`` (e.g. the Hermes provider) can skip
+# the per-search stat scan for ``_STAT_TTL`` seconds after a verified scan of
+# the same corpus.  Writes from *other* processes become visible once the TTL
+# expires.  Default 0 keeps the library exact.
+_STAT_TTL: float = 0.0
+_VERIFIED_AT: float = 0.0
+_VERIFIED_KEY: str = ""
+_TTL_HITS = 0
 _INCREMENTAL_UPDATES = 0
 
 
@@ -235,6 +247,190 @@ def _read_doc_tf(
     return tf_map, len(tokens)
 
 
+# ── Persistent token cache (4.2.2) ─────────────────────────────────
+# A cold process used to re-read and re-tokenize every markdown file before
+# its first search (~2-4 s on a 30k-file Hermes store).  Token-frequency maps
+# are persisted per document, keyed by (mtime_ns, size), so a cold build only
+# re-reads documents whose stat changed.  The file is a disposable cache:
+# any mismatch or corruption falls back to a normal rebuild.
+_PERSIST_FORMAT = 1
+
+
+def _persist_enabled() -> bool:
+    return os.environ.get("MEMKRAFT_INDEX_CACHE", "on").strip().lower() not in {"0", "off", "false", "no"}
+
+
+def _tokenizer_key(search_tokens_fn: Callable[[str], list]) -> str:
+    fn = getattr(search_tokens_fn, "__func__", search_tokens_fn)
+    owner = getattr(search_tokens_fn, "__self__", None)
+    parts = [
+        getattr(fn, "__module__", "") or "",
+        getattr(fn, "__qualname__", "") or "",
+        type(owner).__module__ + "." + type(owner).__qualname__ if owner is not None else "",
+    ]
+    try:
+        from ._core_search_helpers import _SEARCH_TOKEN_RE
+        parts.append(_SEARCH_TOKEN_RE.pattern)
+    except Exception:  # pragma: no cover - helper layout changed
+        parts.append("?")
+    return hashlib.blake2b("\x00".join(parts).encode("utf-8", "replace"), digest_size=16).hexdigest()
+
+
+def _load_persisted(path: Path, tok_key: str) -> Dict[str, Any]:
+    try:
+        with open(path, "rb") as handle:
+            payload = marshal.loads(zlib.decompress(handle.read()))
+    except FileNotFoundError:
+        return {}
+    except Exception as exc:  # corrupt / truncated / foreign file
+        log.debug("corpus token cache unreadable at %s: %s", path, exc)
+        return {}
+    if (
+        not isinstance(payload, dict)
+        or payload.get("format") != _PERSIST_FORMAT
+        or payload.get("tokenizer") != tok_key
+        or not isinstance(payload.get("docs"), dict)
+    ):
+        return {}
+    return payload
+
+
+def _save_persisted(path: Path, tok_key: str, docs: Dict[str, tuple], index: "CorpusIndex") -> None:
+    try:
+        derived = {
+            "fingerprint": index.fingerprint,
+            "paths": [str(p) for p in index.doc_id_map],
+            "content_postings": index.content_postings,
+            "filename_postings": index.filename_postings,
+        }
+        blob = zlib.compress(marshal.dumps(
+            {"format": _PERSIST_FORMAT, "tokenizer": tok_key, "docs": docs, "derived": derived}), 1)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name("{}.{}.{}.tmp".format(path.name, os.getpid(), threading.get_ident()))
+        with open(tmp, "wb") as handle:
+            handle.write(blob)
+        os.replace(tmp, path)
+    except Exception as exc:  # cache is best-effort; never fail a search
+        log.debug("corpus token cache not written to %s: %s", path, exc)
+        try:
+            tmp.unlink()  # type: ignore[possibly-undefined]
+        except Exception:
+            pass
+
+
+def _build_index_reusing_tokens(
+    items,
+    search_tokens_fn: Callable[[str], list],
+    read_text_fn: Optional[Callable[[Path], Optional[str]]],
+    fingerprint: bytes,
+    persist_path: Optional[Path],
+    previous: Optional["CorpusIndex"],
+) -> "CorpusIndex":
+    """Build an index, re-reading only documents whose stat changed.
+
+    Token maps are reused from the in-memory ``previous`` index first, then
+    from the on-disk cache at ``persist_path``.  The result is identical to
+    :func:`_build_index` over the same items.
+    """
+    tok_key = _tokenizer_key(search_tokens_fn)
+    known: Dict[str, tuple] = {}
+    if previous is not None:
+        for path, (mtime_ns, size) in previous.doc_stat.items():
+            tf_map = previous.doc_token_freqs.get(path)
+            if tf_map is not None:
+                known[str(path)] = (mtime_ns, size, tf_map, previous.doc_lengths.get(path, 0))
+    payload: Dict[str, Any] = {}
+    if persist_path is not None:
+        payload = _load_persisted(persist_path, tok_key)
+    persisted: Dict[str, tuple] = payload.get("docs") or {}
+    derived = payload.get("derived")
+    if previous is None and isinstance(derived, dict) and derived.get("fingerprint") == fingerprint:
+        restored = _restore_derived(items, persisted, derived, fingerprint)
+        if restored is not None:
+            return restored
+
+    doc_token_freqs: Dict[Path, Dict[str, int]] = {}
+    doc_lengths: Dict[Path, int] = {}
+    out_docs: Dict[str, tuple] = {}
+    reread = 0
+    for path, stat in items:
+        key = str(path)
+        mtime_ns, size = stat["mtime_ns"], stat["size"]
+        entry = known.get(key) or persisted.get(key)
+        if entry is not None and entry[0] == mtime_ns and entry[1] == size:
+            tf_map, doc_len = entry[2], entry[3]
+        else:
+            parsed = _read_doc_tf(path, search_tokens_fn, read_text_fn)
+            reread += 1
+            if parsed is None:
+                continue
+            tf_map, doc_len = parsed
+        doc_token_freqs[path] = tf_map
+        doc_lengths[path] = doc_len
+        out_docs[key] = (mtime_ns, size, tf_map, doc_len)
+
+    index = _derive_index_from_token_maps(
+        doc_token_freqs=doc_token_freqs,
+        doc_lengths=doc_lengths,
+        items=items,
+        search_tokens_fn=search_tokens_fn,
+        fingerprint=fingerprint,
+    )
+    stale_derived = not (isinstance(derived, dict) and derived.get("fingerprint") == fingerprint)
+    if persist_path is not None and (reread or stale_derived or set(out_docs) != set(persisted)):
+        _save_persisted(persist_path, tok_key, out_docs, index)
+    return index
+
+
+def _restore_derived(items, docs: Dict[str, tuple], derived: Dict[str, Any], fingerprint: bytes):
+    """Rebuild a :class:`CorpusIndex` straight from a persisted snapshot.
+
+    Only used when the persisted corpus fingerprint equals the live one, so
+    every (path, mtime_ns, size) is identical to when it was saved.  Returns
+    ``None`` on any structural mismatch so the caller rebuilds normally.
+    """
+    try:
+        path_strs = derived["paths"]
+        content_postings = derived["content_postings"]
+        filename_postings = derived["filename_postings"]
+        by_str = {str(path): path for path, _ in items}
+        doc_id_map = [by_str[p] for p in path_strs]
+        doc_token_freqs: Dict[Path, Dict[str, int]] = {}
+        doc_lengths: Dict[Path, int] = {}
+        total_tokens = 0
+        for key, path in zip(path_strs, doc_id_map):
+            entry = docs[key]
+            doc_token_freqs[path] = entry[2]
+            doc_lengths[path] = entry[3]
+            total_tokens += entry[3]
+    except (KeyError, TypeError, IndexError):
+        return None
+    doc_to_id = {path: i for i, path in enumerate(doc_id_map)}
+    filename_lower_map = {path: path.stem.lower().replace("-", " ") for path in doc_id_map}
+    token_doc_freq = {token: len(posting) for token, posting in content_postings.items()}
+    doc_count = max(len(doc_id_map), 1)
+    token_bloom = set(content_postings)
+    token_bloom.update(filename_postings)
+    return CorpusIndex(
+        doc_count=doc_count,
+        avg_doc_len=(total_tokens / doc_count) if total_tokens > 0 else 0.0,
+        token_doc_freq=token_doc_freq,
+        doc_token_freqs=doc_token_freqs,
+        doc_lengths=doc_lengths,
+        fingerprint=fingerprint,
+        path_set_hash=_compute_path_set_hash(path for path, _ in items),
+        doc_stat={path: (stat["mtime_ns"], stat["size"]) for path, stat in items},
+        file_list=[path for path, _ in items],
+        content_postings=content_postings,
+        filename_postings=filename_postings,
+        filename_lower=filename_lower_map,
+        token_bloom=token_bloom,
+        filename_corpus="\x00".join(filename_lower_map.values()),
+        doc_id_map=doc_id_map,
+        doc_to_id=doc_to_id,
+    )
+
+
 def _derive_index_from_token_maps(
     doc_token_freqs: Dict[Path, Dict[str, int]],
     doc_lengths: Dict[Path, int],
@@ -251,6 +447,10 @@ def _derive_index_from_token_maps(
     doc_to_id: Dict[Path, int] = {}
     total_tokens = 0
 
+    # Hot loop on cold start (~2M token visits on a 30k-doc store): bind
+    # lookups locally and derive document frequency from posting lengths
+    # afterwards instead of updating a second dict per token.
+    postings_get = content_postings.get
     for path, _stat in items:
         tf_map = doc_token_freqs.get(path)
         if tf_map is None:
@@ -260,12 +460,17 @@ def _derive_index_from_token_maps(
         doc_to_id[path] = doc_id
         total_tokens += doc_lengths.get(path, 0)
         for token in tf_map:
-            token_doc_freq[token] = token_doc_freq.get(token, 0) + 1
-            content_postings.setdefault(token, []).append(doc_id)
+            posting = postings_get(token)
+            if posting is None:
+                content_postings[token] = [doc_id]
+            else:
+                posting.append(doc_id)
         fname_lower = path.stem.lower().replace("-", " ")
         filename_lower_map[path] = fname_lower
         for token in search_tokens_fn(fname_lower):
             filename_postings.setdefault(token, []).append(doc_id)
+    for token, posting in content_postings.items():
+        token_doc_freq[token] = len(posting)
 
     valid_docs = len(doc_id_map)
     doc_count = max(valid_docs, 1)
@@ -484,6 +689,8 @@ def get_corpus_index(
     read_text_fn: Optional[Callable[[Path], Optional[str]]] = None,
     trust_write_hooks: bool = False,
     stat_snapshot_fn: Optional[Callable[[], list]] = None,
+    persist_path: Optional[Path] = None,
+    corpus_key: str = "",
 ) -> CorpusIndex:
     """Return the cached :class:`CorpusIndex`, rebuilding on change.
 
@@ -520,12 +727,50 @@ def get_corpus_index(
         objects, no second ``stat``) and ``Path`` items are only built when
         the index actually has to be rebuilt.  Must describe the same file
         set as ``all_md_files_fn``.
+    persist_path:
+        Optional file for the persistent per-document token cache.  When
+        given (and ``MEMKRAFT_INDEX_CACHE`` is not ``off``), a rebuild reuses
+        token maps for documents whose ``(mtime_ns, size)`` is unchanged and
+        re-reads only the rest.
 
     Returns
     -------
     CorpusIndex
         Treat as read-only.  Mutating it corrupts subsequent searches.
     """
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
+    global _VERIFIED_AT, _VERIFIED_KEY, _TTL_HITS
+
+    if trust_write_hooks and corpus_key and _STAT_TTL > 0 and not _disabled():
+        with _INDEX_LOCK:
+            cached = _INDEX_CACHE
+            if (
+                cached is not None
+                and _INDEX_GENERATION == _WRITE_GENERATION
+                and _VERIFIED_KEY == corpus_key
+                and (time.monotonic() - _VERIFIED_AT) < _STAT_TTL
+            ):
+                _TTL_HITS += 1
+                _BUILD_HITS += 1
+                return cached
+
+    result = _get_corpus_index_scanned(
+        all_md_files_fn, search_tokens_fn, read_text_fn, trust_write_hooks,
+        stat_snapshot_fn, persist_path,
+    )
+    if trust_write_hooks and corpus_key:
+        with _INDEX_LOCK:
+            if _INDEX_CACHE is result and _INDEX_GENERATION == _WRITE_GENERATION:
+                _VERIFIED_AT = time.monotonic()
+                _VERIFIED_KEY = corpus_key
+            else:
+                _VERIFIED_KEY = ""
+    return result
+
+
+def _get_corpus_index_scanned(
+    all_md_files_fn, search_tokens_fn, read_text_fn, trust_write_hooks, stat_snapshot_fn, persist_path,
+) -> CorpusIndex:
     global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
 
     if trust_write_hooks and not _disabled():
@@ -594,7 +839,14 @@ def get_corpus_index(
     # Build outside the lock — tokenization can be expensive on large
     # corpora and we don't want to block other threads' fingerprint
     # checks while we work.
-    fresh = _build_index(items, search_tokens_fn, read_text_fn, fingerprint)
+    if persist_path is not None and _persist_enabled():
+        with _INDEX_LOCK:
+            previous = _INDEX_CACHE
+        fresh = _build_index_reusing_tokens(
+            items, search_tokens_fn, read_text_fn, fingerprint, Path(persist_path), previous,
+        )
+    else:
+        fresh = _build_index(items, search_tokens_fn, read_text_fn, fingerprint)
 
     with _INDEX_LOCK:
         # Re-check: another thread may have built the same fingerprint
@@ -609,6 +861,16 @@ def get_corpus_index(
         _PENDING_INVALIDATIONS.clear()
         _BUILD_MISSES += 1
         return fresh
+
+
+def set_stat_ttl(seconds: float) -> None:
+    """Allow trusted searches to reuse a verified corpus scan for ``seconds``."""
+    global _STAT_TTL
+    try:
+        value = float(seconds)
+    except (TypeError, ValueError):
+        value = 0.0
+    _STAT_TTL = value if value > 0 else 0.0
 
 
 def invalidate(path: Optional[Path] = None) -> None:
@@ -660,6 +922,11 @@ def reset_for_tests() -> None:
         _FAST_HITS = 0
         _PENDING_INVALIDATIONS.clear()
         _INCREMENTAL_UPDATES = 0
+    global _STAT_TTL, _VERIFIED_AT, _VERIFIED_KEY, _TTL_HITS
+    _STAT_TTL = 0.0
+    _VERIFIED_AT = 0.0
+    _VERIFIED_KEY = ""
+    _TTL_HITS = 0
 
 
 def stats() -> Dict[str, Any]:
@@ -674,6 +941,8 @@ def stats() -> Dict[str, Any]:
             "build_misses": _BUILD_MISSES,
             "fast_hits": _FAST_HITS,
             "incremental_updates": _INCREMENTAL_UPDATES,
+            "ttl_hits": _TTL_HITS,
+            "stat_ttl": _STAT_TTL,
             "write_generation": _WRITE_GENERATION,
             "index_generation": _INDEX_GENERATION,
             "disabled": _disabled(),

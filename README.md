@@ -1,5 +1,5 @@
-**v4.2.1**
-Current version: **4.2.1**
+**v4.2.2**
+Current version: **4.2.2**
 
 <div align="center">
 
@@ -483,6 +483,10 @@ Version 4.2.1 computes the corpus fingerprint straight from `os.scandir` stat da
 
 On a copy of one real 30,082-file Hermes store (single macOS machine), uncached `search(top_k=20)` medians fell from 333/245/298 ms to 160/132/158 ms across three queries, and a deploy/install prefetch went from 5 of 5 template pages to 0 of 5. These are local measurements on one store, not universal latency claims. See [`docs/releases/4.2.1.md`](docs/releases/4.2.1.md).
 
+### 4.2.2 cold-start recall
+
+A restarted process no longer re-reads and re-tokenizes the whole store before its first search. Per-document token maps and derived postings are cached in `.memkraft/index/` and keyed by each file's `(mtime_ns, size)`, so only changed files are re-read. The cache is disposable: corruption or a tokenizer change falls back to a normal rebuild. On the same 30,082-file store copy, the first Hermes prefetch after a restart dropped from 2.0-3.9 s to about 0.55 s, and new-question prefetch medians dropped from 123-434 ms to 12-140 ms. These are local single-store measurements.
+
 ## Safety and operational notes
 
 - `sleep` and `forget` are dry-run by default; use explicit apply calls for writes.
@@ -497,7 +501,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **4.2.1**.
+Current version: **4.2.2**.
 
 ```bash
 pipx upgrade memkraft
@@ -507,13 +511,17 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-Upgrading from 4.2.0 to 4.2.1 requires no migration command or Markdown rewrite; the search index and read cache are in-memory and rebuild on first use.
+Upgrading from 4.2.x to 4.2.2 requires no migration command or Markdown rewrite. The first search writes a disposable token cache to `.memkraft/index/`; deleting it is always safe, and `MEMKRAFT_INDEX_CACHE=off` disables it.
 
 Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite. Adaptive ETA reads do not create state; the first delay-ledger write lazily creates the additive `.memkraft/delay/events.jsonl` store. To roll back, stop 3.5.0 writers and reinstall 3.4.1. It ignores `.memkraft/delay/`, so preserve that directory for audit and for a later re-upgrade; deleting it is explicit loss of delay evidence. Do not let 3.5.0 and 3.4.1 processes write the same base directory concurrently. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for older migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## 📝 Changelog
 
-### [v4.2.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.1) (current)
+### [v4.2.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.2) (current)
+
+Cold first search on large stores is 4-7x faster through a persistent token cache; Hermes recall skips redundant stat scans. See [release notes](docs/releases/4.2.2.md).
+
+### [v4.2.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.1)
 
 Faster recall on large stores and template-safe Hermes prefetch. See [release notes](docs/releases/4.2.1.md).
 

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [4.2.2] — 2026-10-05
+
+- Cold first search on large stores is 4-7x faster: per-document token maps and the derived postings are persisted under `.memkraft/index/`, so a restarted process re-reads only changed documents.
+- Hermes: repeated per-turn recall skips the whole-store stat scan for 15 s after a verified scan (`MEMKRAFT_HERMES_STAT_TTL`); in-process writes still invalidate immediately.
+- `MEMKRAFT_INDEX_CACHE=off` disables the on-disk cache.
+
 ## [4.2.1] — 2026-10-05
 
 - Halved search latency on large stores: the corpus fingerprint now comes straight from `os.scandir` stat data, and read-cache misses no longer scan every cached entry.
