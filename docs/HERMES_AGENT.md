@@ -1,20 +1,20 @@
 # Hermes Agent integration
 
-MemKraft 4.1.0 exposes one default-on auxiliary-feature bundle through the
+MemKraft (4.1.0 and later; current 4.2.1) exposes one default-on auxiliary-feature bundle through the
 `hermes_agent.memory_providers` entry point. Install it into the same Python
 environment that runs Hermes, select `memory.provider: memkraft`, and restart the
 Hermes process. No copied plugin bridge or per-feature toggle is required on
 current Hermes releases.
 
 ```bash
-python -m pip install "memkraft==4.1.0"
+python -m pip install "memkraft==4.2.1"
 hermes config set memory.provider memkraft
 hermes gateway restart   # when a gateway is running
 ```
 
 ## Verified release matrix
 
-The MemKraft 4.1.0 release gates test Hermes Agent 0.19.0 at commit
+The MemKraft release gates (unchanged since 4.1.0, re-run for 4.2.1) test Hermes Agent 0.19.0 at commit
 `3ef6bbd201263d354fd83ec55b3c306ded2eb72a` and Hermes Agent 0.20.1 source at
 commit `45af7a71fcd420b4422d2c074b1ce58b9ce0d048`, each on Python 3.11 and 3.12.
 This pinned matrix is not a claim of compatibility with every Hermes release.
@@ -54,6 +54,15 @@ requires a failed tool route followed by a final successful verifier and stores
 only coarse routes and normalized error classes. Raw arguments and outputs are
 not retained. Set `MEMKRAFT_HERMES_DEV_EXPERIENCE=off` before starting Hermes for
 an emergency opt-out.
+
+## Prefetch recall
+
+Each turn, prefetch returns up to five recalled items. Entity pages that only
+record detections are dropped, and chat-derived template entity pages (whose
+every timeline row came from chat auto-extraction) are used only when nothing
+else matches. Since 4.2.1, when those pages fill the first 12 search results,
+prefetch widens the candidate window to 80 and then 240 results until five real
+documents surface. Up to two matching owner sayings are added verbatim.
 
 ## Privacy and storage
 
