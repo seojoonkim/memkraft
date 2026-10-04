@@ -162,14 +162,18 @@ def test_compact_memory_missing_sidecars_is_noop_without_creating_files(tmp_path
     assert not (tmp_path / ".memkraft").exists()
 
 
-def test_compact_memory_dry_run_matches_apply_with_invalid_utf8_and_writes_nothing(tmp_path: Path):
+@pytest.mark.parametrize("corrupt_line", [
+    b"\xff invalid utf-8 json\n",
+    b'{"id":"broken","text":"\xff"}\n',
+])
+def test_compact_memory_dry_run_matches_apply_with_invalid_utf8_and_writes_nothing(tmp_path: Path, corrupt_line):
     mk = MemKraft(str(tmp_path))
     dropped = mk.remember_candidate("drop candidate", session_id="s")
     mk.remember_candidate("keep candidate", session_id="s")
     mk.forget_candidates(candidate_id=dropped["candidate_id"], dry_run=False)
     path = tmp_path / ".memkraft" / "candidates.jsonl"
     with path.open("ab") as stream:
-        stream.write(b"\xff invalid utf-8 json\n")
+        stream.write(corrupt_line)
     before = path.read_bytes()
 
     dry = mk.compact_memory()

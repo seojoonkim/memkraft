@@ -169,6 +169,36 @@ def _compute_fingerprint(files: Iterable[Path]) -> tuple[bytes, list[tuple[Path,
     return h.digest(), items
 
 
+def _fingerprint_from_snapshot(snapshot) -> tuple[bytes, bytes]:
+    """Return ``(fingerprint, path_set_hash)`` from a stat snapshot.
+
+    ``snapshot`` is the sorted ``[(path_str, mtime_ns, size), ...]`` list
+    produced by :func:`memkraft._core_lifecycle_helpers.md_stat_snapshot`.
+    Byte-for-byte identical to :func:`_compute_fingerprint` /
+    :func:`_compute_path_set_hash` over the same files, but needs no
+    ``Path`` objects and no extra ``stat`` calls.
+    """
+    h = hashlib.blake2b(digest_size=16)
+    ph = hashlib.blake2b(digest_size=16)
+    for path_str, mtime_ns, size in snapshot:
+        encoded = path_str.encode("utf-8", "replace")
+        h.update(encoded)
+        h.update(b"\x00")
+        h.update(int(mtime_ns).to_bytes(8, "little", signed=False))
+        h.update(int(size).to_bytes(8, "little", signed=False))
+        h.update(b"\xff")
+        ph.update(encoded)
+        ph.update(b"\x00")
+    return h.digest(), ph.digest()
+
+
+def _items_from_snapshot(snapshot) -> list:
+    return [
+        (Path(path_str), {"mtime_ns": mtime_ns, "size": size})
+        for path_str, mtime_ns, size in snapshot
+    ]
+
+
 def _compute_path_set_hash(files: Iterable[Path]) -> bytes:
     """v2.8.1: cheap path-set identity (no ``stat``).
 
@@ -413,11 +443,47 @@ def _build_index(
     )
 
 
+class _LazyItems:
+    """Defer ``Path`` construction until the index really must be (re)built."""
+
+    __slots__ = ("_snapshot", "_items")
+
+    def __init__(self, snapshot):
+        self._snapshot = snapshot
+        self._items = None
+
+    def _get(self):
+        if self._items is None:
+            self._items = _items_from_snapshot(self._snapshot)
+        return self._items
+
+    def __iter__(self):
+        return iter(self._get())
+
+    def __len__(self):
+        return len(self._snapshot)
+
+    def __getitem__(self, index):
+        return self._get()[index]
+
+
+def _scan_corpus(all_md_files_fn, stat_snapshot_fn):
+    """Return ``(fingerprint, path_set_hash, items)`` for the current corpus."""
+    if stat_snapshot_fn is not None:
+        snapshot = stat_snapshot_fn()
+        fingerprint, path_hash = _fingerprint_from_snapshot(snapshot)
+        return fingerprint, path_hash, _LazyItems(snapshot)
+    files = list(all_md_files_fn())
+    fingerprint, items = _compute_fingerprint(files)
+    return fingerprint, _compute_path_set_hash(files), items
+
+
 def get_corpus_index(
     all_md_files_fn: Callable[[], Iterable[Path]],
     search_tokens_fn: Callable[[str], list],
     read_text_fn: Optional[Callable[[Path], Optional[str]]] = None,
     trust_write_hooks: bool = False,
+    stat_snapshot_fn: Optional[Callable[[], list]] = None,
 ) -> CorpusIndex:
     """Return the cached :class:`CorpusIndex`, rebuilding on change.
 
@@ -447,6 +513,13 @@ def get_corpus_index(
         write API), the legacy fingerprint check always runs so a
         bare ``Path.write_text`` outside the library still invalidates
         the cache.
+    stat_snapshot_fn:
+        Optional zero-arg callable returning the sorted
+        ``[(path_str, mtime_ns, size), ...]`` corpus snapshot.  When given,
+        the fingerprint is computed from it directly (no per-file ``Path``
+        objects, no second ``stat``) and ``Path`` items are only built when
+        the index actually has to be rebuilt.  Must describe the same file
+        set as ``all_md_files_fn``.
 
     Returns
     -------
@@ -463,14 +536,13 @@ def get_corpus_index(
         # (called from write paths) bumps ``_WRITE_GENERATION``; the
         # path-set check guards against singleton bleed across
         # MemKraft instances (e.g. in long-running test runs).
-        files = list(all_md_files_fn())
-        fingerprint, items = _compute_fingerprint(files)
+        fingerprint, path_hash, items = _scan_corpus(all_md_files_fn, stat_snapshot_fn)
         with _INDEX_LOCK:
             cached = _INDEX_CACHE
             if (
                 cached is not None
                 and _INDEX_GENERATION == _WRITE_GENERATION
-                and cached.path_set_hash == _compute_path_set_hash(files)
+                and cached.path_set_hash == path_hash
                 and cached.fingerprint == fingerprint
             ):
                 _FAST_HITS += 1
@@ -483,13 +555,11 @@ def get_corpus_index(
         with _INDEX_LOCK:
             observed_generation = _WRITE_GENERATION
             pending_snapshot = set(_PENDING_INVALIDATIONS)
-        files = list(all_md_files_fn())
-        fingerprint, items = _compute_fingerprint(files)
+        fingerprint, _path_hash, items = _scan_corpus(all_md_files_fn, stat_snapshot_fn)
     else:
         observed_generation = -1
         pending_snapshot = set()
-        files = list(all_md_files_fn())
-        fingerprint, items = _compute_fingerprint(files)
+        fingerprint, _path_hash, items = _scan_corpus(all_md_files_fn, stat_snapshot_fn)
 
     if _disabled():
         # Always rebuild; do not touch the cache so unit tests can

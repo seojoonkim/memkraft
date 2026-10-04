@@ -56,6 +56,8 @@ class _ReadCache:
     def __init__(self, capacity: int):
         self._capacity = capacity
         self._data: "OrderedDict[tuple, str]" = OrderedDict()
+        # One resident fingerprint per path; kept in sync under _lock.
+        self._path_keys: dict[str, tuple] = {}
         self._lock = threading.Lock()
         self.hits = 0
         self.misses = 0
@@ -82,14 +84,16 @@ class _ReadCache:
             return None
         with self._lock:
             # evict any older key for the same path (mtime/size changed)
-            for k in list(self._data.keys()):
-                if k[0] == key[0] and k != key:
-                    self._data.pop(k, None)
-                    self.invalidations += 1
+            old_key = self._path_keys.get(key[0])
+            if old_key is not None and old_key != key:
+                self._data.pop(old_key)
+                self.invalidations += 1
             self._data[key] = text
+            self._path_keys[key[0]] = key
             self._data.move_to_end(key)
             while len(self._data) > self._capacity:
-                self._data.popitem(last=False)
+                evicted_key, _ = self._data.popitem(last=False)
+                del self._path_keys[evicted_key[0]]
         return text
 
     def invalidate(self, path: Path) -> None:
@@ -104,10 +108,10 @@ class _ReadCache:
         """
         spath = str(path)
         with self._lock:
-            for k in list(self._data.keys()):
-                if k[0] == spath:
-                    self._data.pop(k, None)
-                    self.invalidations += 1
+            key = self._path_keys.pop(spath, None)
+            if key is not None:
+                self._data.pop(key)
+                self.invalidations += 1
         # Imported lazily to avoid a circular import at module load.
         try:
             from . import _corpus_index
@@ -119,6 +123,7 @@ class _ReadCache:
     def clear(self) -> None:
         with self._lock:
             self._data.clear()
+            self._path_keys.clear()
 
     def stats(self) -> dict:
         with self._lock:

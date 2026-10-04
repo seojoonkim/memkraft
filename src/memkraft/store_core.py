@@ -223,13 +223,22 @@ def append(path: Union[str, Path], record: Dict[str, Any]) -> Dict[str, Any]:
     return enveloped
 
 
+def _parse_record_line(line: bytes) -> Optional[Dict[str, Any]]:
+    """Decode one UTF-8 JSON object, returning None for a corrupt line."""
+    try:
+        obj = json.loads(line.decode("utf-8").strip())
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
 def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadResult:
     """Read all records from the JSONL store at ``path`` in file order.
 
     By default, records with ``tombstone: true`` (marker records included)
     and records whose ``id`` is targeted by a marker's ``tombstone_of`` are
     hidden; pass ``include_tombstoned=True`` to expose them (compaction and
-    audit path). Corrupt lines (invalid JSON or non-object values) are
+    audit path). Corrupt lines (invalid UTF-8, invalid JSON or non-object values) are
     skipped and counted in ``ReadResult.skipped``. A missing file reads as
     empty.
     """
@@ -237,17 +246,13 @@ def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadRe
     records: List[Dict[str, Any]] = []
     skipped = 0
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "rb") as f:
             for line in f:
                 line = line.strip()
                 if not line:
                     continue
-                try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
-                    skipped += 1
-                    continue
-                if not isinstance(obj, dict):
+                obj = _parse_record_line(line)
+                if obj is None:
                     skipped += 1
                     continue
                 records.append(obj)
@@ -362,17 +367,15 @@ def compact(path: Union[str, Path]) -> CompactResult:
             parsed: List[Any] = []  # dict per valid record line, None per corrupt
             tombstoned_ids = set()
             for line in lines:
-                text = line.decode("utf-8", errors="replace").strip()
-                if not text:
+                if not line.strip():
                     parsed.append(None)
                     continue
-                try:
-                    obj = json.loads(text)
-                except json.JSONDecodeError:
-                    obj = None
-                if not isinstance(obj, dict):
-                    obj = None
-                elif obj.get("tombstone") and obj.get("tombstone_of") is not None:
+                obj = _parse_record_line(line)
+                if (
+                    obj is not None
+                    and obj.get("tombstone")
+                    and obj.get("tombstone_of") is not None
+                ):
                     tombstoned_ids.add(obj["tombstone_of"])
                 parsed.append(obj)
 
