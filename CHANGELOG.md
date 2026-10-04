@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [4.2.1] — 2026-10-05
+
+- Halved search latency on large stores: the corpus fingerprint now comes straight from `os.scandir` stat data, and read-cache misses no longer scan every cached entry.
+- Hermes prefetch now reaches real documents even when chat-derived template entity pages fill the top results.
+- Undecodable JSONL records are skipped and counted instead of failing the whole read.
+
 ## [4.2.0] — 2026-10-01
 
 - Added owner sayings (verbatim directives) and an irreversible-only decision queue, with five Hermes `owner_*` tools and shared owner storage across profiles.

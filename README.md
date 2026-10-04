@@ -1,5 +1,5 @@
-**v4.2.0**
-Current version: **4.2.0**
+**v4.2.1**
+Current version: **4.2.1**
 
 <div align="center">
 
@@ -505,7 +505,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.2.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.0) (current)
+### [v4.2.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.1) (current)
+
+Faster recall on large stores and template-safe Hermes prefetch. See [release notes](docs/releases/4.2.1.md).
+
+### [v4.2.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.0)
 
 Adds a verbatim owner-sayings ledger and an irreversible-only decision queue, exposed to Hermes as `owner_*` tools. See [release notes](docs/releases/4.2.0.md).
 
