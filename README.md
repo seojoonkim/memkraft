@@ -1,5 +1,5 @@
-**v4.2.2**
-Current version: **4.2.2**
+**v4.3.0**
+Current version: **4.3.0**
 
 <div align="center">
 
@@ -497,6 +497,10 @@ On a copy of one real 30,082-file Hermes store (single macOS machine), uncached 
 
 A restarted process no longer re-reads and re-tokenizes the whole store before its first search. Per-document token maps and derived postings are cached in `.memkraft/index/` and keyed by each file's `(mtime_ns, size)`, so only changed files are re-read. The cache is disposable: corruption or a tokenizer change falls back to a normal rebuild. On the same 30,082-file store copy, the first Hermes prefetch after a restart dropped from 2.0-3.9 s to about 0.55 s, and new-question prefetch medians dropped from 123-434 ms to 12-140 ms. These are local single-store measurements.
 
+### 4.3.0 curated work lessons
+
+Auto-captured ReasoningBank lessons describe tool errors ("avoid read_file; tool-error"). Workflow mistakes, such as retrying the same failing upload many times or not reporting progress, were never captured. `memkraft lesson add <id> --rule "..." --triggers "word,word" --example "real request"` stores such a rule. It is recalled whenever a new request shares a trigger word, ranks above auto-captured detours, and `memkraft lesson check` fails if a stored example would no longer recall its rule. Recall also drops host-quoted reply context and matches Korean stems ("크기를" → "크기"). On a copy of one real Korean-chat store, the right rule ranked first for 6 of 6 real requests (2 of 6 before). See [`docs/releases/4.3.0.md`](docs/releases/4.3.0.md).
+
 ## Safety and operational notes
 
 - `sleep` and `forget` are dry-run by default; use explicit apply calls for writes.
@@ -511,7 +515,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **4.2.2**.
+Current version: **4.3.0**.
 
 ```bash
 pipx upgrade memkraft
@@ -521,13 +525,19 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
+Upgrading from 4.2.x to 4.3.0 requires no migration command or Markdown rewrite. Curated lessons are ordinary ReasoningBank trajectories tagged `curated-lesson`; older versions read them as plain failure lessons.
+
 Upgrading from 4.2.x to 4.2.2 requires no migration command or Markdown rewrite. The first search writes a disposable token cache to `.memkraft/index/`; deleting it is always safe, and `MEMKRAFT_INDEX_CACHE=off` disables it.
 
 Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite. Adaptive ETA reads do not create state; the first delay-ledger write lazily creates the additive `.memkraft/delay/events.jsonl` store. To roll back, stop 3.5.0 writers and reinstall 3.4.1. It ignores `.memkraft/delay/`, so preserve that directory for audit and for a later re-upgrade; deleting it is explicit loss of delay evidence. Do not let 3.5.0 and 3.4.1 processes write the same base directory concurrently. For API compatibility boundaries, read [`docs/V3_API.md`](docs/V3_API.md); for older migrations and rollback, read [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## 📝 Changelog
 
-### [v4.2.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.2) (current)
+### [v4.3.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.3.0) (current)
+
+Curated work lessons (`memkraft lesson add|list|check`) recalled before similar tasks; ReasoningBank recall ignores quoted reply context and matches Korean stems. See [release notes](docs/releases/4.3.0.md).
+
+### [v4.2.2](https://github.com/seojoonkim/memkraft/releases/tag/v4.2.2)
 
 Cold first search on large stores is 4-7x faster through a persistent token cache; Hermes recall skips redundant stat scans. See [release notes](docs/releases/4.2.2.md).
 

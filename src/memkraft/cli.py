@@ -162,6 +162,17 @@ def main(argv=None):
     log_parser.add_argument("--read", action="store_true", help="Read events")
     log_parser.add_argument("--date", default="", help="Date for reading events (YYYY-MM-DD)")
 
+    # lesson (curated work rules recalled before similar tasks)
+    lesson_parser = subparsers.add_parser("lesson", help="Curated work lessons (add/list/check)")
+    lesson_sub = lesson_parser.add_subparsers(dest="lesson_cmd")
+    la = lesson_sub.add_parser("add", help="Add or replace a lesson")
+    la.add_argument("lesson_id")
+    la.add_argument("--rule", required=True, help="The rule to follow next time")
+    la.add_argument("--triggers", required=True, help="Comma-separated words the user actually says")
+    la.add_argument("--example", action="append", default=[], help="Real request that must recall it (repeatable)")
+    lesson_sub.add_parser("list", help="List lessons")
+    lesson_sub.add_parser("check", help="Replay examples; exit 1 if any lesson is not recalled")
+
     # retro
     retro_parser = subparsers.add_parser("retro", help="Daily retrospective")
     retro_parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
@@ -577,6 +588,21 @@ def main(argv=None):
                          entity=args.entity, task=args.task, decision=args.decision)
         else:
             print("Use --event to log or --read to view events.")
+    elif args.command == "lesson":
+        import json as _json
+        if args.lesson_cmd == "add":
+            print(_json.dumps(mc.lesson_add(args.lesson_id, rule=args.rule, triggers=args.triggers,
+                                            examples=args.example), ensure_ascii=False))
+        elif args.lesson_cmd == "check":
+            rep = mc.lesson_check()
+            for m in rep["missed"]:
+                print(f"MISS {m['lesson_id']} <- {m['example']}")
+            print(f"lessons recalled: {rep['checked'] - len(rep['missed'])}/{rep['checked']}")
+            if not rep["ok"]:
+                sys.exit(1)
+        else:
+            for les in mc.lesson_list():
+                print(f"{les['lesson_id']}: {les['rule']}  [triggers: {', '.join(les['triggers'])}]")
     elif args.command == "retro":
         mc.retro(dry_run=args.dry_run)
     elif args.command == "distill-decisions":
