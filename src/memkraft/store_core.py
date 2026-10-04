@@ -265,7 +265,7 @@ def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadRe
                     continue
                 obj = _parse_record_line(line)
                 if obj is None:
-                    if not raw.endswith(b"\n"):
+                    if not raw.endswith(b"\n") and line.startswith(b"{"):
                         break  # torn tail of an append still in flight
                     skipped += 1
                     continue

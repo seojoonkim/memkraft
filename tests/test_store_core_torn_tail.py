@@ -27,6 +27,14 @@ def test_unterminated_complete_tail_is_still_read(tmp_path: Path):
     assert result.records[-1]["id"] == "manual"
 
 
+def test_unterminated_non_json_tail_is_still_corrupt(tmp_path: Path):
+    path = tmp_path / "store.jsonl"
+    path.write_bytes(b"x" * 40)  # replaced/garbage file, not an append
+    result = read_all(path)
+    assert result.skipped == 1
+    assert result.records == []
+
+
 def test_terminated_corrupt_line_is_still_counted(tmp_path: Path):
     path = tmp_path / "store.jsonl"
     append(path, {"kind": "a"})
