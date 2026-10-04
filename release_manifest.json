@@ -96,7 +96,7 @@
     {
       "commits": [
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
-        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
       ],
       "evaluation_refs": [
         {
@@ -232,7 +232,7 @@
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
         "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
         "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
-        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
       ],
       "evaluation_refs": [
         {
@@ -445,7 +445,7 @@
       "revision_id": "r1",
       "state": "verified",
       "commits": [
-        "d991bbfd0f98076d4a4b5303f7659d8b269c2ab5"
+        "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
