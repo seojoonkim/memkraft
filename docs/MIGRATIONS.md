@@ -23,6 +23,7 @@
 | 3.0 | 3.0.1 | no (additive/read-compatible) | schema rewrite 없음; 선택적으로 `compact_memory(dry_run=False)` | 적용 전 sidecar backup 복원 | tombstoned local lines의 물리 제거 |
 | 3.1.x | 3.2.0 | no (additive/read-compatible) | schema rewrite 없음; optional `memkraft freshness --repair` | 3.1 binary 재설치; `.memkraft/live-sync/`와 embedding index는 삭제 후 재생성 가능 | none; Markdown is unchanged |
 | 3.2.x | 3.3.0 | no (additive/read-compatible execution Preview) | schema rewrite 없음; first execution apply lazily creates `.memkraft/execution/events.jsonl` | 3.2.x 재설치; 새 execution 파일은 이전 버전이 무시 | none; execution audit log retained |
+| 4.2.0 | 4.2.1 | no (in-memory only) | 없음; search index와 read cache는 첫 사용 때 재생성 | 4.2.0 재설치 | none; Markdown과 JSONL 형식 변경 없음 |
 
 ### 2.5 — 3.4.1 → 3.5.0 Project Memory Compiler Preview
 
