@@ -1,11 +1,8 @@
 # CHANGELOG
 
-## [Unreleased]
-
-- auto_tier demotes at most one tier per run (core → recall → archival); promotions stay immediate. Entries report `target_tier` and `demotion_capped`.
-
 ## [4.3.0] — 2026-10-05
 
+- auto_tier demotes at most one tier per run (core → recall → archival); promotions stay immediate. Entries report `target_tier` and `demotion_capped`.
 - Curated work lessons: `lesson_add` / `lesson_list` / `lesson_check` and `memkraft lesson add|list|check`. Hand-written rules are recalled by trigger words and rank above auto-captured tool detours.
 - `memkraft lesson check` replays stored example requests and exits 1 when a lesson would not be recalled.
 - ReasoningBank recall ignores host-quoted context (`[Replying to: ...]`, `<memory-context>`) and matches Korean stems without particles.
