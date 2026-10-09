@@ -393,6 +393,11 @@ class DecayMixin:
           - score ≥ ``archival_threshold`` → recall
           - score < ``archival_threshold`` → archival
 
+        Promotions apply immediately. Demotions move at most one tier per
+        run (core → recall → archival), so a single low score cannot hide a
+        core memory; ``target_tier`` and ``demotion_capped`` in each entry
+        record the raw decision.
+
         Parameters
         ----------
         memory_id:
@@ -481,11 +486,22 @@ class DecayMixin:
 
             # --- tier decision ---
             if composite >= core_threshold:
-                new_tier = "core"
+                target_tier = "core"
             elif composite >= archival_threshold:
-                new_tier = "recall"
+                target_tier = "recall"
             else:
-                new_tier = "archival"
+                target_tier = "archival"
+
+            # Asymmetric moves: promotion is cheap and reversible, so it may
+            # jump straight to the target. Demotion hides a memory from
+            # default recall, so it moves one tier per run; a single noisy
+            # score can never send a core memory straight to archival.
+            new_tier = target_tier
+            capped = False
+            cur_rank = _TIERS.index(current_tier)
+            if _TIERS.index(target_tier) < cur_rank - 1:
+                new_tier = _TIERS[cur_rank - 1]
+                capped = True
 
             changed = new_tier != current_tier
 
@@ -498,6 +514,8 @@ class DecayMixin:
                 "frequency": round(frequency_score, 4),
                 "importance": round(importance_score, 4),
                 "changed": changed,
+                "target_tier": target_tier,
+                "demotion_capped": capped,
             }
             results.append(entry)
 
