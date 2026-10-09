@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [Unreleased]
+
+- auto_tier demotes at most one tier per run (core → recall → archival); promotions stay immediate. Entries report `target_tier` and `demotion_capped`.
+
 ## [4.3.0] — 2026-10-05
 
 - Curated work lessons: `lesson_add` / `lesson_list` / `lesson_check` and `memkraft lesson add|list|check`. Hand-written rules are recalled by trigger words and rank above auto-captured tool detours.
