@@ -544,6 +544,37 @@
         "src/memkraft/reasoning_bank.py"
       ],
       "state": "verified"
+    },
+    {
+      "commits": [
+        "fc21ff8d85278629fe2b3cb816419a84167498d2"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_auto_tier_demotion_cap.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_new_260_features.py"
+        }
+      ],
+      "id": "feature.auto-tier-one-step-demotion",
+      "promotion_evidence": [
+        {
+          "claim": "auto_tier demotes at most one tier per run",
+          "kind": "changelog",
+          "path": "CHANGELOG.md"
+        }
+      ],
+      "proposal_id": "prop.auto-tier-one-step-demotion",
+      "revision_id": "r1",
+      "source_paths": [
+        "src/memkraft/decay.py"
+      ],
+      "state": "verified"
     }
   ],
   "release": {
@@ -703,7 +734,8 @@
       "tests/test_version_drift_standalone.py",
       "tests/test_version_integrity.py",
       "tests/test_wikiskill.py",
-      "tools/pin_golden_usage_id.py"
+      "tools/pin_golden_usage_id.py",
+      "tests/test_auto_tier_demotion_cap.py"
     ],
     "remote": "origin",
     "removed_paths": [],
