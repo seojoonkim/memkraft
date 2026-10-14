@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [4.3.1] — 2026-10-15
+
+- Owner sayings: `MemKraft(base_dir=...)` now honours `MEMKRAFT_OWNER_DIR` like the Hermes provider, so scripts and cron jobs read and write the shared owner ledger instead of a private `<base_dir>/owner` copy. An explicit `owner_dir` still wins; without the env var nothing changes.
+- `memkraft owner search|record|decisions|where` CLI for scripts that are not Hermes tools.
+
 ## [4.3.0] — 2026-10-05
 
 - auto_tier demotes at most one tier per run (core → recall → archival); promotions stay immediate. Entries report `target_tier` and `demotion_capped`.

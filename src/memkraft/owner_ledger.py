@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import unicodedata
 from datetime import datetime, timezone
@@ -107,6 +108,12 @@ class OwnerLedgerMixin:
         override = getattr(self, "_owner_dir_override", None)
         if override:
             return Path(override)
+        # Owner sayings are meant to be shared by every agent of one owner. Honour the
+        # same env var the Hermes provider uses, so a plain ``MemKraft(base_dir=...)``
+        # in a script reads and writes the shared ledger instead of a private copy.
+        shared = os.environ.get("MEMKRAFT_OWNER_DIR", "").strip()
+        if shared:
+            return Path(shared).expanduser()
         return Path(getattr(self, "base_dir", ".")) / "owner"
 
     @owner_dir.setter

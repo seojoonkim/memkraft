@@ -1,5 +1,5 @@
-**v4.3.0**
-Current version: **4.3.0**
+**v4.3.1**
+Current version: **4.3.1**
 
 <div align="center">
 
@@ -515,7 +515,7 @@ The full threat model is in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 ## Versioning and upgrades
 
-Current version: **4.3.0**.
+Current version: **4.3.1**.
 
 ```bash
 pipx upgrade memkraft
@@ -525,7 +525,7 @@ pip install --upgrade memkraft
 memkraft --version
 ```
 
-Upgrading from 4.2.x to 4.3.0 requires no migration command or Markdown rewrite. Curated lessons are ordinary ReasoningBank trajectories tagged `curated-lesson`; older versions read them as plain failure lessons.
+Upgrading from 4.3.0 to 4.3.1 requires no migration; `MEMKRAFT_OWNER_DIR` now also applies to plain `MemKraft(base_dir=...)` stores. Upgrading from 4.2.x to 4.3.0 requires no migration command or Markdown rewrite. Curated lessons are ordinary ReasoningBank trajectories tagged `curated-lesson`; older versions read them as plain failure lessons.
 
 Upgrading from 4.2.x to 4.2.2 requires no migration command or Markdown rewrite. The first search writes a disposable token cache to `.memkraft/index/`; deleting it is always safe, and `MEMKRAFT_INDEX_CACHE=off` disables it.
 
@@ -533,7 +533,11 @@ Upgrading from 3.4.1 to 3.5.0 requires no migration command or Markdown rewrite.
 
 ## 📝 Changelog
 
-### [v4.3.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.3.0) (current)
+### [v4.3.1](https://github.com/seojoonkim/memkraft/releases/tag/v4.3.1) (current)
+
+Scripts and cron jobs share the owner ledger through `MEMKRAFT_OWNER_DIR`; new `memkraft owner` CLI. See [release notes](docs/releases/4.3.1.md).
+
+### [v4.3.0](https://github.com/seojoonkim/memkraft/releases/tag/v4.3.0)
 
 Curated work lessons (`memkraft lesson add|list|check`) recalled before similar tasks; ReasoningBank recall ignores quoted reply context and matches Korean stems. See [release notes](docs/releases/4.3.0.md).
 

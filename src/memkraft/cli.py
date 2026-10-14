@@ -173,6 +173,21 @@ def main(argv=None):
     lesson_sub.add_parser("list", help="List lessons")
     lesson_sub.add_parser("check", help="Replay examples; exit 1 if any lesson is not recalled")
 
+    # owner (verbatim owner sayings + irreversible decision queue)
+    owner_parser = subparsers.add_parser("owner", help="Owner sayings and decision queue")
+    owner_sub = owner_parser.add_subparsers(dest="owner_cmd")
+    osr = owner_sub.add_parser("search", help="Search owner sayings")
+    osr.add_argument("query")
+    osr.add_argument("--scope", default=None)
+    osr.add_argument("--limit", type=int, default=5)
+    orc = owner_sub.add_parser("record", help="Record an owner saying verbatim")
+    orc.add_argument("text")
+    orc.add_argument("--scope", default="all")
+    orc.add_argument("--tag", action="append", default=[])
+    orc.add_argument("--source", default="")
+    owner_sub.add_parser("decisions", help="Print the open decision digest")
+    owner_sub.add_parser("where", help="Print the owner ledger directory")
+
     # retro
     retro_parser = subparsers.add_parser("retro", help="Daily retrospective")
     retro_parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
@@ -603,6 +618,18 @@ def main(argv=None):
         else:
             for les in mc.lesson_list():
                 print(f"{les['lesson_id']}: {les['rule']}  [triggers: {', '.join(les['triggers'])}]")
+    elif args.command == "owner":
+        import json as _json
+        if args.owner_cmd == "search":
+            for hit in mc.saying_search(args.query, scope=args.scope, limit=args.limit):
+                print(f"{hit['id']} [{hit.get('scope', 'all')}] {hit['text']}")
+        elif args.owner_cmd == "record":
+            print(_json.dumps(mc.saying_record(args.text, scope=args.scope, tags=args.tag,
+                                               source=args.source), ensure_ascii=False))
+        elif args.owner_cmd == "decisions":
+            print(mc.decision_digest() or "(no open decisions)")
+        else:
+            print(mc.owner_dir)
     elif args.command == "retro":
         mc.retro(dry_run=args.dry_run)
     elif args.command == "distill-decisions":

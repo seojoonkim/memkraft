@@ -578,7 +578,7 @@
     }
   ],
   "release": {
-    "active_branch": "release/4.3.0",
+    "active_branch": "release/4.3.1",
     "base_sha": "d35332d5d356de640d14593cd8f0af89709fa195",
     "release_paths": [
       ".github/workflows/gym-gate.yml",
@@ -638,6 +638,7 @@
       "docs/releases/4.2.1.md",
       "docs/releases/4.2.2.md",
       "docs/releases/4.3.0.md",
+      "docs/releases/4.3.1.md",
       "examples/execution_graph_adapter.py",
       "go.work",
       "pyproject.toml",
@@ -657,6 +658,7 @@
       "tests/test_agent_bridge.py",
       "tests/test_artifacts.py",
       "tests/test_authority.py",
+      "tests/test_auto_tier_demotion_cap.py",
       "tests/test_benchmark_scripts.py",
       "tests/test_candidates.py",
       "tests/test_chat_derived_template_entity.py",
@@ -704,6 +706,7 @@
       "tests/test_korean_chat_entity_noise.py",
       "tests/test_memory_graph_release.py",
       "tests/test_memory_graph_schema.py",
+      "tests/test_owner_dir_shared.py",
       "tests/test_owner_ledger.py",
       "tests/test_packaging_version.py",
       "tests/test_persistent_corpus_index.py",
@@ -734,13 +737,12 @@
       "tests/test_version_drift_standalone.py",
       "tests/test_version_integrity.py",
       "tests/test_wikiskill.py",
-      "tools/pin_golden_usage_id.py",
-      "tests/test_auto_tier_demotion_cap.py"
+      "tools/pin_golden_usage_id.py"
     ],
     "remote": "origin",
     "removed_paths": [],
     "state": "verified",
-    "version": "4.3.0"
+    "version": "4.3.1"
   },
   "schema": 2
 }
