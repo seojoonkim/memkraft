@@ -9,7 +9,7 @@
         "d7fc0f1dc4e718dcc332976962a57ed9039a26ec",
         "053792e599a5420e90a284985bce51aa9aaedd85",
         "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
-        "4385bea0f36bd70ca48aeee96dff80fc2c3a0c26"
+        "ace5046d71e159dd33cdbe133556e8b0431155e7"
       ],
       "evaluation_refs": [
         {
@@ -157,7 +157,7 @@
         "1fbee4d6b2bd5a0d51965eb7f674d83bc042816c",
         "1219f28cc1aa69a68d061afbb7d713c92d922162",
         "b2de21c7b5a4e9fe1e086e216c1c06f4feff9e0c",
-        "4385bea0f36bd70ca48aeee96dff80fc2c3a0c26"
+        "ace5046d71e159dd33cdbe133556e8b0431155e7"
       ],
       "evaluation_refs": [
         {
@@ -415,7 +415,7 @@
       "state": "verified",
       "commits": [
         "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
-        "4385bea0f36bd70ca48aeee96dff80fc2c3a0c26"
+        "ace5046d71e159dd33cdbe133556e8b0431155e7"
       ],
       "source_paths": [
         "src/memkraft/owner_ledger.py"
