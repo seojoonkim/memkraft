@@ -294,8 +294,10 @@ def compile_development_experience(
         return []
     episodes: List[DevelopmentEpisode] = []
     for failure in failures:
-        lesson = "For '{}', avoid {}; it failed with {}.".format(
-            task_text, failure.route, failure.error_signature
+        # Action first: injection truncates each lesson, and a long task title
+        # used to push the route/error past the cut so the hint carried nothing.
+        lesson = "Avoid {}; it failed with {}. Task: '{}'.".format(
+            failure.route, failure.error_signature, task_text
         )
         episodes.append(
             DevelopmentEpisode(
@@ -318,8 +320,8 @@ def compile_development_experience(
     if not route_steps or route_steps[-1] != verifier.route:
         route_steps.append(verifier.route)
     success_route = " -> ".join(route_steps)
-    lesson = "For '{}', reuse {}; verified by {}.".format(
-        task_text, success_route, verifier.route
+    lesson = "Reuse {}; verified by {}. Task: '{}'.".format(
+        success_route, verifier.route, task_text
     )
     episodes.append(
         DevelopmentEpisode(

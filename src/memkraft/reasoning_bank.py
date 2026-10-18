@@ -225,6 +225,25 @@ def _coerce_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+_LEGACY_DEV_LESSON_RE = re.compile(r"^For '(?P<task>.*)', (?P<verb>avoid|reuse) (?P<rest>.+)$", re.S)
+
+
+def _actionable_lesson(text: Any) -> Any:
+    """Move the action of legacy ``For '<task>', avoid <route>...`` lessons first.
+
+    Auto-captured lessons stored before 4.3.2 start with the full task text, so
+    per-item truncation dropped the route and error. Rewritten at render time so
+    existing stores improve without migration.
+    """
+    if not isinstance(text, str):
+        return text
+    m = _LEGACY_DEV_LESSON_RE.match(text.strip())
+    if not m:
+        return text
+    rest = m.group("rest").rstrip(". ")
+    return f"{m.group('verb').capitalize()} {rest}. Task: '{m.group('task')}'."
+
+
 def _reasoning_dedupe_key(hit: Dict[str, Any]) -> str:
     lesson = " ".join(str(hit.get("lesson") or "").lower().split())
     if lesson:
@@ -990,7 +1009,7 @@ class ReasoningBankMixin:
             return False
 
         def render_item(kind: str, hit: Dict[str, Any]) -> str:
-            lesson = _prompt_data(hit.get("lesson") or hit.get("pattern_signature") or "no lesson", per_item_chars_i)
+            lesson = _prompt_data(_actionable_lesson(hit.get("lesson") or hit.get("pattern_signature") or "no lesson"), per_item_chars_i)
             if effective_style == "compact":
                 return f"- {'avoid' if kind == 'failure' else 'reuse'}: lesson={lesson}"
             title = _prompt_data(hit.get("title") or hit.get("task_id") or "untitled", min(80, per_item_chars_i))
