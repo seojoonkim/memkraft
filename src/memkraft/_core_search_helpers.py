@@ -159,9 +159,46 @@ def best_token_snippet(
                 break  # Can't beat a full-set match.
     if best_hits == 0:
         return ""
-    start = max(0, best_idx - 3)
-    end = min(len(lines), best_idx + 4)
-    return " | ".join(l.strip() for l in lines_orig[start:end] if l.strip())[:200]
+    return _anchored_window(best_idx, lines, lines_orig, query_set)
+
+
+_SNIPPET_LIMIT = 200
+_SNIPPET_CONTEXT = 3
+
+
+def _anchored_window(best_idx: int, lines: list, lines_orig: list, query_set: set) -> str:
+    """Build the snippet around the best line so that line always survives.
+
+    The old window took up to three lines *before* the match and cut the
+    joined text at 200 chars, so long preceding lines pushed the matching
+    line - the exact number or identifier the query asked about - out of
+    the snippet.  Start from the matched line instead and add neighbours
+    (nearest first, the earlier line before the later one) only while they still fit.
+    """
+    best = lines_orig[best_idx].strip()
+    if len(best) > _SNIPPET_LIMIT:
+        low = lines[best_idx]
+        offsets = [low.find(t) for t in query_set if t in low]
+        anchor = min(offsets) if offsets else 0
+        lead = len(lines_orig[best_idx]) - len(lines_orig[best_idx].lstrip())
+        start = max(0, min(anchor - lead - 40, len(best) - _SNIPPET_LIMIT))
+        return best[start:start + _SNIPPET_LIMIT]
+    before: List[str] = []
+    after: List[str] = []
+    used = len(best)
+    for dist in range(1, _SNIPPET_CONTEXT + 1):
+        for idx, bucket in ((best_idx - dist, before), (best_idx + dist, after)):
+            if not 0 <= idx < len(lines_orig):
+                continue
+            text = lines_orig[idx].strip()
+            if not text:
+                continue
+            if used + 3 + len(text) > _SNIPPET_LIMIT:
+                continue
+            bucket.append(text)
+            used += 3 + len(text)
+    parts = list(reversed(before)) + [best] + after
+    return " | ".join(parts)
 
 
 def first_meaningful_line(content: str) -> str:
