@@ -358,7 +358,8 @@
       "state": "verified",
       "commits": [
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
-        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef"
+        "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
+        "6beb353ae3560b98817565510becd64a7ffc1af8"
       ],
       "source_paths": [
         "src/memkraft/_core_search_helpers.py",
@@ -379,6 +380,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_chat_derived_template_entity.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_recall_snippet_anchor.py"
         }
       ],
       "promotion_evidence": [
@@ -782,6 +788,7 @@
       "tests/test_reasoning_bank_injection.py",
       "tests/test_recall_diversity.py",
       "tests/test_recall_hot_path.py",
+      "tests/test_recall_snippet_anchor.py",
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
       "tests/test_search_cache.py",
