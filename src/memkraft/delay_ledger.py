@@ -10,11 +10,13 @@ import json
 import math
 import os
 import re
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .execution_protocol import ExecutionError, canonical_timestamp
-from .store_core import StoreBusy, _unlock, append, read_all
+from .store_core import (StoreBusy, _parse_record_line, _unlock, append,
+                         read_all)
 
 __all__ = ["DelayLedgerMixin", "DelayError", "DELAY_ERROR_REGISTRY"]
 
@@ -334,20 +336,32 @@ def _window_values(runs: Dict[str, Dict[str, Any]], kind: str, subject: str,
     return [item["elapsed_ms"] for item in series[-window:]]
 
 
-def _fold(records: List[Dict[str, Any]]):
-    runs: Dict[str, Dict[str, Any]] = _Runs()
-    chain: Dict[str, Dict[str, Any]] = {}
-    corrupt = 0
-    for record in records:
+class _Folder:
+    """Validated fold of delay records, fed one record at a time.
+
+    ``_fold`` feeds a full history; the append cache keeps one folder alive and
+    feeds only newly appended records, so both paths share the same rules.
+    """
+
+    def __init__(self):
+        self.runs: Dict[str, Dict[str, Any]] = _Runs()
+        self.chain: Dict[str, Dict[str, Any]] = {}
+        self.corrupt = 0
+
+    def result(self):
+        return self.runs, self.chain, self.corrupt
+
+    def feed(self, record: Dict[str, Any]) -> None:
+        runs, chain = self.runs, self.chain
         kind = record.get("record_type")
         if not _identity_fields_valid(record) or not _persisted_valid(record):
-            corrupt += 1
-            continue
+            self.corrupt += 1
+            return
         if kind == "delay_run_start":
             run_id = record.get("run_id")
             if run_id in runs or record.get("kind") not in _KINDS:
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             parent_id = record.get("parent_run_id")
             run_kind = record.get("kind")
             if run_kind == "task":
@@ -357,11 +371,11 @@ def _fold(records: List[Dict[str, Any]]):
             else:
                 valid_parent = parent_id in runs and runs[parent_id]["kind"] == "phase"
             if not valid_parent:
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             if parent_id is not None and runs[parent_id]["finished"]:
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             runs[run_id] = {
                 "kind": run_kind,
                 "subject": record.get("subject"),
@@ -376,23 +390,23 @@ def _fold(records: List[Dict[str, Any]]):
             elapsed = record.get("elapsed_ms")
             if (run is None or run["finished"] or not isinstance(elapsed, int)
                     or isinstance(elapsed, bool) or elapsed < 0):
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             outcome = record.get("outcome", "completed")
             if outcome not in _OUTCOMES:
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             if runs.open_children.get(record.get("run_id"), 0):
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             estimate = _estimate_runs(runs, run["kind"], run["subject"], 100, None)
             threshold = estimate.get("anomaly_threshold_ms") if estimate.get("available") else None
             anomaly = bool(estimate.get("available") and threshold is not None
                            and elapsed > threshold)
             if (record.get("anomaly_threshold_ms") != threshold
                     or record.get("anomaly") is not anomaly):
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             run.update({"finished": True, "elapsed_ms": elapsed,
                         "outcome": outcome,
                         "finish_seq": record["event_seq"],
@@ -406,8 +420,8 @@ def _fold(records: List[Dict[str, Any]]):
                       "delay_application", "delay_verification"):
             record_id = record.get("chain_id")
             if not isinstance(record_id, str) or record_id in chain:
-                corrupt += 1
-                continue
+                self.corrupt += 1
+                return
             predecessor_id = record.get("predecessor_id")
             expected = {
                 "delay_retrospective": None,
@@ -418,8 +432,8 @@ def _fold(records: List[Dict[str, Any]]):
             if expected is not None:
                 predecessor = chain.get(predecessor_id)
                 if predecessor is None or predecessor.get("record_type") != expected:
-                    corrupt += 1
-                    continue
+                    self.corrupt += 1
+                    return
             if kind == "delay_retrospective":
                 # run_id was validated before this untrusted value is used as
                 # a key. Recompute the claim instead of trusting trigger_*.
@@ -427,12 +441,18 @@ def _fold(records: List[Dict[str, Any]]):
                 claim = None if run is None else _trusted_anomaly_claim(runs, run)
                 if (claim is None or any(record.get(field) != value
                                          for field, value in claim.items())):
-                    corrupt += 1
-                    continue
+                    self.corrupt += 1
+                    return
             chain[record_id] = record
         else:
-            corrupt += 1
-    return runs, chain, corrupt
+            self.corrupt += 1
+
+
+def _fold(records: List[Dict[str, Any]]):
+    folder = _Folder()
+    for record in records:
+        folder.feed(record)
+    return folder.result()
 
 
 def _nearest(values: List[int], quantile: float) -> int:
@@ -448,11 +468,117 @@ def _estimate_from(records: List[Dict[str, Any]], kind: str, subject: str,
     return _estimate_runs(runs, kind, subject, window, through_seq)
 
 
+_GUARD_BYTES = 64
+
+
+class _DelayCache:
+    """Validated fold of an in-order, fully clean ``events.jsonl`` prefix.
+
+    ``offset`` is the byte length already folded. ``head``/``tail`` are the
+    first and last bytes of that prefix; together with the inode they detect a
+    rewrite, truncation or rotation, which drops the cache. ``op_offsets`` maps
+    every operation_id to its line offset so idempotent replays re-read only
+    that one line. Anything the legacy reader would treat differently (corrupt
+    or out-of-order lines, an unterminated tail) invalidates the cache instead
+    of being interpreted here, so the legacy path stays the only oracle.
+    """
+
+    __slots__ = ("inode", "offset", "head", "tail", "folder", "op_offsets", "max_seq")
+
+    def __init__(self, inode):
+        self.inode = inode
+        self.offset = 0
+        self.head = b""
+        self.tail = b""
+        self.folder = _Folder()
+        self.op_offsets: Dict[str, int] = {}
+        self.max_seq = 0
+
+    def matches(self, handle, stat) -> bool:
+        if (stat.st_dev, stat.st_ino) != self.inode or stat.st_size < self.offset:
+            return False
+        if not self.offset:
+            return True
+        handle.seek(0)
+        if handle.read(len(self.head)) != self.head:
+            return False
+        handle.seek(self.offset - len(self.tail))
+        return handle.read(len(self.tail)) == self.tail
+
+    def advance(self, handle) -> bool:
+        """Fold bytes appended since ``offset``; False means use the legacy path."""
+        handle.seek(self.offset)
+        data = handle.read()
+        if data and not data.endswith(b"\n"):
+            return False
+        position = self.offset
+        # Split exactly like ``read_all`` (iterating a binary file): on b"\n".
+        for raw in data.split(b"\n")[:-1]:
+            line_offset, position = position, position + len(raw) + 1
+            line = raw.strip()
+            if not line:
+                continue
+            record = _parse_record_line(line)
+            if record is None:
+                return False
+            seq = record.get("event_seq")
+            operation_id = record.get("operation_id")
+            if (not isinstance(seq, int) or isinstance(seq, bool)
+                    or seq != self.max_seq + 1
+                    or not isinstance(record.get("record_type"), str)
+                    or not _valid_common_record(record)
+                    or operation_id in self.op_offsets):
+                return False
+            self.folder.feed(record)
+            if self.folder.corrupt:
+                return False
+            self.op_offsets[operation_id] = line_offset
+            self.max_seq = seq
+        if position != self.offset:
+            handle.seek(0)
+            self.head = handle.read(min(_GUARD_BYTES, position))
+            handle.seek(max(0, position - _GUARD_BYTES))
+            self.tail = handle.read(position - max(0, position - _GUARD_BYTES))
+            self.offset = position
+        return True
+
+    def stored(self, handle, operation_id: str) -> Optional[Dict[str, Any]]:
+        offset = self.op_offsets.get(operation_id)
+        if offset is None:
+            return None
+        handle.seek(offset)
+        return _parse_record_line(handle.readline().strip())
+
+
 class DelayLedgerMixin:
     """Additive local timing and evidence API."""
 
     def _delay_events_path(self) -> Path:
         return Path(self.base_dir) / ".memkraft" / "delay" / "events.jsonl"
+
+    def _delay_cached_state(self, path: Path):
+        """Return ``(folded, lookup, next_seq)`` from the append cache.
+
+        Caller holds the governance lock, so no writer appends concurrently.
+        Returns None when the cache cannot vouch for the file; the caller then
+        uses the full legacy read, which also raises on corruption.
+        """
+        guard = self.__dict__.setdefault("_delay_cache_guard", threading.Lock())
+        with guard:
+            with open(path, "rb") as handle:
+                stat = os.fstat(handle.fileno())
+                cache = self.__dict__.get("_delay_cache")
+                if cache is None or not cache.matches(handle, stat):
+                    cache = _DelayCache((stat.st_dev, stat.st_ino))
+                if not cache.advance(handle):
+                    self._delay_cache = None
+                    return None
+                self._delay_cache = cache
+
+                def lookup(operation_id):
+                    with open(path, "rb") as reader:
+                        return cache.stored(reader, operation_id)
+                return cache.folder.result(), lookup, cache.max_seq + 1
 
     def _delay_append(self, record: Dict[str, Any], operation_id: Optional[str],
                       prepare=None, snapshot=None) -> Dict[str, Any]:
@@ -470,18 +596,24 @@ class DelayLedgerMixin:
                              "the delay store is locked by another writer")
         try:
             _secure_delay_path(path)
-            records, corrupt = _partition(read_all(path, include_tombstoned=True))
-            folded = _fold(records)
-            _, _, semantic_corrupt = folded
-            if corrupt or semantic_corrupt:
-                _fail("E_DELAY_LOG_CORRUPT",
-                      "the delay log is inconsistent; refusing a partial-view write",
-                      skipped_lines=corrupt, semantic_errors=semantic_corrupt)
+            state = self._delay_cached_state(path)
+            if state is None:
+                records, corrupt = _partition(read_all(path, include_tombstoned=True))
+                folded = _fold(records)
+                _, _, semantic_corrupt = folded
+                if corrupt or semantic_corrupt:
+                    _fail("E_DELAY_LOG_CORRUPT",
+                          "the delay log is inconsistent; refusing a partial-view write",
+                          skipped_lines=corrupt, semantic_errors=semantic_corrupt)
+                by_operation = {item.get("operation_id"): item for item in records}
+                lookup = by_operation.get
+                next_seq = max([0] + [item["event_seq"] for item in records]) + 1
+            else:
+                folded, lookup, next_seq = state
             record["operation_id"] = _operation_id(record, operation_id)
             fingerprint = _fingerprint(record)
-            for stored in records:
-                if stored.get("operation_id") != record["operation_id"]:
-                    continue
+            stored = lookup(record["operation_id"])
+            if stored is not None:
                 if _fingerprint(stored) == fingerprint:
                     return {"outcome": "already_applied",
                             "record_id": stored.get("id"),
@@ -491,11 +623,12 @@ class DelayLedgerMixin:
                             "record": stored}
                 _fail("E_DELAY_IDEMPOTENCY_MISMATCH",
                       "operation_id was used with different arguments")
+            # Callbacks read ``folded`` only; history is not materialized.
             if snapshot is not None:
-                snapshot(records, record, folded)
+                snapshot((), record, folded)
             if prepare is not None:
-                prepare(records, record, folded)
-            record["event_seq"] = max([0] + [item["event_seq"] for item in records]) + 1
+                prepare((), record, folded)
+            record["event_seq"] = next_seq
             candidate = dict(record, schema_version=1)
             if not _valid_common_record(candidate) or not _persisted_valid(candidate):
                 _fail("E_DELAY_VALIDATION",

@@ -402,7 +402,8 @@
       "revision_id": "r1",
       "state": "verified",
       "commits": [
-        "d1091c5b12631e90f90b0dc10f09b6d72a75d86b"
+        "d1091c5b12631e90f90b0dc10f09b6d72a75d86b",
+        "70684a43bdf963d57232d5321a12a5ab809f34a1"
       ],
       "source_paths": [
         "src/memkraft/delay_ledger.py"
@@ -417,6 +418,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_delay_ledger_performance.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_delay_ledger_append_cache.py"
         }
       ],
       "promotion_evidence": [
@@ -741,6 +747,7 @@
       "tests/test_curated_lessons.py",
       "tests/test_delay_ledger.py",
       "tests/test_delay_ledger_performance.py",
+      "tests/test_delay_ledger_append_cache.py",
       "tests/test_development_experience.py",
       "tests/test_evaluation_corpus.py",
       "tests/test_execution_baseline.py",
