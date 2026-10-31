@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [Unreleased]
+
+- Delay-ledger writes from a long-lived `MemKraft` fold only the bytes appended since the last write instead of re-reading and re-folding the whole `events.jsonl` (about 2 s per record on a 63 MB ledger, now under 1 ms after the first write). Rewritten, truncated, replaced, corrupt or out-of-order ledgers fall back to the unchanged full-read path.
+
 ## [4.5.0] — 2026-10-24
 
 - Owner sayings carry an enforcement level: `saying_classify(id, level, by=paths)` with `code|config|check` (a concrete file enforces the rule), `prose` (exists only as text) or `oneoff`. Rows go to `<owner_dir>/enforcement.jsonl`; `sayings.jsonl` stays verbatim-only.
