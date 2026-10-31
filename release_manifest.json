@@ -403,7 +403,7 @@
       "state": "verified",
       "commits": [
         "d1091c5b12631e90f90b0dc10f09b6d72a75d86b",
-        "70684a43bdf963d57232d5321a12a5ab809f34a1"
+        "8ad9e97cb36c0086473e357517dd2e4fe1c4ffa1"
       ],
       "source_paths": [
         "src/memkraft/delay_ledger.py"
