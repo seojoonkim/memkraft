@@ -48,7 +48,10 @@ jobs:
 
   search-recall:
     name: search_recall / Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to 26.04, which has no Python 3.9 build for
+    # actions/setup-python. Pin the image that still ships 3.9 so the
+    # minimum-supported-version gate keeps running.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
