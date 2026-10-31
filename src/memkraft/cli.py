@@ -800,7 +800,7 @@ def main(argv=None):
         import json as _json
         tasks = mc.task_list(status=args.status)
         if tasks:
-            print(f"\ud83d\udccb Tasks ({args.status}): {len(tasks)}")
+            print(f"\U0001f4cb Tasks ({args.status}): {len(tasks)}")
             for t in tasks:
                 print(f"  [{t.get('status', '?')}] {t['task_id']}: {t.get('description', '')[:60]}")
         else:
@@ -861,7 +861,7 @@ def main(argv=None):
         import json as _json
         tasks = mc.channel_tasks(args.channel_id, status=args.status, limit=args.limit)
         if tasks:
-            print(f"\ud83d\udccb Tasks for channel '{args.channel_id}' ({args.status}): {len(tasks)}")
+            print(f"\U0001f4cb Tasks for channel '{args.channel_id}' ({args.status}): {len(tasks)}")
             for t in tasks:
                 print(f"  [{t.get('status', '?')}] {t['task_id']}: {t.get('description', '')[:60]}")
         else:
@@ -877,7 +877,7 @@ def main(argv=None):
     elif args.command == "task-cleanup":
         archive = not args.delete
         result = mc.task_cleanup(max_age_days=args.max_age, archive=archive)
-        print(f"\ud83e\uddf9 Task cleanup: {result['archived']} archived, {result['deleted']} deleted, {result['kept']} kept")
+        print(f"\U0001f9f9 Task cleanup: {result['archived']} archived, {result['deleted']} deleted, {result['kept']} kept")
     elif args.command == "agents-hint":
         from . import agents_hint as _ah
         return _ah.cmd(args)
