@@ -76,7 +76,12 @@ jobs:
           python -m pip install pytest tomli pytest-xdist
 
       - name: Run test suite
-        run: python -m pytest tests/ -q -n auto
+        run: python -m pytest tests/ -q -n auto -m "not timing"
+
+      # Latency/scaling gates measure wall-clock time, so they run alone instead
+      # of competing with subprocess-heavy tests on the shared runner's cores.
+      - name: Run timing-sensitive tests serially
+        run: python -m pytest tests/ -q -m timing
 
       - name: Run Memory Gym search_recall gate
         run: |

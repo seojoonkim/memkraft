@@ -12,6 +12,10 @@ import pytest
 from memkraft import MemKraft
 from memkraft import delay_ledger
 
+# Wall-clock assertions: kept out of the parallel (-n auto) CI run so other
+# tests cannot steal CPU from the measurement. See .github/workflows/gym-gate.yml.
+pytestmark = pytest.mark.timing
+
 
 def _grow(mk, tasks, phases_per_task=3):
     seq = 0

@@ -8,6 +8,10 @@ import sys
 
 import pytest
 
+# Wall-clock assertions: kept out of the parallel (-n auto) CI run so other
+# tests cannot steal CPU from the measurement. See .github/workflows/gym-gate.yml.
+pytestmark = pytest.mark.timing
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = ROOT / "benchmarks" / "corrections" / "cases_v1.json"

@@ -52,6 +52,9 @@ Changelog = "https://github.com/seojoonkim/memkraft/blob/main/CHANGELOG.md"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "timing: wall-clock latency/scaling assertions; CI runs these serially, outside the parallel suite",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
