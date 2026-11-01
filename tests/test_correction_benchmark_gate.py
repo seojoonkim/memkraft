@@ -127,7 +127,10 @@ def test_cli_green_report_is_json():
     env = dict(os.environ)
     env["PYTHONPATH"] = str(ROOT / "src")
     result = subprocess.run(
-        [sys.executable, str(RUNNER), "--warm-iterations", "5"],
+        # p95 over 5 samples is just the max, so one scheduler hiccup on a shared CI
+        # runner fails the gate. 40 samples keep the same 50 ms bound but make p95
+        # an actual percentile.
+        [sys.executable, str(RUNNER), "--warm-iterations", "40"],
         cwd=str(ROOT), env=env, text=True, capture_output=True, check=False,
     )
     assert result.returncode == 0, result.stderr
