@@ -88,3 +88,27 @@ def test_task_commands_write_utf8_output(tmp_path: Path, command, expected):
         assert json.loads(archived.read_text())["status"] == "completed"
     else:
         assert "demo-task: Check task output" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "args",
+    [["init"], ["task-list"], ["channel-tasks", "ascii-probe"]],
+)
+def test_cli_human_output_survives_non_utf8_stdout(tmp_path: Path, args):
+    """Emoji status lines must not crash terminals/pipes that cannot encode them."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "src"
+    env["MEMKRAFT_DIR"] = str(tmp_path / "memory-root")
+    env["PYTHONIOENCODING"] = "ascii"
+    env.pop("PYTHONUTF8", None)
+
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8=0", "-m", "memkraft.cli", *args],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        capture_output=True,
+        check=False,
+    )
+
+    assert b"UnicodeEncodeError" not in result.stderr, result.stderr.decode("ascii", "replace")
+    assert result.returncode == 0, result.stderr.decode("ascii", "replace")

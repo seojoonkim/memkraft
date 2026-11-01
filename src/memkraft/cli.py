@@ -8,6 +8,25 @@ from . import MemKraft
 from . import __version__
 
 
+def _make_human_streams_encoding_safe():
+    """Keep emoji status lines from crashing non-UTF-8 terminals and pipes.
+
+    Human CLI output contains emoji throughout the codebase. On a stream whose
+    encoding cannot represent them (ASCII locales, cp949/cp1252 consoles) a
+    plain ``print`` raises UnicodeEncodeError *after* the command's side effects
+    have already happened. Swap only the error handler so unencodable glyphs
+    degrade to escapes; UTF-8 streams are left untouched.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        if callable(reconfigure) and encoding not in ("utf8", "utf8sig"):
+            try:
+                reconfigure(errors="backslashreplace")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv=None):
     effective_argv = list(sys.argv[1:] if argv is None else argv)
     if effective_argv[:2] == ["exec", "call"]:
@@ -15,6 +34,8 @@ def main(argv=None):
         # write help anywhere near the machine response stream.
         from . import execution_cli
         return execution_cli.main(effective_argv[2:])
+
+    _make_human_streams_encoding_safe()
 
     parser = argparse.ArgumentParser(
         prog="memkraft",
