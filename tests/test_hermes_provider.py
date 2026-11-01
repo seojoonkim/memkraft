@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime, timedelta
 import multiprocessing
 from unittest import mock
 
@@ -138,11 +139,12 @@ def test_sync_turn_preserves_completed_turn_chunk_bytes(tmp_path):
     note = tmp_path / "memkraft" / "live-notes" / (
         "hermes-session-{}-000001.md".format(digest)
     )
+    stamp = "Recorded: **{}**".format(datetime.now().strftime("%Y-%m-%d"))
     assert note.read_bytes() == (
         "# Hermes session {0} chunk 1\n\n"
         "## Completed turn\n\n"
-        "User: User evidence.\nAssistant: Assistant evidence.\n\n"
-    ).format(digest).encode("utf-8")
+        "{1}\nUser: User evidence.\nAssistant: Assistant evidence.\n\n"
+    ).format(digest, stamp).encode("utf-8")
 
 
 @pytest.mark.parametrize(
@@ -377,3 +379,62 @@ def test_hermes_manager_loads_entrypoint_despite_warn_duplicate_report(tmp_path,
         assert provider is not None
         provider.initialize("manager", hermes_home=str(tmp_path))
     assert provider._installation_report == report
+
+
+def test_recalled_turn_shows_the_date_it_was_recorded(tmp_path):
+    """Recall lines must say when a turn was stored, so stale facts are visible."""
+    provider = MemKraftMemoryProvider()
+    provider.initialize("dated", hermes_home=str(tmp_path))
+    old_day = datetime.now() - timedelta(days=45)
+    with mock.patch("memkraft.hermes_provider.datetime") as clock:
+        clock.now.return_value = old_day
+        provider.sync_turn("Deploy target for OrchidLynx is staging-eu.", "Noted.",
+                           session_id="dated")
+
+    recall = provider.prefetch("OrchidLynx deploy target", session_id="dated")
+
+    assert "OrchidLynx" in recall
+    assert "(recorded {})".format(old_day.strftime("%Y-%m-%d")) in recall
+
+
+def test_fresh_turn_gets_the_search_recency_bonus(tmp_path):
+    """The stored stamp uses the date form the scorer reads for recency."""
+    provider = MemKraftMemoryProvider()
+    provider.initialize("fresh", hermes_home=str(tmp_path))
+    provider.sync_turn("Cache warmup owner is TidalHeron.", "Noted.", session_id="fresh")
+
+    from memkraft._regexes import _DATE_BRACKET_RE
+    stored = [p.read_text(encoding="utf-8") for p in (tmp_path / "memkraft").rglob("*.md")
+              if "TidalHeron" in p.read_text(encoding="utf-8")]
+    assert stored and all(_DATE_BRACKET_RE.search(text) for text in stored)
+
+
+@pytest.mark.parametrize("filler", [206, 221, 232])
+def test_chunk_split_never_cuts_a_word_in_half(tmp_path, monkeypatch, filler):
+    monkeypatch.setenv("MEMKRAFT_HERMES_TURN_FILE_BYTES", "512")
+    provider = MemKraftMemoryProvider()
+    provider.initialize("split", hermes_home=str(tmp_path))
+    tokens = ["SplitToken{:02d}".format(index) for index in range(12)]
+    for token in tokens:
+        provider.sync_turn("Token {} {}".format(token, "y" * filler), "Recorded.", session_id="split")
+
+    notes = sorted((tmp_path / "memkraft" / "live-notes").glob("hermes-session-*.md"))
+    assert all(path.stat().st_size <= 512 for path in notes)
+    for token in tokens:
+        assert sum(path.read_text(encoding="utf-8").count(token) for path in notes) == 1, token
+
+
+def test_recall_dates_legacy_artifacts_from_their_session_id(tmp_path):
+    """Turns stored before the stamp still show a date, taken from the session id."""
+    provider = MemKraftMemoryProvider()
+    provider.initialize("cron_abc_20260917_083000", hermes_home=str(tmp_path))
+    with mock.patch("memkraft.hermes_provider._recorded_stamp", return_value=""):
+        provider.sync_turn("Legacy fact: BasaltWren runs nightly.", "Noted.",
+                           session_id="cron_abc_20260917_083000")
+    for note in (tmp_path / "memkraft" / "live-notes").glob("*.md"):
+        note.unlink()
+
+    recall = provider.prefetch("BasaltWren nightly", session_id="other")
+
+    assert "BasaltWren" in recall
+    assert "(recorded 2026-09-17)" in recall
