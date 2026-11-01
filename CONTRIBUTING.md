@@ -33,3 +33,25 @@ Use GitHub Issues for bugs, feature requests, or questions.
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
+
+## Merging pull requests
+
+`main` keeps a linear history, and CI checks that every feature commit listed in
+`release_manifest.json` exists on `main`. Squash and rebase merges rewrite the PR
+commits, so the listed commits disappear and the first `main` run fails until a
+follow-up "point manifest at merged commit" PR lands.
+
+To avoid that, maintainers merge by **fast-forwarding `main` to the PR head**:
+
+1. Rebase the PR branch onto the latest `main` and wait for all required checks
+   on that exact head to pass.
+2. Push the same commit to `main`:
+
+   ```bash
+   scripts/ff_merge_pr.sh <pr-number>
+   ```
+
+   GitHub marks the PR as merged because `main` now points at its head commit.
+   No new commit is created, so the manifest stays valid and no follow-up PR is needed.
+
+Do not use the squash or rebase buttons for PRs that touch `release_manifest.json`.
