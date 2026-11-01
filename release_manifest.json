@@ -334,10 +334,12 @@
       "revision_id": "r1",
       "state": "verified",
       "commits": [
-        "98fa3f0e99b86871775973d4e6d2c912a45c7b0c"
+        "98fa3f0e99b86871775973d4e6d2c912a45c7b0c",
+        "5d515fc79a5dc2e6a06946afe3e667fb690581ac"
       ],
       "source_paths": [
-        "src/memkraft/mcp.py"
+        "src/memkraft/mcp.py",
+        "src/memkraft/mcp_admin.py"
       ],
       "evaluation_refs": [
         {
