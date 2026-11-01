@@ -37,10 +37,10 @@ def test_frozen_cases_digest_and_contract():
 
 def test_benchmark_is_green_and_repeatable():
     runner = _load_runner()
-    first = runner.run_benchmark(warm_iterations=20)
-    second = runner.run_benchmark(warm_iterations=20)
+    first = runner.run_benchmark(warm_iterations=100)
+    second = runner.run_benchmark(warm_iterations=100)
 
-    assert first["gate"]["passed"] is True
+    assert first["gate"]["passed"] is True, first["gate"]["errors"]
     assert first["metrics"] == second["metrics"]
     assert first["metrics"]["fidelity"] == 1.0
     assert first["metrics"]["interference"] == 0
@@ -73,8 +73,10 @@ def test_recorded_outcome_gate_depends_on_persisted_memkraft_outcomes(monkeypatc
 
 def test_benchmark_reports_honest_host_and_latency_evidence():
     runner = _load_runner()
-    first = runner.run_benchmark(warm_iterations=20)
-    assert first["gate"]["passed"] is True
+    # Same sample count as the shipped runner default: with few samples p95 is
+    # just the slowest run or two, so one shared-runner hiccup flips the gate.
+    first = runner.run_benchmark(warm_iterations=100)
+    assert first["gate"]["passed"] is True, first["gate"]["errors"]
     assert first["metrics"]["outcomes_observable"] is True
     assert first["two_host_evidence"] == {
         "status": "not_ready", "evidence": None,
@@ -127,10 +129,8 @@ def test_cli_green_report_is_json():
     env = dict(os.environ)
     env["PYTHONPATH"] = str(ROOT / "src")
     result = subprocess.run(
-        # p95 over 5 samples is just the max, so one scheduler hiccup on a shared CI
-        # runner fails the gate. 40 samples keep the same 50 ms bound but make p95
-        # an actual percentile.
-        [sys.executable, str(RUNNER), "--warm-iterations", "40"],
+        # Runner default (100 samples) so p95 is a real percentile, not the max.
+        [sys.executable, str(RUNNER)],
         cwd=str(ROOT), env=env, text=True, capture_output=True, check=False,
     )
     assert result.returncode == 0, result.stderr
