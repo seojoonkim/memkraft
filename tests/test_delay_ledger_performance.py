@@ -65,9 +65,10 @@ def test_fold_scales_roughly_linearly(tmp_path):
     records, corrupt = delay_ledger._partition(
         read_all(mk._delay_events_path(), include_tombstoned=True))
     assert corrupt == 0
-    half = records[: len(records) // 2]
+    quarter = records[: len(records) // 4]
     # Warm up, then take the best of 3 to damp CI noise.
-    small = min(_fold_seconds(half) for _ in range(3))
+    small = min(_fold_seconds(quarter) for _ in range(3))
     large = min(_fold_seconds(records) for _ in range(3))
-    # Quadratic would be ~4x; allow generous headroom for linear-ish.
-    assert large < max(small * 3.0, 0.05), (small, large)
+    # 4x the input: linear is ~4x, quadratic ~16x. Splitting at 8x keeps a 2x
+    # noise margin on both sides (a 2x split flaked on shared CI runners).
+    assert large < max(small * 8.0, 0.05), (small, large)
