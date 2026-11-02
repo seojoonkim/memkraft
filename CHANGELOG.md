@@ -1,11 +1,8 @@
 # CHANGELOG
 
-## [Unreleased]
-
-- Decisions can carry an expected result and a recheck date: `decision_record(..., expected=, recheck_at=)`. `decision_update(outcome=)` marks the decision checked and `recheck_at=` reschedules it. `decision_due(as_of=)` lists proposed/accepted decisions whose recheck date passed with no outcome recorded since, most overdue first.
-
 ## [4.5.0] — 2026-10-24
 
+- Decisions can carry an expected result and a recheck date: `decision_record(..., expected=, recheck_at=)`. `decision_update(outcome=)` marks the decision checked and `recheck_at=` reschedules it. `decision_due(as_of=)` lists proposed/accepted decisions whose recheck date passed with no outcome recorded since, most overdue first.
 - Owner sayings carry an enforcement level: `saying_classify(id, level, by=paths)` with `code|config|check` (a concrete file enforces the rule), `prose` (exists only as text) or `oneoff`. Rows go to `<owner_dir>/enforcement.jsonl`; `sayings.jsonl` stays verbatim-only.
 - `saying_enforcement_report(root=)` lists unclassified live sayings, enforcing paths that no longer exist and prose-only rules (ids only, never saying text). `saying_search` results include `enforcement`.
 - CLI: `memkraft owner classify` and `memkraft owner enforcement` (exit 1 when anything is unclassified or broken). Hermes tool `owner_saying_classify`.

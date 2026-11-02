@@ -787,6 +787,7 @@
       "tests/test_correction_policy.py",
       "tests/test_correction_projection.py",
       "tests/test_curated_lessons.py",
+      "tests/test_decision_recheck.py",
       "tests/test_delay_ledger.py",
       "tests/test_delay_ledger_append_cache.py",
       "tests/test_delay_ledger_performance.py",
