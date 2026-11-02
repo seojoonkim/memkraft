@@ -253,8 +253,7 @@
         "fd16d6d77fd59219fbfaea0b3fef580eba4aa243",
         "b83ca8a9e4547f542a249e3f22618c02ec040b2f",
         "2fda93bb8e2d793d54adb3ce16ea4834e1d3e992",
-        "d232474fc275629a0494891218ac5b2a976c59c4",
-        "0b63acdac388478bef47e7e4bfc9f3e63e30b100"
+        "d232474fc275629a0494891218ac5b2a976c59c4"
       ],
       "evaluation_refs": [
         {
@@ -652,6 +651,37 @@
         "src/memkraft/write_gate.py"
       ],
       "state": "verified"
+    },
+    {
+      "id": "feature.decision-recheck-due",
+      "proposal_id": "prop.decision-recheck-due",
+      "revision_id": "r1",
+      "state": "verified",
+      "commits": [
+        "0b63acdac388478bef47e7e4bfc9f3e63e30b100"
+      ],
+      "source_paths": [
+        "src/memkraft/decision_store.py"
+      ],
+      "evaluation_refs": [
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_decision_recheck.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_v091_decision_store.py"
+        }
+      ],
+      "promotion_evidence": [
+        {
+          "kind": "changelog",
+          "path": "CHANGELOG.md",
+          "claim": "decision_due(as_of=)"
+        }
+      ]
     }
   ],
   "release": {
