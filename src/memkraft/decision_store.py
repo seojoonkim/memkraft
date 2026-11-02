@@ -123,6 +123,8 @@ class DecisionStoreMixin:
         decided_at: Optional[str] = None,
         source: str = "manual",
         tier: Optional[str] = None,
+        expected: Optional[str] = None,
+        recheck_at: Optional[str] = None,
     ) -> str:
         """Record a new decision. Returns the decision_id.
 
@@ -138,6 +140,9 @@ class DecisionStoreMixin:
             source: How this was captured (``manual``, ``sub-agent``, etc.).
             tier: Override tier (default: ``core`` for accepted/proposed,
                 ``archival`` for superseded/rejected).
+            expected: Optional expected result, checked later against Outcome.
+            recheck_at: Optional ISO date when the outcome should be checked;
+                listed by :meth:`decision_due` until an outcome is recorded.
         """
         what_clean = _nonempty(what, "what")
         why_clean = _nonempty(why, "why")
@@ -171,12 +176,16 @@ class DecisionStoreMixin:
             "tags": list(tags or []),
             "linked_incidents": list(linked_incidents or []),
         }
+        if recheck_at:
+            fm["recheck_at"] = str(recheck_at)[:10]
 
         sections: Dict[str, List[str]] = {"": []}
         sections["What"] = [what_clean]
         sections["Why"] = [why_clean]
         sections["How"] = [how_clean]
         sections["Outcome"] = [outcome.strip()] if outcome and str(outcome).strip() else []
+        if expected and str(expected).strip():
+            sections["Expected"] = [str(expected).strip()]
         sections["Linked Incidents"] = [f"- {iid}" for iid in (linked_incidents or [])]
 
         write_doc(self._decision_path(decision_id), fm, heading=what_clean, sections=sections)
@@ -220,8 +229,13 @@ class DecisionStoreMixin:
         status: Optional[str] = None,
         tags: Optional[List[str]] = None,
         linked_incidents: Optional[List[str]] = None,
+        recheck_at: Optional[str] = None,
+        checked_at: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update an existing decision in-place.
+
+        ``recheck_at`` (re)schedules the next outcome check. Recording an
+        ``outcome`` marks the decision checked (``checked_at``, default today).
 
         ``outcome`` overwrites/extends the Outcome section (appends).
         ``append_why`` / ``append_how`` add text to Why/How (audit trail).
@@ -241,6 +255,10 @@ class DecisionStoreMixin:
             sections.setdefault("Outcome", []).append(
                 f"- [{now}] {outcome.strip()}"
             )
+            fm["checked_at"] = str(checked_at or now)[:10]
+
+        if recheck_at is not None:
+            fm["recheck_at"] = str(recheck_at)[:10] if recheck_at else None
 
         if append_why:
             sections.setdefault("Why", []).append(f"- [{now}] {append_why.strip()}")
@@ -272,6 +290,46 @@ class DecisionStoreMixin:
 
         write_doc(path, fm, heading=heading or fm.get("title", "Decision"), sections=sections)
         return dict(fm)
+
+    # --- API: due --------------------------------------------------------
+
+    def decision_due(self, as_of: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Decisions whose ``recheck_at`` passed with no outcome checked since.
+
+        Only ``proposed``/``accepted`` decisions are considered. Sorted by
+        most overdue first.
+        """
+        import datetime as _dt
+
+        today = str(as_of or now_iso())[:10]
+        due: List[Dict[str, Any]] = []
+        for p in list_decisions(self.base_dir):  # type: ignore[attr-defined]
+            try:
+                fm, _heading, sections = read_doc(p)
+            except Exception:
+                continue
+            if fm.get("type") != "decision" or fm.get("status") not in ("proposed", "accepted"):
+                continue
+            recheck = str(fm.get("recheck_at") or "")[:10]
+            if not recheck or recheck > today:
+                continue
+            checked = str(fm.get("checked_at") or "")[:10]
+            if checked and checked >= recheck:
+                continue
+            try:
+                overdue = (_dt.date.fromisoformat(today) - _dt.date.fromisoformat(recheck)).days
+            except ValueError:
+                overdue = 0
+            due.append({
+                "id": fm.get("id"),
+                "title": fm.get("title"),
+                "recheck_at": recheck,
+                "days_overdue": overdue,
+                "expected": " ".join(sections.get("Expected", [])).strip(),
+                "path": str(p),
+            })
+        due.sort(key=lambda d: (-d["days_overdue"], str(d["id"])))
+        return due
 
     # --- API: link ---------------------------------------------------------
 
