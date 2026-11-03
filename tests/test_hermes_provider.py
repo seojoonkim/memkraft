@@ -438,3 +438,27 @@ def test_recall_dates_legacy_artifacts_from_their_session_id(tmp_path):
 
     assert "BasaltWren" in recall
     assert "(recorded 2026-09-17)" in recall
+
+
+def test_recall_skips_another_cron_jobs_prompt_but_keeps_its_outcome(tmp_path):
+    """A stored cron prompt quoted mid-text must not come back as a memory.
+
+    The snippet comes from deep inside the job prompt, so it carries none of the
+    scheduler markers itself; it still is another job's instructions.
+    """
+    provider = MemKraftMemoryProvider()
+    provider.initialize("cron_jobx_20261101_083000", hermes_home=str(tmp_path))
+    prompt = (
+        "[IMPORTANT: You are running as a scheduled cron job. DELIVERY: your final response "
+        "is delivered automatically.]\n\n" + ("Background filler sentence for the job. " * 12)
+        + "\nSTEP 7: rotate the QuartzFinch ledger and post the QuartzFinch digest to the team."
+    )
+    provider.sync_turn(prompt, "Rotated the QuartzFinch ledger; digest had 4 entries.",
+                       session_id="cron_jobx_20261101_083000")
+    provider.sync_turn("QuartzFinch ledger owner is Simon.", "Noted.", session_id="chat-1")
+
+    recall = provider.prefetch("QuartzFinch ledger digest", session_id="chat-2")
+
+    assert "QuartzFinch ledger owner is Simon" in recall
+    assert "digest had 4 entries" in recall
+    assert "STEP 7" not in recall

@@ -263,6 +263,61 @@ def _dedup_key(text: str) -> str:
     return body[:80]
 
 
+_TURN_ROLE_RE = re.compile(r"(?m)^(User|Assistant):")
+
+
+def _in_cron_prompt(text: str, snippet: str) -> bool:
+    """True when ``snippet`` sits inside the user (prompt) half of a stored cron turn.
+
+    Every scheduled run stores its whole job prompt as the turn's ``User:``
+    side.  Recall snippets usually come from the middle of that prompt, so
+    the cron markers checked by ``_is_cron_boilerplate`` are not in the
+    snippet itself.  Recalled into another turn, that text is a different
+    job's instructions, not a memory.  The run's ``Assistant:`` side (what
+    actually happened) stays recallable.
+    """
+    probe = _SPEAKER_PREFIX.sub("", (snippet or "").split(" | ")[0]).strip()[:40]
+    pos = text.find(probe) if probe else -1
+    if pos < 0:
+        return False
+    role = None
+    for match in _TURN_ROLE_RE.finditer(text):
+        if match.start() > pos:
+            break
+        role = match
+    if role is None or role.group(1) != "User":
+        return False
+    return _is_cron_boilerplate(text[role.end():role.end() + 400])
+
+
+def _demote_cron_prompt_hits(base: Path, hits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Move hits that quote a stored cron prompt behind every other hit.
+
+    A snippet that runs from the prompt into the run's reply keeps only the
+    reply part (what happened), so the outcome stays recallable.
+    """
+    kept: List[Dict[str, Any]] = []
+    demoted: List[Dict[str, Any]] = []
+    for hit in hits or []:
+        rel = str(hit.get("file") or "")
+        text = ""
+        if rel.startswith(("artifacts/", "live-notes/")):
+            try:
+                text = (base / rel).read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                text = ""
+        snippet = _recall_snippet(hit)
+        if not (text and _in_cron_prompt(text, snippet)):
+            kept.append(hit)
+            continue
+        reply_at = snippet.find("Assistant:")
+        if reply_at >= 0 and snippet[reply_at + 10:].strip():
+            kept.append(dict(hit, snippet=snippet[reply_at:], match=snippet[reply_at:]))
+        else:
+            demoted.append(hit)
+    return kept + [dict(hit, _cron_prompt=True) for hit in demoted]
+
+
 def _diversify_hits(hits: List[Dict[str, Any]], keep_boilerplate: bool = False) -> List[Dict[str, Any]]:
     """Drop repeated copies and cron-instruction echoes from recall candidates.
 
@@ -281,7 +336,7 @@ def _diversify_hits(hits: List[Dict[str, Any]], keep_boilerplate: bool = False) 
             continue
         if key:
             seen.add(key)
-        if _is_cron_boilerplate(text):
+        if hit.get("_cron_prompt") or _is_cron_boilerplate(text):
             boilerplate.append(hit)
             continue
         kept.append(hit)
@@ -618,8 +673,9 @@ class MemKraftMemoryProvider(MemoryProvider):
     def _recall_hits(self, query: str, want: int = 5) -> List[Dict[str, Any]]:
         filtered: List[Dict[str, Any]] = []
         seen_total = -1
+        base = Path(getattr(self._store, "base_dir", "") or ".")
         for window in self._RECALL_WINDOWS:
-            raw = self._store.search(query, top_k=window)
+            raw = _demote_cron_prompt_hits(base, self._store.search(query, top_k=window))
             filtered = _diversify_hits(self._filter_stub_hits(raw, keep_demoted=False))
             if len(filtered) >= want or len(raw) < window or len(raw) == seen_total:
                 break
