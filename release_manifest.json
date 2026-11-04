@@ -501,14 +501,16 @@
       "commits": [
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
-        "4304475f2182e01da7cd5244e796af65bab16901"
+        "4304475f2182e01da7cd5244e796af65bab16901",
+        "086a219d4cc834ea93cfe5f2992c394d84573b40"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
         "src/memkraft/_core_lifecycle_helpers.py",
         "src/memkraft/_read_cache.py",
         "src/memkraft/store_core.py",
-        "src/memkraft/derived_views.py"
+        "src/memkraft/derived_views.py",
+        "src/memkraft/recall_suppress.py"
       ],
       "evaluation_refs": [
         {
@@ -545,6 +547,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_store_core_torn_tail.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_recall_forget.py"
         }
       ],
       "promotion_evidence": [
@@ -842,6 +849,7 @@
       "tests/test_reasoning_bank.py",
       "tests/test_reasoning_bank_injection.py",
       "tests/test_recall_diversity.py",
+      "tests/test_recall_forget.py",
       "tests/test_recall_hot_path.py",
       "tests/test_recall_snippet_anchor.py",
       "tests/test_release_lineage.py",
