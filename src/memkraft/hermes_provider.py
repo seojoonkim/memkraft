@@ -652,6 +652,14 @@ class MemKraftMemoryProvider(MemoryProvider):
                 line for line in reasoning.splitlines()
                 if not (line.startswith("- ") and _is_cron_boilerplate(line))
             )
+            table = self._forgotten_table(base)
+            if table:
+                from . import recall_suppress
+
+                reasoning = "\n".join(
+                    line for line in reasoning.splitlines()
+                    if not recall_suppress.contains_suppressed(line, table)
+                )
             if not any(line.startswith("- ") for line in reasoning.splitlines()):
                 reasoning = ""
         sayings = ""
@@ -674,15 +682,48 @@ class MemKraftMemoryProvider(MemoryProvider):
         filtered: List[Dict[str, Any]] = []
         seen_total = -1
         base = Path(getattr(self._store, "base_dir", "") or ".")
+        table = self._forgotten_table(base)
         for window in self._RECALL_WINDOWS:
             raw = _demote_cron_prompt_hits(base, self._store.search(query, top_k=window))
-            filtered = _diversify_hits(self._filter_stub_hits(raw, keep_demoted=False))
+            filtered = self._drop_forgotten(
+                _diversify_hits(self._filter_stub_hits(raw, keep_demoted=False)), table, want)
             if len(filtered) >= want or len(raw) < window or len(raw) == seen_total:
                 break
             seen_total = len(raw)
         if filtered:
             return filtered[:want]
-        return _diversify_hits(self._filter_stub_hits(raw), keep_boilerplate=True)[:want]
+        return self._drop_forgotten(
+            _diversify_hits(self._filter_stub_hits(raw), keep_boilerplate=True), table, want)[:want]
+
+    @staticmethod
+    def _forgotten_table(base: Path) -> Optional[Dict[int, Any]]:
+        from . import recall_suppress
+
+        try:
+            return recall_suppress.windows(base) or None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _drop_forgotten(hits: List[Dict[str, Any]], table: Optional[Dict[int, Any]],
+                        want: int) -> List[Dict[str, Any]]:
+        """Keep the first ``want`` hits that do not quote a forgotten value.
+
+        Checked lazily in rank order, so the cost is a handful of snippets,
+        not the whole search window.
+        """
+        if not table:
+            return hits
+        from . import recall_suppress
+
+        kept: List[Dict[str, Any]] = []
+        for hit in hits:
+            text = "{}\n{}".format(hit.get("snippet") or "", hit.get("match") or "")
+            if not recall_suppress.contains_suppressed(text, table):
+                kept.append(hit)
+                if len(kept) >= want:
+                    break
+        return kept
 
     def _filter_stub_hits(self, results: List[Dict[str, Any]], keep_demoted: bool = True) -> List[Dict[str, Any]]:
         """Drop entity pages that only record detections, so facts reach the top slots."""

@@ -2,6 +2,7 @@
 
 ## [4.5.0] — 2026-10-24
 
+- Forgetting now reaches Hermes recall. `forget()` and `do_not_remember()` only tombstoned structured events, while recall reads turn records that still quoted the value, so a forgotten address or phone number came straight back. Recall now drops snippets that quote a tombstoned or denied event value (also when the snippet cuts through it). New `forget_text(text, dry_run=True)` hides a free-text value that was never an event; it stores sha256 digests in `.memkraft/recall_suppress.jsonl`, never the text. Values under 6 characters are rejected so recall is not blanked.
 - Hermes recall no longer returns text quoted from inside another stored cron job's prompt (a different job's instructions). When the snippet runs into that run's reply, only the reply part is kept, so what the job did stays recallable.
 - Decisions can carry an expected result and a recheck date: `decision_record(..., expected=, recheck_at=)`. `decision_update(outcome=)` marks the decision checked and `recheck_at=` reschedules it. `decision_due(as_of=)` lists proposed/accepted decisions whose recheck date passed with no outcome recorded since, most overdue first.
 - Owner sayings carry an enforcement level: `saying_classify(id, level, by=paths)` with `code|config|check` (a concrete file enforces the rule), `prose` (exists only as text) or `oneoff`. Rows go to `<owner_dir>/enforcement.jsonl`; `sayings.jsonl` stays verbatim-only.

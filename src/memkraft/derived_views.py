@@ -249,6 +249,28 @@ class DerivedViewsMixin:
             return {**plan,"matched":len(ids),"record_ids":ids,"status":status}
         finally:_unlock(fd); os.close(fd)
 
+    def forget_text(self,text,dry_run=True):
+        """Keep a free-text value out of recall (turn records quote it verbatim).
+
+        ``forget`` tombstones structured events, but recalled turn records
+        still contain the text.  This records digests (never the text) so
+        recall drops any snippet that still quotes it.  Returns a plan; with
+        ``dry_run=False`` it applies and audits the operation.
+        """
+        from . import recall_suppress
+        _bool(dry_run,"dry_run"); text=_text(text,"text")
+        windows=recall_suppress.digests_for(text)
+        if not windows: raise ValueError(f"text must be at least {recall_suppress.MIN_CHARS} characters")
+        op=_digest({"action":"forget_text","windows":sorted(d for _,d in windows)})
+        plan={"schema_version":1,"dry_run":dry_run,"operation_id":op,"windows":len(windows),"status":"planned"}
+        if dry_run:return plan
+        fd=self._governance_lock()
+        try:
+            added=recall_suppress.record(self.base_dir,[text],reason="forget_text")
+            self._append_audit({"action":"forget_text","source":"governance","operation_id":op,"windows":len(windows)})
+            return {**plan,"status":"applied" if added else "already_applied"}
+        finally:_unlock(fd); os.close(fd)
+
     def forget_candidates(self, *, candidate_id=None, session_id=None, dry_run=True):
         """Preview: tombstone candidates selected by id or by their session."""
         _bool(dry_run,"dry_run")
