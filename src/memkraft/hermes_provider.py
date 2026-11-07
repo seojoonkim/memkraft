@@ -188,6 +188,7 @@ def _owner_tool_schemas() -> List[Dict[str, Any]]:
 _CRON_BOILERPLATE_MARKERS = (
     "you are running as a scheduled cron job",
     "[silent]\" (nothing else) to suppress delivery",
+    "[scheduled job prompt omitted:",  # stub written by sync_turn below
 )
 # Stored turns sometimes carry a whole agent prompt (a cron/delegation
 # preamble such as "You are Zeon, Simon's orchestrator..."). Recalled into a
@@ -254,6 +255,27 @@ def _is_cron_boilerplate(text: str) -> bool:
     if any(marker in lowered for marker in _CRON_BOILERPLATE_MARKERS):
         return True
     return bool(_PROMPT_PREAMBLE_RE.search(text))
+
+
+_CRON_JOB_TITLE_RE = re.compile(r"(?m)^#\s*Cron Job:\s*(.{1,120}?)\s*$")
+
+
+def _is_cron_job_prompt(text: str) -> bool:
+    """True for the user side of a scheduled run (the preamble opens the prompt)."""
+    return any(marker in text[:800].lower() for marker in _CRON_BOILERPLATE_MARKERS)
+
+
+def _cron_prompt_stub(text: str) -> str:
+    """One-line stand-in for a stored cron prompt: job name, size and hash."""
+    match = _CRON_JOB_TITLE_RE.search(text)
+    title = match.group(1) if match else ""
+    if not title:
+        body = text.split("]", 1)[1] if text.lstrip().startswith("[") and "]" in text else text
+        title = next((line.strip() for line in body.splitlines()
+                      if line.strip() and not line.lstrip().startswith("#")), "")[:120]
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    return "[scheduled job prompt omitted: {} | {} chars | sha256:{}]".format(
+        title or "untitled", len(text), digest)
 
 
 def _dedup_key(text: str) -> str:
@@ -810,6 +832,13 @@ class MemKraftMemoryProvider(MemoryProvider):
     ) -> None:
         if self._store is None or not (user_content or assistant_content):
             return
+        # A scheduled run's user side is the whole job prompt (plus the previous
+        # run's output, which is already stored as that run's Assistant side).
+        # Recall already refuses to surface it, so keep only a short stub and
+        # do not mine it for entities.
+        cron_prompt = bool(user_content) and _is_cron_job_prompt(user_content)
+        if cron_prompt:
+            user_content = _cron_prompt_stub(user_content)
         turn = "User: {}\nAssistant: {}".format(user_content, assistant_content)
         # Stored copies carry the date; entity extraction below gets the bare turn.
         content = "{}\n{}".format(_recorded_stamp(), turn)
@@ -831,10 +860,12 @@ class MemKraftMemoryProvider(MemoryProvider):
         with redirect_stdout(io.StringIO()):
             if messages is None:
                 # Preserve the pre-3.6 extraction contract for existing callers.
-                self._store.extract(turn, source=source)
+                self._store.extract(
+                    "Assistant: {}".format(assistant_content) if cron_prompt else turn,
+                    source=source)
             else:
                 # Role-aware callers retain separate evidence boundaries.
-                if user_content:
+                if user_content and not cron_prompt:
                     self._store.extract(user_content, source=source + "#user")
                 if assistant_content:
                     self._store.extract(assistant_content, source=source + "#assistant")

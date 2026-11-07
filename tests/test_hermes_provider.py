@@ -462,3 +462,43 @@ def test_recall_skips_another_cron_jobs_prompt_but_keeps_its_outcome(tmp_path):
     assert "QuartzFinch ledger owner is Simon" in recall
     assert "digest had 4 entries" in recall
     assert "STEP 7" not in recall
+
+
+def test_cron_job_prompt_is_stored_as_stub_but_outcome_is_kept(tmp_path):
+    """A scheduled run's prompt is not stored in full; its outcome stays recallable.
+
+    Recall already refuses to surface stored cron prompts, so keeping them only
+    grows the store (and the entity extractor input) with text nobody reads.
+    """
+    provider = MemKraftMemoryProvider()
+    session = "cron_joby_20261108_083000"
+    provider.initialize(session, hermes_home=str(tmp_path))
+    prompt = (
+        "[IMPORTANT: You are running as a scheduled cron job. DELIVERY: your final response "
+        "is delivered automatically.]\n\n## Your previous run's output\n```\n# Cron Job: Daily ledger\n"
+        + ("Old run text about PelicanMoss. " * 60)
+        + "\n```\nSTEP 3: rotate the PelicanMoss ledger."
+    )
+    provider.sync_turn(prompt, "Rotated the PelicanMoss ledger; 7 entries archived.",
+                       session_id=session)
+
+    base = provider._store.base_dir
+    stored = "\n".join(p.read_text(encoding="utf-8") for p in (base / "artifacts").glob("*.md"))
+    stored += "\n".join(p.read_text(encoding="utf-8") for p in (base / "live-notes").glob("*.md"))
+    assert "STEP 3: rotate" not in stored
+    assert "Old run text about PelicanMoss" not in stored
+    assert "scheduled job prompt omitted: Daily ledger" in stored
+    assert "7 entries archived" in stored
+
+    recall = provider.prefetch("PelicanMoss ledger archived", session_id="chat-9")
+    assert "7 entries archived" in recall
+
+
+def test_ordinary_turn_mentioning_cron_is_stored_in_full(tmp_path):
+    provider = MemKraftMemoryProvider()
+    provider.initialize("chat-1", hermes_home=str(tmp_path))
+    text = "Why did the job say 'You are running as a scheduled cron job' in my chat? " + "x" * 900
+    provider.sync_turn("Please fix the daily cron for KestrelDune. " + text, "Will do.", session_id="chat-1")
+    base = provider._store.base_dir
+    stored = "\n".join(p.read_text(encoding="utf-8") for p in (base / "artifacts").glob("*.md"))
+    assert "Please fix the daily cron for KestrelDune" in stored
