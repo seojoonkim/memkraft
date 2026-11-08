@@ -134,6 +134,10 @@ def _process_lock(path: Path):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+# Enforcement levels never auto-injected into a turn's prefetch block.
+AUTO_INJECT_EXCLUDED_LEVELS = ("oneoff",)
+
+
 OWNER_TOOL_NAMES = (
     "owner_saying_search",
     "owner_saying_record",
@@ -686,8 +690,13 @@ class MemKraftMemoryProvider(MemoryProvider):
                 reasoning = ""
         sayings = ""
         try:
+            # Sayings classified "oneoff" were a single task or fact, not a
+            # standing rule.  Re-injecting them every turn crowds out real
+            # rules (2026-11 replay: 50% of injected sayings, 81% of their
+            # characters).  They stay reachable via owner_saying_search.
             hits = self._store.saying_search(
-                query, limit=2, scope=getattr(self, "_owner_scope", None))
+                query, limit=2, scope=getattr(self, "_owner_scope", None),
+                exclude_levels=AUTO_INJECT_EXCLUDED_LEVELS)
         except Exception:
             hits = []
         if hits:

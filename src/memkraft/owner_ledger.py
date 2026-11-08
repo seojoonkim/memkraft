@@ -159,23 +159,33 @@ class OwnerLedgerMixin:
         return {"id": saying_id, "retired": True}
 
     def saying_search(self, query: str, *, scope: Optional[str] = None,
-                      limit: int = 5) -> List[Dict[str, Any]]:
+                      limit: int = 5,
+                      exclude_levels: Iterable[str] = ()) -> List[Dict[str, Any]]:
+        """Rank live sayings by token overlap with ``query``.
+
+        ``exclude_levels`` drops sayings whose enforcement level is listed
+        (e.g. ``("oneoff",)``) *before* the limit is applied, so callers still
+        get up to ``limit`` standing rules instead of fewer results.
+        """
         q = _tokens(query)
         if not q:
             return []
         want = (scope or "").strip().lower()
+        enf = self._enforcement()
+        skip = {str(level).strip().lower() for level in exclude_levels if str(level).strip()}
         scored = []
         for row in self._sayings().values():
             if row.get("retired"):
                 continue
             if want and row.get("scope") not in (want, "all"):
                 continue
+            if skip and (enf.get(str(row.get("saying_id") or "")) or {}).get("level") in skip:
+                continue
             tok = _tokens(row.get("text", "")) | set(row.get("tags") or [])
             overlap = len(q & tok)
             if overlap:
                 scored.append((overlap / (len(q) ** 0.5 * max(len(tok), 1) ** 0.5), row))
         scored.sort(key=lambda item: (-item[0], item[1].get("said_at", "")))
-        enf = self._enforcement()
         return [{"id": r["saying_id"], "text": r["text"], "scope": r["scope"],
                  "tags": r.get("tags", []), "source": r.get("source", ""),
                  "said_at": r.get("said_at", ""), "score": round(s, 3),
