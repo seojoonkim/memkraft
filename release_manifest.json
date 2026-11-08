@@ -454,7 +454,8 @@
       "commits": [
         "76792573c1fe215c033a2ced7c0d8f8baacc79c0",
         "ace5046d71e159dd33cdbe133556e8b0431155e7",
-        "fd16d6d77fd59219fbfaea0b3fef580eba4aa243"
+        "fd16d6d77fd59219fbfaea0b3fef580eba4aa243",
+        "6bc43dc4370044c0c2892130a3b07591a15ac0d3"
       ],
       "source_paths": [
         "src/memkraft/owner_ledger.py"
@@ -479,6 +480,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_owner_enforcement.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_owner_saying_oneoff_prefetch.py"
         }
       ],
       "promotion_evidence": [
@@ -838,6 +844,7 @@
       "tests/test_owner_dir_shared.py",
       "tests/test_owner_enforcement.py",
       "tests/test_owner_ledger.py",
+      "tests/test_owner_saying_oneoff_prefetch.py",
       "tests/test_owner_saying_profile_scope.py",
       "tests/test_packaging_version.py",
       "tests/test_persistent_corpus_index.py",
