@@ -73,6 +73,20 @@ def _development_experience_enabled() -> bool:
 # quoted reply prefix; on a live store every hit under 0.03 was unrelated.
 _DEFAULT_LESSON_MIN_SCORE = 0.03
 
+# Owner sayings auto-injected into prefetch must score at least this.  On a
+# hand-labelled set of 30 real owner messages, 0.07 raised the share of
+# relevant injected sayings from 24% to 33% with no relevant saying lost, and
+# cut turns carrying a saying from 95% to 77% of 3,140 real turns.
+_DEFAULT_SAYING_MIN_SCORE = 0.07
+
+
+def _saying_min_score() -> float:
+    raw = os.environ.get("MEMKRAFT_HERMES_SAYING_MIN_SCORE", "")
+    try:
+        return max(0.0, float(raw)) if raw.strip() else _DEFAULT_SAYING_MIN_SCORE
+    except ValueError:
+        return _DEFAULT_SAYING_MIN_SCORE
+
 
 def _lesson_min_score() -> float:
     raw = os.environ.get("MEMKRAFT_HERMES_LESSON_MIN_SCORE", "")
@@ -696,7 +710,8 @@ class MemKraftMemoryProvider(MemoryProvider):
             # characters).  They stay reachable via owner_saying_search.
             hits = self._store.saying_search(
                 query, limit=2, scope=getattr(self, "_owner_scope", None),
-                exclude_levels=AUTO_INJECT_EXCLUDED_LEVELS)
+                exclude_levels=AUTO_INJECT_EXCLUDED_LEVELS,
+                min_score=_saying_min_score())
         except Exception:
             hits = []
         if hits:

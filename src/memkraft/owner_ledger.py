@@ -160,12 +160,15 @@ class OwnerLedgerMixin:
 
     def saying_search(self, query: str, *, scope: Optional[str] = None,
                       limit: int = 5,
-                      exclude_levels: Iterable[str] = ()) -> List[Dict[str, Any]]:
+                      exclude_levels: Iterable[str] = (),
+                      min_score: float = 0.0) -> List[Dict[str, Any]]:
         """Rank live sayings by token overlap with ``query``.
 
         ``exclude_levels`` drops sayings whose enforcement level is listed
         (e.g. ``("oneoff",)``) *before* the limit is applied, so callers still
         get up to ``limit`` standing rules instead of fewer results.
+        ``min_score`` drops hits scoring below it (default 0.0 keeps every
+        overlapping saying).
         """
         q = _tokens(query)
         if not q:
@@ -184,7 +187,9 @@ class OwnerLedgerMixin:
             tok = _tokens(row.get("text", "")) | set(row.get("tags") or [])
             overlap = len(q & tok)
             if overlap:
-                scored.append((overlap / (len(q) ** 0.5 * max(len(tok), 1) ** 0.5), row))
+                score = overlap / (len(q) ** 0.5 * max(len(tok), 1) ** 0.5)
+                if score >= min_score:
+                    scored.append((score, row))
         scored.sort(key=lambda item: (-item[0], item[1].get("said_at", "")))
         return [{"id": r["saying_id"], "text": r["text"], "scope": r["scope"],
                  "tags": r.get("tags", []), "source": r.get("source", ""),
