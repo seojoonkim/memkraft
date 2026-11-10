@@ -199,7 +199,9 @@ def test_capture_is_idempotent_and_recall_injects_avoid_and_reuse(tmp_path):
     assert second["duplicates"] == 2
     assert store.reasoning_stats()["total"] == 2
     context = store.development_inject_for_task("checkout retry regression")
-    assert "avoid:" in context
+    # The failing pytest run was retried and verified in the same turn, so the
+    # "avoid pytest" detour is contradicted and only the working route is reused.
+    assert "avoid:" not in context
     assert "reuse:" in context
     assert "terminal:python3 -m pytest" in context
 
@@ -244,7 +246,7 @@ def test_provider_round_trip_learns_without_a_hermes_core_hook(tmp_path):
     context = restarted.prefetch("checkout retry regression", session_id="session-2")
 
     assert "ReasoningBank task context" in context
-    assert "Avoid repeating" in context
+    assert "Avoid repeating" not in context  # same-turn retry succeeded: not a lesson
     assert "Reuse" in context
 
 
