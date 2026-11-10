@@ -46,6 +46,10 @@ __all__ = ["ReasoningBankMixin"]
 MIN_REPEAT_WARN = 2
 CURATED_TAG = "curated-lesson"
 CURATED_BOOST = 1.0      # curated rules outrank auto-captured tool detours on any trigger hit
+AUTO_CAPTURED_TAG = "auto-captured"
+# Auto-captured "avoid X" lessons stay in quarantine until the same failure repeats.
+# One-off tool errors (timeouts, transient not-found) are not lessons yet.
+AUTO_FAILURE_MIN_COUNT = 2
 MAX_LESSONS_PER_PATTERN = 3
 MAX_TASK_IDS_PER_PATTERN = 50
 SCHEMA_VERSION = 1
@@ -280,7 +284,9 @@ def _initial_reasoning_inject_metadata(
         "min_score": min_score,
         "candidates": {"failures": 0, "successes": 0, "total": 0},
         "emitted": {"failures": 0, "successes": 0, "total": 0},
-        "omitted": {"deduped": 0, "min_score": 0, "max_items": 0, "char_budget": 0},
+        "omitted": {
+            "deduped": 0, "min_score": 0, "max_items": 0, "char_budget": 0, "unproven_auto": 0,
+        },
         "output_chars": 0,
         "truncated": False,
         "empty_reason": "",
@@ -906,6 +912,50 @@ class ReasoningBankMixin:
             })
         return out
 
+    def _drop_unproven_auto_failures(
+        self, failures: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Hold back auto-captured failure lessons that have not earned injection.
+
+        An auto-captured "avoid <route>" lesson is withheld when it is still in
+        quarantine (its failure pattern was seen fewer than
+        ``AUTO_FAILURE_MIN_COUNT`` times) or when it has been contradicted: every
+        step of the failed route appears in a successful auto-captured trajectory
+        completed at the same time or later (a same-turn retry that worked).  Curated and hand-written lessons are never touched.
+        """
+        auto_ids = {
+            id(h) for h in failures
+            if AUTO_CAPTURED_TAG in (h.get("tags") or []) and not h.get("curated")
+        }
+        if not auto_ids:
+            return failures, 0
+        patterns = self._read_patterns().get("patterns", {}) or {}
+        latest_success: Dict[str, float] = {}
+        for row in self._read_reasoning_index().values():
+            if row.get("status") != "success" or AUTO_CAPTURED_TAG not in (row.get("tags") or []):
+                continue
+            done = _iso_to_epoch(str(row.get("completed_at") or ""))
+            for step in _route_steps(str(row.get("pattern_signature") or "")):
+                latest_success[step] = max(latest_success.get(step, 0.0), done)
+        kept: List[Dict[str, Any]] = []
+        dropped = 0
+        for hit in failures:
+            if id(hit) in auto_ids:
+                signature = str(hit.get("pattern_signature") or "")
+                bucket = patterns.get("failure::" + signature) or {}
+                count = _coerce_int(bucket.get("count"), 0) if isinstance(bucket, dict) else 0
+                failed_at = _iso_to_epoch(str(hit.get("completed_at") or ""))
+                steps = _route_steps(signature)
+                contradicted = bool(steps) and all(
+                    step in latest_success and latest_success[step] >= failed_at
+                    for step in steps
+                )
+                if count < AUTO_FAILURE_MIN_COUNT or contradicted:
+                    dropped += 1
+                    continue
+            kept.append(hit)
+        return kept, dropped
+
     def reasoning_inject_for_task(
         self,
         task_query: str,
@@ -962,6 +1012,9 @@ class ReasoningBankMixin:
             failures = [h for h in failures if _coerce_float(h.get("score", 0.0), 0.0) >= min_score_f]
             successes = [h for h in successes if _coerce_float(h.get("score", 0.0), 0.0) >= min_score_f]
             meta["omitted"]["min_score"] = before - len(failures) - len(successes)
+
+        failures, unproven = self._drop_unproven_auto_failures(failures)
+        meta["omitted"]["unproven_auto"] = unproven
 
         if dedupe:
             seen = set()
@@ -1186,6 +1239,12 @@ class ReasoningBankMixin:
 
 
 # ── Module-level helper used by ranking ────────────────────────────
+def _route_steps(signature: str) -> List[str]:
+    """Steps of a ``route::outcome`` pattern signature (``a -> b::verified``)."""
+    route = str(signature or "").split("::", 1)[0]
+    return [step.strip() for step in route.split("->") if step.strip()]
+
+
 def _iso_to_epoch(s: str) -> float:
     """Best-effort ISO → epoch seconds; failures sort to 0."""
     if not s:
