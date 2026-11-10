@@ -585,7 +585,8 @@
     {
       "commits": [
         "b2de21c7b5a4e9fe1e086e216c1c06f4feff9e0c",
-        "4e4d3c0d77708c548d6348f442677169f7be0920"
+        "4e4d3c0d77708c548d6348f442677169f7be0920",
+        "161ba465441fab8095c63fe26be529ca435463ad"
       ],
       "evaluation_refs": [
         {
@@ -602,6 +603,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_reasoning_bank_injection.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_auto_lesson_quarantine.py"
         }
       ],
       "id": "feature.curated-lessons-4.3.0",
@@ -796,6 +802,7 @@
       "tests/test_agent_bridge.py",
       "tests/test_artifacts.py",
       "tests/test_authority.py",
+      "tests/test_auto_lesson_quarantine.py",
       "tests/test_auto_tier_demotion_cap.py",
       "tests/test_benchmark_scripts.py",
       "tests/test_candidates.py",
