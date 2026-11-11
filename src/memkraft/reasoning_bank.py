@@ -200,6 +200,34 @@ def _jaccard(a: List[str], b: List[str]) -> float:
     return inter / union
 
 
+# A curated trigger is "generic" when it is a short word (<= 2 chars, e.g. 이거/내용/하자)
+# that also appears in the example requests of at least this many OTHER lessons.
+GENERIC_TRIGGER_MIN_LESSONS = 2
+GENERIC_TRIGGER_MAX_LEN = 2
+
+
+def _generic_trigger_only(
+    token: str,
+    query_tokens: set,
+    lesson_id: str,
+    examples_by_lesson: Dict[str, List[set]],
+) -> bool:
+    """True when a curated lesson matched only on one generic trigger word.
+
+    Kept (returns False) if the token is specific, or if the query shares two or
+    more tokens with one of this lesson's own example requests.
+    """
+    if len(token) > GENERIC_TRIGGER_MAX_LEN:
+        return False
+    others = sum(
+        1 for lid, exs in examples_by_lesson.items()
+        if lid != lesson_id and any(token in ex for ex in exs)
+    )
+    if others < GENERIC_TRIGGER_MIN_LESSONS:
+        return False
+    return not any(len(query_tokens & ex) >= 2 for ex in examples_by_lesson.get(lesson_id, []))
+
+
 def _compact_one_line(text: Any, max_len: int = 180) -> str:
     """Collapse whitespace and bound length for prompt injection blocks."""
     s = " ".join(str(text or "").split())
@@ -658,6 +686,8 @@ class ReasoningBankMixin:
                 "path": str(jsonl_path),
             })
 
+        q_set = set(q_tokens)
+        curated_examples: Optional[Dict[str, List[set]]] = None
         for cand in candidates:
             if status_filter and cand["status"] != status_filter:
                 continue
@@ -673,6 +703,16 @@ class ReasoningBankMixin:
             d_tokens = _recall_tokens(doc_text, stopwords=sw)
             score = _jaccard(q_tokens, d_tokens)
             if curated and score > 0.0:
+                overlap = q_set & set(d_tokens)
+                if len(overlap) == 1:
+                    if curated_examples is None:
+                        curated_examples = self._curated_example_tokens(candidates, sw)
+                    examples_map: Dict[str, List[set]] = curated_examples
+                    if _generic_trigger_only(
+                        next(iter(overlap)), q_set, str(cand.get("task_id") or ""),
+                        examples_map,
+                    ):
+                        continue
                 # Any trigger hit counts in full: a short query must not be diluted by a
                 # lesson's long trigger list (containment instead of Jaccard).
                 hit = len(set(q_tokens) & set(d_tokens)) / max(1, len(set(q_tokens)))
@@ -1149,6 +1189,22 @@ class ReasoningBankMixin:
                                        pattern_signature=f"lesson::{tid}", tags=tags)
         return {"lesson_id": tid, "triggers": trig, "examples": ex, "path": str(path),
                 "completed_at": out["completed_at"]}
+
+    def _curated_example_tokens(self, candidates: List[Dict[str, Any]], sw: Any) -> Dict[str, List[set]]:
+        """Token sets of each curated lesson's stored example requests (keyed by task_id)."""
+        out: Dict[str, List[set]] = {}
+        for cand in candidates:
+            if CURATED_TAG not in (cand.get("tags") or []):
+                continue
+            exs: List[set] = []
+            path = cand.get("path") or ""
+            if path:
+                for rec in _read_jsonl(Path(path)):
+                    if rec.get("kind") == "step" and rec.get("action") == "examples":
+                        for e in (rec.get("metadata") or {}).get("examples") or []:
+                            exs.append(set(_recall_tokens(str(e), stopwords=sw)))
+            out[str(cand.get("task_id") or "")] = exs
+        return out
 
     def lesson_list(self) -> List[Dict[str, Any]]:
         rows = [r for r in self._read_reasoning_index().values() if CURATED_TAG in (r.get("tags") or [])]
