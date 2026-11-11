@@ -586,7 +586,8 @@
       "commits": [
         "b2de21c7b5a4e9fe1e086e216c1c06f4feff9e0c",
         "4e4d3c0d77708c548d6348f442677169f7be0920",
-        "e361ba691fbbbcc69f34ea7d28610f40d69b8040"
+        "e361ba691fbbbcc69f34ea7d28610f40d69b8040",
+        "dd721fca4cbc2ed4c903dcf9506151074147cf8e"
       ],
       "evaluation_refs": [
         {
@@ -608,6 +609,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_auto_lesson_quarantine.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_curated_generic_trigger.py"
         }
       ],
       "id": "feature.curated-lessons-4.3.0",
@@ -817,6 +823,7 @@
       "tests/test_correction_outcomes.py",
       "tests/test_correction_policy.py",
       "tests/test_correction_projection.py",
+      "tests/test_curated_generic_trigger.py",
       "tests/test_curated_lessons.py",
       "tests/test_decision_recheck.py",
       "tests/test_delay_ledger.py",
