@@ -191,6 +191,7 @@ def main(argv=None):
     la.add_argument("--rule", required=True, help="The rule to follow next time")
     la.add_argument("--triggers", required=True, help="Comma-separated words the user actually says")
     la.add_argument("--example", action="append", default=[], help="Real request that must recall it (repeatable)")
+    la.add_argument("--source", default="", help="Where the rule was learned (session id, link or file)")
     lesson_sub.add_parser("list", help="List lessons")
     lesson_sub.add_parser("check", help="Replay examples; exit 1 if any lesson is not recalled")
 
@@ -641,7 +642,7 @@ def main(argv=None):
         import json as _json
         if args.lesson_cmd == "add":
             print(_json.dumps(mc.lesson_add(args.lesson_id, rule=args.rule, triggers=args.triggers,
-                                            examples=args.example), ensure_ascii=False))
+                                            examples=args.example, source=args.source), ensure_ascii=False))
         elif args.lesson_cmd == "check":
             rep = mc.lesson_check()
             for m in rep["missed"]:
@@ -651,7 +652,8 @@ def main(argv=None):
                 sys.exit(1)
         else:
             for les in mc.lesson_list():
-                print(f"{les['lesson_id']}: {les['rule']}  [triggers: {', '.join(les['triggers'])}]")
+                src = f"  [source: {les['source']}]" if les.get("source") else ""
+                print(f"{les['lesson_id']}: {les['rule']}  [triggers: {', '.join(les['triggers'])}]{src}")
     elif args.command == "owner":
         import json as _json
         if args.owner_cmd == "search":

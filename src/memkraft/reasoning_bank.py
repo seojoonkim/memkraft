@@ -260,6 +260,16 @@ def _coerce_float(value: Any, default: float = 0.0) -> float:
 _LEGACY_DEV_LESSON_RE = re.compile(r"^For '(?P<task>.*)', (?P<verb>avoid|reuse) (?P<rest>.+)$", re.S)
 
 
+def _curated_source(path: Any) -> str:
+    """Provenance pointer stored by ``lesson_add(source=...)``; empty when absent."""
+    if not path:
+        return ""
+    for rec in _read_jsonl(Path(str(path))):
+        if rec.get("kind") == "step" and rec.get("action") == "source":
+            return str((rec.get("metadata") or {}).get("source") or "")
+    return ""
+
+
 def _actionable_lesson(text: Any) -> Any:
     """Move the action of legacy ``For '<task>', avoid <route>...`` lessons first.
 
@@ -1109,6 +1119,9 @@ class ReasoningBankMixin:
             score = hit.get("score", 0.0)
             task_id = hit.get("task_id")
             if kind == "failure" and hit.get("curated"):
+                src = _curated_source(hit.get("path") or "")
+                if src:
+                    return f"- Work rule `{task_id}` (from {_prompt_data(src, 60)}): {lesson}"
                 return f"- Work rule `{task_id}`: {lesson}"
             if kind == "failure":
                 return f"- Avoid repeating `{task_id}` (score={score}): title={title}; lesson={lesson}"
@@ -1162,6 +1175,7 @@ class ReasoningBankMixin:
         rule: str,
         triggers: Any,
         examples: Any = (),
+        source: str = "",
     ) -> Dict[str, Any]:
         """Record a hand-written work rule ("same approach failed twice -> switch").
 
@@ -1169,7 +1183,9 @@ class ReasoningBankMixin:
         failure trajectory tagged ``curated-lesson``; it is recalled by its ``triggers``
         (the words the user actually says) and ranks above auto-captured detours.
         ``examples`` are real user requests that must recall it (see ``lesson_check``).
-        Re-adding the same id replaces it.
+        ``source`` points back to where the rule was learned (session id, message
+        link or file) so an agent can reopen the original trace instead of trusting
+        the summary alone (WikiTrace-style provenance). Re-adding the same id replaces it.
         """
         tid = _safe_task_id(lesson_id)
         trig = [t for t in _coerce_tags(triggers) if t]
@@ -1185,9 +1201,12 @@ class ReasoningBankMixin:
         self.trajectory_start(tid, title=" ".join(trig), tags=tags)
         if ex:
             self.trajectory_log(tid, 1, action="examples", metadata={"examples": ex})
+        src = " ".join(str(source or "").split())
+        if src:
+            self.trajectory_log(tid, 2, action="source", metadata={"source": src})
         out = self.trajectory_complete(tid, status="failure", lesson=str(rule).strip(),
                                        pattern_signature=f"lesson::{tid}", tags=tags)
-        return {"lesson_id": tid, "triggers": trig, "examples": ex, "path": str(path),
+        return {"lesson_id": tid, "triggers": trig, "examples": ex, "source": src, "path": str(path),
                 "completed_at": out["completed_at"]}
 
     def _curated_example_tokens(self, candidates: List[Dict[str, Any]], sw: Any) -> Dict[str, List[set]]:
@@ -1211,11 +1230,15 @@ class ReasoningBankMixin:
         out = []
         for r in sorted(rows, key=lambda r: r.get("task_id") or ""):
             ex: List[str] = []
+            src = ""
             for rec in _read_jsonl(Path(r.get("path") or self._trajectory_path(r["task_id"]))):
                 if rec.get("kind") == "step" and rec.get("action") == "examples":
                     ex = list((rec.get("metadata") or {}).get("examples") or [])
+                if rec.get("kind") == "step" and rec.get("action") == "source":
+                    src = str((rec.get("metadata") or {}).get("source") or "")
             out.append({"lesson_id": r["task_id"], "rule": r.get("lesson", ""),
-                        "triggers": [t for t in r.get("tags") or [] if t != CURATED_TAG], "examples": ex})
+                        "triggers": [t for t in r.get("tags") or [] if t != CURATED_TAG], "examples": ex,
+                        "source": src})
         return out
 
     def lesson_check(self, *, top_k: int = 3) -> Dict[str, Any]:
