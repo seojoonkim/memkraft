@@ -358,6 +358,22 @@ def _demote_cron_prompt_hits(base: Path, hits: List[Dict[str, Any]]) -> List[Dic
     return kept + [dict(hit, _cron_prompt=True) for hit in demoted]
 
 
+def _is_stored_job_prompt_hit(hit: Dict[str, Any]) -> bool:
+    """True for a hit that only quotes a stored scheduled-job prompt.
+
+    A hit that also carries the run's reply (``Assistant: ...``) is an
+    outcome worth recalling and is not counted.
+    """
+    if hit.get("_cron_prompt"):
+        return True
+    snippet = _recall_snippet(hit)
+    lowered = snippet.lower()
+    if not any(marker in lowered for marker in _CRON_BOILERPLATE_MARKERS):
+        return False
+    reply_at = snippet.find("Assistant:")
+    return not (reply_at >= 0 and snippet[reply_at + 10:].strip())
+
+
 def _diversify_hits(hits: List[Dict[str, Any]], keep_boilerplate: bool = False) -> List[Dict[str, Any]]:
     """Drop repeated copies and cron-instruction echoes from recall candidates.
 
@@ -738,8 +754,15 @@ class MemKraftMemoryProvider(MemoryProvider):
             seen_total = len(raw)
         if filtered:
             return filtered[:want]
-        return self._drop_forgotten(
-            _diversify_hits(self._filter_stub_hits(raw), keep_boilerplate=True), table, want)[:want]
+        # Last resort.  Text quoted from a stored scheduled-job prompt is never
+        # returned, even here: it is another job's instructions, not a memory,
+        # so an empty recall (abstain) is the honest answer.  Replaying 20 real
+        # Zeon cron prompts, 5 prefetches were made up only of such quotes.
+        fallback = [
+            hit for hit in _diversify_hits(self._filter_stub_hits(raw), keep_boilerplate=True)
+            if not _is_stored_job_prompt_hit(hit)
+        ]
+        return self._drop_forgotten(fallback, table, want)[:want]
 
     @staticmethod
     def _forgotten_table(base: Path) -> Optional[Dict[int, Any]]:
