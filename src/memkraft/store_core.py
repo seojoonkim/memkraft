@@ -48,7 +48,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Union
 
 try:
     import fcntl
@@ -239,6 +239,24 @@ def _parse_record_line(line: bytes) -> Optional[Dict[str, Any]]:
     return obj if isinstance(obj, dict) else None
 
 
+def _read_records(lines: Iterable[bytes]) -> ReadResult:
+    """Parse one stream, preserving corrupt-line and in-flight-tail handling."""
+    records: List[Dict[str, Any]] = []
+    skipped = 0
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            continue
+        obj = _parse_record_line(line)
+        if obj is None:
+            if not raw.endswith(b"\n") and line.startswith(b"{"):
+                break  # torn tail of an append still in flight
+            skipped += 1
+            continue
+        records.append(obj)
+    return ReadResult(records=records, skipped=skipped)
+
+
 def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadResult:
     """Read all records from the JSONL store at ``path`` in file order.
 
@@ -259,17 +277,7 @@ def read_all(path: Union[str, Path], include_tombstoned: bool = False) -> ReadRe
     skipped = 0
     try:
         with open(path, "rb") as f:
-            for raw in f:
-                line = raw.strip()
-                if not line:
-                    continue
-                obj = _parse_record_line(line)
-                if obj is None:
-                    if not raw.endswith(b"\n") and line.startswith(b"{"):
-                        break  # torn tail of an append still in flight
-                    skipped += 1
-                    continue
-                records.append(obj)
+            records, skipped = _read_records(f)
     except FileNotFoundError:
         pass
     if not include_tombstoned:
@@ -326,12 +334,12 @@ def mark_tombstones(
         return []
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd = _lock_current_inode(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+    fd = _lock_current_inode(str(path), os.O_RDWR | os.O_CREAT | os.O_APPEND)
     try:
-        present = {
-            record.get("id")
-            for record in read_all(path, include_tombstoned=True).records
-        }
+        # Windows byte-range locks also reject reads through a second handle.
+        # Validate through the locked descriptor, without releasing the lock.
+        with os.fdopen(fd, "rb", closefd=False) as f:
+            present = {record.get("id") for record in _read_records(f).records}
         for record_id in targets:
             if record_id not in present:
                 raise RecordNotFoundError(path, record_id)
