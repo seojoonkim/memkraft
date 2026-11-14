@@ -524,7 +524,8 @@
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
         "4304475f2182e01da7cd5244e796af65bab16901",
-        "086a219d4cc834ea93cfe5f2992c394d84573b40"
+        "086a219d4cc834ea93cfe5f2992c394d84573b40",
+        "af4245f33bc64fc4b791d76c39c4f0239beaa7e2"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
@@ -574,6 +575,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_recall_forget.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_store_core_bulk_lock.py"
         }
       ],
       "promotion_evidence": [
@@ -906,6 +912,7 @@
       "tests/test_sleep_governance.py",
       "tests/test_state_contract.py",
       "tests/test_store_core.py",
+      "tests/test_store_core_bulk_lock.py",
       "tests/test_store_core_lock_nb.py",
       "tests/test_store_core_torn_tail.py",
       "tests/test_timing_hot_path.py",

@@ -82,16 +82,17 @@ def test_batch_tombstone_reads_the_store_exactly_once(tmp_path, monkeypatch):
     ids = [store_core.append(path, {"n": n})["id"] for n in range(20)]
 
     calls = []
-    original = store_core.read_all
+    original = store_core._parse_record_line
+    expected = path.read_bytes().splitlines()
 
     def counting(*args, **kwargs):
         calls.append(args[0])
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(store_core, "read_all", counting)
+    monkeypatch.setattr(store_core, "_parse_record_line", counting)
     store_core.mark_tombstones(path, ids)
 
-    assert len(calls) == 1
+    assert calls == expected
 
 
 def test_batch_tombstone_takes_one_lock_and_syncs_once(tmp_path, monkeypatch):
