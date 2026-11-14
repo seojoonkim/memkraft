@@ -131,6 +131,16 @@ class CorpusIndex:
 # ── Module-level singleton ────────────────────────────────────────
 _INDEX_CACHE: Optional[CorpusIndex] = None
 _INDEX_LOCK = threading.Lock()
+# One host process can serve several corpora (the Hermes gateway runs every
+# profile).  With a single slot, each switch between corpora threw the index
+# away and rebuilt it.  Indexes of inactive corpora are parked here by
+# ``corpus_key`` and swapped back in; the fingerprint check still decides
+# whether a parked index is current.
+_KEYED_LOCK = threading.RLock()
+_ACTIVE_KEY: str = ""
+_SLOTS: Dict[str, "CorpusIndex"] = {}
+_MAX_SLOTS = 8
+_SLOT_SWAPS = 0
 _BUILD_HITS = 0
 _BUILD_MISSES = 0
 # v2.8.1: write-path generation counter.  When a write path (track,
@@ -741,6 +751,47 @@ def get_corpus_index(
     global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
     global _VERIFIED_AT, _VERIFIED_KEY, _TTL_HITS
 
+    if corpus_key and not _disabled():
+        with _KEYED_LOCK:
+            with _INDEX_LOCK:
+                _activate(corpus_key)
+            return _get_corpus_index_keyed(
+                all_md_files_fn, search_tokens_fn, read_text_fn, trust_write_hooks,
+                stat_snapshot_fn, persist_path, corpus_key,
+            )
+    return _get_corpus_index_keyed(
+        all_md_files_fn, search_tokens_fn, read_text_fn, trust_write_hooks,
+        stat_snapshot_fn, persist_path, corpus_key,
+    )
+
+
+def _activate(corpus_key: str) -> None:
+    """Make ``corpus_key`` the corpus held in the singleton.  Caller holds ``_INDEX_LOCK``."""
+    global _INDEX_CACHE, _INDEX_GENERATION, _ACTIVE_KEY, _VERIFIED_KEY, _SLOT_SWAPS
+    if corpus_key == _ACTIVE_KEY:
+        return
+    if _ACTIVE_KEY and _INDEX_CACHE is not None:
+        _SLOTS.pop(_ACTIVE_KEY, None)
+        _SLOTS[_ACTIVE_KEY] = _INDEX_CACHE
+        while len(_SLOTS) > _MAX_SLOTS:
+            _SLOTS.pop(next(iter(_SLOTS)))
+    _INDEX_CACHE = _SLOTS.pop(corpus_key, None)
+    # Force a fingerprint check: writes recorded while another corpus was
+    # active are not attributable, so nothing parked is trusted blindly.
+    _INDEX_GENERATION = -1
+    _VERIFIED_KEY = ""
+    _PENDING_INVALIDATIONS.clear()
+    _ACTIVE_KEY = corpus_key
+    _SLOT_SWAPS += 1
+
+
+def _get_corpus_index_keyed(
+    all_md_files_fn, search_tokens_fn, read_text_fn, trust_write_hooks,
+    stat_snapshot_fn, persist_path, corpus_key,
+) -> CorpusIndex:
+    global _INDEX_CACHE, _BUILD_HITS, _BUILD_MISSES, _INDEX_GENERATION, _FAST_HITS, _INCREMENTAL_UPDATES
+    global _VERIFIED_AT, _VERIFIED_KEY, _TTL_HITS
+
     if trust_write_hooks and corpus_key and _STAT_TTL > 0 and not _disabled():
         with _INDEX_LOCK:
             cached = _INDEX_CACHE
@@ -922,6 +973,10 @@ def reset_for_tests() -> None:
         _FAST_HITS = 0
         _PENDING_INVALIDATIONS.clear()
         _INCREMENTAL_UPDATES = 0
+        global _ACTIVE_KEY, _SLOT_SWAPS
+        _ACTIVE_KEY = ""
+        _SLOTS.clear()
+        _SLOT_SWAPS = 0
     global _STAT_TTL, _VERIFIED_AT, _VERIFIED_KEY, _TTL_HITS
     _STAT_TTL = 0.0
     _VERIFIED_AT = 0.0
@@ -942,6 +997,8 @@ def stats() -> Dict[str, Any]:
             "fast_hits": _FAST_HITS,
             "incremental_updates": _INCREMENTAL_UPDATES,
             "ttl_hits": _TTL_HITS,
+            "parked_corpora": len(_SLOTS),
+            "slot_swaps": _SLOT_SWAPS,
             "stat_ttl": _STAT_TTL,
             "write_generation": _WRITE_GENERATION,
             "index_generation": _INDEX_GENERATION,
