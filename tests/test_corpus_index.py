@@ -323,3 +323,38 @@ class TestSearchRegression:
         after = mk.search("pizza")
         assert any("charlie" in r.get("file", "").lower() for r in after), \
             f"expected Charlie's pizza note to surface, got: {after}"
+
+
+def test_switching_corpora_reuses_each_index(tmp_path):
+    """A host serving two corpora must not rebuild on every switch, and must still see edits."""
+    from memkraft import MemKraft
+    from memkraft import _corpus_index as ci
+
+    ci.reset_for_tests()
+    stores = {}
+    for name, word in (("a", "alpha"), ("b", "bravo")):
+        mk = MemKraft(str(tmp_path / name))
+        for i in range(4):
+            mk.track(f"{word.title()}{i}", source="test")
+            mk.update(f"{word.title()}{i}", f"{word} token number {i}", source="test")
+        stores[name] = mk
+
+    assert stores["a"].search("alpha token", cache=False)
+    assert stores["b"].search("bravo token", cache=False)
+    misses = ci.stats()["build_misses"]
+    for _ in range(3):
+        hits_a = stores["a"].search("alpha token", cache=False)
+        hits_b = stores["b"].search("bravo token", cache=False)
+        assert hits_a and hits_b
+        assert not any("bravo" in h["file"].lower() for h in hits_a)
+        assert not any("alpha" in h["file"].lower() for h in hits_b)
+    after = ci.stats()
+    assert after["build_misses"] == misses, "switching corpora rebuilt an unchanged index"
+    assert after["slot_swaps"] >= 6
+
+    # A file written behind the library's back while the other corpus is active is still found.
+    stores["b"].search("bravo token", cache=False)
+    target = next((tmp_path / "a").rglob("*.md")).parent / "zulu-extra.md"
+    target.write_text("# Zulu\nzulumarker unique text\n", encoding="utf-8")
+    assert any("zulu-extra" in h["file"] for h in stores["a"].search("zulumarker", cache=False))
+    ci.reset_for_tests()
