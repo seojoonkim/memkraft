@@ -259,7 +259,8 @@
         "61de0405cf31fe5889a6b6d19d31ca967d542aff",
         "086a219d4cc834ea93cfe5f2992c394d84573b40",
         "6bc43dc4370044c0c2892130a3b07591a15ac0d3",
-        "7e04700600c80884ee03286219fc0335dbe68894"
+        "7e04700600c80884ee03286219fc0335dbe68894",
+        "be7e4f9596ea938cb3dfd65fde63b1ab6c4f2951"
       ],
       "evaluation_refs": [
         {
@@ -281,6 +282,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_hermes_prefetch_prompt_preamble.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_recall_abstain_cron_prompt.py"
         }
       ],
       "id": "feature.hermes-agent-auto-bundle-4.1.0",
@@ -887,6 +893,7 @@
       "tests/test_read_cache.py",
       "tests/test_reasoning_bank.py",
       "tests/test_reasoning_bank_injection.py",
+      "tests/test_recall_abstain_cron_prompt.py",
       "tests/test_recall_diversity.py",
       "tests/test_recall_forget.py",
       "tests/test_recall_hot_path.py",
