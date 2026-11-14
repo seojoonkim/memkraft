@@ -58,3 +58,20 @@ def test_curated_and_manual_failures_are_untouched(mk):
                            lesson="Always wait for Vercel ready status before validating deploys")
     block = mk.reasoning_inject_for_task("Vercel deploy ready check")
     assert "Always wait for Vercel ready status" in block
+
+
+def test_observation_only_auto_failure_is_dropped(mk):
+    for i in range(2):
+        _auto(mk, f"r{i}", "fix the parser tests", "failure", "read_file::not-found",
+              "Avoid read_file; it failed with not-found. Task: 'fix the parser tests'.")
+        _auto(mk, f"c{i}", "fix the parser tests", "failure", "terminal:cat::tool-error",
+              "Avoid terminal:cat; it failed with tool-error. Task: 'fix the parser tests'.")
+    _auto(mk, "n0", "fix the parser tests", "failure", "terminal:npm test::AssertionError",
+          "Avoid terminal:npm test; it failed with AssertionError. Task: 'fix the parser tests'.")
+    _auto(mk, "n1", "fix the parser tests", "failure", "terminal:npm test::AssertionError",
+          "Avoid terminal:npm test; it failed with AssertionError. Task: 'fix the parser tests'.")
+    block, meta = mk.reasoning_inject_for_task("fix the parser tests", k=6, return_metadata=True)
+    assert "Avoid read_file" not in block
+    assert "Avoid terminal:cat" not in block
+    assert "Avoid terminal:npm test" in block
+    assert meta["omitted"]["unproven_auto"] >= 2
