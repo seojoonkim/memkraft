@@ -50,6 +50,26 @@ AUTO_CAPTURED_TAG = "auto-captured"
 # Auto-captured "avoid X" lessons stay in quarantine until the same failure repeats.
 # One-off tool errors (timeouts, transient not-found) are not lessons yet.
 AUTO_FAILURE_MIN_COUNT = 2
+
+# Steps an agent cannot meaningfully "avoid": reading/looking is how every task
+# starts, and successful routes never record these steps, so an auto-captured
+# "avoid read_file" lesson can never be contradicted and is never actionable.
+_OBSERVATION_STEPS = frozenset({
+    "read_file", "search_files", "vision_analyze",
+})
+_READ_ONLY_TERMINAL = frozenset({
+    "pwd", "ls", "find", "grep", "rg", "cat", "head", "tail", "du", "df",
+    "ps", "pgrep", "which", "git status", "git diff", "git log", "git show",
+    "git rev-parse",
+})
+
+
+def _is_observation_step(step: str) -> bool:
+    step = step.strip()
+    if step in _OBSERVATION_STEPS:
+        return True
+    name, _, label = step.partition(":")
+    return name == "terminal" and label.strip() in _READ_ONLY_TERMINAL
 MAX_LESSONS_PER_PATTERN = 3
 MAX_TASK_IDS_PER_PATTERN = 50
 SCHEMA_VERSION = 1
@@ -971,7 +991,9 @@ class ReasoningBankMixin:
         quarantine (its failure pattern was seen fewer than
         ``AUTO_FAILURE_MIN_COUNT`` times) or when it has been contradicted: every
         step of the failed route appears in a successful auto-captured trajectory
-        completed at the same time or later (a same-turn retry that worked).  Curated and hand-written lessons are never touched.
+        completed at the same time or later (a same-turn retry that worked), or when
+        its route is only observation steps (read_file, search_files, ``cat`` ...),
+        which no agent can act on.  Curated and hand-written lessons are never touched.
         """
         auto_ids = {
             id(h) for h in failures
@@ -1000,7 +1022,8 @@ class ReasoningBankMixin:
                     step in latest_success and latest_success[step] >= failed_at
                     for step in steps
                 )
-                if count < AUTO_FAILURE_MIN_COUNT or contradicted:
+                observation_only = bool(steps) and all(_is_observation_step(s) for s in steps)
+                if count < AUTO_FAILURE_MIN_COUNT or contradicted or observation_only:
                     dropped += 1
                     continue
             kept.append(hit)
