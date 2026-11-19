@@ -397,6 +397,24 @@ def test_recalled_turn_shows_the_date_it_was_recorded(tmp_path):
     assert "(recorded {})".format(old_day.strftime("%Y-%m-%d")) in recall
 
 
+def test_recall_lists_the_newer_value_of_a_changed_fact_first(tmp_path):
+    """A fact that changed must show its current value above the old one."""
+    provider = MemKraftMemoryProvider()
+    provider.initialize("changed", hermes_home=str(tmp_path))
+    old_day = datetime.now() - timedelta(days=40)
+    with mock.patch("memkraft.hermes_provider.datetime") as clock:
+        clock.now.return_value = old_day
+        # The older note matches the query words better, so it ranks first.
+        provider.sync_turn("PelicanQuartz deploy region is eu-west and PelicanQuartz deploy runs nightly.",
+                           "Noted.", session_id="changed-old")
+    provider.sync_turn("PelicanQuartz moved to ap-south.", "Noted.", session_id="changed-new")
+
+    recall = provider.prefetch("PelicanQuartz deploy region", session_id="changed-new")
+
+    assert "ap-south" in recall and "eu-west" in recall
+    assert recall.index("ap-south") < recall.index("eu-west")
+
+
 def test_fresh_turn_gets_the_search_recency_bonus(tmp_path):
     """The stored stamp uses the date form the scorer reads for recency."""
     provider = MemKraftMemoryProvider()
