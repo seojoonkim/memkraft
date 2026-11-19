@@ -690,6 +690,7 @@ class MemKraftMemoryProvider(MemoryProvider):
             lines.append("MemKraft recall:")
             lines.append(RECALL_DATA_NOTE)
         base = Path(getattr(self._store, "base_dir", "") or ".")
+        entries: List[tuple] = []
         for result in results:
             snippet = str(result.get("snippet") or result.get("match") or "").strip()
             source = str(result.get("file") or "memory")
@@ -701,7 +702,14 @@ class MemKraftMemoryProvider(MemoryProvider):
                     recorded = ""
                 recorded = recorded or _artifact_session_date(base, source)
                 label = "{} (recorded {})".format(source, recorded) if recorded else source
-                lines.append("- {}: {}".format(label, snippet))
+                entries.append((recorded, "- {}: {}".format(label, snippet)))
+        # Relevance picks which notes are shown; the order shown is newest
+        # first, so when a fact changed the current value is read before the
+        # old one.  Replaying 36 live Zeon queries, 27 of 35 recall blocks put
+        # an older note above a newer one (98 of 185 dated pairs).  Undated
+        # notes keep their rank order after the dated ones (stable sort).
+        entries.sort(key=lambda entry: entry[0] or "", reverse=True)
+        lines.extend(line for _, line in entries)
         recall = "\n".join(lines) if len(lines) > 2 else ""
         if reasoning:
             reasoning = "\n".join(
