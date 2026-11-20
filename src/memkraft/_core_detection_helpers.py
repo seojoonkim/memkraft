@@ -29,8 +29,31 @@ from ._regexes import (
 
 
 # ── Conflict detection ─────────────────────────────────────
+_HANGUL_RE = re.compile(r"[\uac00-\ud7a3\u3131-\u318e]+")
+_VALUE_CHAR_RE = re.compile(r"[0-9a-z]")
+_MARKUP_CHARS = "*`_"
+
+
+def _value_tokens(tokens: List[str]) -> set:
+    """Return the value-like tokens (numbers, identifiers, latin words).
+
+    Korean particles glued to a value ("#99905는", "v4.5.0이야") are stripped so
+    the same value written with a different particle is not seen as a change.
+    Pure-Hangul tokens carry wording, not values, and are ignored: a reworded
+    sentence ("바로 알려줄게" vs "알려줄게") is a paraphrase, not a conflict.
+    """
+    out = set()
+    for tok in tokens:
+        v = _HANGUL_RE.sub("", tok.lower()).strip(".,!?()[]{}`*\"'~:;")
+        if v and _VALUE_CHAR_RE.search(v):
+            out.add(v)
+    return out
+
+
 def is_opposing(old: str, new: str) -> bool:
     """Detect if two facts are opposing/contradictory."""
+    old = old.translate({ord(c): None for c in _MARKUP_CHARS})
+    new = new.translate({ord(c): None for c in _MARKUP_CHARS})
     negation_pairs = [
         ("is ", "is not "), ("is ", "isn't "),
         ("was ", "was not "), ("was ", "wasn't "),
@@ -58,8 +81,13 @@ def is_opposing(old: str, new: str) -> bool:
     if sim > 0.6 and sim < 0.95:
         old_tokens = old.split()
         new_tokens = new.split()
-        if len(old_tokens) >= 3 and len(new_tokens) >= 3:
-            if old_tokens[:2] == new_tokens[:2] and old_tokens[2:] != new_tokens[2:]:
+        if len(old_tokens) >= 3 and len(new_tokens) >= 3 and old_tokens[0] == new_tokens[0]:
+            # Same subject, near-identical sentence: only a *value* swap on
+            # both sides (3월→4월, v4.5→v4.6, staging→production) is a
+            # contradiction. Wording-only edits are paraphrases.
+            old_vals = _value_tokens(old_tokens[1:])
+            new_vals = _value_tokens(new_tokens[1:])
+            if (old_vals - new_vals) and (new_vals - old_vals):
                 return True
 
     return False
