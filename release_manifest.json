@@ -383,11 +383,13 @@
       "commits": [
         "d70bd13767421df39cc0eb9cdeb2a136f2799793",
         "e75463fedc3ee45e506865f6999d8b6dc4d4e5ef",
-        "f7d4454a22032b99da48ef8f5e4e17f869756bc2"
+        "f7d4454a22032b99da48ef8f5e4e17f869756bc2",
+        "c010add7e8b04d672ed20cf80c717497fe8af11b"
       ],
       "source_paths": [
         "src/memkraft/_core_search_helpers.py",
-        "src/memkraft/_regexes.py"
+        "src/memkraft/_regexes.py",
+        "src/memkraft/_core_detection_helpers.py"
       ],
       "evaluation_refs": [
         {
@@ -409,6 +411,11 @@
           "kind": "pytest",
           "node": "all",
           "path": "tests/test_recall_snippet_anchor.py"
+        },
+        {
+          "kind": "pytest",
+          "node": "all",
+          "path": "tests/test_conflict_paraphrase.py"
         }
       ],
       "promotion_evidence": [
@@ -835,6 +842,7 @@
       "tests/test_candidates.py",
       "tests/test_chat_derived_template_entity.py",
       "tests/test_cli_release_smoke.py",
+      "tests/test_conflict_paraphrase.py",
       "tests/test_context_compiler.py",
       "tests/test_corpus_index.py",
       "tests/test_correction_benchmark_gate.py",
