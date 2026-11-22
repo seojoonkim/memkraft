@@ -7,6 +7,7 @@ independent of Hermes Agent.
 
 from __future__ import annotations
 
+import bisect
 import hashlib
 import io
 import json
@@ -53,6 +54,50 @@ def _cohort(platform: Any, subject: Any) -> str:
     if safe_subject not in {"development", "scheduling", "health", "research", "operations", "general"}:
         safe_subject = "general"
     return "{}.{}".format(safe_platform, safe_subject)
+
+
+_SESSION_CHUNK_PREFIX = "hermes-session-"
+_TURN_START = re.compile(r"(?m)^User: ")
+
+
+def _turn_keys(text: str) -> List[str]:
+    """One whitespace-normalised 120-char key per ``User:`` turn in ``text``."""
+    starts = [m.start() for m in _TURN_START.finditer(text)]
+    return [
+        " ".join(text[start:end].split())[:120]
+        for start, end in zip(starts, starts[1:] + [len(text)])
+    ]
+
+
+def _uncovered_chunks(live_notes: Path, artifacts: Path) -> set:
+    """Names of session chunks holding a turn that no artifact repeats.
+
+    A turn cut by the chunk size limit yields a shorter key, so a chunk key is
+    covered when some artifact key starts with it.
+    """
+    chunks = sorted(live_notes.glob(_SESSION_CHUNK_PREFIX + "*.md")) if live_notes.is_dir() else []
+    if not chunks:
+        return set()
+    keys: List[str] = []
+    if artifacts.is_dir():
+        for path in artifacts.glob("*.md"):
+            keys.extend(_turn_keys(path.read_text(encoding="utf-8", errors="ignore")))
+    keys.sort()
+    uncovered = set()
+    for path in chunks:
+        for key in _turn_keys(path.read_text(encoding="utf-8", errors="ignore")):
+            at = bisect.bisect_left(keys, key)
+            if at == len(keys) or not keys[at].startswith(key):
+                uncovered.add(path.name)
+                break
+    return uncovered
+
+
+def _write_json_atomic(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name("{}.{}.tmp".format(path.name, os.getpid()))
+    tmp.write_text(json.dumps(payload), encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def _turn_file_limit() -> int:
@@ -406,6 +451,7 @@ class MemKraftMemoryProvider(MemoryProvider):
 
     def __init__(self) -> None:
         self._store: Optional[MemKraft] = None
+        self._chunks_without_artifact: set = set()
         self._session_id = ""
         self._installation_report: Optional[Dict[str, object]] = None
         self._timing_turns: Dict[int, Dict[str, Any]] = {}
@@ -464,6 +510,7 @@ class MemKraftMemoryProvider(MemoryProvider):
             pass
         with redirect_stdout(io.StringIO()):
             self._store.init(verbose=False)
+        self._exclude_duplicate_turn_chunks()
         # The owner's sayings apply to every profile, so they live in one shared
         # directory beside (not inside) the per-profile memory.
         owner_root = Path(str(kwargs.get("hermes_root") or "")) if kwargs.get("hermes_root") else None
@@ -828,12 +875,73 @@ class MemKraftMemoryProvider(MemoryProvider):
             return kept
         return demoted
 
-    def _persist_completed_turn(self, session_id: str, content: str) -> None:
-        """Append a completed Hermes turn to bounded, searchable chunks."""
+    def _exclude_duplicate_turn_chunks(self) -> None:
+        """Rank each completed turn once.
+
+        ``sync_turn`` stores every turn twice: as an artifact that carries its
+        provenance and inside a session chunk under ``live-notes/``.  Searching
+        both doubles the corpus for no extra recall, so chunks are left out of
+        ranking.  A chunk holding a turn that has no artifact stays searchable.
+        Nothing is deleted; ``MEMKRAFT_HERMES_SEARCH_CHUNKS=1`` searches both.
+        """
+        store = self._store
+        if store is None or os.environ.get("MEMKRAFT_HERMES_SEARCH_CHUNKS", "").strip() == "1":
+            return
+        try:
+            self._chunks_without_artifact.update(self._load_uncovered_chunks())
+        except (OSError, ValueError):
+            return  # cannot tell which copies match: keep searching everything
+        marker = os.sep + "live-notes" + os.sep + _SESSION_CHUNK_PREFIX
+        keep = self._chunks_without_artifact
+
+        def skip(path: str) -> bool:
+            return marker in path and os.path.basename(path) not in keep
+
+        store.search_exclude = skip
+
+    def _uncovered_state_path(self) -> Path:
+        return Path(self._store.base_dir) / ".memkraft" / "index" / "turn-chunks-without-artifact.json"
+
+    def _load_uncovered_chunks(self) -> List[str]:
+        """Chunk names with an artifact-less turn.
+
+        Stores written before this bookkeeping existed are scanned once; the
+        result is kept in a disposable state file (delete it to rescan).
+        """
+        path = self._uncovered_state_path()
+        if path.exists():
+            return list(json.loads(path.read_text(encoding="utf-8"))["chunks"])
+        store = self._store
+        with _process_lock(store.live_notes_dir / ".turn-chunks.lock"):
+            if path.exists():
+                return list(json.loads(path.read_text(encoding="utf-8"))["chunks"])
+            names = sorted(_uncovered_chunks(store.live_notes_dir, Path(store.base_dir) / "artifacts"))
+            _write_json_atomic(path, {"chunks": names})
+        return names
+
+    def _mark_chunks_uncovered(self, names: List[str]) -> None:
+        fresh = [name for name in names if name not in self._chunks_without_artifact]
+        if not fresh:
+            return
+        self._chunks_without_artifact.update(fresh)
+        path = self._uncovered_state_path()
+        with _process_lock(self._store.live_notes_dir / ".turn-chunks.lock"):
+            try:
+                known = list(json.loads(path.read_text(encoding="utf-8"))["chunks"])
+            except (OSError, ValueError, KeyError):
+                return  # no state yet: the next start scans and finds these
+            _write_json_atomic(path, {"chunks": sorted(set(known).union(fresh))})
+
+    def _persist_completed_turn(self, session_id: str, content: str, has_artifact: bool = False) -> None:
+        """Append a completed Hermes turn to bounded session chunks.
+
+        Without ``has_artifact`` the chunk is the turn's only copy, so it is
+        recorded as one that search must keep.
+        """
         if self._store is None:
             return
         digest = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:16]
-        prefix = "hermes-session-{}".format(digest)
+        prefix = "{}{}".format(_SESSION_CHUNK_PREFIX, digest)
         directory = self._store.live_notes_dir
         directory.mkdir(parents=True, exist_ok=True)
         limit = _turn_file_limit()
@@ -873,6 +981,8 @@ class MemKraftMemoryProvider(MemoryProvider):
         bump_generation = getattr(self._store, "_bump_cache_generation", None)
         if callable(bump_generation):
             bump_generation()
+        if not has_artifact:
+            self._mark_chunks_uncovered([path.name for path in changed])
 
     def sync_turn(
         self,
@@ -899,7 +1009,6 @@ class MemKraftMemoryProvider(MemoryProvider):
         content = "{}\n{}".format(_recorded_stamp(), turn)
         source_session = session_id or self._session_id or "unknown"
         source = "hermes:{}".format(source_session)
-        self._persist_completed_turn(source_session, content)
         artifact_provenance: Dict[str, Any] = {}
         artifact_provenance.update(metadata or {})
         artifact_provenance.update(provenance or {})
@@ -911,7 +1020,14 @@ class MemKraftMemoryProvider(MemoryProvider):
                 message_id = message.get("message_id", message.get("id"))
                 if message_id is not None and role in ("user", "assistant"):
                     artifact_provenance.setdefault(role + "_platform_message_id", message_id)
-        self._store.persist_artifact(content, provenance=artifact_provenance, source=source)
+        # Artifact first: a session chunk then never holds a turn that has no
+        # artifact unless the artifact write itself failed.
+        try:
+            self._store.persist_artifact(content, provenance=artifact_provenance, source=source)
+        except Exception:
+            self._persist_completed_turn(source_session, content)
+            raise
+        self._persist_completed_turn(source_session, content, has_artifact=True)
         with redirect_stdout(io.StringIO()):
             if messages is None:
                 # Preserve the pre-3.6 extraction contract for existing callers.

@@ -1232,12 +1232,12 @@ class MemKraft:
         # ``Path.read_text`` directly — mirrors the legacy semantics
         # exactly (OSError → skip the document).
         _idx = get_corpus_index(
-            self._all_md_files,
+            self._search_md_files,
             self._search_tokens,
             trust_write_hooks=True,  # v2.8.1: skip stat-scan between writes
-            stat_snapshot_fn=self._md_stat_snapshot,
+            stat_snapshot_fn=self._search_stat_snapshot,
             persist_path=self._corpus_token_cache_path(),
-            corpus_key=str(self.base_dir),
+            corpus_key=str(self.base_dir) + self._search_scope_tag(),
         )
 
         # v2.9.0 — Bloom filter early-exit (P1, no-match short circuit).
@@ -1285,7 +1285,7 @@ class MemKraft:
         if _idx.file_list:
             all_files = _idx.file_list
         else:
-            all_files = list(self._all_md_files())
+            all_files = list(self._search_md_files())
         doc_count = _idx.doc_count
         token_doc_freq: Dict[str, int] = _idx.token_doc_freq
         doc_token_freqs: Dict[Path, Dict[str, int]] = _idx.doc_token_freqs
@@ -3815,9 +3815,38 @@ class MemKraft:
     def _md_stat_snapshot(self):
         return _lh.md_stat_snapshot(self._corpus_dirs(), self.base_dir)
 
+    def _search_md_files(self):
+        """Files ``search`` ranks: the corpus minus ``search_exclude`` matches.
+
+        ``search_exclude`` is an optional ``callable(path_str) -> bool`` an
+        integration sets to keep byte-for-byte copies of the same text out of
+        ranking.  Unset (the default) means the whole corpus is searched.
+        """
+        skip = getattr(self, "search_exclude", None)
+        files = self._all_md_files()
+        if skip is None:
+            return files
+        return (md for md in files if not skip(str(md)))
+
+    def _search_stat_snapshot(self):
+        skip = getattr(self, "search_exclude", None)
+        rows = self._md_stat_snapshot()
+        if skip is None:
+            return rows
+        return [row for row in rows if not skip(row[0])]
+
     def _corpus_token_cache_path(self):
         """Disposable on-disk token cache that makes cold searches fast."""
-        return self.base_dir / ".memkraft" / "index" / "corpus-tokens-v1.bin"
+        name = "corpus-tokens-v1{}.bin".format(self._search_scope_tag())
+        return self.base_dir / ".memkraft" / "index" / name
+
+    def _search_scope_tag(self) -> str:
+        """Keeps a filtered search index apart from the whole-corpus one.
+
+        Two processes on one store (a gateway that filters, a CLI that does
+        not) would otherwise rewrite each other's cache on every search.
+        """
+        return "" if getattr(self, "search_exclude", None) is None else "-scoped"
 
     def _safe_read(self, path: Path) -> str:
         """Read file safely, returning empty string on any error.

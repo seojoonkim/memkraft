@@ -71,6 +71,13 @@ scan for 15 seconds (`MEMKRAFT_HERMES_STAT_TTL`, `0` disables); writes made by
 the provider invalidate immediately, and edits from other processes appear
 within that window.
 
+Each completed turn is stored twice: as an artifact with provenance and inside
+a `live-notes/hermes-session-*` chunk. Recall ranks the artifact only; a chunk
+holding a turn that has no artifact stays searchable. No file is deleted. Set
+`MEMKRAFT_HERMES_SEARCH_CHUNKS=1` before starting Hermes to rank both copies
+again. The bookkeeping file `.memkraft/index/turn-chunks-without-artifact.json`
+is disposable: delete it and the next start rescans.
+
 ## Privacy and storage
 
 The timing ledger stores closed-domain platform, task class, phase, outcome,
