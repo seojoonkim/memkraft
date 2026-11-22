@@ -102,7 +102,8 @@
         "09c638cdd0f9d0a40a0cf228a4bbd5cafe57e998",
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
-        "ac44aba2799c0c404d7c3b1d76044cd6aadcc03b"
+        "ac44aba2799c0c404d7c3b1d76044cd6aadcc03b",
+        "ce1f56c2dda128e2df3551b5c60107c004cd08cf"
       ],
       "evaluation_refs": [
         {
@@ -261,7 +262,8 @@
         "6bc43dc4370044c0c2892130a3b07591a15ac0d3",
         "7e04700600c80884ee03286219fc0335dbe68894",
         "10629ebe9d46b7b8d1c9421b4089f667e62288ca",
-        "fb28a91b62aeb1ad70efedda63e4aa7591afe6ea"
+        "fb28a91b62aeb1ad70efedda63e4aa7591afe6ea",
+        "ce1f56c2dda128e2df3551b5c60107c004cd08cf"
       ],
       "evaluation_refs": [
         {
@@ -885,6 +887,7 @@
       "tests/test_hermes_prefetch_prompt_preamble.py",
       "tests/test_hermes_prefetch_stub_filter.py",
       "tests/test_hermes_provider.py",
+      "tests/test_hermes_single_turn_copy.py",
       "tests/test_improvement_ledger.py",
       "tests/test_improvement_ledger_review_regressions.py",
       "tests/test_install_integrity.py",
