@@ -612,7 +612,8 @@
         "e361ba691fbbbcc69f34ea7d28610f40d69b8040",
         "dd721fca4cbc2ed4c903dcf9506151074147cf8e",
         "a59f8cd2ac77a1ed0b84a13fe0c58fe57b738ae7",
-        "922c8b20d35544393012b1a174fa5a1621b27089"
+        "922c8b20d35544393012b1a174fa5a1621b27089",
+        "debab51df3900ee0ce8d540795e475b8fdaf6efb"
       ],
       "evaluation_refs": [
         {
@@ -916,6 +917,7 @@
       "tests/test_recall_abstain_cron_prompt.py",
       "tests/test_recall_diversity.py",
       "tests/test_recall_forget.py",
+      "tests/test_recall_host_notes.py",
       "tests/test_recall_hot_path.py",
       "tests/test_recall_snippet_anchor.py",
       "tests/test_release_lineage.py",

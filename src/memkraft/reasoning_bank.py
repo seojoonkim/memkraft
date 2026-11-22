@@ -163,12 +163,43 @@ _KO_SUFFIXES = tuple(sorted({
 _HANGUL_RE = re.compile(r"[가-힣]")
 
 
+# Notes the host writes around the user's words (attachment captions, thread
+# replays, speaker tags, delegation receipts, cron preambles).  Their wording is
+# identical across unrelated turns, so matching on it pairs a task with lessons
+# from whatever other task happened to carry the same note.  Unlike a reply
+# quote, a message made only of host notes has no words of the user to fall
+# back on, so these never trigger the "return the original text" fallback.
+_HOST_NOTE_RES = (
+    # Failed attachment reads: the whole note is boilerplate.
+    (re.compile(r"\[The user sent an? \w+(?: \w+)? but [^\n]*"), " "),
+    # Successful image reads keep the description, drop the fixed lead-in.
+    (re.compile(r"\[The user sent an? \w+(?: \w+)?~ Here's what I can see:"), " "),
+    # Document notes keep only the file name.
+    (re.compile(r"\[The user sent a document: '([^'\n]*)'.*?\](?=\s*(?:\n|$))", re.S), r" \1 "),
+    (re.compile(r"\[(?:Image|File|Document|Audio) attached at: [^\]\n]*\]"), " "),
+    (re.compile(r"\[Thread context\b.*?(?:\n\s*\n|$)", re.S), " "),
+    # Delegation receipts: drop the fixed header, keep the results that follow.
+    (re.compile(r"\[ASYNC DELEGATION BATCH COMPLETE[^\]\n]*\]"), " "),
+    (re.compile(r"\[IMPORTANT: You are running as a scheduled cron job[^\n]*"), " "),
+    # Speaker tags such as "[Simon Kim (김서준) | Slack user <@U0..>]" or "[Name|12345]".
+    (re.compile(r"\[[^\[\]\n|]{1,80}\|[^\[\]\n]{1,80}\]"), " "),
+)
+
+
+def _strip_host_notes(text: str) -> str:
+    out = str(text or "")
+    for rx, repl in _HOST_NOTE_RES:
+        out = rx.sub(repl, out)
+    return out.strip()
+
+
 def _strip_quoted_context(text: str) -> str:
     """Drop host-quoted context so recall keys on the user's own words."""
     out = str(text or "")
     for rx in _QUOTED_CONTEXT_RES:
         out = rx.sub(" ", out)
-    return out.strip() or str(text or "")
+    out = out.strip() or str(text or "")
+    return _strip_host_notes(out)
 
 
 def _ko_stem(token: str) -> str:
@@ -721,9 +752,11 @@ class ReasoningBankMixin:
         for cand in candidates:
             if status_filter and cand["status"] != status_filter:
                 continue
+            # Titles were stored from raw user turns, so they carry the same host
+            # notes; lessons quote the title ("Task: '...'") and get the same strip.
             doc_text = " ".join([
-                cand["title"], cand["lesson"], cand["pattern_signature"],
-                " ".join(cand["tags"]),
+                _strip_quoted_context(cand["title"]), _strip_host_notes(cand["lesson"]),
+                cand["pattern_signature"], " ".join(cand["tags"]),
             ])
             curated = CURATED_TAG in cand["tags"]
             if curated:
