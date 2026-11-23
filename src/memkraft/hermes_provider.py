@@ -206,6 +206,9 @@ OWNER_TOOL_NAMES = (
     "owner_saying_classify",
 )
 
+EXACT_SEARCH_TOOL = "memory_exact_search"
+PROVIDER_TOOL_NAMES = OWNER_TOOL_NAMES + (EXACT_SEARCH_TOOL,)
+
 
 def _owner_tool_schemas() -> List[Dict[str, Any]]:
     def obj(props: Dict[str, Any], required: List[str]) -> Dict[str, Any]:
@@ -245,6 +248,14 @@ def _owner_tool_schemas() -> List[Dict[str, Any]]:
          "parameters": obj({"saying_id": s,
                             "level": {"type": "string", "enum": ["code", "config", "check", "prose", "oneoff"]},
                             "by": {"type": "array", "items": s}, "note": s}, ["saying_id", "level"])},
+        {"name": EXACT_SEARCH_TOOL,
+         "description": ("Find an exact phrase in your stored memory files (past turns, notes, "
+                         "decisions). Literal, case-insensitive, newest first. Use it instead of "
+                         "grepping the memory directory when you need the precise past wording."),
+         "parameters": obj({"query": s,
+                            "folder": {"type": "string",
+                                       "description": "optional subfolder, e.g. artifacts or decisions"},
+                            "limit": {"type": "integer", "minimum": 1, "maximum": 50}}, ["query"])},
     ]
 
 
@@ -1059,12 +1070,14 @@ class MemKraftMemoryProvider(MemoryProvider):
     def handle_tool_call(self, tool_name: str, args: Dict[str, Any], **kwargs: Any) -> str:
         from .owner_ledger import OwnerLedgerError
 
-        if tool_name not in OWNER_TOOL_NAMES:
+        if tool_name not in PROVIDER_TOOL_NAMES:
             return json.dumps({"success": False, "error": "unknown MemKraft tool: {}".format(tool_name)})
         if self._store is None:
             return json.dumps({"success": False, "error": "MemKraft is not initialized"})
         a = dict(args or {})
         mk = self._store
+        if tool_name == EXACT_SEARCH_TOOL:
+            return self._exact_search_tool(a)
         try:
             if tool_name == "owner_saying_search":
                 out = {"results": mk.saying_search(a.get("query", ""), scope=a.get("scope"),
@@ -1090,6 +1103,37 @@ class MemKraftMemoryProvider(MemoryProvider):
         except OwnerLedgerError as exc:
             return json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False)
         return json.dumps(dict(out, success=True), ensure_ascii=False)
+
+    def _exact_search_tool(self, a: Dict[str, Any]) -> str:
+        """Literal search over the raw memory files, with recall's safety filters.
+
+        Forgotten values and stored agent/cron prompt lines are dropped, the
+        same as in ranked recall, so this is not a way around either.
+        """
+        from ._exact_search import ExactSearchError, exact_search
+
+        base = Path(getattr(self._store, "base_dir", "") or ".")
+        try:
+            want = max(1, min(int(a.get("limit") or 10), 50))
+            out = exact_search(base, str(a.get("query") or ""), folder=a.get("folder") or None,
+                               limit=want * 3, max_line_chars=0)
+        except (ExactSearchError, TypeError, ValueError) as exc:
+            return json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False)
+        from . import recall_suppress
+
+        table = self._forgotten_table(base)
+        kept: List[Dict[str, Any]] = []
+        for row in out["results"]:
+            text = row["text"]
+            if _is_cron_boilerplate(text):
+                continue
+            if table and recall_suppress.contains_suppressed(text, table):
+                continue
+            kept.append(dict(row, text=text[:300]))
+            if len(kept) >= want:
+                break
+        out["results"] = kept
+        return json.dumps(dict(out, success=True, note=RECALL_DATA_NOTE), ensure_ascii=False)
 
     def on_session_switch(
         self,

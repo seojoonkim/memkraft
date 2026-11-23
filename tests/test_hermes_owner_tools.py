@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("agent.memory_provider", reason="Hermes Agent compatibility suite")
 
-from memkraft.hermes_provider import MemKraftMemoryProvider, OWNER_TOOL_NAMES  # noqa: E402
+from memkraft.hermes_provider import MemKraftMemoryProvider, OWNER_TOOL_NAMES, PROVIDER_TOOL_NAMES  # noqa: E402
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def _call(p, name, **args):
 
 def test_schemas_cover_every_owner_tool(provider):
     names = {s["name"] for s in provider.get_tool_schemas()}
-    assert names == set(OWNER_TOOL_NAMES)
+    assert names == set(PROVIDER_TOOL_NAMES) and set(OWNER_TOOL_NAMES) < names
     for schema in provider.get_tool_schemas():
         assert schema["description"] and schema["parameters"]["type"] == "object"
 
