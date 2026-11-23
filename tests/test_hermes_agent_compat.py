@@ -72,8 +72,8 @@ def test_provider_runs_through_hermes_v0200_manager_contract(tmp_path):
     recalled = manager.prefetch_all("Ada Lovelace", session_id="session-a")
     assert "MemKraft recall:" in recalled
     assert "Ada Lovelace" in recalled
-    from memkraft.hermes_provider import OWNER_TOOL_NAMES
-    assert {t["name"] for t in manager.get_all_tool_schemas()} == set(OWNER_TOOL_NAMES)
+    from memkraft.hermes_provider import PROVIDER_TOOL_NAMES
+    assert {t["name"] for t in manager.get_all_tool_schemas()} == set(PROVIDER_TOOL_NAMES)
 
     manager.on_session_switch("session-b", parent_session_id="session-a")
     assert provider._session_id == "session-b"

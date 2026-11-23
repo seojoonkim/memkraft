@@ -313,6 +313,7 @@
       "proposal_id": "prop.hermes-agent-auto-bundle-4.1.0",
       "revision_id": "r1",
       "source_paths": [
+        "src/memkraft/_exact_search.py",
         "src/memkraft/development_experience.py",
         "src/memkraft/hermes_provider.py"
       ],
@@ -883,6 +884,7 @@
       "tests/test_gold_retrieval_bench.py",
       "tests/test_hermes_agent_compat.py",
       "tests/test_hermes_auto_features.py",
+      "tests/test_hermes_exact_search.py",
       "tests/test_hermes_install_contract.py",
       "tests/test_hermes_owner_tools.py",
       "tests/test_hermes_prefetch_prompt_preamble.py",

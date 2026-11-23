@@ -86,6 +86,20 @@ credentials, tool arguments, full output, or absolute paths. Data stays under
 `$HERMES_HOME/memkraft` unless `MEMKRAFT_DIR` is set to another absolute local
 path. Protect that directory as private agent data.
 
+## Exact search tool
+
+`memory_exact_search` is a model tool next to the owner-ledger tools. It finds a
+literal phrase (case-insensitive) in the stored text files and returns matching
+lines with file path, line number, and file date, newest file first. Ranked
+recall returns the best-matching snippets; this returns the exact past wording,
+so an agent does not have to grep the memory directory through a shell.
+
+It reads `.md`, `.jsonl`, `.json`, and `.txt` files, skips dot-directories, and
+writes nothing. A call stops at `limit` results (default 10, maximum 50) or
+after 4 seconds; `complete: false` means it stopped early. Lines that quote a
+forgotten value and lines from a stored agent or scheduled-job prompt are left
+out, the same as in recall.
+
 ## Integrity and smoke verification
 
 The provider exposes `integration_report(run_smoke=True)`. It checks package
