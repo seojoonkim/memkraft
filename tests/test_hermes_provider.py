@@ -520,3 +520,26 @@ def test_ordinary_turn_mentioning_cron_is_stored_in_full(tmp_path):
     base = provider._store.base_dir
     stored = "\n".join(p.read_text(encoding="utf-8") for p in (base / "artifacts").glob("*.md"))
     assert "Please fix the daily cron for KestrelDune" in stored
+
+
+def test_aggregate_question_recalls_every_part_of_the_answer(tmp_path):
+    """Count/total questions need all sessions holding a part, not just five."""
+    provider = MemKraftMemoryProvider()
+    provider.initialize("agg", hermes_home=str(tmp_path))
+    inbox = tmp_path / "memkraft" / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    for i in range(8):
+        (inbox / "trip-{}.md".format(i)).write_text(
+            "# Camping trip {i}\\n\\nI went on a camping trip to park {i} for {d} days.\\n".format(i=i, d=i + 1),
+            encoding="utf-8",
+        )
+    recall = provider.prefetch("How many days did I spend on camping trips in total?", session_id="agg")
+    assert sum(1 for n in range(8) if "trip-{}.md".format(n) in recall) == 8
+
+
+def test_ordinary_question_keeps_five_note_budget(tmp_path):
+    from memkraft.hermes_provider import _recall_width
+
+    assert _recall_width("What did I say about the camping trip?") == 5
+    assert _recall_width("캠핑 몇 번 갔었지?") == 10
+    assert _recall_width("") == 5
