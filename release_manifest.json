@@ -103,7 +103,8 @@
         "d19cce2b43717d6c1499a2a96afc7ec2dfd1f3b5",
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
         "ac44aba2799c0c404d7c3b1d76044cd6aadcc03b",
-        "3bf58572ecf80c97102cd17230f26125378914fa"
+        "3bf58572ecf80c97102cd17230f26125378914fa",
+        "fca110d1cb2e8ac5e0c310b86b23cee39465264d"
       ],
       "evaluation_refs": [
         {
@@ -537,7 +538,8 @@
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
         "4304475f2182e01da7cd5244e796af65bab16901",
         "086a219d4cc834ea93cfe5f2992c394d84573b40",
-        "24ea60ada61d4aeeb0b3ddd0bb6b121ccf188fae"
+        "24ea60ada61d4aeeb0b3ddd0bb6b121ccf188fae",
+        "fca110d1cb2e8ac5e0c310b86b23cee39465264d"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
@@ -545,7 +547,8 @@
         "src/memkraft/_read_cache.py",
         "src/memkraft/store_core.py",
         "src/memkraft/derived_views.py",
-        "src/memkraft/recall_suppress.py"
+        "src/memkraft/recall_suppress.py",
+        "src/memkraft/_search_prune.py"
       ],
       "evaluation_refs": [
         {
@@ -926,6 +929,7 @@
       "tests/test_release_lineage.py",
       "tests/test_run_assessment.py",
       "tests/test_search_cache.py",
+      "tests/test_search_topk_prune.py",
       "tests/test_self_evolving.py",
       "tests/test_setup.py",
       "tests/test_sleep_governance.py",

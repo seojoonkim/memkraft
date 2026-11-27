@@ -36,6 +36,7 @@ from ._regexes import (
 
 # WS-A: helper modules extracted from core.py
 from . import _core_search_helpers as _sh
+from . import _search_prune as _sp
 from . import _core_detection_helpers as _dh
 from . import _core_lifecycle_helpers as _lh
 
@@ -1386,7 +1387,44 @@ class MemKraft:
         else:
             _all_files_iter = all_files
 
+        # v2.9.x — top-k upper-bound pruning.  Only when a small window is
+        # requested and the candidate set is large (long queries with a
+        # near-universal token).  Visible results are unchanged; see
+        # ``_search_prune``.
+        _prune = None
+        if (
+            _inverted_enabled
+            and result_limit is not None
+            and len(_all_files_iter) > _sp.PRUNE_MIN_CANDIDATES
+            and _sp.prune_enabled()
+        ):
+            _raw_q_tokens = self._search_tokens(query_lower)
+            _lin, _log, _tot = _sp.build_idf_tables(query_tokens, doc_count, token_doc_freq)
+            _interior = _raw_q_tokens[1:-1]
+            _pos = {m: i for i, m in enumerate(_all_files_iter)}
+            _bounds = {
+                m: _sp.score_upper_bound(
+                    md=m,
+                    query_lower=query_lower,
+                    query_tokens=query_tokens,
+                    interior_tokens=_interior,
+                    lin_idf=_lin,
+                    log_idf=_log,
+                    total_lin=_tot,
+                    doc_tf=doc_token_freqs.get(m),
+                )
+                for m in _all_files_iter
+            }
+            _all_files_iter = sorted(_all_files_iter, key=lambda m: (-_bounds[m], _pos[m]))
+            _prune = {"pos": _pos, "bounds": _bounds, "best": {}, "since": 0}
+
         for md in _all_files_iter:
+            if _prune is not None:
+                _prune["since"] += 1
+                if _prune["since"] >= 32:
+                    _prune["since"] = 0
+                    if _sp.can_stop(_prune["bounds"][md], _sp.kth_best(_prune["best"], int(result_limit))):
+                        break
             # v2.9: when the inverted-index candidate selection is
             # active, every doc in _all_files_iter is by construction
             # a candidate that would have passed the per-doc
@@ -1594,7 +1632,18 @@ class MemKraft:
                 }
                 if defer_token_snippet:
                     result["_deferred_token_snippet"] = True
+                if _prune is not None:
+                    result["_prune_pos"] = _prune["pos"][md]
+                    _best = _prune["best"]
+                    if result["score"] > _best.get(md.stem, -1.0):
+                        _best[md.stem] = result["score"]
                 results.append(result)
+
+        if _prune is not None:
+            # Restore file_list order so dedup / tie-breaks match a full scan.
+            results.sort(key=lambda r: r["_prune_pos"])
+            for r in results:
+                r.pop("_prune_pos", None)
 
         # ── v2.4: Search dedup — group by entity slug, keep highest score ──
         seen_entities: Dict[str, Dict[str, Any]] = {}
