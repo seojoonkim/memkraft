@@ -104,7 +104,7 @@
         "a0fd7b630e1bcc902bb75e526e6ab3b58b18e1f5",
         "ac44aba2799c0c404d7c3b1d76044cd6aadcc03b",
         "3bf58572ecf80c97102cd17230f26125378914fa",
-        "fca110d1cb2e8ac5e0c310b86b23cee39465264d"
+        "8c38e3c63ab2eab04f716584fa5f5c2adb8b677f"
       ],
       "evaluation_refs": [
         {
@@ -539,7 +539,7 @@
         "4304475f2182e01da7cd5244e796af65bab16901",
         "086a219d4cc834ea93cfe5f2992c394d84573b40",
         "24ea60ada61d4aeeb0b3ddd0bb6b121ccf188fae",
-        "fca110d1cb2e8ac5e0c310b86b23cee39465264d"
+        "8c38e3c63ab2eab04f716584fa5f5c2adb8b677f"
       ],
       "source_paths": [
         "src/memkraft/_corpus_index.py",
